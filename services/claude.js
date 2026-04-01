@@ -117,6 +117,24 @@ Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
   }
 }
 
+/* ── Non-streaming response (for Instagram DMs) ───────────────── */
+async function getChatResponseText(widget, knowledgeItems, history, userMessage) {
+  const systemPrompt = buildSystemPrompt(widget, knowledgeItems);
+  const messages = [
+    ...history.map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userMessage },
+  ];
+
+  const response = await client.messages.create({
+    model: 'claude-opus-4-6',
+    max_tokens: 600,
+    system: systemPrompt,
+    messages,
+  });
+
+  return response.content.find(b => b.type === 'text')?.text?.trim() || '';
+}
+
 /* ── AI conversation summary for leads ────────────────────────── */
 async function summarizeConversation(messages) {
   if (!messages || messages.length === 0) return null;
@@ -151,4 +169,4 @@ function safeParseJSON(str, fallback) {
   try { return JSON.parse(str); } catch { return fallback; }
 }
 
-module.exports = { streamChatResponse, generateSuggestedQuestions, summarizeConversation };
+module.exports = { streamChatResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation };

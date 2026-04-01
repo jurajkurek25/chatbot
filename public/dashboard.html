@@ -38,6 +38,9 @@
       <button class="nav-item" onclick="showTab('embed')" id="nav-embed">
         <span class="nav-icon">🔗</span> Embed kód
       </button>
+      <button class="nav-item" onclick="showTab('instagram')" id="nav-instagram">
+        <span class="nav-icon">📱</span> Instagram
+      </button>
     </div>
 
     <div class="sidebar-footer" id="sidebar-footer">
@@ -282,6 +285,95 @@
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- Instagram Tab -->
+        <div id="tab-instagram" class="tab-panel">
+
+          <!-- Status card -->
+          <div class="panel" style="margin-bottom:1.5rem" id="ig-panel-disconnected">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">📱 Instagram DM Bot</div>
+                <div class="panel-subtitle">Prepojte Instagram účet – bot bude reagovať na kľúčové slová v komentároch a viesť DM konverzácie</div>
+              </div>
+            </div>
+
+            <div class="ig-how-it-works" style="margin-bottom:1.5rem">
+              <div class="ig-step"><span class="ig-step-num">1</span><span>Niekto napíše kľúčové slovo do komentára na vašom Instagrame</span></div>
+              <div class="ig-step"><span class="ig-step-num">2</span><span>Bot mu automaticky pošle DM s uvítacou správou</span></div>
+              <div class="ig-step"><span class="ig-step-num">3</span><span>Claude AI odpovedá na jeho otázky na základe vašej znalostnej bázy</span></div>
+              <div class="ig-step"><span class="ig-step-num">4</span><span>Zahreje zákazníka a konvertuje ho (zavolanie, kontakt, nákup)</span></div>
+            </div>
+
+            <div class="ig-requirements">
+              <div class="ig-req-title">⚠️ Čo potrebujete</div>
+              <ul>
+                <li>Instagram <strong>Business alebo Creator</strong> účet</li>
+                <li>Facebook Stránka prepojená s Instagram účtom</li>
+                <li>Facebook App (<a href="https://developers.facebook.com" target="_blank" rel="noopener">developers.facebook.com</a>) s oprávneniami na správy</li>
+                <li>Vyplnené <code>META_APP_ID</code> a <code>META_APP_SECRET</code> v .env</li>
+              </ul>
+            </div>
+
+            <button class="btn btn-primary ig-connect-btn" onclick="connectInstagram()" id="btn-ig-connect">
+              <span>📱 Prepojiť Instagram</span>
+            </button>
+          </div>
+
+          <!-- Connected state -->
+          <div class="panel" style="margin-bottom:1.5rem;display:none" id="ig-panel-connected">
+            <div class="panel-header">
+              <div style="display:flex;align-items:center;gap:0.75rem">
+                <div class="ig-avatar" id="ig-avatar-initials">IG</div>
+                <div>
+                  <div class="panel-title" id="ig-connected-name">@username</div>
+                  <div class="panel-subtitle" id="ig-connected-page">Facebook Stránka</div>
+                </div>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center">
+                <span class="ig-connected-badge">✅ Prepojené</span>
+                <button class="btn btn-sm btn-danger" onclick="disconnectInstagram()">Odpojiť</button>
+              </div>
+            </div>
+
+            <div class="ig-stats" id="ig-stats">
+              <div class="ig-stat">
+                <div class="ig-stat-num" id="ig-stat-sessions">0</div>
+                <div class="ig-stat-label">DM konverzácií</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Settings (shown when connected) -->
+          <div class="panel" style="margin-bottom:1.5rem;display:none" id="ig-panel-settings">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Nastavenia</div>
+              </div>
+              <button class="btn btn-primary" onclick="saveInstagramSettings()">Uložiť</button>
+            </div>
+
+            <div class="form-group">
+              <label>Kľúčové slová (trigger)</label>
+              <div class="hint" style="margin-bottom:0.5rem">Keď niekto napíše toto slovo do komentára, bot mu pošle DM. Oddeľte Enterom.</div>
+              <textarea class="form-control" id="ig-keywords" rows="4"
+                placeholder="INFO&#10;CENA&#10;CHCEM&#10;ZÁUJEM&#10;ZĽAVA"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Uvítacia DM správa</label>
+              <div class="hint" style="margin-bottom:0.5rem">Prvá správa, ktorú bot pošle zákazníkovi po kľúčovom slove.</div>
+              <textarea class="form-control" id="ig-welcome-dm" rows="3"
+                placeholder="Ahoj! 👋 Videl som tvoj komentár. Som tu, ak máš otázky – napíš mi čo ťa zaujíma!"></textarea>
+            </div>
+
+            <div class="hint" style="background:#fef9c3;border:1px solid #fde68a;padding:0.75rem 1rem;border-radius:8px;margin-top:0.5rem">
+              <strong>Webhook URL</strong> pre Meta App:<br>
+              <code id="ig-webhook-url" style="font-size:0.82rem;user-select:all"></code>
+            </div>
+          </div>
+
         </div>
 
         <!-- Embed Tab -->

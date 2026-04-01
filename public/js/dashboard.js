@@ -108,14 +108,14 @@ function showView(view) {
 
 function showTab(tab) {
   currentTab = tab;
-  ['settings','knowledge','questions','embed'].forEach(t => {
-    document.getElementById(`tab-${t}`).classList.toggle('active', t === tab);
-    const nav = document.getElementById(`nav-${t}`);
-    if (nav) nav.classList.toggle('active', t === tab);
+  ['settings','knowledge','questions','embed','instagram'].forEach(t => {
+    document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
+    document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
 
   if (tab === 'knowledge') loadKnowledge();
   if (tab === 'embed') loadEmbedCode();
+  if (tab === 'instagram') loadInstagramStatus();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -714,5 +714,125 @@ function updateLeadsBadge(count) {
     badge.style.display = '';
   } else {
     badge.style.display = 'none';
+  }
+}
+
+/* ── Instagram ─────────────────────────────────────────────────── */
+
+async function loadInstagramStatus() {
+  if (!currentWidget) return;
+
+  // Set webhook URL hint
+  const webhookEl = document.getElementById('ig-webhook-url');
+  if (webhookEl) webhookEl.textContent = `${window.location.origin}/api/instagram/webhook`;
+
+  try {
+    const r = await apiFetch(`/api/instagram/status/${currentWidget.id}`);
+    if (!r) return;
+    const data = await r.json();
+
+    const panelDisconnected = document.getElementById('ig-panel-disconnected');
+    const panelConnected = document.getElementById('ig-panel-connected');
+    const panelSettings = document.getElementById('ig-panel-settings');
+
+    if (data.connected) {
+      panelDisconnected.style.display = 'none';
+      panelConnected.style.display = '';
+      panelSettings.style.display = '';
+
+      document.getElementById('ig-connected-name').textContent = data.ig_username ? `@${data.ig_username}` : 'Instagram účet';
+      document.getElementById('ig-connected-page').textContent = data.page_name || 'Facebook Stránka';
+      document.getElementById('ig-avatar-initials').textContent =
+        (data.ig_username || 'IG').slice(0, 2).toUpperCase();
+      document.getElementById('ig-stat-sessions').textContent = data.dm_sessions || 0;
+
+      // Populate settings
+      document.getElementById('ig-keywords').value = (data.keyword_triggers || []).join('\n');
+      document.getElementById('ig-welcome-dm').value = data.dm_welcome_msg || '';
+    } else {
+      panelDisconnected.style.display = '';
+      panelConnected.style.display = 'none';
+      panelSettings.style.display = 'none';
+    }
+
+    // Handle redirect params from OAuth callback
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('ig_connected') === '1') {
+      showToast('Instagram bol úspešne prepojený! ✅');
+      window.history.replaceState({}, '', '/dashboard');
+    }
+    if (params.get('ig_error')) {
+      const errMap = {
+        cancelled: 'Prepojenie bolo zrušené.',
+        no_ig_account: 'Facebook Stránka nemá pripojený Instagram Business účet.',
+        oauth: 'Chyba pri autorizácii. Skúste znovu.',
+      };
+      showToast(errMap[params.get('ig_error')] || 'Chyba pri prepojení Instagramu.', 'error');
+      window.history.replaceState({}, '', '/dashboard');
+    }
+  } catch (err) {
+    console.error('loadInstagramStatus error:', err);
+  }
+}
+
+async function connectInstagram() {
+  if (!currentWidget) return;
+  const btn = document.getElementById('btn-ig-connect');
+  btn.disabled = true;
+  btn.innerHTML = '<span>⏳ Presmerovávam...</span>';
+
+  try {
+    const r = await apiFetch(`/api/instagram/auth-url/${currentWidget.id}`);
+    if (!r) { btn.disabled = false; btn.innerHTML = '<span>📱 Prepojiť Instagram</span>'; return; }
+    const data = await r.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      showToast(data.error || 'Chyba pri generovaní odkazu.', 'error');
+      btn.disabled = false;
+      btn.innerHTML = '<span>📱 Prepojiť Instagram</span>';
+    }
+  } catch {
+    showToast('Sieťová chyba.', 'error');
+    btn.disabled = false;
+    btn.innerHTML = '<span>📱 Prepojiť Instagram</span>';
+  }
+}
+
+async function disconnectInstagram() {
+  if (!currentWidget) return;
+  if (!confirm('Odpojiť Instagram? Bot prestane reagovať na komentáre.')) return;
+
+  try {
+    const r = await apiFetch(`/api/instagram/disconnect/${currentWidget.id}`, { method: 'DELETE' });
+    if (!r) return;
+    showToast('Instagram bol odpojený.');
+    loadInstagramStatus();
+  } catch {
+    showToast('Chyba pri odpájaní.', 'error');
+  }
+}
+
+async function saveInstagramSettings() {
+  if (!currentWidget) return;
+
+  const keywordsRaw = document.getElementById('ig-keywords')?.value || '';
+  const keywords = keywordsRaw
+    .split('\n')
+    .map(k => k.trim().toLowerCase())
+    .filter(Boolean);
+
+  const welcomeDm = document.getElementById('ig-welcome-dm')?.value?.trim() || '';
+
+  try {
+    const r = await apiFetch(`/api/instagram/settings/${currentWidget.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ keyword_triggers: keywords, dm_welcome_msg: welcomeDm })
+    });
+    if (!r) return;
+    showToast('Instagram nastavenia uložené.');
+  } catch {
+    showToast('Chyba pri ukladaní.', 'error');
   }
 }

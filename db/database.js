@@ -96,6 +96,31 @@ function initDatabase() {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    CREATE TABLE IF NOT EXISTS instagram_connections (
+      id TEXT PRIMARY KEY,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      ig_user_id TEXT NOT NULL,
+      ig_username TEXT,
+      page_id TEXT NOT NULL,
+      page_name TEXT,
+      page_access_token TEXT NOT NULL,
+      keyword_triggers TEXT NOT NULL DEFAULT '[]',
+      dm_welcome_msg TEXT,
+      connected_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(widget_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS instagram_dm_sessions (
+      id TEXT PRIMARY KEY,
+      connection_id TEXT NOT NULL REFERENCES instagram_connections(id) ON DELETE CASCADE,
+      igsid TEXT NOT NULL,
+      sender_username TEXT,
+      history TEXT NOT NULL DEFAULT '[]',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(connection_id, igsid)
+    );
+
     CREATE TABLE IF NOT EXISTS leads (
       id TEXT PRIMARY KEY,
       widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,

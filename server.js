@@ -11,6 +11,7 @@ const widgetRoutes = require('./routes/widgets');
 const knowledgeRoutes = require('./routes/knowledge');
 const chatRoutes = require('./routes/chat');
 const stripeRoutes = require('./routes/stripe');
+const instagramRoutes = require('./routes/instagram');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,6 +34,7 @@ app.use('/api/widgets', widgetRoutes);
 app.use('/api/knowledge', knowledgeRoutes);
 app.use('/api/widget', chatRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/instagram', instagramRoutes);
 
 // Page routes
 app.get('/dashboard', (req, res) =>
