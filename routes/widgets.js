@@ -124,6 +124,13 @@ router.get('/:id/embed-code', (req, res) => {
   res.json({ code });
 });
 
+// POST /api/widgets/complete-onboarding — mark onboarding done
+router.post('/complete-onboarding', (req, res) => {
+  const db = getDb();
+  db.prepare('UPDATE users SET onboarding_done = 1 WHERE id = ?').run(req.userId);
+  res.json({ success: true });
+});
+
 function getOwnedWidget(widgetId, userId) {
   const db = getDb();
   return db.prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(widgetId, userId);

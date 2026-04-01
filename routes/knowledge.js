@@ -7,6 +7,7 @@ const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
 const { parseFile, cleanupFile } = require('../services/fileParser');
+const { generateSuggestedQuestions } = require('../services/claude');
 
 const router = express.Router();
 
@@ -119,5 +120,28 @@ function ownsWidget(widgetId, userId) {
   const db = getDb();
   return Boolean(db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(widgetId, userId));
 }
+
+// POST /api/knowledge/:widgetId/suggest-questions — AI generates questions from knowledge base
+router.post('/:widgetId/suggest-questions', async (req, res) => {
+  if (!ownsWidget(req.params.widgetId, req.userId)) {
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  }
+
+  const db = getDb();
+  const items = db.prepare(
+    'SELECT title, content FROM knowledge_items WHERE widget_id = ? ORDER BY created_at DESC LIMIT 6'
+  ).all(req.params.widgetId);
+
+  if (!items.length) return res.json({ questions: [] });
+
+  const widget = db.prepare('SELECT goals, cta_type FROM widgets WHERE id = ?').get(req.params.widgetId);
+
+  try {
+    const questions = await generateSuggestedQuestions(items, widget?.goals, widget?.cta_type);
+    res.json({ questions });
+  } catch (err) {
+    res.status(500).json({ error: 'Chyba pri generovaní otázok.' });
+  }
+});
 
 module.exports = router;

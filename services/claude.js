@@ -4,72 +4,49 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-/**
- * Build system prompt from widget config and relevant knowledge items.
- */
+/* ── System prompt builder ─────────────────────────────────────── */
 function buildSystemPrompt(widget, knowledgeItems) {
-  const config = {
-    ctaConfig: safeParseJSON(widget.cta_config, {}),
-  };
+  const cfg = safeParseJSON(widget.cta_config, {});
 
   let knowledgeSection = '';
   if (knowledgeItems.length > 0) {
-    knowledgeSection = `\n\n## ZNALOSTNÁ BÁZA (Knowledge Base)\n`;
+    knowledgeSection = '\n\n## ZNALOSTNÁ BÁZA\n';
     knowledgeItems.forEach((item, i) => {
       knowledgeSection += `\n### ${i + 1}. ${item.title}\n${item.content}\n`;
     });
   }
 
-  let ctaInstruction = '';
-  switch (widget.cta_type) {
-    case 'call':
-      ctaInstruction = `\n\n## VÝZVA K AKCII\nKeď zákazník prejaví záujem alebo je pripravený konať, prirodzene ho vyzvi, aby zavolal na číslo: ${config.ctaConfig.phone || ''}. Nezabudni na to pri vhodnej príležitosti.`;
-      break;
-    case 'contact':
-      ctaInstruction = `\n\n## VÝZVA K AKCII\nKeď zákazník prejaví záujem alebo je pripravený konať, ponúkni mu možnosť zanechať kontaktné údaje. Povedz mu, že kliknutím na tlačidlo nižšie môže zanechať svoje meno a email a ozveme sa mu.`;
-      break;
-    case 'custom':
-      ctaInstruction = `\n\n## VÝZVA K AKCII\n${config.ctaConfig.text || ''}`;
-      break;
-    default:
-      ctaInstruction = '';
-  }
+  const ctaInstructions = {
+    call: `\n\n## KONVERZNÝ CIEĽ – TELEFONÁT\nTvoj hlavný cieľ je presvedčiť zákazníka, aby zavolal na číslo ${cfg.phone || '[číslo]'}. Keď zákazník prejaví záujem, pochváliš ho a prirodzene navrhnúť zavolanie. Použi frázy ako "Pre rýchle riešenie vám odporúčam zavolať priamo na ${cfg.phone || 'naše číslo'}."`,
+    contact: `\n\n## KONVERZNÝ CIEĽ – KONTAKTNÝ FORMULÁR\nTvoj hlavný cieľ je získať kontaktné údaje zákazníka (meno + email/telefón). Keď zákazník prejaví záujem alebo položí konkrétnu otázku, ponúkni mu možnosť zanechať kontakt – "Rád vám pošlem viac informácií, stačí zanechať kontakt kliknutím nižšie."`,
+    purchase: `\n\n## KONVERZNÝ CIEĽ – NÁKUP\nTvoj hlavný cieľ je presvedčiť zákazníka ku kúpe. ${cfg.link ? `Odkáž ho na: ${cfg.link}` : ''} Zdôrazni hodnotu produktu, odpovedaj na námietky a na konci vyzvi k akcii.`,
+    order: `\n\n## KONVERZNÝ CIEĽ – OBJEDNÁVKA\nTvoj hlavný cieľ je doviesť zákazníka k objednávke. ${cfg.details || ''} Pomôž mu vybrať, odpovedaj na otázky a vyzvi ho k objednaniu.`,
+    custom: cfg.text ? `\n\n## KONVERZNÝ CIEĽ\n${cfg.text}` : '',
+    none: '',
+  };
 
   let goalsSection = '';
-  if (widget.goals && widget.goals.trim()) {
-    goalsSection = `\n\n## CIELE A ZAMERANIE\n${widget.goals}`;
+  if (widget.goals?.trim()) {
+    goalsSection = `\n\n## KONTEXT BIZNISU\n${widget.goals}`;
   }
 
-  return `Si ${widget.bot_name}, inteligentný asistent pre zákazníkov. Tvoja úloha je pomáhať návštevníkom webovej stránky, odpovedať na ich otázky a sprevádzať ich na ich ceste zákazníka.
+  return `Si ${widget.bot_name}, inteligentný AI asistent. Pomáhaš zákazníkom a vedieš ich k akcii.
 
 ## PRAVIDLÁ
-- Odpovedaj len na základe znalostnej bázy nižšie. Ak informácia nie je k dispozícii, povez to slušne.
-- Buď priateľský, profesionálny a stručný.
-- Odpovedaj v jazyku, v ktorom sa zákazník pýta (slovenčina, čeština, angličtina, atď.).
-- Nikdy si nevymýšľaj fakty, ceny ani kontaktné informácie.
-- Postupne veď zákazníka k akcii.${goalsSection}${knowledgeSection}${ctaInstruction}`;
+- Odpovedaj výhradne na základe znalostnej bázy. Ak informácia chýba, povedz to slušne.
+- Buď priateľský, konkrétny a stručný (max 3–4 vety na odpoveď).
+- Odpovedaj v jazyku zákazníka (sk/cs/en atď.).
+- Nikdy si nevymýšľaj fakty, ceny ani kontakty.
+- Aktívne veď zákazníka k cieľu konverzie.${goalsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}`;
 }
 
-function safeParseJSON(str, fallback) {
-  try {
-    return JSON.parse(str);
-  } catch {
-    return fallback;
-  }
-}
-
-/**
- * Stream a Claude response via SSE.
- * Calls res.write() for each text delta and res.end() when done.
- */
-async function streamChatResponse(widget, knowledgeItems, conversationHistory, userMessage, res) {
+/* ── Streaming chat response ───────────────────────────────────── */
+async function streamChatResponse(widget, knowledgeItems, history, userMessage, res) {
   const systemPrompt = buildSystemPrompt(widget, knowledgeItems);
-
-  const messages = conversationHistory.map(m => ({
-    role: m.role,
-    content: m.content,
-  }));
-  messages.push({ role: 'user', content: userMessage });
+  const messages = [
+    ...history.map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userMessage },
+  ];
 
   let fullResponse = '';
 
@@ -81,21 +58,67 @@ async function streamChatResponse(widget, knowledgeItems, conversationHistory, u
   });
 
   for await (const event of stream) {
-    if (
-      event.type === 'content_block_delta' &&
-      event.delta.type === 'text_delta'
-    ) {
-      const text = event.delta.text;
-      fullResponse += text;
-      res.write(`data: ${JSON.stringify({ text })}\n\n`);
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      fullResponse += event.delta.text;
+      res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
     }
   }
 
-  // Send done signal with the complete response for saving to DB
   res.write(`data: ${JSON.stringify({ done: true, fullText: fullResponse })}\n\n`);
   res.end();
-
   return fullResponse;
 }
 
-module.exports = { streamChatResponse, buildSystemPrompt };
+/* ── AI-generated suggested questions ─────────────────────────── */
+async function generateSuggestedQuestions(knowledgeItems, goals, ctaType) {
+  if (!knowledgeItems.length) return [];
+
+  const knowledgeSummary = knowledgeItems
+    .slice(0, 5)
+    .map(k => `${k.title}: ${k.content.slice(0, 400)}`)
+    .join('\n\n');
+
+  const ctaHint = {
+    call: 'Zákazník má byť nakoniec motivovaný zavolať.',
+    contact: 'Zákazník má na konci zanechať kontaktné údaje.',
+    purchase: 'Zákazník má byť motivovaný ku kúpe.',
+    order: 'Zákazník má podať objednávku.',
+    custom: '',
+    none: '',
+  }[ctaType] || '';
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: `Na základe nasledujúcich informácií o biznise navrhni 5 krátkych otázok, ktoré by zákazník mohol položiť chatbotovi. Otázky musia byť krátke (max 8 slov), konkrétne a prirodzené.
+
+Cieľ biznisu: ${goals || 'pomôcť zákazníkom'}
+${ctaHint}
+
+Znalostná báza:
+${knowledgeSummary}
+
+Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
+["Aké sú vaše ceny?", "Kde sa nachádzate?", "Ako funguje doručenie?", "Čo ponúkate?", "Máte zľavy?"]`,
+      }],
+    });
+
+    const text = response.content.find(b => b.type === 'text')?.text || '[]';
+    const match = text.match(/\[[\s\S]*\]/);
+    if (!match) return [];
+    const qs = JSON.parse(match[0]);
+    return Array.isArray(qs) ? qs.slice(0, 6).map(q => String(q).slice(0, 80)) : [];
+  } catch (err) {
+    console.error('generateSuggestedQuestions error:', err.message);
+    return [];
+  }
+}
+
+function safeParseJSON(str, fallback) {
+  try { return JSON.parse(str); } catch { return fallback; }
+}
+
+module.exports = { streamChatResponse, generateSuggestedQuestions };

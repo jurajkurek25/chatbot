@@ -4,243 +4,379 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NeuraDeskApp – AI Chatbot pre váš web</title>
-  <link rel="stylesheet" href="/css/style.css">
-  <style>
-    body { background: #f0f4ff; min-height: 100vh; display: flex; flex-direction: column; }
-    .landing-hero {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem;
-      text-align: center;
-    }
-    .landing-logo {
-      font-size: 2.5rem;
-      font-weight: 800;
-      color: #2563eb;
-      margin-bottom: 0.5rem;
-      letter-spacing: -1px;
-    }
-    .landing-tagline {
-      font-size: 1.15rem;
-      color: #64748b;
-      margin-bottom: 2.5rem;
-      max-width: 480px;
-    }
-    .auth-card {
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(37,99,235,0.10);
-      padding: 2.5rem 2rem;
-      width: 100%;
-      max-width: 420px;
-    }
-    .auth-tabs {
-      display: flex;
-      margin-bottom: 1.5rem;
-      border-bottom: 2px solid #e2e8f0;
-      gap: 0;
-    }
-    .auth-tab {
-      flex: 1;
-      padding: 0.7rem;
-      background: none;
-      border: none;
-      font-size: 1rem;
-      font-weight: 600;
-      color: #94a3b8;
-      cursor: pointer;
-      border-bottom: 3px solid transparent;
-      margin-bottom: -2px;
-      transition: color 0.2s, border-color 0.2s;
-    }
-    .auth-tab.active {
-      color: #2563eb;
-      border-bottom-color: #2563eb;
-    }
-    .auth-form { display: none; }
-    .auth-form.active { display: block; }
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.4rem; }
-    .form-group input {
-      width: 100%;
-      padding: 0.65rem 0.9rem;
-      border: 1.5px solid #d1d5db;
-      border-radius: 8px;
-      font-size: 1rem;
-      outline: none;
-      box-sizing: border-box;
-      transition: border-color 0.2s;
-    }
-    .form-group input:focus { border-color: #2563eb; }
-    .btn-primary {
-      width: 100%;
-      padding: 0.75rem;
-      background: #2563eb;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      margin-top: 0.5rem;
-      transition: background 0.2s;
-    }
-    .btn-primary:hover { background: #1d4ed8; }
-    .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
-    .error-msg { color: #dc2626; font-size: 0.875rem; margin-top: 0.75rem; text-align: center; }
-    .features {
-      display: flex;
-      gap: 1.5rem;
-      margin-bottom: 2.5rem;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    .feature {
-      background: white;
-      border-radius: 12px;
-      padding: 1.25rem 1.5rem;
-      text-align: left;
-      max-width: 200px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
-    .feature-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
-    .feature h3 { font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0 0 0.25rem; }
-    .feature p { font-size: 0.82rem; color: #64748b; margin: 0; }
-  </style>
+  <meta name="description" content="Inteligentný AI chatbot, ktorý zahreje zákazníkov a optimalizuje customer journey. Nahrajte know-how, vložte kód a sledujte, ako rastú konverzie.">
+  <link rel="stylesheet" href="/css/landing.css">
 </head>
 <body>
-  <div class="landing-hero">
-    <div class="landing-logo">NeuraDeskApp</div>
-    <p class="landing-tagline">Inteligentný AI chatbot, ktorý zahreje zákazníkov a optimalizuje customer journey na vašom webe.</p>
 
-    <div class="features">
-      <div class="feature">
-        <div class="feature-icon">🧠</div>
-        <h3>Vlastné znalosti</h3>
-        <p>Nahrajte PDF, texty a dokumenty o vašom biznise.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">💬</div>
-        <h3>Inteligentný chat</h3>
-        <p>Claude AI odpovedá na základe vašich podkladov.</p>
-      </div>
-      <div class="feature">
-        <div class="feature-icon">🎯</div>
-        <h3>Embed kód</h3>
-        <p>Jeden riadok kódu a chatbot je na vašom webe.</p>
-      </div>
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="nav-logo">Neura<span>Desk</span></div>
+    <div class="nav-links">
+      <a href="#features">Funkcie</a>
+      <a href="#how">Ako to funguje</a>
+      <a href="#pricing">Cena</a>
     </div>
-
-    <div class="auth-card">
-      <div class="auth-tabs">
-        <button class="auth-tab active" onclick="switchTab('login')">Prihlásiť sa</button>
-        <button class="auth-tab" onclick="switchTab('register')">Registrácia</button>
-      </div>
-
-      <!-- Login Form -->
-      <form class="auth-form active" id="login-form" onsubmit="handleLogin(event)">
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" name="email" required autocomplete="email" placeholder="vas@email.sk">
-        </div>
-        <div class="form-group">
-          <label>Heslo</label>
-          <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
-        </div>
-        <button type="submit" class="btn-primary" id="login-btn">Prihlásiť sa</button>
-        <div class="error-msg" id="login-error"></div>
-      </form>
-
-      <!-- Register Form -->
-      <form class="auth-form" id="register-form" onsubmit="handleRegister(event)">
-        <div class="form-group">
-          <label>Meno a priezvisko</label>
-          <input type="text" name="name" required placeholder="Ján Novák">
-        </div>
-        <div class="form-group">
-          <label>Email</label>
-          <input type="email" name="email" required autocomplete="email" placeholder="vas@email.sk">
-        </div>
-        <div class="form-group">
-          <label>Heslo</label>
-          <input type="password" name="password" required autocomplete="new-password" placeholder="Minimálne 8 znakov">
-        </div>
-        <button type="submit" class="btn-primary" id="register-btn">Vytvoriť účet</button>
-        <div class="error-msg" id="register-error"></div>
-      </form>
+    <div class="nav-cta">
+      <button class="btn-ghost" onclick="showAuth('login')">Prihlásiť sa</button>
+      <button class="btn-nav-primary" onclick="showAuth('register')">Začať zadarmo</button>
     </div>
   </div>
+</nav>
 
-  <script>
-    // Redirect if already logged in
-    if (localStorage.getItem('nd_token')) {
-      window.location.href = '/dashboard';
-    }
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">🚀 Spustite chatbota za 10 minút</div>
+  <h1 class="hero-h1">AI chatbot, ktorý<br><span class="gradient-text">konvertuje návštevníkov</span><br>na zákazníkov</h1>
+  <p class="hero-sub">Nahrajte vaše know-how. Nastavte cieľ konverzie – hovor, formulár, nákup. Vložte jeden riadok kódu. Chatbot sa postará o zvyšok.</p>
+  <div class="hero-actions">
+    <button class="btn-hero-primary" onclick="showAuth('register')">Vyskúšať za €15/mesiac</button>
+    <a href="#how" class="btn-hero-ghost">Pozrieť demo ↓</a>
+  </div>
+  <div class="hero-proof">
+    <span>✓ Bez kreditnej karty pri registrácii</span>
+    <span>✓ Zrušenie kedykoľvek</span>
+    <span>✓ Nastavenie za 10 minút</span>
+  </div>
 
-    function switchTab(tab) {
-      document.querySelectorAll('.auth-tab').forEach((t, i) => {
-        t.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'));
+  <!-- Floating widget preview -->
+  <div class="hero-demo">
+    <div class="demo-browser">
+      <div class="demo-browser-bar">
+        <span class="demo-dot red"></span><span class="demo-dot yellow"></span><span class="demo-dot green"></span>
+        <div class="demo-url">vasaweb.sk</div>
+      </div>
+      <div class="demo-content">
+        <div class="demo-page-lines">
+          <div class="demo-line w80"></div>
+          <div class="demo-line w60"></div>
+          <div class="demo-line w90"></div>
+          <div class="demo-line w50"></div>
+        </div>
+        <!-- Animated chat widget -->
+        <div class="demo-widget">
+          <div class="demo-widget-header">
+            <div class="demo-avatar">🤖</div>
+            <div>
+              <div class="demo-name">Sofia</div>
+              <div class="demo-status">● Online</div>
+            </div>
+          </div>
+          <div class="demo-messages">
+            <div class="demo-msg bot anim-1">Ahoj! Môžem vám pomôcť vybrať správny produkt? 👋</div>
+            <div class="demo-chips anim-2">
+              <div class="demo-chip">Aké sú ceny?</div>
+              <div class="demo-chip">Ako to funguje?</div>
+            </div>
+            <div class="demo-msg user anim-3">Aké sú ceny?</div>
+            <div class="demo-msg bot anim-4">Základný plán začína od €29/mes. Zahŕňa... <span class="demo-cursor">|</span></div>
+          </div>
+          <div class="demo-cta-bar">✉️ Zanechajte kontakt</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGOS -->
+<section class="logos-section">
+  <p class="logos-label">Funguje na akejkoľvek webstránke</p>
+  <div class="logos-row">
+    <div class="logo-pill">WordPress</div>
+    <div class="logo-pill">Shopify</div>
+    <div class="logo-pill">Webflow</div>
+    <div class="logo-pill">Wix</div>
+    <div class="logo-pill">HTML stránky</div>
+    <div class="logo-pill">React / Next.js</div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section" id="features">
+  <div class="section-label">Funkcie</div>
+  <h2 class="section-h2">Všetko, čo potrebujete<br>pre inteligentný chatbot</h2>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🧠</div>
+      <h3>Vlastná znalostná báza</h3>
+      <p>Nahrajte PDF, texty, cenníky, FAQ. AI chatbot odpovie presne na základe vašich podkladov – žiadne halucinácie.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎯</div>
+      <h3>Cielená konverzia</h3>
+      <p>Nastavte cieľ: telefonát, kontaktný formulár, nákup alebo objednávka. Chatbot aktívne vedie zákazníka k akcii.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">✨</div>
+      <h3>AI navrhované otázky</h3>
+      <p>Systém automaticky vygeneruje navrhované otázky z vašich dokumentov. Zákazník klikne – chatbot odpovie.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⚡</div>
+      <h3>Embed za 30 sekúnd</h3>
+      <p>Dva riadky kódu do hlavičky webu. Chatbot sa okamžite zobrazí. Funguje na akomkoľvek webe.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🌍</div>
+      <h3>Viacjazyčný</h3>
+      <p>Zákazník napíše po slovensky, česky alebo anglicky – chatbot automaticky odpovie v rovnakom jazyku.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>Vaše dáta, vaša kontrola</h3>
+      <p>Každý widget je izolovaný. Zákaznícividia len vaše know-how. Kedykoľvek zmeníte alebo vymažete obsah.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+  <div class="section-label">Ako to funguje</div>
+  <h2 class="section-h2">Od registrácie po chatbot<br>za menej ako 10 minút</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h3>Zaregistrujte sa a uhraďte predplatné</h3>
+        <p>Vytvorte účet, zvoľte plán za €15/mesiac. Bezpečná platba cez Stripe.</p>
+      </div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h3>Nahrajte know-how</h3>
+        <p>PDF, texty, cenníky, FAQ o vašom biznise. AI sa to naučí a bude odpovedať presne.</p>
+      </div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h3>Nastavte cieľ a otázky</h3>
+        <p>Vyberte konverzný cieľ (hovor, formulár, nákup). AI automaticky navrhne vhodné otázky.</p>
+      </div>
+    </div>
+    <div class="step-arrow">→</div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h3>Vložte kód na web</h3>
+        <p>Skopírujte 2 riadky kódu do hlavičky vašej stránky. Chatbot je online.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing-section" id="pricing">
+  <div class="section-label">Cena</div>
+  <h2 class="section-h2">Jednoduché predplatné,<br>žiadne prekvapenia</h2>
+  <div class="pricing-card">
+    <div class="pricing-badge">Najpopulárnejší</div>
+    <div class="pricing-name">Pro plán</div>
+    <div class="pricing-price">
+      <span class="price-amount">€15</span>
+      <span class="price-period">/mesiac</span>
+    </div>
+    <ul class="pricing-features">
+      <li>✓ Neobmedzené konverzácie</li>
+      <li>✓ Až 10 widgetov</li>
+      <li>✓ Znalostná báza (PDF, text, CSV)</li>
+      <li>✓ AI navrhované otázky</li>
+      <li>✓ Všetky typy konverzií (hovor, formulár, nákup...)</li>
+      <li>✓ Claude Opus AI (najlepší model)</li>
+      <li>✓ Embed kód pre akýkoľvek web</li>
+      <li>✓ Email podpora</li>
+    </ul>
+    <button class="btn-pricing-primary" onclick="showAuth('register')">Začať teraz</button>
+    <p class="pricing-note">Zrušenie kedykoľvek · Platba kartou cez Stripe</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <h2 class="section-h2">Časté otázky</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Musím vedieť programovať? <span>+</span></button>
+      <div class="faq-a">Nie. Stačí skopírovať 2 riadky kódu do HTML vašej stránky. Ak používate WordPress, Shopify alebo Wix, existuje návod pre každú platformu.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Čo sa stane s mojimi dátami? <span>+</span></button>
+      <div class="faq-a">Vaše dokumenty sú uložené bezpečne a používajú sa výhradne pre váš chatbot. Nikdy nie sú zdieľané s inými klientmi ani použité na tréning AI modelov.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Môžem mať viac chatbotov? <span>+</span></button>
+      <div class="faq-a">Áno. Pro plán zahŕňa až 10 widgetov. Každý widget má svoju vlastnú znalosttnú bázu, nastavenia a embed kód – ideálne pre viacero webstránok alebo produktov.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Ako funguje AI? Čo ak odpovie zle? <span>+</span></button>
+      <div class="faq-a">Chatbot odpovedá výhradne na základe dokumentov, ktoré ste nahral. Ak informácia v báze nie je, povie to zákazníkovi a odkáže ho na vás. Nevymýšľa si fakty.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">Môžem zrušiť predplatné? <span>+</span></button>
+      <div class="faq-a">Áno, kedykoľvek bez poplatkov. Po zrušení bude chatbot aktívny do konca zaplateného obdobia.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER CTA -->
+<section class="footer-cta">
+  <h2>Začnite ešte dnes</h2>
+  <p>Prvý chatbot live za menej ako 10 minút.</p>
+  <button class="btn-hero-primary" onclick="showAuth('register')">Vyskúšať za €15/mesiac</button>
+</section>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-logo">Neura<span>Desk</span></div>
+    <div class="footer-links">
+      <a href="#">Ochrana súkromia</a>
+      <a href="#">Podmienky</a>
+      <a href="mailto:info@neuradesk.online">Kontakt</a>
+    </div>
+    <div class="footer-copy">© 2025 NeuraDeskApp. Všetky práva vyhradené.</div>
+  </div>
+</footer>
+
+<!-- AUTH MODAL -->
+<div id="auth-overlay" class="auth-overlay" style="display:none" onclick="if(event.target===this)hideAuth()">
+  <div class="auth-modal">
+    <button class="auth-close" onclick="hideAuth()">✕</button>
+    <div class="auth-logo">Neura<span>Desk</span></div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Prihlásiť sa</button>
+      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Registrácia</button>
+    </div>
+
+    <!-- Login -->
+    <form id="form-login" onsubmit="handleLogin(event)">
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="vas@email.sk">
+      </div>
+      <div class="field">
+        <label>Heslo</label>
+        <input type="password" name="password" required placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn-submit" id="btn-login">Prihlásiť sa</button>
+      <div class="auth-error" id="err-login"></div>
+    </form>
+
+    <!-- Register -->
+    <form id="form-register" style="display:none" onsubmit="handleRegister(event)">
+      <div class="field">
+        <label>Meno a priezvisko</label>
+        <input type="text" name="name" required placeholder="Ján Novák">
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" name="email" required placeholder="vas@email.sk">
+      </div>
+      <div class="field">
+        <label>Heslo <small>(min. 8 znakov)</small></label>
+        <input type="password" name="password" required minlength="8" placeholder="••••••••">
+      </div>
+      <button type="submit" class="btn-submit" id="btn-register">Vytvoriť účet a pokračovať</button>
+      <div class="auth-error" id="err-register"></div>
+      <p class="auth-note">Po registrácii budete presmerovaní na výber predplatného.</p>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Redirect logged-in users
+  if (localStorage.getItem('nd_token')) window.location.href = '/dashboard';
+
+  // URL params
+  const params = new URLSearchParams(location.search);
+  if (params.get('canceled')) showToast('Platba bola zrušená.', 'error');
+
+  function showAuth(tab) {
+    document.getElementById('auth-overlay').style.display = 'flex';
+    switchTab(tab);
+    document.body.style.overflow = 'hidden';
+  }
+  function hideAuth() {
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  function switchTab(tab) {
+    document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
+    document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  }
+
+  async function handleLogin(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-login');
+    const err = document.getElementById('err-login');
+    err.textContent = ''; btn.disabled = true; btn.textContent = 'Prihlasujem...';
+    const f = e.target;
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: f.email.value, password: f.password.value }),
       });
-      document.getElementById('login-form').classList.toggle('active', tab === 'login');
-      document.getElementById('register-form').classList.toggle('active', tab === 'register');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      localStorage.setItem('nd_token', data.token);
+      localStorage.setItem('nd_user', JSON.stringify(data.user));
+      // Check subscription status
+      const sr = await fetch('/api/stripe/status', { headers: { 'Authorization': `Bearer ${data.token}` } });
+      const sd = await sr.json();
+      window.location.href = sd.active ? '/dashboard' : '/onboarding';
+    } catch (ex) {
+      err.textContent = ex.message; btn.disabled = false; btn.textContent = 'Prihlásiť sa';
     }
+  }
 
-    async function handleLogin(e) {
+  async function handleRegister(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btn-register');
+    const err = document.getElementById('err-register');
+    err.textContent = ''; btn.disabled = true; btn.textContent = 'Registrujem...';
+    const f = e.target;
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: f.name.value, email: f.email.value, password: f.password.value }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      localStorage.setItem('nd_token', data.token);
+      localStorage.setItem('nd_user', JSON.stringify(data.user));
+      window.location.href = '/onboarding';
+    } catch (ex) {
+      err.textContent = ex.message; btn.disabled = false; btn.textContent = 'Vytvoriť účet a pokračovať';
+    }
+  }
+
+  function toggleFaq(btn) {
+    const item = btn.parentElement;
+    const open = item.classList.toggle('open');
+    btn.querySelector('span').textContent = open ? '−' : '+';
+  }
+
+  function showToast(msg, type) {
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.textContent = msg;
+    document.body.appendChild(t);
+    setTimeout(() => t.remove(), 4000);
+  }
+
+  // Smooth scroll for nav links
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
       e.preventDefault();
-      const btn = document.getElementById('login-btn');
-      const errorEl = document.getElementById('login-error');
-      errorEl.textContent = '';
-      btn.disabled = true;
-      btn.textContent = 'Prihlasujem...';
-
-      const form = e.target;
-      try {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: form.email.value, password: form.password.value }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Chyba pri prihlásení.');
-        localStorage.setItem('nd_token', data.token);
-        localStorage.setItem('nd_user', JSON.stringify(data.user));
-        window.location.href = '/dashboard';
-      } catch (err) {
-        errorEl.textContent = err.message;
-        btn.disabled = false;
-        btn.textContent = 'Prihlásiť sa';
-      }
-    }
-
-    async function handleRegister(e) {
-      e.preventDefault();
-      const btn = document.getElementById('register-btn');
-      const errorEl = document.getElementById('register-error');
-      errorEl.textContent = '';
-      btn.disabled = true;
-      btn.textContent = 'Registrujem...';
-
-      const form = e.target;
-      try {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ name: form.name.value, email: form.email.value, password: form.password.value }),
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Chyba pri registrácii.');
-        localStorage.setItem('nd_token', data.token);
-        localStorage.setItem('nd_user', JSON.stringify(data.user));
-        window.location.href = '/dashboard';
-      } catch (err) {
-        errorEl.textContent = err.message;
-        btn.disabled = false;
-        btn.textContent = 'Vytvoriť účet';
-      }
-    }
-  </script>
+      document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+</script>
 </body>
 </html>

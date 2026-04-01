@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Nastavenie – NeuraDeskApp</title>
+  <link rel="stylesheet" href="/css/onboarding.css">
+</head>
+<body>
+
+<div class="ob-layout">
+
+  <!-- Sidebar progress -->
+  <aside class="ob-sidebar">
+    <div class="ob-logo">Neura<span>Desk</span></div>
+    <div class="ob-steps">
+      <div class="ob-step" id="ps-1">
+        <div class="ob-step-dot">1</div>
+        <div class="ob-step-label">Predplatné</div>
+      </div>
+      <div class="ob-step-line"></div>
+      <div class="ob-step" id="ps-2">
+        <div class="ob-step-dot">2</div>
+        <div class="ob-step-label">Know-how</div>
+      </div>
+      <div class="ob-step-line"></div>
+      <div class="ob-step" id="ps-3">
+        <div class="ob-step-dot">3</div>
+        <div class="ob-step-label">Otázky & Cieľ</div>
+      </div>
+      <div class="ob-step-line"></div>
+      <div class="ob-step" id="ps-4">
+        <div class="ob-step-dot">4</div>
+        <div class="ob-step-label">Embed kód</div>
+      </div>
+    </div>
+    <div class="ob-sidebar-footer">
+      <button class="ob-logout" onclick="logout()">Odhlásiť sa</button>
+    </div>
+  </aside>
+
+  <!-- Main content -->
+  <main class="ob-main">
+
+    <!-- ── STEP 1: Subscription ───────────────────────── -->
+    <div class="ob-panel" id="step-1">
+      <div class="ob-panel-header">
+        <div class="ob-step-badge">Krok 1 z 4</div>
+        <h1>Aktivujte predplatné</h1>
+        <p>Jeden plán. Všetko čo potrebujete pre inteligentný AI chatbot.</p>
+      </div>
+
+      <div class="pricing-box">
+        <div class="pricing-box-badge">Pro plán</div>
+        <div class="pricing-box-price">€15<span>/mesiac</span></div>
+        <ul class="pricing-box-features">
+          <li>✓ Neobmedzené konverzácie</li>
+          <li>✓ Až 10 widgetov</li>
+          <li>✓ PDF, text, CSV znalostná báza</li>
+          <li>✓ AI navrhované otázky</li>
+          <li>✓ Všetky typy CTA (hovor, formulár, nákup...)</li>
+          <li>✓ Claude Opus AI – najlepší model</li>
+          <li>✓ Zrušenie kedykoľvek</li>
+        </ul>
+        <button class="btn-ob-primary" id="btn-checkout" onclick="startCheckout()">
+          💳 Zaplatiť kartou – €15/mesiac
+        </button>
+        <p class="pricing-box-note">Bezpečná platba cez Stripe · Zrušenie kedykoľvek</p>
+      </div>
+
+      <div id="subscription-active-msg" style="display:none" class="success-box">
+        <div class="success-icon">✅</div>
+        <h3>Predplatné je aktívne!</h3>
+        <p>Môžete pokračovať ďalej.</p>
+        <button class="btn-ob-primary" onclick="goToStep(2)">Pokračovať →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: Knowledge ──────────────────────────── -->
+    <div class="ob-panel hidden" id="step-2">
+      <div class="ob-panel-header">
+        <div class="ob-step-badge">Krok 2 z 4</div>
+        <h1>Nahrajte vaše know-how</h1>
+        <p>Pridajte texty, PDF dokumenty alebo cenníky. AI sa ich naučí a bude odpovedať zákazníkom presne na ich základe.</p>
+      </div>
+
+      <!-- Widget name (creates widget if first time) -->
+      <div class="ob-card" style="margin-bottom:1.25rem">
+        <div class="ob-card-title">Základné info o chatbote</div>
+        <div class="ob-form-row">
+          <div class="ob-field">
+            <label>Meno asistenta</label>
+            <input type="text" id="ob-bot-name" value="Asistent" placeholder="napr. Sofia, Max...">
+          </div>
+          <div class="ob-field">
+            <label>Primárna farba</label>
+            <div style="display:flex;gap:0.5rem;align-items:center">
+              <input type="color" id="ob-color" value="#2563eb" style="width:42px;height:42px;border:none;cursor:pointer;background:none;padding:0">
+              <span id="ob-color-hex" style="font-size:0.875rem;color:#64748b">#2563eb</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Text input -->
+      <div class="ob-card" style="margin-bottom:1.25rem">
+        <div class="ob-card-title">Pridať text</div>
+        <div class="ob-field">
+          <label>Nadpis dokumentu</label>
+          <input type="text" id="ob-k-title" placeholder="napr. O nás, Cenník, FAQ, Produkty...">
+        </div>
+        <div class="ob-field">
+          <label>Obsah</label>
+          <textarea id="ob-k-content" rows="6" placeholder="Sem vložte text, ktorý má chatbot poznať – popis produktov, ceny, postup objednávky, kontaktné info..."></textarea>
+        </div>
+        <button class="btn-ob-secondary" onclick="addKnowledgeText()">+ Pridať text</button>
+      </div>
+
+      <!-- File upload -->
+      <div class="ob-card" style="margin-bottom:1.25rem">
+        <div class="ob-card-title">Nahrať súbor (PDF, TXT, CSV)</div>
+        <div class="ob-field">
+          <label>Súbor (max 20 MB)</label>
+          <input type="file" id="ob-k-file" accept=".pdf,.txt,.md,.csv">
+        </div>
+        <div class="ob-field">
+          <label>Nadpis (voliteľné)</label>
+          <input type="text" id="ob-k-file-title" placeholder="Nechajte prázdne pre názov súboru">
+        </div>
+        <button class="btn-ob-secondary" onclick="uploadKnowledgeFile()">📎 Nahrať súbor</button>
+      </div>
+
+      <!-- Knowledge list -->
+      <div id="ob-knowledge-list" class="ob-knowledge-list" style="display:none">
+        <div class="ob-card-title" style="margin-bottom:0.75rem">Nahraté dokumenty</div>
+        <div id="ob-kl-items"></div>
+      </div>
+
+      <div class="ob-nav">
+        <div></div>
+        <button class="btn-ob-primary" id="btn-step2-next" onclick="finishStep2()" disabled>Pokračovať →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: Questions & CTA ────────────────────── -->
+    <div class="ob-panel hidden" id="step-3">
+      <div class="ob-panel-header">
+        <div class="ob-step-badge">Krok 3 z 4</div>
+        <h1>Otázky & Cieľ konverzie</h1>
+        <p>Nastavte, čo chatbot navrhne zákazníkovi a aká je vaša konverzná akcia.</p>
+      </div>
+
+      <!-- Suggested questions -->
+      <div class="ob-card" style="margin-bottom:1.5rem">
+        <div class="ob-card-title">Navrhované otázky</div>
+        <p class="ob-card-desc">Zákazník ich uvidí na začiatku. Kliknite "Generovať" alebo pridajte vlastné.</p>
+
+        <div style="display:flex;gap:0.75rem;margin-bottom:1rem">
+          <button class="btn-ob-secondary" id="btn-gen-questions" onclick="generateQuestions()">
+            ✨ Generovať z dokumentov
+          </button>
+        </div>
+
+        <div id="ob-questions-list" class="ob-questions-list"></div>
+        <div style="display:flex;gap:0.5rem;margin-top:0.75rem">
+          <input type="text" id="ob-new-question" class="ob-input" placeholder="Pridať vlastnú otázku..." style="flex:1">
+          <button class="btn-ob-secondary" onclick="addQuestion()">+ Pridať</button>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="ob-card" style="margin-bottom:1.5rem">
+        <div class="ob-card-title">Cieľ konverzie</div>
+        <p class="ob-card-desc">Čo má chatbot dosiahnuť? AI aktívne vedie zákazníka k tejto akcii.</p>
+
+        <div class="cta-types">
+          <label class="cta-type-btn">
+            <input type="radio" name="cta-type" value="call">
+            <div class="cta-type-card">
+              <div class="cta-type-icon">📞</div>
+              <div class="cta-type-name">Telefonát</div>
+              <div class="cta-type-desc">Zákazník zavolá</div>
+            </div>
+          </label>
+          <label class="cta-type-btn">
+            <input type="radio" name="cta-type" value="contact" checked>
+            <div class="cta-type-card">
+              <div class="cta-type-icon">✉️</div>
+              <div class="cta-type-name">Kontakt</div>
+              <div class="cta-type-desc">Zanechá údaje</div>
+            </div>
+          </label>
+          <label class="cta-type-btn">
+            <input type="radio" name="cta-type" value="purchase">
+            <div class="cta-type-card">
+              <div class="cta-type-icon">🛒</div>
+              <div class="cta-type-name">Nákup</div>
+              <div class="cta-type-desc">Kúpi produkt</div>
+            </div>
+          </label>
+          <label class="cta-type-btn">
+            <input type="radio" name="cta-type" value="order">
+            <div class="cta-type-card">
+              <div class="cta-type-icon">📋</div>
+              <div class="cta-type-name">Objednávka</div>
+              <div class="cta-type-desc">Podá objednávku</div>
+            </div>
+          </label>
+          <label class="cta-type-btn">
+            <input type="radio" name="cta-type" value="custom">
+            <div class="cta-type-card">
+              <div class="cta-type-icon">⚙️</div>
+              <div class="cta-type-name">Vlastný</div>
+              <div class="cta-type-desc">Niečo iné</div>
+            </div>
+          </label>
+        </div>
+
+        <!-- Dynamic CTA config -->
+        <div id="cta-config-call" class="cta-config-section" style="display:none">
+          <div class="ob-field"><label>Telefónne číslo</label><input type="tel" id="cta-phone" class="ob-input" placeholder="+421 900 000 000"></div>
+        </div>
+        <div id="cta-config-contact" class="cta-config-section">
+          <div class="ob-field"><label>Text tlačidla</label><input type="text" id="cta-contact-label" class="ob-input" value="Zanechajte kontakt"></div>
+        </div>
+        <div id="cta-config-purchase" class="cta-config-section" style="display:none">
+          <div class="ob-field"><label>Odkaz na nákup (URL)</label><input type="url" id="cta-link" class="ob-input" placeholder="https://vasaweb.sk/obchod"></div>
+        </div>
+        <div id="cta-config-order" class="cta-config-section" style="display:none">
+          <div class="ob-field"><label>Popis objednávky / inštrukcie</label><textarea id="cta-order-details" class="ob-input" rows="3" placeholder="napr. Zákazník si môže objednať cez náš formulár na..."></textarea></div>
+        </div>
+        <div id="cta-config-custom" class="cta-config-section" style="display:none">
+          <div class="ob-field"><label>Váš vlastný pokyn pre AI</label><textarea id="cta-custom-text" class="ob-input" rows="3" placeholder="napr. Na konci ponúkni zákazníkovi zľavový kód VÍTAJ10..."></textarea></div>
+        </div>
+
+        <!-- Goals -->
+        <div class="ob-field" style="margin-top:1.25rem">
+          <label>Popis vášho biznisu (pre AI kontext)</label>
+          <textarea id="ob-goals" class="ob-input" rows="4" placeholder="Popíšte čo predávate, kto sú vaši zákazníci, aký tón komunikácie chcete... Čím viac AI vie, tým lepšie odpovedá."></textarea>
+        </div>
+      </div>
+
+      <!-- Welcome message -->
+      <div class="ob-card" style="margin-bottom:1.5rem">
+        <div class="ob-card-title">Uvítacia správa</div>
+        <div class="ob-field">
+          <label>Prvá správa, ktorú zákazník uvidí</label>
+          <input type="text" id="ob-welcome" class="ob-input" value="Ahoj! Ako vám môžem pomôcť? 👋">
+        </div>
+      </div>
+
+      <div class="ob-nav">
+        <button class="btn-ob-ghost" onclick="goToStep(2)">← Späť</button>
+        <button class="btn-ob-primary" onclick="saveStep3()">Pokračovať →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 4: Embed ───────────────────────────────── -->
+    <div class="ob-panel hidden" id="step-4">
+      <div class="ob-panel-header">
+        <div class="ob-step-badge">Krok 4 z 4</div>
+        <h1>🎉 Chatbot je pripravený!</h1>
+        <p>Skopírujte kód a vložte ho do hlavičky vašej webstránky. Chatbot sa okamžite zobrazí.</p>
+      </div>
+
+      <div class="ob-card" style="margin-bottom:1.5rem">
+        <div class="ob-card-title">Váš embed kód</div>
+        <p class="ob-card-desc">Vložte pred záverečný tag <code>&lt;/head&gt;</code> vašej stránky.</p>
+        <div class="code-block-wrap">
+          <pre id="ob-embed-code" class="code-block">Načítavam...</pre>
+          <button class="btn-copy" onclick="copyCode()">📋 Kopírovať</button>
+        </div>
+      </div>
+
+      <!-- Platform guides -->
+      <div class="ob-card" style="margin-bottom:1.5rem">
+        <div class="ob-card-title">Kde vložiť kód?</div>
+        <div class="platform-guides">
+          <div class="platform-guide">
+            <div class="platform-icon">🔵</div>
+            <div>
+              <strong>WordPress</strong>
+              <p>Appearance → Theme Editor → header.php → pred &lt;/head&gt;</p>
+            </div>
+          </div>
+          <div class="platform-guide">
+            <div class="platform-icon">🟢</div>
+            <div>
+              <strong>Shopify</strong>
+              <p>Online Store → Themes → Edit Code → theme.liquid → pred &lt;/head&gt;</p>
+            </div>
+          </div>
+          <div class="platform-guide">
+            <div class="platform-icon">🟣</div>
+            <div>
+              <strong>Webflow</strong>
+              <p>Project Settings → Custom Code → Head Code</p>
+            </div>
+          </div>
+          <div class="platform-guide">
+            <div class="platform-icon">🟡</div>
+            <div>
+              <strong>HTML stránka</strong>
+              <p>Priamo do HTML súboru pred &lt;/head&gt;</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ob-finish-actions">
+        <button class="btn-ob-primary btn-large" onclick="finishOnboarding()">Otvoriť dashboard →</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- Toast -->
+<div id="ob-toast" class="ob-toast" style="display:none"></div>
+
+<script src="/js/onboarding.js"></script>
+</body>
+</html>

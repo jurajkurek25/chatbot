@@ -31,7 +31,7 @@ function logout() {
 }
 
 /* ── Init ─────────────────────────────────────────────────────── */
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
   if (!getToken()) { window.location.href = '/'; return; }
 
   const saved = localStorage.getItem('nd_user');
@@ -40,8 +40,42 @@ document.addEventListener('DOMContentLoaded', () => {
     renderUserInfo();
   }
 
+  // Check subscription; redirect to onboarding if inactive
+  try {
+    const sr = await apiFetch('/api/stripe/status');
+    if (sr) {
+      const sdata = await sr.json();
+      if (!sdata.active) { window.location.href = '/onboarding'; return; }
+      renderBillingButton();
+    }
+  } catch { /* allow access on network error */ }
+
   loadWidgets();
 });
+
+function renderBillingButton() {
+  const footer = document.getElementById('sidebar-footer');
+  if (!footer) return;
+  // Avoid duplicate
+  if (footer.querySelector('.btn-billing')) return;
+  const btn = document.createElement('button');
+  btn.className = 'btn btn-secondary btn-billing';
+  btn.style.cssText = 'width:100%;margin-bottom:0.5rem;font-size:0.8rem';
+  btn.textContent = '💳 Spravovať predplatné';
+  btn.onclick = openBillingPortal;
+  footer.insertBefore(btn, footer.firstChild);
+}
+
+async function openBillingPortal() {
+  try {
+    const r = await apiFetch('/api/stripe/portal', { method: 'POST' });
+    if (!r) return;
+    const data = await r.json();
+    if (data.url) window.location.href = data.url;
+  } catch {
+    alert('Nepodarilo sa otvoriť fakturačný portál.');
+  }
+}
 
 function renderUserInfo() {
   if (!currentUser) return;
