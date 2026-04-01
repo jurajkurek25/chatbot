@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard – NeuraDeskApp</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-logo">NeuraDeskApp</div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Widgety</div>
+      <button class="nav-item active" onclick="showView('widgets')" id="nav-widgets">
+        <span class="nav-icon">💬</span> Moje widgety
+      </button>
+    </div>
+
+    <div class="sidebar-section" id="widget-nav-section" style="display:none">
+      <div class="sidebar-section-label">Aktuálny widget</div>
+      <button class="nav-item" onclick="showTab('settings')" id="nav-settings">
+        <span class="nav-icon">⚙️</span> Nastavenia
+      </button>
+      <button class="nav-item" onclick="showTab('knowledge')" id="nav-knowledge">
+        <span class="nav-icon">📚</span> Znalostná báza
+      </button>
+      <button class="nav-item" onclick="showTab('questions')" id="nav-questions">
+        <span class="nav-icon">❓</span> Otázky & CTA
+      </button>
+      <button class="nav-item" onclick="showTab('embed')" id="nav-embed">
+        <span class="nav-icon">🔗</span> Embed kód
+      </button>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="user-name">Načítavam...</div>
+          <div class="user-email" id="user-email"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Odhlásiť sa</button>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <div class="topbar">
+      <div class="topbar-title" id="topbar-title">Moje widgety</div>
+      <div class="topbar-actions" id="topbar-actions">
+        <button class="btn btn-primary" onclick="openCreateWidgetModal()">+ Nový widget</button>
+      </div>
+    </div>
+
+    <div class="page-content">
+
+      <!-- ── View: Widget List ─────────────────────────── -->
+      <div id="view-widgets">
+        <div id="widget-list-loading" class="empty-state">
+          <div style="font-size:2rem">⏳</div>
+          <p>Načítavam widgety...</p>
+        </div>
+        <div id="widget-grid" class="widget-grid" style="display:none"></div>
+        <div id="widget-empty" class="empty-state" style="display:none">
+          <div class="empty-state-icon">💬</div>
+          <h3>Zatiaľ žiadne widgety</h3>
+          <p>Vytvorte svoj prvý AI chatbot widget!</p>
+          <br>
+          <button class="btn btn-primary" onclick="openCreateWidgetModal()">+ Vytvoriť widget</button>
+        </div>
+      </div>
+
+      <!-- ── View: Widget Editor ──────────────────────── -->
+      <div id="view-editor" style="display:none">
+
+        <!-- Settings Tab -->
+        <div id="tab-settings" class="tab-panel active">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Základné nastavenia</div>
+                <div class="panel-subtitle">Prispôsobte vzhľad a správanie chatbota</div>
+              </div>
+              <button class="btn btn-primary" onclick="saveSettings()">Uložiť</button>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Názov widgetu (interný)</label>
+                <input type="text" class="form-control" id="s-name" placeholder="napr. Web chatbot – hlavná stránka">
+              </div>
+              <div class="form-group">
+                <label>Meno asistenta</label>
+                <input type="text" class="form-control" id="s-bot-name" placeholder="napr. Sofia, Max, Chatbot...">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Uvítacia správa</label>
+              <input type="text" class="form-control" id="s-welcome" placeholder="Ahoj! Ako vám môžem pomôcť?">
+            </div>
+
+            <div class="form-group">
+              <label>Farba widgetu</label>
+              <div class="color-picker-row">
+                <div class="color-preview" id="color-preview"></div>
+                <input type="color" id="s-color" value="#2563eb" oninput="updateColorPreview(this.value)">
+                <span id="color-hex" style="font-size:0.875rem;color:#64748b;">#2563eb</span>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Ciele a kontext biznisu</label>
+              <textarea class="form-control" id="s-goals" rows="4"
+                placeholder="Popíšte čo robí váš biznis, aké sú vaše ciele pre konverzácie so zákazníkmi, aký tón komunikácie chcete..."></textarea>
+              <div class="hint">Tieto informácie pomáhajú AI lepšie pochopiť váš biznis a zákazníkov.</div>
+            </div>
+
+            <div class="form-group">
+              <label>Stav widgetu</label>
+              <select class="form-control" id="s-active">
+                <option value="1">Aktívny (zobrazuje sa na webe)</option>
+                <option value="0">Neaktívny (skrytý)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Knowledge Tab -->
+        <div id="tab-knowledge" class="tab-panel">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Znalostná báza</div>
+                <div class="panel-subtitle">Nahrajte dokumenty, texty alebo PDF súbory</div>
+              </div>
+            </div>
+
+            <!-- Add Text -->
+            <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid #e2e8f0;">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Pridať text</div>
+              <div class="form-group">
+                <label>Nadpis</label>
+                <input type="text" class="form-control" id="k-title" placeholder="napr. Cenník, O nás, FAQ...">
+              </div>
+              <div class="form-group">
+                <label>Obsah</label>
+                <textarea class="form-control" id="k-content" rows="5"
+                  placeholder="Vložte text, ktorý má chatbot poznať..."></textarea>
+              </div>
+              <button class="btn btn-primary" onclick="addTextKnowledge()">Pridať text</button>
+            </div>
+
+            <!-- Upload File -->
+            <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid #e2e8f0;">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Nahrať súbor</div>
+              <div class="form-group">
+                <label>Súbor (PDF, TXT, MD, CSV – max 20MB)</label>
+                <input type="file" class="form-control" id="k-file" accept=".pdf,.txt,.md,.csv">
+              </div>
+              <div class="form-group">
+                <label>Nadpis (voliteľné)</label>
+                <input type="text" class="form-control" id="k-file-title" placeholder="Nechajte prázdne pre názov súboru">
+              </div>
+              <button class="btn btn-secondary" onclick="uploadFile()">📎 Nahrať súbor</button>
+            </div>
+
+            <!-- Knowledge List -->
+            <div>
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Uložené dokumenty</div>
+              <div id="knowledge-list">
+                <div class="empty-state" style="padding:1.5rem">
+                  <p>Zatiaľ žiadne dokumenty. Pridajte text alebo nahrajte súbor.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Questions & CTA Tab -->
+        <div id="tab-questions" class="tab-panel">
+          <div class="panel" style="margin-bottom:1.5rem;">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Navrhované otázky</div>
+                <div class="panel-subtitle">Otázky, ktoré uvidí zákazník na začiatku konverzácie</div>
+              </div>
+              <button class="btn btn-primary" onclick="saveQuestionsAndCta()">Uložiť</button>
+            </div>
+            <div id="questions-list" class="questions-list"></div>
+            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+              <input type="text" class="form-control" id="new-question" placeholder="Pridať otázku...">
+              <button class="btn btn-secondary" onclick="addQuestion()">+ Pridať</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Výzva k akcii (CTA)</div>
+                <div class="panel-subtitle">Čo má chatbot navrhnúť zákazníkovi na konci konverzácie</div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Typ CTA</label>
+              <select class="form-control" id="cta-type" onchange="updateCtaFields()">
+                <option value="none">Žiadne CTA</option>
+                <option value="call">Telefonický hovor</option>
+                <option value="contact">Kontaktný formulár</option>
+                <option value="custom">Vlastný text</option>
+              </select>
+            </div>
+
+            <!-- CTA: Call -->
+            <div id="cta-call-fields" style="display:none">
+              <div class="form-group">
+                <label>Telefónne číslo</label>
+                <input type="tel" class="form-control" id="cta-phone" placeholder="+421 900 000 000">
+              </div>
+            </div>
+
+            <!-- CTA: Custom -->
+            <div id="cta-custom-fields" style="display:none">
+              <div class="form-group">
+                <label>Text výzvy k akcii</label>
+                <textarea class="form-control" id="cta-text" rows="3"
+                  placeholder="napr. Navštívte naš e-shop na..."></textarea>
+              </div>
+            </div>
+
+            <!-- CTA: Contact button label -->
+            <div id="cta-contact-fields" style="display:none">
+              <div class="form-group">
+                <label>Text tlačidla</label>
+                <input type="text" class="form-control" id="cta-btn-label" placeholder="napr. Zanechajte kontakt">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Embed Tab -->
+        <div id="tab-embed" class="tab-panel">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Embed kód</div>
+                <div class="panel-subtitle">Vložte tento kód do sekcie &lt;head&gt; vašej webovej stránky</div>
+              </div>
+            </div>
+            <div style="position:relative;">
+              <div class="embed-code-box" id="embed-code">Načítavam...</div>
+              <button class="copy-btn" onclick="copyEmbed()">Kopírovať</button>
+            </div>
+            <div style="margin-top:1.25rem;">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Ako to funguje?</div>
+              <ol style="padding-left:1.25rem;color:#64748b;font-size:0.875rem;line-height:2;">
+                <li>Skopírujte kód vyššie</li>
+                <li>Vložte ho do HTML kódu vašej webstránky, pred záverečný tag &lt;/head&gt;</li>
+                <li>Chatbot sa automaticky zobrazí v pravom dolnom rohu</li>
+                <li>Zákazníci môžu ihneď začať konverzáciu!</li>
+              </ol>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-title">Náhľad widgetu</div>
+            <div class="panel-subtitle" style="margin-top:0.25rem;margin-bottom:1rem;">Takto bude vyzerať chatbot na vašom webe</div>
+            <div id="widget-preview" style="position:relative;background:#e2e8f0;border-radius:10px;padding:2rem;min-height:200px;overflow:hidden;">
+              <div style="position:absolute;bottom:1rem;right:1rem;" id="preview-bubble"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Create Widget Modal -->
+<div id="modal-create" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;" onclick="closeModal(event)">
+  <div style="background:white;border-radius:16px;padding:2rem;width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,0.15);" onclick="event.stopPropagation()">
+    <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1.5rem;">Nový widget</h2>
+    <div class="form-group">
+      <label>Názov widgetu</label>
+      <input type="text" class="form-control" id="new-widget-name" placeholder="napr. Web chatbot – hlavná stránka">
+    </div>
+    <div class="form-group">
+      <label>Meno asistenta</label>
+      <input type="text" class="form-control" id="new-bot-name" placeholder="Asistent" value="Asistent">
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
+      <button class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('modal-create').style.display='none'">Zrušiť</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="createWidget()">Vytvoriť</button>
+    </div>
+  </div>
+</div>
+
+<!-- Contact Form Modal (shown inside widget preview) -->
+<div id="modal-contact" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;" onclick="document.getElementById('modal-contact').style.display='none'">
+  <div style="background:white;border-radius:16px;padding:2rem;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,0.15);" onclick="event.stopPropagation()">
+    <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:0.5rem;">Zanechajte kontakt</h2>
+    <p style="font-size:0.875rem;color:#64748b;margin-bottom:1.25rem;">Ozveme sa vám čo najskôr.</p>
+    <div class="form-group"><label>Meno</label><input type="text" class="form-control" placeholder="Vaše meno"></div>
+    <div class="form-group"><label>Email / Telefón</label><input type="text" class="form-control" placeholder="email@priklad.sk alebo +421..."></div>
+    <button class="btn btn-primary" style="width:100%;">Odoslať</button>
+  </div>
+</div>
+
+<script src="/js/dashboard.js"></script>
+</body>
+</html>

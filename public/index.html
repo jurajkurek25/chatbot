@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuraDeskApp – AI Chatbot pre váš web</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    body { background: #f0f4ff; min-height: 100vh; display: flex; flex-direction: column; }
+    .landing-hero {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+    .landing-logo {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: #2563eb;
+      margin-bottom: 0.5rem;
+      letter-spacing: -1px;
+    }
+    .landing-tagline {
+      font-size: 1.15rem;
+      color: #64748b;
+      margin-bottom: 2.5rem;
+      max-width: 480px;
+    }
+    .auth-card {
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(37,99,235,0.10);
+      padding: 2.5rem 2rem;
+      width: 100%;
+      max-width: 420px;
+    }
+    .auth-tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-bottom: 2px solid #e2e8f0;
+      gap: 0;
+    }
+    .auth-tab {
+      flex: 1;
+      padding: 0.7rem;
+      background: none;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      color: #94a3b8;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .auth-tab.active {
+      color: #2563eb;
+      border-bottom-color: #2563eb;
+    }
+    .auth-form { display: none; }
+    .auth-form.active { display: block; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-size: 0.875rem; font-weight: 600; color: #374151; margin-bottom: 0.4rem; }
+    .form-group input {
+      width: 100%;
+      padding: 0.65rem 0.9rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+      box-sizing: border-box;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus { border-color: #2563eb; }
+    .btn-primary {
+      width: 100%;
+      padding: 0.75rem;
+      background: #2563eb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin-top: 0.5rem;
+      transition: background 0.2s;
+    }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-primary:disabled { background: #93c5fd; cursor: not-allowed; }
+    .error-msg { color: #dc2626; font-size: 0.875rem; margin-top: 0.75rem; text-align: center; }
+    .features {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .feature {
+      background: white;
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      text-align: left;
+      max-width: 200px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .feature-icon { font-size: 1.8rem; margin-bottom: 0.5rem; }
+    .feature h3 { font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0 0 0.25rem; }
+    .feature p { font-size: 0.82rem; color: #64748b; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="landing-hero">
+    <div class="landing-logo">NeuraDeskApp</div>
+    <p class="landing-tagline">Inteligentný AI chatbot, ktorý zahreje zákazníkov a optimalizuje customer journey na vašom webe.</p>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">🧠</div>
+        <h3>Vlastné znalosti</h3>
+        <p>Nahrajte PDF, texty a dokumenty o vašom biznise.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">💬</div>
+        <h3>Inteligentný chat</h3>
+        <p>Claude AI odpovedá na základe vašich podkladov.</p>
+      </div>
+      <div class="feature">
+        <div class="feature-icon">🎯</div>
+        <h3>Embed kód</h3>
+        <p>Jeden riadok kódu a chatbot je na vašom webe.</p>
+      </div>
+    </div>
+
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchTab('login')">Prihlásiť sa</button>
+        <button class="auth-tab" onclick="switchTab('register')">Registrácia</button>
+      </div>
+
+      <!-- Login Form -->
+      <form class="auth-form active" id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" required autocomplete="email" placeholder="vas@email.sk">
+        </div>
+        <div class="form-group">
+          <label>Heslo</label>
+          <input type="password" name="password" required autocomplete="current-password" placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-primary" id="login-btn">Prihlásiť sa</button>
+        <div class="error-msg" id="login-error"></div>
+      </form>
+
+      <!-- Register Form -->
+      <form class="auth-form" id="register-form" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label>Meno a priezvisko</label>
+          <input type="text" name="name" required placeholder="Ján Novák">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" name="email" required autocomplete="email" placeholder="vas@email.sk">
+        </div>
+        <div class="form-group">
+          <label>Heslo</label>
+          <input type="password" name="password" required autocomplete="new-password" placeholder="Minimálne 8 znakov">
+        </div>
+        <button type="submit" class="btn-primary" id="register-btn">Vytvoriť účet</button>
+        <div class="error-msg" id="register-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // Redirect if already logged in
+    if (localStorage.getItem('nd_token')) {
+      window.location.href = '/dashboard';
+    }
+
+    function switchTab(tab) {
+      document.querySelectorAll('.auth-tab').forEach((t, i) => {
+        t.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'));
+      });
+      document.getElementById('login-form').classList.toggle('active', tab === 'login');
+      document.getElementById('register-form').classList.toggle('active', tab === 'register');
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const btn = document.getElementById('login-btn');
+      const errorEl = document.getElementById('login-error');
+      errorEl.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Prihlasujem...';
+
+      const form = e.target;
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: form.email.value, password: form.password.value }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Chyba pri prihlásení.');
+        localStorage.setItem('nd_token', data.token);
+        localStorage.setItem('nd_user', JSON.stringify(data.user));
+        window.location.href = '/dashboard';
+      } catch (err) {
+        errorEl.textContent = err.message;
+        btn.disabled = false;
+        btn.textContent = 'Prihlásiť sa';
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const btn = document.getElementById('register-btn');
+      const errorEl = document.getElementById('register-error');
+      errorEl.textContent = '';
+      btn.disabled = true;
+      btn.textContent = 'Registrujem...';
+
+      const form = e.target;
+      try {
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: form.name.value, email: form.email.value, password: form.password.value }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Chyba pri registrácii.');
+        localStorage.setItem('nd_token', data.token);
+        localStorage.setItem('nd_user', JSON.stringify(data.user));
+        window.location.href = '/dashboard';
+      } catch (err) {
+        errorEl.textContent = err.message;
+        btn.disabled = false;
+        btn.textContent = 'Vytvoriť účet';
+      }
+    }
+  </script>
+</body>
+</html>

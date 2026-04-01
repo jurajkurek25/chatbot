@@ -1,0 +1,126 @@
+'use strict';
+
+const Database = require('better-sqlite3');
+const path = require('path');
+const fs = require('fs');
+
+const DB_PATH = path.join(__dirname, '..', 'data', 'neuradesk.db');
+
+let db;
+
+function getDb() {
+  if (!db) {
+    db = new Database(DB_PATH);
+    db.pragma('journal_mode = WAL');
+    db.pragma('foreign_keys = ON');
+  }
+  return db;
+}
+
+function initDatabase() {
+  // Ensure data directory exists
+  const dataDir = path.join(__dirname, '..', 'data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+
+  const db = getDb();
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS widgets (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      bot_name TEXT NOT NULL DEFAULT 'Asistent',
+      welcome_message TEXT NOT NULL DEFAULT 'Ahoj! Ako vám môžem pomôcť?',
+      primary_color TEXT NOT NULL DEFAULT '#2563eb',
+      goals TEXT NOT NULL DEFAULT '',
+      cta_type TEXT NOT NULL DEFAULT 'contact' CHECK(cta_type IN ('call','contact','custom','none')),
+      cta_config TEXT NOT NULL DEFAULT '{}',
+      suggested_questions TEXT NOT NULL DEFAULT '[]',
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS knowledge_items (
+      id TEXT PRIMARY KEY,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      source_type TEXT NOT NULL DEFAULT 'text' CHECK(source_type IN ('text','pdf','url')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE VIRTUAL TABLE IF NOT EXISTS knowledge_fts USING fts5(
+      title,
+      content,
+      content='knowledge_items',
+      content_rowid='rowid'
+    );
+
+    CREATE TRIGGER IF NOT EXISTS knowledge_ai AFTER INSERT ON knowledge_items BEGIN
+      INSERT INTO knowledge_fts(rowid, title, content) VALUES (new.rowid, new.title, new.content);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS knowledge_ad AFTER DELETE ON knowledge_items BEGIN
+      INSERT INTO knowledge_fts(knowledge_fts, rowid, title, content) VALUES ('delete', old.rowid, old.title, old.content);
+    END;
+
+    CREATE TRIGGER IF NOT EXISTS knowledge_au AFTER UPDATE ON knowledge_items BEGIN
+      INSERT INTO knowledge_fts(knowledge_fts, rowid, title, content) VALUES ('delete', old.rowid, old.title, old.content);
+      INSERT INTO knowledge_fts(rowid, title, content) VALUES (new.rowid, new.title, new.content);
+    END;
+
+    CREATE TABLE IF NOT EXISTS conversations (
+      id TEXT PRIMARY KEY,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      session_id TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      role TEXT NOT NULL CHECK(role IN ('user','assistant')),
+      content TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+  `);
+
+  console.log('Database initialized.');
+}
+
+function searchKnowledge(widgetId, query, limit = 5) {
+  const db = getDb();
+  try {
+    // FTS search
+    const rows = db.prepare(`
+      SELECT ki.id, ki.title, ki.content, ki.source_type
+      FROM knowledge_fts
+      JOIN knowledge_items ki ON ki.rowid = knowledge_fts.rowid
+      WHERE knowledge_fts MATCH ?
+        AND ki.widget_id = ?
+      LIMIT ?
+    `).all(query.replace(/[^a-zA-Z0-9áäčďéíľĺňóôŕšťúýžÁÄČĎÉÍĽĹŇÓÔŔŠŤÚÝŽ ]/g, ' '), widgetId, limit);
+
+    if (rows.length > 0) return rows;
+  } catch {
+    // FTS failed, fall back to all items
+  }
+
+  // Fallback: return all knowledge items for the widget (most recent first)
+  return db.prepare(`
+    SELECT id, title, content, source_type FROM knowledge_items
+    WHERE widget_id = ? ORDER BY created_at DESC LIMIT ?
+  `).all(widgetId, limit);
+}
+
+module.exports = { getDb, initDatabase, searchKnowledge };
