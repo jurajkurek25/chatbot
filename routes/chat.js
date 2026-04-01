@@ -3,7 +3,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb, searchKnowledge } = require('../db/database');
-const { streamChatResponse } = require('../services/claude');
+const { streamChatResponse, summarizeConversation } = require('../services/claude');
 
 const router = express.Router();
 
@@ -115,6 +115,51 @@ router.post('/:widgetId/chat', async (req, res) => {
       res.write(`data: ${JSON.stringify({ error: 'Chyba pri generovaní odpovede.' })}\n\n`);
       res.end();
     } catch { /* connection already closed */ }
+  }
+});
+
+// POST /api/widget/:widgetId/leads — save contact form submission + AI summary
+router.post('/:widgetId/leads', async (req, res) => {
+  const db = getDb();
+  const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND active = 1').get(req.params.widgetId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const { name, email, phone, sessionId } = req.body;
+  if (!name?.trim() || !email?.trim()) {
+    return res.status(400).json({ error: 'Meno a email sú povinné.' });
+  }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    return res.status(400).json({ error: 'Neplatný email.' });
+  }
+
+  const leadId = uuidv4();
+  db.prepare(
+    'INSERT INTO leads (id, widget_id, name, email, phone, session_id) VALUES (?, ?, ?, ?, ?, ?)'
+  ).run(leadId, widget.id, name.trim(), email.trim(), phone?.trim() || null, sessionId || null);
+
+  res.json({ ok: true, leadId });
+
+  // Generate AI summary asynchronously (don't block the response)
+  if (sessionId) {
+    setImmediate(async () => {
+      try {
+        const conv = db.prepare(
+          'SELECT id FROM conversations WHERE session_id = ? AND widget_id = ?'
+        ).get(sessionId, widget.id);
+        if (!conv) return;
+
+        const messages = db.prepare(
+          'SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at ASC'
+        ).all(conv.id);
+
+        const summary = await summarizeConversation(messages);
+        if (summary) {
+          db.prepare('UPDATE leads SET chat_summary = ? WHERE id = ?').run(summary, leadId);
+        }
+      } catch (err) {
+        console.error('Lead summary error:', err.message);
+      }
+    });
   }
 });
 

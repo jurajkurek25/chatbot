@@ -131,6 +131,31 @@ router.post('/complete-onboarding', (req, res) => {
   res.json({ success: true });
 });
 
+// GET /api/widgets/:id/leads — list leads for a widget
+router.get('/:id/leads', (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const db = getDb();
+  const leads = db.prepare(`
+    SELECT id, name, email, phone, chat_summary, created_at
+    FROM leads WHERE widget_id = ?
+    ORDER BY created_at DESC
+  `).all(widget.id);
+
+  res.json({ leads });
+});
+
+// DELETE /api/widgets/:id/leads/:leadId — delete a lead
+router.delete('/:id/leads/:leadId', (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const db = getDb();
+  db.prepare('DELETE FROM leads WHERE id = ? AND widget_id = ?').run(req.params.leadId, widget.id);
+  res.json({ ok: true });
+});
+
 function getOwnedWidget(widgetId, userId) {
   const db = getDb();
   return db.prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(widgetId, userId);

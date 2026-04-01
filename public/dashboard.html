@@ -18,6 +18,10 @@
       <button class="nav-item active" onclick="showView('widgets')" id="nav-widgets">
         <span class="nav-icon">💬</span> Moje widgety
       </button>
+      <button class="nav-item" onclick="showView('leads')" id="nav-leads">
+        <span class="nav-icon">📋</span> Kontakty
+        <span id="leads-badge" class="nav-badge" style="display:none"></span>
+      </button>
     </div>
 
     <div class="sidebar-section" id="widget-nav-section" style="display:none">
@@ -36,7 +40,7 @@
       </button>
     </div>
 
-    <div class="sidebar-footer">
+    <div class="sidebar-footer" id="sidebar-footer">
       <div class="user-info">
         <div class="user-avatar" id="user-avatar">?</div>
         <div>
@@ -72,6 +76,35 @@
           <p>Vytvorte svoj prvý AI chatbot widget!</p>
           <br>
           <button class="btn btn-primary" onclick="openCreateWidgetModal()">+ Vytvoriť widget</button>
+        </div>
+      </div>
+
+      <!-- ── View: Leads / Contacts ─────────────────── -->
+      <div id="view-leads" style="display:none">
+        <div class="panel" style="margin-bottom:1.5rem">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Kontakty zo chatbota</div>
+              <div class="panel-subtitle">Zákazníci, ktorí zanechali kontakt cez chatbot widget</div>
+            </div>
+            <div style="display:flex;gap:0.75rem;align-items:center">
+              <select class="form-control" id="leads-widget-filter" onchange="loadLeads()" style="font-size:0.875rem;padding:0.4rem 0.75rem">
+                <option value="">Všetky widgety</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="leads-loading" class="empty-state" style="display:none">
+            <div style="font-size:2rem">⏳</div><p>Načítavam kontakty...</p>
+          </div>
+
+          <div id="leads-empty" class="empty-state" style="display:none">
+            <div class="empty-state-icon">📋</div>
+            <h3>Zatiaľ žiadne kontakty</h3>
+            <p>Keď zákazník vyplní kontaktný formulár v chatbote, zobrazí sa tu.</p>
+          </div>
+
+          <div id="leads-list"></div>
         </div>
       </div>
 

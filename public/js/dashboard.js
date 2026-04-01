@@ -88,14 +88,21 @@ function renderUserInfo() {
 function showView(view) {
   document.getElementById('view-widgets').style.display = view === 'widgets' ? '' : 'none';
   document.getElementById('view-editor').style.display = view === 'editor' ? '' : 'none';
+  document.getElementById('view-leads').style.display = view === 'leads' ? '' : 'none';
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
   document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
+  document.getElementById('nav-leads').classList.toggle('active', view === 'leads');
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
     document.getElementById('topbar-actions').innerHTML =
       '<button class="btn btn-primary" onclick="openCreateWidgetModal()">+ Nový widget</button>';
+  }
+  if (view === 'leads') {
+    document.getElementById('topbar-title').textContent = 'Kontakty';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadLeads();
   }
 }
 
@@ -119,9 +126,22 @@ async function loadWidgets() {
 
   const res = await apiFetch('/api/widgets');
   if (!res) return;
-  widgets = await res.json();
+  const wdata = await res.json();
+  widgets = Array.isArray(wdata) ? wdata : (wdata.widgets || []);
 
   document.getElementById('widget-list-loading').style.display = 'none';
+
+  // Update leads badge count in background
+  if (widgets.length > 0) {
+    let totalLeads = 0;
+    await Promise.all(widgets.map(async w => {
+      try {
+        const r = await apiFetch(`/api/widgets/${w.id}/leads`);
+        if (r) { const d = await r.json(); totalLeads += (d.leads || []).length; }
+      } catch { /* ignore */ }
+    }));
+    updateLeadsBadge(totalLeads);
+  }
 
   if (widgets.length === 0) {
     document.getElementById('widget-empty').style.display = '';
@@ -470,4 +490,120 @@ function showToast(msg, type = 'success') {
 /* ── Utils ─────────────────────────────────────────────────────── */
 function esc(str) {
   return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+/* ── Leads / Contacts ──────────────────────────────────────────── */
+let allLeads = [];
+
+async function loadLeads() {
+  document.getElementById('leads-loading').style.display = '';
+  document.getElementById('leads-empty').style.display = 'none';
+  document.getElementById('leads-list').innerHTML = '';
+
+  // Populate widget filter if not done yet
+  const filterEl = document.getElementById('leads-widget-filter');
+  if (filterEl.options.length === 1 && widgets.length > 0) {
+    widgets.forEach(w => {
+      const opt = document.createElement('option');
+      opt.value = w.id;
+      opt.textContent = w.name || w.bot_name;
+      filterEl.appendChild(opt);
+    });
+  }
+
+  const selectedWidget = filterEl?.value;
+  const targetWidgets = selectedWidget
+    ? [{ id: selectedWidget }]
+    : widgets;
+
+  allLeads = [];
+  for (const w of targetWidgets) {
+    try {
+      const r = await apiFetch(`/api/widgets/${w.id}/leads`);
+      if (!r) continue;
+      const data = await r.json();
+      if (data.leads) {
+        allLeads.push(...data.leads.map(l => ({ ...l, widgetId: w.id, widgetName: w.name || w.bot_name })));
+      }
+    } catch { /* skip */ }
+  }
+
+  // Sort newest first
+  allLeads.sort((a, b) => b.created_at - a.created_at);
+
+  document.getElementById('leads-loading').style.display = 'none';
+
+  if (allLeads.length === 0) {
+    document.getElementById('leads-empty').style.display = '';
+    updateLeadsBadge(0);
+    return;
+  }
+
+  updateLeadsBadge(allLeads.length);
+  renderLeads();
+}
+
+function renderLeads() {
+  const container = document.getElementById('leads-list');
+  container.innerHTML = allLeads.map(lead => {
+    const initials = (lead.name || '?').split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+    const date = new Date(lead.created_at * 1000).toLocaleString('sk-SK', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit'
+    });
+
+    const summaryHtml = lead.chat_summary
+      ? `<div class="lead-summary">
+           <div class="lead-summary-label">🤖 AI zhrnutie konverzácie</div>
+           ${esc(lead.chat_summary)}
+         </div>`
+      : `<div class="lead-summary-pending">⏳ AI zhrnutie sa generuje...</div>`;
+
+    return `
+      <div class="lead-card" id="lead-${lead.id}">
+        <div class="lead-card-header">
+          <div class="lead-card-info">
+            <div class="lead-avatar">${esc(initials)}</div>
+            <div>
+              <div class="lead-name">${esc(lead.name)}</div>
+              <div class="lead-meta">
+                <span class="lead-meta-item">✉️ ${esc(lead.email)}</span>
+                ${lead.phone ? `<span class="lead-meta-item">📞 ${esc(lead.phone)}</span>` : ''}
+                ${lead.widgetName ? `<span class="lead-meta-item">💬 ${esc(lead.widgetName)}</span>` : ''}
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-shrink:0">
+            <span class="lead-date">${date}</span>
+            <button class="lead-delete" onclick="deleteLead('${lead.widgetId}','${lead.id}')" title="Zmazať">✕</button>
+          </div>
+        </div>
+        ${summaryHtml}
+      </div>
+    `;
+  }).join('');
+}
+
+async function deleteLead(widgetId, leadId) {
+  if (!confirm('Zmazať tento kontakt?')) return;
+  try {
+    const r = await apiFetch(`/api/widgets/${widgetId}/leads/${leadId}`, { method: 'DELETE' });
+    if (!r) return;
+    allLeads = allLeads.filter(l => l.id !== leadId);
+    updateLeadsBadge(allLeads.length);
+    renderLeads();
+    if (allLeads.length === 0) document.getElementById('leads-empty').style.display = '';
+  } catch {
+    showToast('Chyba pri mazaní.', 'error');
+  }
+}
+
+function updateLeadsBadge(count) {
+  const badge = document.getElementById('leads-badge');
+  if (!badge) return;
+  if (count > 0) {
+    badge.textContent = count;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
 }

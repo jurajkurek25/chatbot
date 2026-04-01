@@ -370,3 +370,75 @@ input[type="color"] { width: 40px; height: 40px; border: none; background: none;
   .form-row { flex-direction: column; }
   .widget-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Leads / Contacts ─────────────────────────────────────────── */
+.lead-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 1rem;
+  background: #fff;
+  transition: box-shadow 0.2s;
+}
+.lead-card:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.07); }
+
+.lead-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+.lead-card-info { display: flex; align-items: center; gap: 1rem; flex: 1; flex-wrap: wrap; }
+
+.lead-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: white;
+  font-weight: 700;
+  font-size: 1rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.lead-name { font-weight: 600; font-size: 0.95rem; color: #1e293b; }
+.lead-meta { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 0.2rem; }
+.lead-meta-item { display: flex; align-items: center; gap: 0.3rem; font-size: 0.82rem; color: #64748b; }
+
+.lead-summary {
+  background: #f8fafc;
+  border-left: 3px solid #2563eb;
+  border-radius: 0 8px 8px 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.6;
+  margin-top: 0.5rem;
+}
+.lead-summary-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+.lead-summary-pending {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.lead-date { font-size: 0.78rem; color: #94a3b8; white-space: nowrap; }
+.lead-delete { background: none; border: none; color: #cbd5e1; font-size: 1rem; padding: 0.25rem 0.5rem; border-radius: 6px; transition: color 0.15s, background 0.15s; }
+.lead-delete:hover { color: #dc2626; background: #fee2e2; }
+
+.nav-badge {
+  background: #2563eb;
+  color: white;
+  font-size: 0.68rem;
+  font-weight: 700;
+  border-radius: 20px;
+  padding: 0.1rem 0.45rem;
+  margin-left: auto;
+}

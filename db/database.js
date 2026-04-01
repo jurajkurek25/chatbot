@@ -95,6 +95,17 @@ function initDatabase() {
       content TEXT NOT NULL,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+
+    CREATE TABLE IF NOT EXISTS leads (
+      id TEXT PRIMARY KEY,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL,
+      phone TEXT,
+      session_id TEXT,
+      chat_summary TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
   `);
 
   // Migrations: add columns for existing DBs

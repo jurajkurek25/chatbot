@@ -117,8 +117,38 @@ Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
   }
 }
 
+/* ── AI conversation summary for leads ────────────────────────── */
+async function summarizeConversation(messages) {
+  if (!messages || messages.length === 0) return null;
+
+  const transcript = messages
+    .map(m => `${m.role === 'user' ? 'Zákazník' : 'Asistent'}: ${m.content}`)
+    .join('\n');
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-opus-4-6',
+      max_tokens: 300,
+      messages: [{
+        role: 'user',
+        content: `Analyzuj nasledujúcu konverzáciu zákazníka s chatbotom a vytvor krátke zhrnutie v 2–4 vetách pre obchodníka/poradcu. Zahrň: aký problém riešil zákazník, o aké produkty/služby sa zaujímal, aká je jeho situácia a naliehavosť. Buď konkrétny a výstižný.
+
+Konverzácia:
+${transcript}
+
+Vráť iba zhrnutie, žiadny úvod ani záver.`,
+      }],
+    });
+
+    return response.content.find(b => b.type === 'text')?.text?.trim() || null;
+  } catch (err) {
+    console.error('summarizeConversation error:', err.message);
+    return null;
+  }
+}
+
 function safeParseJSON(str, fallback) {
   try { return JSON.parse(str); } catch { return fallback; }
 }
 
-module.exports = { streamChatResponse, generateSuggestedQuestions };
+module.exports = { streamChatResponse, generateSuggestedQuestions, summarizeConversation };

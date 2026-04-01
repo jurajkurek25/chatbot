@@ -541,10 +541,14 @@
   }
 
   function submitContactForm() {
-    const name = shadow.getElementById('nd-cf-name')?.value.trim();
-    const email = shadow.getElementById('nd-cf-email')?.value.trim();
+    const nameEl = shadow.getElementById('nd-cf-name');
+    const emailEl = shadow.getElementById('nd-cf-email');
+    const phoneEl = shadow.getElementById('nd-cf-phone');
+    const name = nameEl?.value.trim();
+    const email = emailEl?.value.trim();
+    const phone = phoneEl?.value.trim();
+
     if (!name || !email) {
-      const emailEl = shadow.getElementById('nd-cf-email');
       if (emailEl) emailEl.style.borderColor = '#dc2626';
       return;
     }
@@ -557,9 +561,14 @@
         <p>Ozveme sa vám čo najskôr, ${esc(name)}.</p>
       </div>
     `;
-
-    // Auto-close overlay after 3s
     setTimeout(() => { overlay.style.display = 'none'; }, 3000);
+
+    // Save lead to backend (fire and forget)
+    fetch(`${BASE_URL}/api/widget/${widgetId}/leads`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, email, phone: phone || undefined, sessionId })
+    }).catch(() => { /* ignore network errors */ });
   }
 
   /* ── Helpers ────────────────────────────────────────────────── */
