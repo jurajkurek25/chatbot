@@ -146,6 +146,34 @@ router.get('/:id/leads', (req, res) => {
   res.json({ leads });
 });
 
+// PATCH /api/widgets/:id/leads/:leadId — update status and/or notes
+router.patch('/:id/leads/:leadId', (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const db = getDb();
+  const lead = db.prepare('SELECT id FROM leads WHERE id = ? AND widget_id = ?').get(req.params.leadId, widget.id);
+  if (!lead) return res.status(404).json({ error: 'Lead nenájdený.' });
+
+  const { status, notes } = req.body;
+  const allowed = ['new', 'contacted', 'closed'];
+
+  if (status !== undefined && !allowed.includes(status)) {
+    return res.status(400).json({ error: 'Neplatný stav.' });
+  }
+
+  const fields = [];
+  const vals = [];
+  if (status !== undefined) { fields.push('status = ?'); vals.push(status); }
+  if (notes !== undefined) { fields.push('notes = ?'); vals.push(notes); }
+
+  if (fields.length === 0) return res.status(400).json({ error: 'Nič na aktualizáciu.' });
+
+  vals.push(req.params.leadId);
+  db.prepare(`UPDATE leads SET ${fields.join(', ')} WHERE id = ?`).run(...vals);
+  res.json({ ok: true });
+});
+
 // DELETE /api/widgets/:id/leads/:leadId — delete a lead
 router.delete('/:id/leads/:leadId', (req, res) => {
   const widget = getOwnedWidget(req.params.id, req.userId);
@@ -154,6 +182,39 @@ router.delete('/:id/leads/:leadId', (req, res) => {
   const db = getDb();
   db.prepare('DELETE FROM leads WHERE id = ? AND widget_id = ?').run(req.params.leadId, widget.id);
   res.json({ ok: true });
+});
+
+// GET /api/widgets/:id/leads/export — CSV export
+router.get('/:id/leads/export', (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const db = getDb();
+  const leads = db.prepare(`
+    SELECT name, email, phone, status, notes, chat_summary, gdpr_consent, created_at
+    FROM leads WHERE widget_id = ? ORDER BY created_at DESC
+  `).all(widget.id);
+
+  const header = ['Meno', 'Email', 'Telefón', 'Stav', 'Poznámky', 'AI zhrnutie', 'GDPR súhlas', 'Dátum'];
+  const rows = leads.map(l => [
+    l.name,
+    l.email,
+    l.phone || '',
+    l.status,
+    l.notes || '',
+    (l.chat_summary || '').replace(/\n/g, ' '),
+    l.gdpr_consent ? 'Áno' : 'Nie',
+    new Date(l.created_at * 1000).toLocaleString('sk-SK'),
+  ]);
+
+  const csv = [header, ...rows]
+    .map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+
+  const filename = `kontakty-${widget.name || widget.id}-${new Date().toISOString().slice(0, 10)}.csv`;
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+  res.send('\uFEFF' + csv);  // BOM for Excel UTF-8
 });
 
 function getOwnedWidget(widgetId, userId) {

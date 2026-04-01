@@ -1,0 +1,101 @@
+'use strict';
+
+const nodemailer = require('nodemailer');
+
+function createTransport() {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
+  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
+
+  return nodemailer.createTransport({
+    host: SMTP_HOST,
+    port: parseInt(SMTP_PORT || '587', 10),
+    secure: parseInt(SMTP_PORT || '587', 10) === 465,
+    auth: { user: SMTP_USER, pass: SMTP_PASS },
+  });
+}
+
+/**
+ * Send email notification when a new lead is created.
+ * @param {object} opts
+ * @param {string} opts.toEmail       - recipient (widget owner's email)
+ * @param {string} opts.ownerName     - widget owner's name
+ * @param {string} opts.widgetName    - name of the widget
+ * @param {object} opts.lead          - { name, email, phone, chat_summary }
+ */
+async function sendLeadNotification({ toEmail, ownerName, widgetName, lead }) {
+  const transport = createTransport();
+  if (!transport) {
+    // SMTP not configured — log and skip silently
+    console.log('[email] SMTP not configured, skipping lead notification.');
+    return;
+  }
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const dashboardUrl = process.env.BASE_URL ? `${process.env.BASE_URL}/dashboard` : 'https://neuradesk.online/dashboard';
+
+  const summaryBlock = lead.chat_summary
+    ? `<div style="background:#f0f7ff;border-left:4px solid #2563eb;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14px;line-height:1.7;color:#1e293b;">
+         <strong style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.05em">🤖 AI zhrnutie konverzácie</strong><br><br>
+         ${lead.chat_summary.replace(/\n/g, '<br>')}
+       </div>`
+    : '<p style="color:#94a3b8;font-style:italic;font-size:14px;">AI zhrnutie sa generuje, otvorte dashboard pre detail.</p>';
+
+  const phoneRow = lead.phone
+    ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px">📞 Telefón</td><td style="padding:6px 0 6px 16px;font-size:14px;font-weight:600">${lead.phone}</td></tr>`
+    : '';
+
+  const html = `
+<!DOCTYPE html>
+<html lang="sk">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:560px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+
+    <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:28px 32px">
+      <div style="font-size:22px;font-weight:800;color:white;letter-spacing:-0.5px">NeuraDeskApp</div>
+      <div style="color:rgba(255,255,255,0.8);font-size:14px;margin-top:4px">Nový kontakt zo chatbota</div>
+    </div>
+
+    <div style="padding:28px 32px">
+      <p style="color:#374151;font-size:15px;margin:0 0 8px">Ahoj <strong>${ownerName}</strong>,</p>
+      <p style="color:#64748b;font-size:14px;margin:0 0 24px">Zákazník zanechal kontakt cez chatbot <strong>${widgetName}</strong>.</p>
+
+      <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:20px">
+        <table style="width:100%;border-collapse:collapse">
+          <tr><td style="padding:6px 0;color:#64748b;font-size:14px">👤 Meno</td><td style="padding:6px 0 6px 16px;font-size:14px;font-weight:600">${lead.name}</td></tr>
+          <tr><td style="padding:6px 0;color:#64748b;font-size:14px">✉️ Email</td><td style="padding:6px 0 6px 16px;font-size:14px;font-weight:600"><a href="mailto:${lead.email}" style="color:#2563eb">${lead.email}</a></td></tr>
+          ${phoneRow}
+        </table>
+      </div>
+
+      ${summaryBlock}
+
+      <a href="${dashboardUrl}" style="display:inline-block;background:#2563eb;color:white;font-weight:700;font-size:15px;padding:13px 28px;border-radius:10px;text-decoration:none;margin-top:8px">
+        Otvoriť dashboard →
+      </a>
+    </div>
+
+    <div style="padding:20px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">
+      Táto správa bola odoslaná automaticky systémom NeuraDeskApp · <a href="${dashboardUrl}" style="color:#94a3b8">neuradesk.online</a>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const text = `Nový kontakt zo chatbota ${widgetName}\n\nMeno: ${lead.name}\nEmail: ${lead.email}${lead.phone ? `\nTelefón: ${lead.phone}` : ''}\n\n${lead.chat_summary ? `AI zhrnutie:\n${lead.chat_summary}` : ''}\n\nDashboard: ${dashboardUrl}`;
+
+  try {
+    await transport.sendMail({
+      from: `"NeuraDeskApp" <${from}>`,
+      to: toEmail,
+      subject: `📋 Nový kontakt: ${lead.name} – ${widgetName}`,
+      html,
+      text,
+    });
+    console.log(`[email] Lead notification sent to ${toEmail}`);
+  } catch (err) {
+    console.error('[email] Failed to send lead notification:', err.message);
+  }
+}
+
+module.exports = { sendLeadNotification };

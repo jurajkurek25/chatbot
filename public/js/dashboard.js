@@ -542,14 +542,35 @@ async function loadLeads() {
   renderLeads();
 }
 
+const STATUS_LABELS = {
+  new:       { label: '🔵 Nový',         cls: 'status-new' },
+  contacted: { label: '🟡 Kontaktovaný', cls: 'status-contacted' },
+  closed:    { label: '🟢 Uzavretý',     cls: 'status-closed' },
+};
+
+function filterLeadsByStatus() {
+  renderLeads();
+}
+
 function renderLeads() {
+  const statusFilter = document.getElementById('leads-status-filter')?.value || '';
+  const filtered = statusFilter ? allLeads.filter(l => l.status === statusFilter) : allLeads;
+
   const container = document.getElementById('leads-list');
-  container.innerHTML = allLeads.map(lead => {
+
+  if (filtered.length === 0) {
+    container.innerHTML = '<div class="empty-state" style="padding:2rem"><p>Žiadne kontakty pre zvolený filter.</p></div>';
+    return;
+  }
+
+  container.innerHTML = filtered.map(lead => {
     const initials = (lead.name || '?').split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
     const date = new Date(lead.created_at * 1000).toLocaleString('sk-SK', {
       day: '2-digit', month: '2-digit', year: 'numeric',
       hour: '2-digit', minute: '2-digit'
     });
+    const status = lead.status || 'new';
+    const statusInfo = STATUS_LABELS[status] || STATUS_LABELS.new;
 
     const summaryHtml = lead.chat_summary
       ? `<div class="lead-summary">
@@ -558,17 +579,23 @@ function renderLeads() {
          </div>`
       : `<div class="lead-summary-pending">⏳ AI zhrnutie sa generuje...</div>`;
 
+    const notesVal = esc(lead.notes || '');
+
     return `
       <div class="lead-card" id="lead-${lead.id}">
         <div class="lead-card-header">
           <div class="lead-card-info">
             <div class="lead-avatar">${esc(initials)}</div>
-            <div>
-              <div class="lead-name">${esc(lead.name)}</div>
+            <div style="flex:1">
+              <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+                <span class="lead-name">${esc(lead.name)}</span>
+                <span class="lead-status-badge ${statusInfo.cls}">${statusInfo.label}</span>
+              </div>
               <div class="lead-meta">
-                <span class="lead-meta-item">✉️ ${esc(lead.email)}</span>
-                ${lead.phone ? `<span class="lead-meta-item">📞 ${esc(lead.phone)}</span>` : ''}
+                <a class="lead-meta-item" href="mailto:${esc(lead.email)}">✉️ ${esc(lead.email)}</a>
+                ${lead.phone ? `<a class="lead-meta-item" href="tel:${esc(lead.phone)}">📞 ${esc(lead.phone)}</a>` : ''}
                 ${lead.widgetName ? `<span class="lead-meta-item">💬 ${esc(lead.widgetName)}</span>` : ''}
+                ${lead.gdpr_consent ? '<span class="lead-meta-item" title="GDPR súhlas udelený">✅ GDPR</span>' : ''}
               </div>
             </div>
           </div>
@@ -577,10 +604,92 @@ function renderLeads() {
             <button class="lead-delete" onclick="deleteLead('${lead.widgetId}','${lead.id}')" title="Zmazať">✕</button>
           </div>
         </div>
+
         ${summaryHtml}
+
+        <div class="lead-actions">
+          <div class="lead-status-row">
+            <label style="font-size:0.78rem;font-weight:600;color:#64748b">Stav:</label>
+            <select class="lead-status-select" onchange="updateLeadStatus('${lead.widgetId}','${lead.id}',this.value)">
+              <option value="new" ${status === 'new' ? 'selected' : ''}>🔵 Nový</option>
+              <option value="contacted" ${status === 'contacted' ? 'selected' : ''}>🟡 Kontaktovaný</option>
+              <option value="closed" ${status === 'closed' ? 'selected' : ''}>🟢 Uzavretý</option>
+            </select>
+          </div>
+          <div class="lead-notes-row">
+            <textarea class="lead-notes-input" id="notes-${lead.id}" rows="2"
+              placeholder="Poznámky: zavolal som, dohodli sme stretnutie 15.4....">${notesVal}</textarea>
+            <button class="btn btn-sm btn-secondary" onclick="saveLeadNotes('${lead.widgetId}','${lead.id}')">Uložiť</button>
+          </div>
+        </div>
       </div>
     `;
   }).join('');
+}
+
+async function updateLeadStatus(widgetId, leadId, status) {
+  try {
+    await apiFetch(`/api/widgets/${widgetId}/leads/${leadId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status })
+    });
+    const lead = allLeads.find(l => l.id === leadId);
+    if (lead) lead.status = status;
+    showToast('Stav aktualizovaný.');
+    renderLeads();
+  } catch {
+    showToast('Chyba pri ukladaní stavu.', 'error');
+  }
+}
+
+async function saveLeadNotes(widgetId, leadId) {
+  const notes = document.getElementById(`notes-${leadId}`)?.value || '';
+  try {
+    await apiFetch(`/api/widgets/${widgetId}/leads/${leadId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ notes })
+    });
+    const lead = allLeads.find(l => l.id === leadId);
+    if (lead) lead.notes = notes;
+    showToast('Poznámky uložené.');
+  } catch {
+    showToast('Chyba pri ukladaní poznámok.', 'error');
+  }
+}
+
+async function exportLeadsCSV() {
+  const filterEl = document.getElementById('leads-widget-filter');
+  const widgetId = filterEl?.value;
+
+  if (!widgetId) {
+    // Export all widgets — download per widget
+    if (widgets.length === 0) { showToast('Žiadne widgety.', 'error'); return; }
+    for (const w of widgets) {
+      await downloadCSV(w.id, w.name || w.bot_name);
+    }
+  } else {
+    const w = widgets.find(x => x.id === widgetId);
+    await downloadCSV(widgetId, w?.name || widgetId);
+  }
+}
+
+async function downloadCSV(widgetId, widgetName) {
+  try {
+    const r = await apiFetch(`/api/widgets/${widgetId}/leads/export`);
+    if (!r) return;
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `kontakty-${widgetName}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Export ${widgetName} dokončený.`);
+  } catch {
+    showToast('Chyba pri exporte.', 'error');
+  }
 }
 
 async function deleteLead(widgetId, leadId) {

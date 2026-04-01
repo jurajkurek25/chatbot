@@ -4,6 +4,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb, searchKnowledge } = require('../db/database');
 const { streamChatResponse, summarizeConversation } = require('../services/claude');
+const { sendLeadNotification } = require('../services/email');
 
 const router = express.Router();
 
@@ -118,13 +119,20 @@ router.post('/:widgetId/chat', async (req, res) => {
   }
 });
 
-// POST /api/widget/:widgetId/leads — save contact form submission + AI summary
+// POST /api/widget/:widgetId/leads — save contact form submission + AI summary + email
 router.post('/:widgetId/leads', async (req, res) => {
   const db = getDb();
-  const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND active = 1').get(req.params.widgetId);
-  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
 
-  const { name, email, phone, sessionId } = req.body;
+  // Load widget + owner info for email notification
+  const widgetRow = db.prepare(`
+    SELECT w.id, w.name, w.bot_name, w.active, u.email AS owner_email, u.name AS owner_name
+    FROM widgets w
+    JOIN users u ON u.id = w.user_id
+    WHERE w.id = ? AND w.active = 1
+  `).get(req.params.widgetId);
+  if (!widgetRow) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const { name, email, phone, sessionId, gdprConsent } = req.body;
   if (!name?.trim() || !email?.trim()) {
     return res.status(400).json({ error: 'Meno a email sú povinné.' });
   }
@@ -134,33 +142,52 @@ router.post('/:widgetId/leads', async (req, res) => {
 
   const leadId = uuidv4();
   db.prepare(
-    'INSERT INTO leads (id, widget_id, name, email, phone, session_id) VALUES (?, ?, ?, ?, ?, ?)'
-  ).run(leadId, widget.id, name.trim(), email.trim(), phone?.trim() || null, sessionId || null);
+    'INSERT INTO leads (id, widget_id, name, email, phone, session_id, gdpr_consent) VALUES (?, ?, ?, ?, ?, ?, ?)'
+  ).run(leadId, widgetRow.id, name.trim(), email.trim(), phone?.trim() || null, sessionId || null, gdprConsent ? 1 : 0);
 
   res.json({ ok: true, leadId });
 
-  // Generate AI summary asynchronously (don't block the response)
-  if (sessionId) {
-    setImmediate(async () => {
+  // Async: generate AI summary, then send email notification
+  setImmediate(async () => {
+    let summary = null;
+
+    if (sessionId) {
       try {
         const conv = db.prepare(
           'SELECT id FROM conversations WHERE session_id = ? AND widget_id = ?'
-        ).get(sessionId, widget.id);
-        if (!conv) return;
+        ).get(sessionId, widgetRow.id);
 
-        const messages = db.prepare(
-          'SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at ASC'
-        ).all(conv.id);
-
-        const summary = await summarizeConversation(messages);
-        if (summary) {
-          db.prepare('UPDATE leads SET chat_summary = ? WHERE id = ?').run(summary, leadId);
+        if (conv) {
+          const messages = db.prepare(
+            'SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at ASC'
+          ).all(conv.id);
+          summary = await summarizeConversation(messages);
+          if (summary) {
+            db.prepare('UPDATE leads SET chat_summary = ? WHERE id = ?').run(summary, leadId);
+          }
         }
       } catch (err) {
         console.error('Lead summary error:', err.message);
       }
-    });
-  }
+    }
+
+    // Send email notification to widget owner
+    try {
+      await sendLeadNotification({
+        toEmail: widgetRow.owner_email,
+        ownerName: widgetRow.owner_name,
+        widgetName: widgetRow.name || widgetRow.bot_name,
+        lead: {
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone?.trim() || null,
+          chat_summary: summary,
+        },
+      });
+    } catch (err) {
+      console.error('Lead email error:', err.message);
+    }
+  });
 });
 
 function safeParseJSON(str, fallback) {

@@ -104,6 +104,10 @@ function initDatabase() {
       phone TEXT,
       session_id TEXT,
       chat_summary TEXT,
+      status TEXT NOT NULL DEFAULT 'new'
+        CHECK(status IN ('new','contacted','closed')),
+      notes TEXT,
+      gdpr_consent INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
   `);
@@ -115,6 +119,9 @@ function initDatabase() {
     `ALTER TABLE users ADD COLUMN subscription_status TEXT NOT NULL DEFAULT 'inactive'`,
     `ALTER TABLE users ADD COLUMN onboarding_done INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE widgets ADD COLUMN cta_type TEXT NOT NULL DEFAULT 'contact'`,
+    `ALTER TABLE leads ADD COLUMN status TEXT NOT NULL DEFAULT 'new'`,
+    `ALTER TABLE leads ADD COLUMN notes TEXT`,
+    `ALTER TABLE leads ADD COLUMN gdpr_consent INTEGER NOT NULL DEFAULT 0`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists */ }

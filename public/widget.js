@@ -529,6 +529,12 @@
       <div class="nd-field"><label>Meno *</label><input type="text" id="nd-cf-name" placeholder="Vaše meno" required></div>
       <div class="nd-field"><label>Email *</label><input type="email" id="nd-cf-email" placeholder="vas@email.sk" required></div>
       <div class="nd-field"><label>Telefón</label><input type="tel" id="nd-cf-phone" placeholder="+421 900 000 000"></div>
+      <div class="nd-field nd-gdpr-row">
+        <label style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem;font-weight:400;color:#374151;cursor:pointer">
+          <input type="checkbox" id="nd-cf-gdpr" style="margin-top:2px;width:14px;height:14px;flex-shrink:0" required>
+          <span>Súhlasím so spracovaním osobných údajov za účelom spätného kontaktu.*</span>
+        </label>
+      </div>
       <div class="nd-contact-actions">
         <button class="nd-btn-full nd-btn-cancel" id="nd-cf-cancel">Zrušiť</button>
         <button class="nd-btn-full nd-btn-submit" id="nd-cf-submit" style="background:${primary}">Odoslať</button>
@@ -544,12 +550,19 @@
     const nameEl = shadow.getElementById('nd-cf-name');
     const emailEl = shadow.getElementById('nd-cf-email');
     const phoneEl = shadow.getElementById('nd-cf-phone');
+    const gdprEl = shadow.getElementById('nd-cf-gdpr');
     const name = nameEl?.value.trim();
     const email = emailEl?.value.trim();
     const phone = phoneEl?.value.trim();
+    const gdprConsent = gdprEl?.checked;
 
     if (!name || !email) {
-      if (emailEl) emailEl.style.borderColor = '#dc2626';
+      if (!name && nameEl) nameEl.style.borderColor = '#dc2626';
+      if (!email && emailEl) emailEl.style.borderColor = '#dc2626';
+      return;
+    }
+    if (!gdprConsent) {
+      if (gdprEl) gdprEl.style.outline = '2px solid #dc2626';
       return;
     }
 
@@ -567,7 +580,7 @@
     fetch(`${BASE_URL}/api/widget/${widgetId}/leads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone: phone || undefined, sessionId })
+      body: JSON.stringify({ name, email, phone: phone || undefined, sessionId, gdprConsent: true })
     }).catch(() => { /* ignore network errors */ });
   }
 

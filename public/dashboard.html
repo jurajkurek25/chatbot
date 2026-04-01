@@ -87,10 +87,17 @@
               <div class="panel-title">Kontakty zo chatbota</div>
               <div class="panel-subtitle">Zákazníci, ktorí zanechali kontakt cez chatbot widget</div>
             </div>
-            <div style="display:flex;gap:0.75rem;align-items:center">
+            <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
               <select class="form-control" id="leads-widget-filter" onchange="loadLeads()" style="font-size:0.875rem;padding:0.4rem 0.75rem">
                 <option value="">Všetky widgety</option>
               </select>
+              <select class="form-control" id="leads-status-filter" onchange="filterLeadsByStatus()" style="font-size:0.875rem;padding:0.4rem 0.75rem">
+                <option value="">Všetky stavy</option>
+                <option value="new">🔵 Nové</option>
+                <option value="contacted">🟡 Kontaktovaný</option>
+                <option value="closed">🟢 Uzavretý</option>
+              </select>
+              <button class="btn btn-secondary" onclick="exportLeadsCSV()" style="font-size:0.875rem;padding:0.4rem 0.9rem;white-space:nowrap">📥 Export CSV</button>
             </div>
           </div>
 
