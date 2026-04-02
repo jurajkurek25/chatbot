@@ -106,7 +106,7 @@ async function handleStripeReturn() {
       await fetch(`${API}/api/stripe/verify-session`, {
         method: 'POST',
         headers: authHeaders(),
-        body: JSON.stringify({ session_id: sessionId })
+        body: JSON.stringify({ sessionId })
       });
     } catch { /* ignore */ }
 

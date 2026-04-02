@@ -59,8 +59,8 @@ router.post('/checkout', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/stripe/webhook — Stripe webhook (raw body required)
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+// POST /api/stripe/webhook — Stripe webhook (raw body parsed in server.js)
+router.post('/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
 
