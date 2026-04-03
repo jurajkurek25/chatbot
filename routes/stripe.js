@@ -14,7 +14,7 @@ function getStripe() {
 // POST /api/stripe/checkout — create Stripe Checkout Session
 router.post('/checkout', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, referred_by FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
 
   if (user.subscription_status === 'active') {
@@ -23,6 +23,11 @@ router.post('/checkout', requireAuth, async (req, res) => {
 
   const stripe = getStripe();
   const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
+  // Use discounted price if user was referred
+  const priceId = user.referred_by && process.env.STRIPE_PRICE_ID_DISCOUNTED
+    ? process.env.STRIPE_PRICE_ID_DISCOUNTED
+    : process.env.STRIPE_PRICE_ID;
 
   try {
     // Get or create Stripe customer
@@ -40,10 +45,7 @@ router.post('/checkout', requireAuth, async (req, res) => {
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
-      line_items: [{
-        price: process.env.STRIPE_PRICE_ID,
-        quantity: 1,
-      }],
+      line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       success_url: `${baseUrl}/onboarding?success=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/?canceled=1`,
@@ -82,6 +84,17 @@ router.post('/webhook', async (req, res) => {
           UPDATE users SET subscription_status = 'active', subscription_id = ?
           WHERE stripe_customer_id = ?
         `).run(session.subscription, session.customer);
+
+        // Award 15€ credit to referrer (only on first activation)
+        const newUser = db.prepare('SELECT id, referred_by FROM users WHERE stripe_customer_id = ?').get(session.customer);
+        if (newUser?.referred_by) {
+          // Check not already credited (avoid duplicate webhooks)
+          const already = db.prepare("SELECT id FROM users WHERE id = ? AND referral_credits > 0 AND referred_by IS NOT NULL").get(newUser.id);
+          if (!already) {
+            db.prepare('UPDATE users SET referral_credits = referral_credits + 15 WHERE id = ?').run(newUser.referred_by);
+            console.log(`[affiliate] +15€ credit awarded to referrer ${newUser.referred_by}`);
+          }
+        }
       }
       break;
     }
@@ -131,11 +144,15 @@ router.post('/portal', requireAuth, async (req, res) => {
 // GET /api/stripe/status — subscription status for current user
 router.get('/status', requireAuth, (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT subscription_status, onboarding_done FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT subscription_status, onboarding_done, free_until FROM users WHERE id = ?').get(req.userId);
+  const now = Math.floor(Date.now() / 1000);
+  const inFreePeriod = user?.free_until && user.free_until > now;
   res.json({
-    active: user?.subscription_status === 'active',
+    active: user?.subscription_status === 'active' || !!inFreePeriod,
     status: user?.subscription_status || 'inactive',
     onboarding_done: Boolean(user?.onboarding_done),
+    free_until: user?.free_until || null,
+    in_free_period: !!inFreePeriod,
   });
 });
 

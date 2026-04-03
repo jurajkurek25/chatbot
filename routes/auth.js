@@ -9,9 +9,24 @@ const { getDb } = require('../db/database');
 const router = express.Router();
 const SALT_ROUNDS = 12;
 
+function generateReferralCode(name) {
+  const base = name.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase() || 'USR';
+  const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${base}${rand}`;
+}
+
+function uniqueReferralCode(db, name) {
+  let code, attempts = 0;
+  do {
+    code = generateReferralCode(name);
+    attempts++;
+  } while (db.prepare('SELECT id FROM users WHERE referral_code = ?').get(code) && attempts < 10);
+  return code;
+}
+
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { email, password, name } = req.body;
+  const { email, password, name, referralCode } = req.body;
 
   if (!email || !password || !name) {
     return res.status(400).json({ error: 'Email, heslo a meno sú povinné.' });
@@ -29,15 +44,30 @@ router.post('/register', async (req, res) => {
     return res.status(409).json({ error: 'Tento email je už zaregistrovaný.' });
   }
 
+  // Validate referral code if provided
+  let referredById = null;
+  if (referralCode) {
+    const referrer = db.prepare('SELECT id FROM users WHERE referral_code = ?').get(referralCode.toUpperCase().trim());
+    if (referrer) {
+      referredById = referrer.id;
+    }
+  }
+
   try {
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const id = uuidv4();
-    db.prepare('INSERT INTO users (id, email, password_hash, name) VALUES (?, ?, ?, ?)').run(
-      id, email.toLowerCase(), passwordHash, name.trim()
-    );
+    const myReferralCode = uniqueReferralCode(db, name);
+
+    db.prepare(
+      'INSERT INTO users (id, email, password_hash, name, referral_code, referred_by) VALUES (?, ?, ?, ?, ?, ?)'
+    ).run(id, email.toLowerCase(), passwordHash, name.trim(), myReferralCode, referredById);
 
     const token = signToken(id);
-    return res.status(201).json({ token, user: { id, email: email.toLowerCase(), name: name.trim() } });
+    return res.status(201).json({
+      token,
+      user: { id, email: email.toLowerCase(), name: name.trim() },
+      hasReferral: !!referredById,
+    });
   } catch (err) {
     console.error('Register error:', err);
     return res.status(500).json({ error: 'Chyba servera.' });

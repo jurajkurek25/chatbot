@@ -89,10 +89,12 @@ function showView(view) {
   document.getElementById('view-widgets').style.display = view === 'widgets' ? '' : 'none';
   document.getElementById('view-editor').style.display = view === 'editor' ? '' : 'none';
   document.getElementById('view-leads').style.display = view === 'leads' ? '' : 'none';
+  document.getElementById('view-affiliate').style.display = view === 'affiliate' ? '' : 'none';
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
   document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
   document.getElementById('nav-leads').classList.toggle('active', view === 'leads');
+  document.getElementById('nav-affiliate').classList.toggle('active', view === 'affiliate');
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
@@ -103,6 +105,11 @@ function showView(view) {
     document.getElementById('topbar-title').textContent = 'Kontakty';
     document.getElementById('topbar-actions').innerHTML = '';
     loadLeads();
+  }
+  if (view === 'affiliate') {
+    document.getElementById('topbar-title').textContent = 'Affiliate';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadAffiliateStatus();
   }
 }
 
@@ -873,5 +880,82 @@ async function saveInstagramSettings() {
     showToast('Instagram nastavenia uložené.');
   } catch {
     showToast('Chyba pri ukladaní.', 'error');
+  }
+}
+
+/* ── Affiliate ──────────────────────────────────────────────────── */
+
+async function loadAffiliateStatus() {
+  try {
+    const r = await apiFetch('/api/affiliate/status');
+    if (!r) return;
+    const d = await r.json();
+
+    document.getElementById('aff-share-url').value = d.share_url || '';
+    document.getElementById('aff-code').textContent = d.referral_code || '—';
+    document.getElementById('aff-referred-count').textContent = d.referred_count || 0;
+    document.getElementById('aff-paid-referrals').textContent = d.paid_referrals || 0;
+    document.getElementById('aff-credits').textContent = (d.referral_credits || 0).toFixed(2) + ' €';
+    document.getElementById('aff-free-months').textContent = d.free_months_available || 0;
+    document.getElementById('aff-auto-redeem').checked = !!d.credits_redeem_enabled;
+
+    // Enable redeem button if enough credits
+    const btnRedeem = document.getElementById('btn-redeem');
+    if (btnRedeem) btnRedeem.disabled = (d.referral_credits || 0) < (d.monthly_price || 29);
+
+    // Show free period if active
+    const freePeriodEl = document.getElementById('aff-free-period-info');
+    if (d.in_free_period && d.free_until) {
+      freePeriodEl.style.display = '';
+      document.getElementById('aff-free-until').textContent =
+        new Date(d.free_until * 1000).toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } else {
+      freePeriodEl.style.display = 'none';
+    }
+  } catch {
+    showToast('Chyba pri načítaní affiliate štatistík.', 'error');
+  }
+}
+
+function copyAffiliateLink() {
+  const url = document.getElementById('aff-share-url')?.value;
+  if (!url) return;
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('Odkaz skopírovaný!', 'success'))
+    .catch(() => showToast('Kopírovanie zlyhalo.', 'error'));
+}
+
+async function toggleAutoRedeem() {
+  try {
+    const r = await apiFetch('/api/affiliate/toggle-redeem', { method: 'POST' });
+    if (!r) return;
+    const d = await r.json();
+    document.getElementById('aff-auto-redeem').checked = !!d.credits_redeem_enabled;
+    showToast(d.credits_redeem_enabled ? 'Auto uplatňovanie zapnuté.' : 'Auto uplatňovanie vypnuté.');
+  } catch {
+    showToast('Chyba.', 'error');
+  }
+}
+
+async function redeemCredits() {
+  const btn = document.getElementById('btn-redeem');
+  btn.disabled = true;
+  btn.textContent = '⏳ Spracovávam...';
+  try {
+    const r = await apiFetch('/api/affiliate/redeem', { method: 'POST' });
+    if (!r) { btn.disabled = false; btn.textContent = '🎁 Uplatniť kredity'; return; }
+    const d = await r.json();
+    if (r.ok) {
+      showToast(`🎉 ${d.free_months} mesiac(e) zadarmo aktivovaný!`, 'success');
+      loadAffiliateStatus();
+    } else {
+      showToast(d.error || 'Chyba pri uplatňovaní.', 'error');
+      btn.disabled = false;
+      btn.textContent = '🎁 Uplatniť kredity';
+    }
+  } catch {
+    showToast('Chyba.', 'error');
+    btn.disabled = false;
+    btn.textContent = '🎁 Uplatniť kredity';
   }
 }

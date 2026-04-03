@@ -22,6 +22,9 @@
         <span class="nav-icon">📋</span> Kontakty
         <span id="leads-badge" class="nav-badge" style="display:none"></span>
       </button>
+      <button class="nav-item" onclick="showView('affiliate')" id="nav-affiliate">
+        <span class="nav-icon">🎁</span> Affiliate
+      </button>
     </div>
 
     <div class="sidebar-section" id="widget-nav-section" style="display:none">
@@ -115,6 +118,82 @@
           </div>
 
           <div id="leads-list"></div>
+        </div>
+      </div>
+
+      <!-- ── View: Affiliate ────────────────────────── -->
+      <div id="view-affiliate" style="display:none">
+
+        <div class="panel" style="margin-bottom:1.5rem">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Affiliate program</div>
+              <div class="panel-subtitle">Zdieľajte NeuraDeskApp a získajte kredity na predplatné zadarmo</div>
+            </div>
+          </div>
+
+          <!-- Referral link -->
+          <div style="margin-bottom:1.5rem">
+            <label style="font-weight:600;font-size:0.875rem;color:#374151;display:block;margin-bottom:0.5rem">Váš referral odkaz</label>
+            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+              <input type="text" class="form-control" id="aff-share-url" readonly style="flex:1;min-width:200px;font-size:0.875rem;background:#f8fafc">
+              <button class="btn btn-secondary" onclick="copyAffiliateLink()">📋 Kopírovať</button>
+            </div>
+            <div class="hint" style="margin-top:0.375rem">Váš referral kód: <strong id="aff-code">—</strong></div>
+          </div>
+
+          <!-- Stats row -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:1.5rem">
+            <div style="background:#f0f9ff;border-radius:10px;padding:1rem;text-align:center">
+              <div style="font-size:1.75rem;font-weight:700;color:#0369a1" id="aff-referred-count">0</div>
+              <div style="font-size:0.78rem;color:#64748b;margin-top:0.25rem">Pozvaných užívateľov</div>
+            </div>
+            <div style="background:#f0fdf4;border-radius:10px;padding:1rem;text-align:center">
+              <div style="font-size:1.75rem;font-weight:700;color:#16a34a" id="aff-paid-referrals">0</div>
+              <div style="font-size:0.78rem;color:#64748b;margin-top:0.25rem">Platiacich zákazníkov</div>
+            </div>
+            <div style="background:#fefce8;border-radius:10px;padding:1rem;text-align:center">
+              <div style="font-size:1.75rem;font-weight:700;color:#ca8a04" id="aff-credits">0 €</div>
+              <div style="font-size:0.78rem;color:#64748b;margin-top:0.25rem">Zostatok kreditov</div>
+            </div>
+            <div style="background:#faf5ff;border-radius:10px;padding:1rem;text-align:center">
+              <div style="font-size:1.75rem;font-weight:700;color:#7c3aed" id="aff-free-months">0</div>
+              <div style="font-size:0.78rem;color:#64748b;margin-top:0.25rem">Voľné mesiace k dispozícii</div>
+            </div>
+          </div>
+
+          <!-- Free period info -->
+          <div id="aff-free-period-info" style="display:none;padding:0.75rem 1rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;margin-bottom:1rem;font-size:0.875rem;color:#166534">
+            🎉 Predplatné zadarmo aktívne do: <strong id="aff-free-until"></strong>
+          </div>
+
+          <!-- Redeem -->
+          <div style="padding:1rem;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem">Uplatniť kredity</div>
+            <p style="font-size:0.875rem;color:#64748b;margin-bottom:0.75rem">
+              Za každých 29 € kreditov získate 1 mesiac predplatného zadarmo. Stripe predplatné bude pozastavené počas voľného obdobia a automaticky obnoví fakturáciu po jeho skončení.
+            </p>
+            <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
+              <button class="btn btn-primary" id="btn-redeem" onclick="redeemCredits()" disabled>
+                🎁 Uplatniť kredity
+              </button>
+              <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;cursor:pointer">
+                <input type="checkbox" id="aff-auto-redeem" onchange="toggleAutoRedeem()">
+                Automaticky uplatňovať kredity
+              </label>
+            </div>
+          </div>
+
+          <!-- How it works -->
+          <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #e2e8f0">
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.75rem">Ako funguje affiliate?</div>
+            <div style="display:grid;gap:0.5rem;font-size:0.875rem;color:#374151">
+              <div>🔗 <strong>Zdieľate váš odkaz</strong> – priateľ sa zaregistruje s vaším kódom</div>
+              <div>💳 <strong>Priateľ zaplatí</strong> – automaticky dostane -15% zľavu</div>
+              <div>💰 <strong>Vy dostanete 15 €</strong> kredit na účet za každého platiaceho zákazníka</div>
+              <div>🎁 <strong>29 € kreditov = 1 mesiac zadarmo</strong> – predplatné sa pozastaví, kredity sa odpočítajú</div>
+            </div>
+          </div>
         </div>
       </div>
 

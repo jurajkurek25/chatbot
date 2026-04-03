@@ -86,12 +86,12 @@ async function startCheckout() {
     } else {
       showToast('Chyba pri vytváraní platby.', 'error');
       btn.disabled = false;
-      btn.textContent = '💳 Zaplatiť kartou – €15/mesiac';
+      btn.textContent = '💳 Zaplatiť kartou – €29/mesiac';
     }
   } catch {
     showToast('Sieťová chyba. Skúste znovu.', 'error');
     btn.disabled = false;
-    btn.textContent = '💳 Zaplatiť kartou – €15/mesiac';
+    btn.textContent = '💳 Zaplatiť kartou – €29/mesiac';
   }
 }
 
@@ -485,6 +485,18 @@ async function init() {
   setupColorPicker();
   setupQuestionInput();
   updateSidebar(1);
+
+  // Show discount notice if user registered with a referral
+  try {
+    const nd_user = localStorage.getItem('nd_user');
+    if (nd_user) {
+      const u = JSON.parse(nd_user);
+      if (u.hasReferral) {
+        const notice = document.getElementById('referral-discount-notice');
+        if (notice) notice.style.display = 'block';
+      }
+    }
+  } catch { /* ignore */ }
 
   // Handle Stripe return
   await handleStripeReturn();

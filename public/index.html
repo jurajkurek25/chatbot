@@ -31,7 +31,7 @@
   <h1 class="hero-h1">AI chatbot, ktorý<br><span class="gradient-text">konvertuje návštevníkov</span><br>na zákazníkov</h1>
   <p class="hero-sub">Nahrajte vaše know-how. Nastavte cieľ konverzie – hovor, formulár, nákup. Vložte jeden riadok kódu. Chatbot sa postará o zvyšok.</p>
   <div class="hero-actions">
-    <button class="btn-hero-primary" onclick="showAuth('register')">Vyskúšať za €15/mesiac</button>
+    <button class="btn-hero-primary" onclick="showAuth('register')">Vyskúšať za €29/mesiac</button>
     <a href="#how" class="btn-hero-ghost">Pozrieť demo ↓</a>
   </div>
   <div class="hero-proof">
@@ -139,7 +139,7 @@
       <div class="step-num">1</div>
       <div class="step-content">
         <h3>Zaregistrujte sa a uhraďte predplatné</h3>
-        <p>Vytvorte účet, zvoľte plán za €15/mesiac. Bezpečná platba cez Stripe.</p>
+        <p>Vytvorte účet, zvoľte plán za €29/mesiac. Bezpečná platba cez Stripe.</p>
       </div>
     </div>
     <div class="step-arrow">→</div>
@@ -177,7 +177,7 @@
     <div class="pricing-badge">Najpopulárnejší</div>
     <div class="pricing-name">Pro plán</div>
     <div class="pricing-price">
-      <span class="price-amount">€15</span>
+      <span class="price-amount">€29</span>
       <span class="price-period">/mesiac</span>
     </div>
     <ul class="pricing-features">
@@ -226,7 +226,7 @@
 <section class="footer-cta">
   <h2>Začnite ešte dnes</h2>
   <p>Prvý chatbot live za menej ako 10 minút.</p>
-  <button class="btn-hero-primary" onclick="showAuth('register')">Vyskúšať za €15/mesiac</button>
+  <button class="btn-hero-primary" onclick="showAuth('register')">Vyskúšať za €29/mesiac</button>
 </section>
 
 <footer class="footer">
@@ -280,6 +280,11 @@
         <label>Heslo <small>(min. 8 znakov)</small></label>
         <input type="password" name="password" required minlength="8" placeholder="••••••••">
       </div>
+      <div class="field" id="field-referral">
+        <label>Referral kód <small>(voliteľné)</small></label>
+        <input type="text" name="referralCode" id="input-referral-code" placeholder="napr. JANA4X2K" style="text-transform:uppercase">
+        <div id="referral-valid-note" style="display:none;font-size:0.78rem;color:#16a34a;margin-top:0.25rem">🎁 Kód je platný – dostanete zvýhodnenú cenu!</div>
+      </div>
       <button type="submit" class="btn-submit" id="btn-register">Vytvoriť účet a pokračovať</button>
       <div class="auth-error" id="err-register"></div>
       <p class="auth-note">Po registrácii budete presmerovaní na výber predplatného.</p>
@@ -294,6 +299,37 @@
   // URL params
   const params = new URLSearchParams(location.search);
   if (params.get('canceled')) showToast('Platba bola zrušená.', 'error');
+
+  // Auto-fill referral code from ?ref= param
+  const refCode = params.get('ref');
+  if (refCode) {
+    document.addEventListener('DOMContentLoaded', () => {
+      const input = document.getElementById('input-referral-code');
+      if (input) {
+        input.value = refCode.toUpperCase();
+        validateReferralCode(refCode);
+      }
+    });
+    showAuth('register');
+  }
+
+  async function validateReferralCode(code) {
+    if (!code || code.length < 4) return;
+    try {
+      const r = await fetch(`/api/affiliate/validate/${encodeURIComponent(code)}`);
+      const d = await r.json();
+      const note = document.getElementById('referral-valid-note');
+      if (note) note.style.display = d.valid ? '' : 'none';
+    } catch { /* ignore */ }
+  }
+
+  // Validate referral code on input
+  document.addEventListener('DOMContentLoaded', () => {
+    const input = document.getElementById('input-referral-code');
+    if (input) {
+      input.addEventListener('blur', () => validateReferralCode(input.value.trim()));
+    }
+  });
 
   function showAuth(tab) {
     document.getElementById('auth-overlay').style.display = 'flex';
@@ -341,15 +377,16 @@
     const err = document.getElementById('err-register');
     err.textContent = ''; btn.disabled = true; btn.textContent = 'Registrujem...';
     const f = e.target;
+    const referralCode = (document.getElementById('input-referral-code')?.value || '').trim().toUpperCase() || undefined;
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: f.name.value, email: f.email.value, password: f.password.value }),
+        body: JSON.stringify({ name: f.name.value, email: f.email.value, password: f.password.value, referralCode }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       localStorage.setItem('nd_token', data.token);
-      localStorage.setItem('nd_user', JSON.stringify(data.user));
+      localStorage.setItem('nd_user', JSON.stringify({ ...data.user, hasReferral: !!data.hasReferral }));
       window.location.href = '/onboarding';
     } catch (ex) {
       err.textContent = ex.message; btn.disabled = false; btn.textContent = 'Vytvoriť účet a pokračovať';
