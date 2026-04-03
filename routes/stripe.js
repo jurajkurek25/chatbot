@@ -79,6 +79,18 @@ router.post('/webhook', async (req, res) => {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object;
+
+      // Credit top-up (one-time payment)
+      if (session.mode === 'payment' && session.metadata?.type === 'credits') {
+        const credits = parseInt(session.metadata.credits || '0', 10);
+        const userId = session.metadata.userId;
+        if (credits > 0 && userId) {
+          db.prepare('UPDATE users SET extra_response_credits = extra_response_credits + ? WHERE id = ?').run(credits, userId);
+          console.log(`[credits] +${credits} credits added to user ${userId}`);
+        }
+        break;
+      }
+
       if (session.mode === 'subscription' && session.customer) {
         db.prepare(`
           UPDATE users SET subscription_status = 'active', subscription_id = ?

@@ -13,6 +13,7 @@ const chatRoutes = require('./routes/chat');
 const stripeRoutes = require('./routes/stripe');
 const instagramRoutes = require('./routes/instagram');
 const affiliateRoutes = require('./routes/affiliate');
+const { router: creditsRoutes } = require('./routes/credits');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -38,6 +39,7 @@ app.use('/api/widget', chatRoutes);
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/instagram', instagramRoutes);
 app.use('/api/affiliate', affiliateRoutes);
+app.use('/api/credits', creditsRoutes);
 
 // Page routes
 app.get('/dashboard', (req, res) =>

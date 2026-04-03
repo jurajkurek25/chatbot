@@ -51,6 +51,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   } catch { /* allow access on network error */ }
 
   loadWidgets();
+  loadUsageBar();
+
+  // Show toast if returning from credit purchase
+  const params = new URLSearchParams(location.search);
+  if (params.get('credits_added') === '1') {
+    showToast('Kredity boli úspešne pridané!', 'success');
+    window.history.replaceState({}, '', '/dashboard');
+    loadUsageBar();
+  }
 });
 
 function renderBillingButton() {
@@ -934,6 +943,88 @@ async function toggleAutoRedeem() {
     showToast(d.credits_redeem_enabled ? 'Auto uplatňovanie zapnuté.' : 'Auto uplatňovanie vypnuté.');
   } catch {
     showToast('Chyba.', 'error');
+  }
+}
+
+/* ── Credits / Usage ────────────────────────────────────────────── */
+
+async function loadUsageBar() {
+  try {
+    const r = await apiFetch('/api/credits/status');
+    if (!r) return;
+    const d = await r.json();
+
+    const fill = document.getElementById('usage-bar-fill');
+    const count = document.getElementById('usage-count');
+    const resetLabel = document.getElementById('usage-reset-label');
+    const extraRow = document.getElementById('usage-extra-row');
+
+    if (!fill) return;
+
+    const pct = d.usage_pct || 0;
+    fill.style.width = `${Math.min(100, pct)}%`;
+    fill.style.background = pct >= 100 ? '#dc2626' : pct >= 80 ? '#f59e0b' : '#2563eb';
+
+    count.textContent = `${d.used_this_month} / ${d.base_responses}`;
+
+    if (d.reset_at) {
+      const resetDate = new Date(d.reset_at * 1000);
+      resetLabel.textContent = `Obnoví sa ${resetDate.toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit' })}`;
+    }
+
+    if (d.extra_credits > 0) {
+      extraRow.style.display = '';
+      extraRow.textContent = `+ ${d.extra_credits} extra kreditov`;
+    } else {
+      extraRow.style.display = 'none';
+    }
+  } catch { /* ignore */ }
+}
+
+function openCreditsModal() {
+  document.getElementById('modal-credits').style.display = 'flex';
+  // Live preview for custom amount
+  const input = document.getElementById('credits-custom-eur');
+  const preview = document.getElementById('credits-custom-preview');
+  input.value = '';
+  preview.textContent = '= 0 odpovedí';
+  input.oninput = () => {
+    const eur = Math.floor(Number(input.value) || 0);
+    preview.textContent = eur >= 1 ? `= ${eur * 100} odpovedí` : '= 0 odpovedí';
+  };
+}
+
+async function buyCredits(packageId) {
+  try {
+    const r = await apiFetch('/api/credits/buy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ package_id: packageId }),
+    });
+    if (!r) return;
+    const d = await r.json();
+    if (d.url) window.location.href = d.url;
+    else showToast(d.error || 'Chyba.', 'error');
+  } catch {
+    showToast('Chyba pri vytváraní platby.', 'error');
+  }
+}
+
+async function buyCustomCredits() {
+  const eur = Math.floor(Number(document.getElementById('credits-custom-eur').value) || 0);
+  if (eur < 1) { showToast('Minimálna suma je 1 €.', 'error'); return; }
+  try {
+    const r = await apiFetch('/api/credits/buy', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ custom_eur: eur }),
+    });
+    if (!r) return;
+    const d = await r.json();
+    if (d.url) window.location.href = d.url;
+    else showToast(d.error || 'Chyba.', 'error');
+  } catch {
+    showToast('Chyba pri vytváraní platby.', 'error');
   }
 }
 

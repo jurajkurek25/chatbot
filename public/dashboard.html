@@ -47,6 +47,22 @@
     </div>
 
     <div class="sidebar-footer" id="sidebar-footer">
+      <!-- Usage bar -->
+      <div style="margin-bottom:0.75rem;padding:0.75rem;background:#f1f5f9;border-radius:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem">
+          <span style="font-size:0.75rem;font-weight:600;color:#475569">AI odpovede</span>
+          <span style="font-size:0.72rem;color:#64748b" id="usage-count">—</span>
+        </div>
+        <div style="height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden">
+          <div id="usage-bar-fill" style="height:100%;background:#2563eb;border-radius:99px;transition:width 0.4s;width:0%"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.4rem">
+          <span style="font-size:0.7rem;color:#94a3b8" id="usage-reset-label"></span>
+          <button style="font-size:0.7rem;font-weight:600;color:#2563eb;background:none;border:none;cursor:pointer;padding:0" onclick="openCreditsModal()">+ Dobiť</button>
+        </div>
+        <div id="usage-extra-row" style="display:none;margin-top:0.3rem;font-size:0.7rem;color:#16a34a;font-weight:600"></div>
+      </div>
+
       <div class="user-info">
         <div class="user-avatar" id="user-avatar">?</div>
         <div>
@@ -521,6 +537,42 @@
       <button class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('modal-create').style.display='none'">Zrušiť</button>
       <button class="btn btn-primary" style="flex:1;" onclick="createWidget()">Vytvoriť</button>
     </div>
+  </div>
+</div>
+
+<!-- Credits Modal -->
+<div id="modal-credits" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:white;border-radius:16px;padding:2rem;width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,0.18);" onclick="event.stopPropagation()">
+    <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:0.25rem">Dobiť AI kredity</h2>
+    <p style="font-size:0.875rem;color:#64748b;margin-bottom:1.5rem">1 € = 100 AI odpovedí · kredity sa neobnovia mesačne, spotrebúvajú sa postupne</p>
+
+    <!-- Packages -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1.25rem">
+      <button class="credits-pkg-btn" onclick="buyCredits('p5')" style="padding:1rem;border:2px solid #e2e8f0;border-radius:12px;background:white;cursor:pointer;text-align:left;transition:border-color 0.15s">
+        <div style="font-size:1.1rem;font-weight:700;color:#1e293b">€5</div>
+        <div style="font-size:0.8rem;color:#64748b;margin-top:2px">500 odpovedí</div>
+      </button>
+      <button class="credits-pkg-btn" onclick="buyCredits('p10')" style="padding:1rem;border:2px solid #2563eb;border-radius:12px;background:#eff6ff;cursor:pointer;text-align:left;position:relative">
+        <div style="position:absolute;top:0.4rem;right:0.5rem;font-size:0.65rem;font-weight:700;color:#2563eb;background:#dbeafe;padding:1px 6px;border-radius:99px">VÝHODNÉ</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#1e293b">€10</div>
+        <div style="font-size:0.8rem;color:#64748b;margin-top:2px">1 200 odpovedí</div>
+      </button>
+    </div>
+
+    <!-- Custom amount -->
+    <div style="border-top:1px solid #e2e8f0;padding-top:1.25rem">
+      <label style="font-size:0.875rem;font-weight:600;color:#374151;display:block;margin-bottom:0.5rem">Vlastná suma</label>
+      <div style="display:flex;gap:0.5rem;align-items:center">
+        <div style="position:relative;flex:1">
+          <span style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:#64748b;font-weight:600">€</span>
+          <input type="number" id="credits-custom-eur" min="1" step="1" placeholder="napr. 3" class="form-control" style="padding-left:1.75rem">
+        </div>
+        <span style="font-size:0.8rem;color:#94a3b8;white-space:nowrap" id="credits-custom-preview">= 0 odpovedí</span>
+        <button class="btn btn-primary" onclick="buyCustomCredits()">Kúpiť</button>
+      </div>
+    </div>
+
+    <button class="btn btn-secondary" style="width:100%;margin-top:1rem" onclick="document.getElementById('modal-credits').style.display='none'">Zavrieť</button>
   </div>
 </div>
 

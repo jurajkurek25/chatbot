@@ -4,7 +4,8 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb, searchKnowledge } = require('../db/database');
 const { streamChatResponse, summarizeConversation } = require('../services/claude');
-const { sendLeadNotification } = require('../services/email');
+const { sendLeadNotification, sendUsageNotification } = require('../services/email');
+const { BASE_RESPONSES, nextMonthReset, maybeResetUsage } = require('./credits');
 
 const router = express.Router();
 
@@ -61,6 +62,23 @@ router.post('/:widgetId/chat', async (req, res) => {
     return res.status(404).json({ error: 'Widget nenájdený.' });
   }
 
+  // Check monthly usage limit
+  const owner = db.prepare(
+    'SELECT id, email, name, ai_responses_this_month, ai_responses_reset_at, extra_response_credits, usage_notified_80, usage_notified_100 FROM users WHERE id = ?'
+  ).get(widget.user_id);
+
+  if (owner) {
+    const thisMonth = maybeResetUsage(db, owner.id, owner);
+    const extra = owner.extra_response_credits || 0;
+
+    if (thisMonth >= BASE_RESPONSES && extra <= 0) {
+      return res.status(402).json({
+        error: 'Mesačný limit AI odpovedí bol vyčerpaný. Vlastník chatbota si musí dobiť kredity.',
+        code: 'LIMIT_REACHED',
+      });
+    }
+  }
+
   const { message, sessionId, history = [] } = req.body;
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'Správa je povinná.' });
@@ -105,8 +123,39 @@ router.post('/:widgetId/chat', async (req, res) => {
   try {
     const fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res);
 
-    // Save assistant response
-    if (fullText) {
+    // Save assistant response + track usage
+    if (fullText && owner) {
+      db.prepare('INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)').run(
+        uuidv4(), conversation.id, 'assistant', fullText
+      );
+
+      // Increment usage (base first, then extra)
+      const freshOwner = db.prepare(
+        'SELECT ai_responses_this_month, extra_response_credits, usage_notified_80, usage_notified_100 FROM users WHERE id = ?'
+      ).get(owner.id);
+      const currentMonth = freshOwner.ai_responses_this_month || 0;
+      const currentExtra = freshOwner.extra_response_credits || 0;
+
+      if (currentMonth < BASE_RESPONSES) {
+        db.prepare('UPDATE users SET ai_responses_this_month = ai_responses_this_month + 1 WHERE id = ?').run(owner.id);
+      } else if (currentExtra > 0) {
+        db.prepare('UPDATE users SET extra_response_credits = extra_response_credits - 1 WHERE id = ?').run(owner.id);
+      }
+
+      // Usage notifications (async)
+      const newCount = currentMonth + 1;
+      setImmediate(() => {
+        try {
+          if (newCount >= BASE_RESPONSES && !freshOwner.usage_notified_100) {
+            db.prepare('UPDATE users SET usage_notified_100 = 1 WHERE id = ?').run(owner.id);
+            sendUsageNotification({ toEmail: owner.email, ownerName: owner.name, pct: 100, extra: currentExtra }).catch(() => {});
+          } else if (newCount >= BASE_RESPONSES * 0.8 && !freshOwner.usage_notified_80) {
+            db.prepare('UPDATE users SET usage_notified_80 = 1 WHERE id = ?').run(owner.id);
+            sendUsageNotification({ toEmail: owner.email, ownerName: owner.name, pct: 80, extra: currentExtra }).catch(() => {});
+          }
+        } catch { /* ignore */ }
+      });
+    } else if (fullText) {
       db.prepare('INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)').run(
         uuidv4(), conversation.id, 'assistant', fullText
       );

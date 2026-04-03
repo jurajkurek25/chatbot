@@ -98,4 +98,60 @@ async function sendLeadNotification({ toEmail, ownerName, widgetName, lead }) {
   }
 }
 
-module.exports = { sendLeadNotification };
+/**
+ * Send usage notification at 80% or 100% of monthly limit.
+ * @param {object} opts
+ * @param {string} opts.toEmail
+ * @param {string} opts.ownerName
+ * @param {number} opts.pct       - 80 or 100
+ * @param {number} opts.extra     - remaining extra credits
+ */
+async function sendUsageNotification({ toEmail, ownerName, pct, extra }) {
+  const transport = createTransport();
+  if (!transport) return;
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const dashboardUrl = process.env.BASE_URL ? `${process.env.BASE_URL}/dashboard` : 'https://neuradesk.online/dashboard';
+  const is100 = pct >= 100;
+
+  const subject = is100
+    ? '⚠️ Mesačný limit AI odpovedí vyčerpaný – dobite kredity'
+    : '📊 Využili ste 80 % mesačných AI odpovedí';
+
+  const bodyMsg = is100
+    ? `Vyčerpali ste všetkých <strong>1 500 AI odpovedí</strong> zahrnutých v mesačnom pláne. ${extra > 0 ? `Máte ešte <strong>${extra} extra kreditov</strong>.` : 'Chatbot na vašom webe <strong>prestáva odpovedať</strong>, kým si dobijete kredity.'}`
+    : `Využili ste <strong>80 % mesačného limitu</strong> (1 200 z 1 500 AI odpovedí). ${extra > 0 ? `Máte k dispozícii <strong>${extra} extra kreditov</strong>.` : 'Zvážte dobíjanie kreditov.'}`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="sk">
+<head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:${is100 ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'linear-gradient(135deg,#f59e0b,#d97706)'};padding:24px 32px">
+      <div style="font-size:20px;font-weight:800;color:white">NeuraDeskApp</div>
+      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">${is100 ? 'Limit AI odpovedí vyčerpaný' : '80 % mesačného limitu využité'}</div>
+    </div>
+    <div style="padding:28px 32px">
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${ownerName}</strong>,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px">${bodyMsg}</p>
+      <a href="${dashboardUrl}" style="display:inline-block;background:#2563eb;color:white;font-weight:700;font-size:15px;padding:13px 28px;border-radius:10px;text-decoration:none">
+        Dobiť kredity →
+      </a>
+    </div>
+    <div style="padding:16px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">
+      NeuraDeskApp · <a href="${dashboardUrl}" style="color:#94a3b8">neuradesk.online</a>
+    </div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    await transport.sendMail({ from: `"NeuraDeskApp" <${from}>`, to: toEmail, subject, html });
+    console.log(`[email] Usage notification (${pct}%) sent to ${toEmail}`);
+  } catch (err) {
+    console.error('[email] Failed to send usage notification:', err.message);
+  }
+}
+
+module.exports = { sendLeadNotification, sendUsageNotification };
