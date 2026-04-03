@@ -74,7 +74,9 @@
       display: flex; align-items: center; justify-content: center;
       font-size: 1.1rem;
       flex-shrink: 0;
+      overflow: hidden;
     }
+    #nd-avatar img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
     #nd-header-info { flex: 1; }
     #nd-bot-name { font-size: 0.95rem; font-weight: 700; color: white; }
     #nd-status { font-size: 0.75rem; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 0.3rem; }
@@ -285,7 +287,7 @@
     // Chat window
     const win = elem('div', { id: 'nd-window', class: 'nd-hidden' }, `
       <div id="nd-header" style="background:${primary}">
-        <div id="nd-avatar">🤖</div>
+        <div id="nd-avatar">${config.avatar_url ? `<img src="${config.avatar_url}" alt="">` : '🤖'}</div>
         <div id="nd-header-info">
           <div id="nd-bot-name">${esc(config.bot_name)}</div>
           <div id="nd-status"><span id="nd-status-dot"></span> Online</div>
@@ -358,11 +360,23 @@
     if (s) s.style.display = 'none';
   }
 
+  /* ── Markdown renderer (bold, italic, newlines only) ────────── */
+  function renderMarkdown(text) {
+    return esc(text)
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+  }
+
   /* ── Messages ───────────────────────────────────────────────── */
   function addBotMessage(text, isStreaming = false) {
     const msgs = shadow.getElementById('nd-messages');
     const div = elem('div', { class: `nd-msg nd-msg-bot${isStreaming ? ' nd-typing' : ''}` });
-    div.textContent = text;
+    if (isStreaming) {
+      div.textContent = text;
+    } else {
+      div.innerHTML = renderMarkdown(text);
+    }
     msgs.appendChild(div);
     scrollToBottom();
     return div;
@@ -454,8 +468,10 @@
               typingEl.textContent = parsed.error;
               typingEl.classList.remove('nd-typing');
             } else if (parsed.done) {
-              // Stream finished
-              history.push({ role: 'assistant', content: parsed.fullText || fullText });
+              // Stream finished — render markdown on final text
+              const final = parsed.fullText || fullText;
+              typingEl.innerHTML = renderMarkdown(final);
+              history.push({ role: 'assistant', content: final });
               maybeShowCta();
             } else if (parsed.text) {
               if (first) {

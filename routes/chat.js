@@ -28,7 +28,7 @@ function checkRateLimit(ip) {
 router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
-    SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions, active
+    SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions, active, avatar_url
     FROM widgets WHERE id = ?
   `).get(req.params.widgetId);
 
@@ -44,6 +44,7 @@ router.get('/:widgetId/config', (req, res) => {
     cta_type: widget.cta_type,
     cta_config: safeParseJSON(widget.cta_config, {}),
     suggested_questions: safeParseJSON(widget.suggested_questions, []),
+    avatar_url: widget.avatar_url || null,
   });
 });
 

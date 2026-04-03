@@ -189,6 +189,16 @@ async function openWidget(widgetId) {
   document.getElementById('s-active').value = currentWidget.active ? '1' : '0';
   updateColorPreview(currentWidget.primary_color);
 
+  // Avatar preview
+  const preview = document.getElementById('s-avatar-preview');
+  if (preview) {
+    if (currentWidget.avatar_url) {
+      preview.innerHTML = `<img src="${currentWidget.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+    } else {
+      preview.innerHTML = '🤖';
+    }
+  }
+
   // Populate CTA
   document.getElementById('cta-type').value = currentWidget.cta_type || 'none';
   const cc = currentWidget.cta_config || {};
@@ -282,6 +292,35 @@ async function saveSettings() {
     showToast('Nastavenia uložené!', 'success');
   } else {
     showToast('Chyba pri ukladaní.', 'error');
+  }
+}
+
+/* ── Avatar Upload ────────────────────────────────────────────── */
+async function uploadAvatar() {
+  if (!currentWidget) return;
+  const file = document.getElementById('s-avatar-file')?.files[0];
+  if (!file) { showToast('Vyberte obrázok.', 'error'); return; }
+
+  const formData = new FormData();
+  formData.append('avatar', file);
+
+  try {
+    const r = await apiFetch(`/api/widgets/${currentWidget.id}/avatar`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!r) return;
+    const data = await r.json();
+    if (data.avatar_url) {
+      currentWidget.avatar_url = data.avatar_url;
+      const preview = document.getElementById('s-avatar-preview');
+      if (preview) preview.innerHTML = `<img src="${data.avatar_url}" style="width:100%;height:100%;object-fit:cover;border-radius:50%">`;
+      showToast('Avatar bol nahratý.');
+    } else {
+      showToast(data.error || 'Chyba.', 'error');
+    }
+  } catch {
+    showToast('Chyba pri nahrávaní.', 'error');
   }
 }
 

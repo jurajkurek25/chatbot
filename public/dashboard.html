@@ -144,6 +144,18 @@
             </div>
 
             <div class="form-group">
+              <label>Foto avatara chatbota</label>
+              <div style="display:flex;align-items:center;gap:1rem">
+                <div id="s-avatar-preview" style="width:52px;height:52px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;overflow:hidden;flex-shrink:0">🤖</div>
+                <div>
+                  <input type="file" id="s-avatar-file" accept="image/jpeg,image/png,image/webp" style="font-size:0.875rem">
+                  <div class="hint">JPG, PNG, WebP · max 5 MB</div>
+                </div>
+                <button class="btn btn-secondary btn-sm" onclick="uploadAvatar()">Nahrať</button>
+              </div>
+            </div>
+
+            <div class="form-group">
               <label>Uvítacia správa</label>
               <input type="text" class="form-control" id="s-welcome" placeholder="Ahoj! Ako vám môžem pomôcť?">
             </div>

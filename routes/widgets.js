@@ -2,8 +2,30 @@
 
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
+
+const avatarStorage = multer.diskStorage({
+  destination(req, file, cb) {
+    const dir = path.join(__dirname, '..', 'uploads', 'avatars');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename(req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+    cb(null, `avatar-${req.params.id}${ext}`);
+  },
+});
+const uploadAvatar = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(req, file, cb) {
+    cb(null, /^image\/(jpeg|png|webp|gif)$/.test(file.mimetype));
+  },
+});
 
 const router = express.Router();
 
@@ -129,6 +151,18 @@ router.post('/complete-onboarding', (req, res) => {
   const db = getDb();
   db.prepare('UPDATE users SET onboarding_done = 1 WHERE id = ?').run(req.userId);
   res.json({ success: true });
+});
+
+// POST /api/widgets/:id/avatar — upload bot avatar image
+router.post('/:id/avatar', uploadAvatar.single('avatar'), (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+  if (!req.file) return res.status(400).json({ error: 'Neplatný súbor.' });
+
+  const avatarUrl = `/uploads/avatars/${req.file.filename}`;
+  const db = getDb();
+  db.prepare('UPDATE widgets SET avatar_url = ? WHERE id = ?').run(avatarUrl, widget.id);
+  res.json({ avatar_url: avatarUrl });
 });
 
 // GET /api/widgets/:id/leads — list leads for a widget
