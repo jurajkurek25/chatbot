@@ -7,18 +7,19 @@ const path = require('path');
  * Parse uploaded file and return its text content.
  * Supports: PDF, TXT, MD, CSV
  */
-async function parseFile(filePath, mimeType) {
-  const ext = path.extname(filePath).toLowerCase();
+async function parseFile(filePath, mimeType, originalName) {
+  const ext = path.extname(originalName || filePath).toLowerCase();
 
   if (mimeType === 'application/pdf' || ext === '.pdf') {
     return parsePdf(filePath);
   }
 
-  if (['.txt', '.md', '.csv', '.json'].includes(ext)) {
+  const textMimeTypes = ['text/plain', 'text/markdown', 'text/csv', 'text/x-csv', 'application/csv', 'text/x-markdown'];
+  if (textMimeTypes.includes(mimeType) || ['.txt', '.md', '.csv', '.json'].includes(ext)) {
     return fs.readFileSync(filePath, 'utf-8').slice(0, 100000);
   }
 
-  throw new Error(`Nepodporovaný typ súboru: ${ext}`);
+  throw new Error(`Nepodporovaný typ súboru: ${ext || mimeType}`);
 }
 
 async function parsePdf(filePath) {

@@ -79,7 +79,7 @@ router.post('/:widgetId/upload', upload.single('file'), async (req, res) => {
   }
 
   try {
-    const content = await parseFile(req.file.path, req.file.mimetype);
+    const content = await parseFile(req.file.path, req.file.mimetype, req.file.originalname);
     const title = (req.body.title || req.file.originalname).trim();
     const item = insertKnowledgeItem(req.params.widgetId, title, content, 'pdf');
     cleanupFile(req.file.path);
