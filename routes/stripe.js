@@ -85,6 +85,10 @@ router.post('/webhook', async (req, res) => {
           WHERE stripe_customer_id = ?
         `).run(session.subscription, session.customer);
 
+        // Re-activate all widgets for this user
+        const activatedUser = db.prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(session.customer);
+        if (activatedUser) db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(activatedUser.id);
+
         // Award 15€ credit to referrer (only on first activation)
         const newUser = db.prepare('SELECT id, referred_by FROM users WHERE stripe_customer_id = ?').get(session.customer);
         if (newUser?.referred_by) {
@@ -100,21 +104,28 @@ router.post('/webhook', async (req, res) => {
     }
     case 'customer.subscription.updated': {
       const sub = event.data.object;
-      const status = sub.status === 'active' || sub.status === 'trialing' ? 'active' : 'inactive';
+      const isActive = sub.status === 'active' || sub.status === 'trialing';
+      const status = isActive ? 'active' : 'inactive';
       db.prepare(`UPDATE users SET subscription_status = ?, subscription_id = ? WHERE stripe_customer_id = ?`)
         .run(status, sub.id, sub.customer);
+      const u = db.prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(sub.customer);
+      if (u) db.prepare('UPDATE widgets SET active = ? WHERE user_id = ?').run(isActive ? 1 : 0, u.id);
       break;
     }
     case 'customer.subscription.deleted': {
       const sub = event.data.object;
       db.prepare(`UPDATE users SET subscription_status = 'inactive' WHERE stripe_customer_id = ?`)
         .run(sub.customer);
+      const u = db.prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(sub.customer);
+      if (u) db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(u.id);
       break;
     }
     case 'invoice.payment_failed': {
       const inv = event.data.object;
       db.prepare(`UPDATE users SET subscription_status = 'past_due' WHERE stripe_customer_id = ?`)
         .run(inv.customer);
+      const u = db.prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(inv.customer);
+      if (u) db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(u.id);
       break;
     }
   }
