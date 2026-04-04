@@ -454,38 +454,60 @@
         <!-- Instagram Tab -->
         <div id="tab-instagram" class="tab-panel">
 
-          <!-- Status card -->
+          <!-- ── Disconnected state ─────────────────────────────── -->
           <div class="panel" style="margin-bottom:1.5rem" id="ig-panel-disconnected">
             <div class="panel-header">
               <div>
                 <div class="panel-title">📱 Instagram DM Bot</div>
-                <div class="panel-subtitle">Prepojte Instagram účet – bot bude reagovať na kľúčové slová v komentároch a viesť DM konverzácie</div>
+                <div class="panel-subtitle">Bot automaticky odpovedá na DM správy a reaguje na kľúčové slová v komentároch</div>
               </div>
             </div>
 
+            <!-- How it works -->
             <div class="ig-how-it-works" style="margin-bottom:1.5rem">
-              <div class="ig-step"><span class="ig-step-num">1</span><span>Niekto napíše kľúčové slovo do komentára na vašom Instagrame</span></div>
-              <div class="ig-step"><span class="ig-step-num">2</span><span>Bot mu automaticky pošle DM s uvítacou správou</span></div>
-              <div class="ig-step"><span class="ig-step-num">3</span><span>Claude AI odpovedá na jeho otázky na základe vašej znalostnej bázy</span></div>
-              <div class="ig-step"><span class="ig-step-num">4</span><span>Zahreje zákazníka a konvertuje ho (zavolanie, kontakt, nákup)</span></div>
+              <div class="ig-step"><span class="ig-step-num">1</span><span>Zákazník napíše kľúčové slovo (napr. <em>INFO, CENA, CHCEM</em>) do komentára</span></div>
+              <div class="ig-step"><span class="ig-step-num">2</span><span>Bot mu okamžite pošle DM s uvítacou správou</span></div>
+              <div class="ig-step"><span class="ig-step-num">3</span><span>AI odpovedá na otázky na základe vašej znalostnej bázy a produktov</span></div>
+              <div class="ig-step"><span class="ig-step-num">4</span><span>Zákazník dostane presné info a konvertuje (nákup, kontakt, zavolanie)</span></div>
             </div>
 
-            <div class="ig-requirements">
-              <div class="ig-req-title">⚠️ Čo potrebujete</div>
-              <ul>
-                <li>Instagram <strong>Business alebo Creator</strong> účet</li>
-                <li>Facebook Stránka prepojená s Instagram účtom</li>
-                <li>Facebook App (<a href="https://developers.facebook.com" target="_blank" rel="noopener">developers.facebook.com</a>) s oprávneniami na správy</li>
-                <li>Vyplnené <code>META_APP_ID</code> a <code>META_APP_SECRET</code> v .env</li>
+            <!-- Pre-requisites — client-friendly -->
+            <div class="ig-requirements" style="margin-bottom:1.25rem">
+              <div class="ig-req-title">✅ Čo potrebujete pred prepojením</div>
+              <ul style="margin:0.5rem 0 0 0;padding-left:1.25rem;line-height:2">
+                <li>Instagram účet prepnutý na <strong>Business alebo Creator</strong></li>
+                <li>Tento Instagram účet prepojený s <strong>Facebook Stránkou</strong></li>
               </ul>
+              <div style="margin-top:0.75rem">
+                <details style="cursor:pointer">
+                  <summary style="font-size:0.82rem;color:#2563eb;font-weight:600;list-style:none;display:flex;align-items:center;gap:0.3rem">
+                    <span id="ig-help-arrow" style="font-size:0.7rem">▶</span> Ako prepnúť na Business a prepojiť s Facebook Stránkou?
+                  </summary>
+                  <div style="margin-top:0.75rem;font-size:0.82rem;line-height:1.75;color:#475569;padding:0.75rem;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+                    <strong>Krok 1 – Prepnutie na Business účet v Instagrame:</strong><br>
+                    Profil → ☰ Menu → Nastavenia a súkromie → Typ účtu a nástroje → <em>Prepnúť na profesionálny účet</em> → vyberte <em>Firma</em>.
+                    <br><br>
+                    <strong>Krok 2 – Prepojenie s Facebook Stránkou:</strong><br>
+                    Profil → Upraviť profil → <em>Prepojiť Facebook stránku</em> → Vyberte existujúcu stránku alebo vytvorte novú.
+                    <br><br>
+                    <strong>Krok 3 – Kliknite na tlačidlo nižšie</strong> a prihláste sa cez Facebook. Povolte všetky požadované oprávnenia.
+                    <br><br>
+                    <span style="color:#16a34a;font-weight:600">To je všetko! Celý proces trvá 2–3 minúty.</span>
+                  </div>
+                </details>
+              </div>
             </div>
 
-            <button class="btn btn-primary ig-connect-btn" onclick="connectInstagram()" id="btn-ig-connect">
-              <span>📱 Prepojiť Instagram</span>
+            <button class="btn btn-primary ig-connect-btn" onclick="connectInstagram()" id="btn-ig-connect"
+              style="width:100%;justify-content:center;font-size:1rem;padding:0.75rem 1.5rem">
+              <span>📱 Prepojiť Instagram cez Facebook</span>
             </button>
+            <div style="text-align:center;font-size:0.78rem;color:#94a3b8;margin-top:0.5rem">
+              Bezpečné prepojenie cez Meta (Facebook) OAuth
+            </div>
           </div>
 
-          <!-- Connected state -->
+          <!-- ── Connected state ────────────────────────────────── -->
           <div class="panel" style="margin-bottom:1.5rem;display:none" id="ig-panel-connected">
             <div class="panel-header">
               <div style="display:flex;align-items:center;gap:0.75rem">
@@ -509,32 +531,35 @@
             </div>
           </div>
 
-          <!-- Settings (shown when connected) -->
+          <!-- ── Settings (shown when connected) ───────────────── -->
           <div class="panel" style="margin-bottom:1.5rem;display:none" id="ig-panel-settings">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Nastavenia</div>
+                <div class="panel-title">Nastavenia bota</div>
+                <div class="panel-subtitle">Kedy bot zasiahne a čo povie ako prvé</div>
               </div>
               <button class="btn btn-primary" onclick="saveInstagramSettings()">Uložiť</button>
             </div>
 
             <div class="form-group">
-              <label>Kľúčové slová (trigger)</label>
-              <div class="hint" style="margin-bottom:0.5rem">Keď niekto napíše toto slovo do komentára, bot mu pošle DM. Oddeľte Enterom.</div>
-              <textarea class="form-control" id="ig-keywords" rows="4"
-                placeholder="INFO&#10;CENA&#10;CHCEM&#10;ZÁUJEM&#10;ZĽAVA"></textarea>
+              <label>Kľúčové slová – trigger</label>
+              <div class="hint" style="margin-bottom:0.5rem">
+                Keď niekto napíše niektoré z týchto slov do komentára pod váš príspevok, bot mu automaticky pošle DM.
+                Každé slovo na nový riadok. Funguje pre ľubovoľné jazyky.
+              </div>
+              <textarea class="form-control" id="ig-keywords" rows="5"
+                placeholder="INFO&#10;CENA&#10;CHCEM&#10;ZÁUJEM&#10;ZĽAVA&#10;KOUPIT&#10;PRICE"></textarea>
             </div>
 
             <div class="form-group">
               <label>Uvítacia DM správa</label>
-              <div class="hint" style="margin-bottom:0.5rem">Prvá správa, ktorú bot pošle zákazníkovi po kľúčovom slove.</div>
+              <div class="hint" style="margin-bottom:0.5rem">Prvá správa, ktorú bot pošle zákazníkovi po kľúčovom slove. Ak necháte prázdne, použije sa predvolená.</div>
               <textarea class="form-control" id="ig-welcome-dm" rows="3"
                 placeholder="Ahoj! 👋 Videl som tvoj komentár. Som tu, ak máš otázky – napíš mi čo ťa zaujíma!"></textarea>
             </div>
 
-            <div class="hint" style="background:#fef9c3;border:1px solid #fde68a;padding:0.75rem 1rem;border-radius:8px;margin-top:0.5rem">
-              <strong>Webhook URL</strong> pre Meta App:<br>
-              <code id="ig-webhook-url" style="font-size:0.82rem;user-select:all"></code>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:0.75rem 1rem;border-radius:8px;margin-top:0.5rem;font-size:0.82rem;color:#166534">
+              💡 <strong>Tip:</strong> Nastavte kľúčové slová, ktoré zákazníci zvyknú písať pod vaše príspevky (napr. pod ceníkový post napíšte trigger <em>CENA</em>).
             </div>
           </div>
 
