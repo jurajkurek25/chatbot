@@ -281,6 +281,33 @@
                 <option value="0">Neaktívny (skrytý)</option>
               </select>
             </div>
+
+            <!-- Proactive Message -->
+            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #e2e8f0">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.25rem">Proaktívna správa</div>
+              <div class="hint" style="margin-bottom:0.85rem">Chatbot sa sám ozve návštevníkovi po pár sekundách na stránke – ako keby mu napísal. Získa pozornosť a otvorí konverzáciu.</div>
+
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                  <input type="checkbox" id="s-proactive-enabled" style="width:16px;height:16px">
+                  Zapnúť proaktívnu správu
+                </label>
+              </div>
+
+              <div id="proactive-fields">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Správa (text bubliny)</label>
+                    <input type="text" class="form-control" id="s-proactive-message"
+                      placeholder="napr. Ahoj! Môžem vám s niečím pomôcť? 👋">
+                  </div>
+                  <div class="form-group" style="max-width:160px">
+                    <label>Zobrazí sa po (sek.)</label>
+                    <input type="number" class="form-control" id="s-proactive-delay" min="1" max="60" value="4">
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -205,6 +205,9 @@ async function openWidget(widgetId) {
   document.getElementById('s-goals').value = currentWidget.goals || '';
   document.getElementById('s-active').value = currentWidget.active ? '1' : '0';
   updateColorPreview(currentWidget.primary_color);
+  document.getElementById('s-proactive-enabled').checked = Boolean(currentWidget.proactive_enabled);
+  document.getElementById('s-proactive-message').value = currentWidget.proactive_message || '';
+  document.getElementById('s-proactive-delay').value = currentWidget.proactive_delay || 4;
 
   // Avatar preview
   const preview = document.getElementById('s-avatar-preview');
@@ -295,6 +298,9 @@ async function saveSettings() {
     primary_color: document.getElementById('s-color').value,
     goals: document.getElementById('s-goals').value.trim(),
     active: document.getElementById('s-active').value === '1',
+    proactive_enabled: document.getElementById('s-proactive-enabled').checked,
+    proactive_message: document.getElementById('s-proactive-message').value.trim(),
+    proactive_delay: parseInt(document.getElementById('s-proactive-delay').value) || 4,
   };
   if (!body.name) { showToast('Názov widgetu je povinný.', 'error'); return; }
 

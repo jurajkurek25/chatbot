@@ -45,7 +45,7 @@ function buildProductsSection(products) {
 }
 
 /* ── System prompt builder ─────────────────────────────────────── */
-function buildSystemPrompt(widget, knowledgeItems, products = []) {
+function buildSystemPrompt(widget, knowledgeItems, products = [], pageContext = null) {
   const cfg = safeParseJSON(widget.cta_config, {});
 
   let knowledgeSection = '';
@@ -71,6 +71,13 @@ function buildSystemPrompt(widget, knowledgeItems, products = []) {
   }
 
   const productsSection = buildProductsSection(products);
+
+  let pageContextSection = '';
+  if (pageContext?.url) {
+    pageContextSection = `\n\n## KONTEXT AKTUÁLNEJ STRÁNKY\nZákazník sa nachádza na: ${pageContext.url}`;
+    if (pageContext.title) pageContextSection += `\nNázov stránky: ${pageContext.title}`;
+    pageContextSection += `\nPouži tento kontext — ak je stránka produktová alebo kategóriová, opýtaj sa čo konkrétne hľadá alebo potrebuje v súvislosti s tým, čo práve prezerá. Nie je potrebné to komentovať priamo, len prispôsob otázky.`;
+  }
 
   return `Si ${widget.bot_name}, skúsený predajný konzultant. Ovládaš psychológiu predaja a konzultačný predaj. Vieš predať čokoľvek – pretože predávaš cez pochopenie potrieb, nie cez tlak.
 
@@ -119,7 +126,7 @@ Keď zákazník prejaví záujem alebo súhlas:
 - Odpovedaj VŽDY v jazyku zákazníka (sk/cs/en podľa toho ako píše).
 - Nikdy si nevymýšľaj fakty, ceny, mená, kontakty ani referencie.
 - Nebuď agresívny ani nátlakový – predávaj cez dôveru a pochopenie.
-- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}`;
+- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
 }
 
 function loadProducts(widgetId) {
@@ -132,9 +139,9 @@ function loadProducts(widgetId) {
 }
 
 /* ── Streaming chat response ───────────────────────────────────── */
-async function streamChatResponse(widget, knowledgeItems, history, userMessage, res) {
+async function streamChatResponse(widget, knowledgeItems, history, userMessage, res, pageContext = null) {
   const products = loadProducts(widget.id);
-  const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products);
+  const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products, pageContext);
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },

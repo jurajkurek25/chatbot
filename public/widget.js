@@ -42,6 +42,49 @@
     #nd-launcher:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.28); }
     #nd-launcher svg { width: 26px; height: 26px; fill: white; transition: opacity 0.2s; }
 
+    /* Proactive bubble */
+    #nd-proactive-bubble {
+      position: fixed;
+      bottom: 90px;
+      right: 24px;
+      z-index: 2147483000;
+      max-width: 260px;
+      background: white;
+      border-radius: 14px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.16);
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      color: #1e293b;
+      line-height: 1.5;
+      cursor: pointer;
+      animation: ndBubbleIn 0.35s cubic-bezier(0.34,1.56,0.64,1);
+      border: 1px solid #e2e8f0;
+    }
+    #nd-proactive-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      right: 20px;
+      width: 14px;
+      height: 14px;
+      background: white;
+      border-right: 1px solid #e2e8f0;
+      border-bottom: 1px solid #e2e8f0;
+      transform: rotate(45deg);
+    }
+    #nd-proactive-close {
+      position: absolute;
+      top: 6px; right: 8px;
+      background: none; border: none; cursor: pointer;
+      color: #94a3b8; font-size: 1rem; line-height: 1; padding: 2px 4px;
+      border-radius: 4px;
+    }
+    #nd-proactive-close:hover { color: #64748b; }
+    @keyframes ndBubbleIn {
+      from { opacity: 0; transform: translateY(16px) scale(0.9); }
+      to   { opacity: 1; transform: none; }
+    }
+
     #nd-window {
       position: fixed;
       bottom: 92px;
@@ -242,6 +285,7 @@
     @media (max-width: 420px) {
       #nd-window { right: 10px; bottom: 80px; width: calc(100vw - 20px); max-height: 70vh; }
       #nd-launcher { right: 12px; bottom: 12px; }
+      #nd-proactive-bubble { right: 10px; max-width: calc(100vw - 80px); }
     }
   `;
 
@@ -258,6 +302,7 @@
   let history = [];          // [{role, content}, ...]
   let ctaShown = false;
   let msgCount = 0;
+  let proactiveDismissed = false;
 
   /* ── Shadow DOM setup ───────────────────────────────────────── */
   const host = document.createElement('div');
@@ -323,11 +368,61 @@
 
     // Render suggested questions
     renderSuggestions();
+
+    // Proactive bubble
+    if (config.proactive_enabled && config.proactive_message) {
+      const delay = (config.proactive_delay || 4) * 1000;
+      setTimeout(() => {
+        if (isOpen || proactiveDismissed) return;
+        showProactiveBubble(config.proactive_message);
+      }, delay);
+    }
+  }
+
+  /* ── Proactive Bubble ───────────────────────────────────────── */
+  function showProactiveBubble(message) {
+    if (shadow.getElementById('nd-proactive-bubble')) return; // already shown
+
+    const primary = config.primary_color || '#2563eb';
+    const bubble = elem('div', { id: 'nd-proactive-bubble' });
+    bubble.innerHTML = `
+      <button id="nd-proactive-close" title="Zavrieť">✕</button>
+      <div style="padding-right:1rem">${esc(message)}</div>
+      <div style="margin-top:0.4rem;font-size:0.78rem;font-weight:600;color:${primary}">Napísať →</div>
+    `;
+
+    shadow.appendChild(bubble);
+
+    bubble.addEventListener('click', (e) => {
+      if (e.target.id === 'nd-proactive-close') {
+        dismissBubble();
+        return;
+      }
+      dismissBubble();
+      if (!isOpen) toggleChat();
+    });
+
+    shadow.getElementById('nd-proactive-close').addEventListener('click', (e) => {
+      e.stopPropagation();
+      dismissBubble();
+    });
+  }
+
+  function dismissBubble() {
+    proactiveDismissed = true;
+    const b = shadow.getElementById('nd-proactive-bubble');
+    if (b) {
+      b.style.opacity = '0';
+      b.style.transform = 'translateY(8px)';
+      b.style.transition = 'opacity 0.2s, transform 0.2s';
+      setTimeout(() => b.remove(), 220);
+    }
   }
 
   /* ── Toggle ─────────────────────────────────────────────────── */
   function toggleChat() {
     isOpen = !isOpen;
+    dismissBubble();
     const win = shadow.getElementById('nd-window');
     const launcher = shadow.getElementById('nd-launcher');
     win.classList.toggle('nd-hidden', !isOpen);
@@ -426,6 +521,7 @@
         message: text,
         sessionId,
         history: history.slice(-20).slice(0, -1), // all but current message
+        pageContext: { url: window.location.href, title: document.title },
       };
 
       const response = await fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/chat`, {

@@ -89,7 +89,8 @@ router.put('/:id', (req, res) => {
   const widget = getOwnedWidget(req.params.id, req.userId);
   if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
 
-  const { name, bot_name, welcome_message, primary_color, goals, cta_type, cta_config, suggested_questions, active } = req.body;
+  const { name, bot_name, welcome_message, primary_color, goals, cta_type, cta_config, suggested_questions, active,
+          proactive_enabled, proactive_delay, proactive_message } = req.body;
 
   const db = getDb();
   db.prepare(`
@@ -102,7 +103,10 @@ router.put('/:id', (req, res) => {
       cta_type = ?,
       cta_config = ?,
       suggested_questions = ?,
-      active = ?
+      active = ?,
+      proactive_enabled = ?,
+      proactive_delay = ?,
+      proactive_message = ?
     WHERE id = ?
   `).run(
     name !== undefined ? name.trim() : widget.name,
@@ -114,6 +118,9 @@ router.put('/:id', (req, res) => {
     cta_config !== undefined ? JSON.stringify(cta_config) : widget.cta_config,
     suggested_questions !== undefined ? JSON.stringify(suggested_questions) : widget.suggested_questions,
     active !== undefined ? (active ? 1 : 0) : widget.active,
+    proactive_enabled !== undefined ? (proactive_enabled ? 1 : 0) : (widget.proactive_enabled || 0),
+    proactive_delay !== undefined ? Math.max(1, Math.min(60, parseInt(proactive_delay) || 4)) : (widget.proactive_delay || 4),
+    proactive_message !== undefined ? String(proactive_message).slice(0, 500) : (widget.proactive_message || ''),
     widget.id
   );
 
@@ -267,6 +274,9 @@ function parseWidget(w) {
     active: Boolean(w.active),
     cta_config: safeParseJSON(w.cta_config, {}),
     suggested_questions: safeParseJSON(w.suggested_questions, []),
+    proactive_enabled: Boolean(w.proactive_enabled),
+    proactive_delay: w.proactive_delay || 4,
+    proactive_message: w.proactive_message || '',
   };
 }
 

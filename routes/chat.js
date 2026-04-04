@@ -29,7 +29,8 @@ function checkRateLimit(ip) {
 router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
-    SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions, active, avatar_url
+    SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
+           active, avatar_url, proactive_enabled, proactive_delay, proactive_message
     FROM widgets WHERE id = ?
   `).get(req.params.widgetId);
 
@@ -46,6 +47,9 @@ router.get('/:widgetId/config', (req, res) => {
     cta_config: safeParseJSON(widget.cta_config, {}),
     suggested_questions: safeParseJSON(widget.suggested_questions, []),
     avatar_url: widget.avatar_url || null,
+    proactive_enabled: Boolean(widget.proactive_enabled),
+    proactive_delay: widget.proactive_delay || 4,
+    proactive_message: widget.proactive_message || '',
   });
 });
 
@@ -79,7 +83,7 @@ router.post('/:widgetId/chat', async (req, res) => {
     }
   }
 
-  const { message, sessionId, history = [] } = req.body;
+  const { message, sessionId, history = [], pageContext } = req.body;
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'Správa je povinná.' });
   }
@@ -121,7 +125,12 @@ router.post('/:widgetId/chat', async (req, res) => {
   res.flushHeaders();
 
   try {
-    const fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res);
+    // Sanitize pageContext
+    const safePageCtx = (pageContext && typeof pageContext.url === 'string')
+      ? { url: pageContext.url.slice(0, 512), title: String(pageContext.title || '').slice(0, 200) }
+      : null;
+
+    const fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
 
     // Save assistant response + track usage
     if (fullText && owner) {
