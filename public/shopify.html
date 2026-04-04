@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NeuraDeskApp × Shopify</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f8fafc;
+      color: #1e293b;
+      min-height: 100vh;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 0 1.5rem;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #1e293b;
+    }
+    .topbar-brand .nd-icon { color: #2563eb; font-size: 1.3rem; }
+    .topbar-shopify {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+      color: #64748b;
+      background: #f1f5f9;
+      border-radius: 99px;
+      padding: 0.3rem 0.85rem;
+    }
+    .topbar-shopify .dot { width:8px; height:8px; border-radius:50%; background:#22c55e; }
+
+    /* ── Layout ── */
+    .page {
+      max-width: 600px;
+      margin: 2.5rem auto;
+      padding: 0 1rem;
+    }
+
+    /* ── Steps indicator ── */
+    .steps-nav {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 2rem;
+    }
+    .step-dot {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+    .step-dot .num {
+      width: 26px; height: 26px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: #e2e8f0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .step-dot.active { color: #2563eb; }
+    .step-dot.active .num { background: #2563eb; color: white; }
+    .step-dot.done { color: #22c55e; }
+    .step-dot.done .num { background: #dcfce7; color: #15803d; }
+    .step-line { flex: 1; height: 2px; background: #e2e8f0; margin: 0 0.5rem; }
+    .step-line.done { background: #22c55e; }
+
+    /* ── Card ── */
+    .card {
+      background: white;
+      border: 1px solid #e2e8f0;
+      border-radius: 14px;
+      padding: 2rem;
+      margin-bottom: 1.25rem;
+    }
+    .card-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      margin-bottom: 0.35rem;
+    }
+    .card-sub {
+      font-size: 0.875rem;
+      color: #64748b;
+      margin-bottom: 1.5rem;
+      line-height: 1.55;
+    }
+
+    /* ── Form ── */
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #374151;
+      margin-bottom: 0.3rem;
+    }
+    .form-input {
+      width: 100%;
+      padding: 0.6rem 0.9rem;
+      border: 1.5px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-family: inherit;
+      color: #1e293b;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .form-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .form-hint { font-size: 0.75rem; color: #94a3b8; margin-top: 0.25rem; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.65rem 1.35rem;
+      border-radius: 9px;
+      border: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn:hover:not(:disabled) { opacity: 0.88; }
+    .btn-primary  { background: #2563eb; color: white; }
+    .btn-secondary { background: #f1f5f9; color: #374151; border: 1px solid #e2e8f0; }
+    .btn-green    { background: #22c55e; color: white; }
+    .btn-full     { width: 100%; }
+    .btn-sm       { padding: 0.4rem 0.85rem; font-size: 0.82rem; }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+    .spinner-blue {
+      border-color: rgba(37,99,235,0.2);
+      border-top-color: #2563eb;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Error / Success banners ── */
+    .banner {
+      border-radius: 9px;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.875rem;
+      margin-bottom: 1rem;
+    }
+    .banner-error   { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+    .banner-success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+    .banner-info    { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
+
+    /* ── Shop badge ── */
+    .shop-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 10px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1.5rem;
+      font-size: 0.875rem;
+    }
+    .shop-badge .shop-icon { font-size: 1.4rem; }
+    .shop-badge strong { display: block; color: #1e293b; }
+    .shop-badge span   { color: #64748b; font-size: 0.78rem; }
+
+    /* ── Scan steps ── */
+    .scan-steps { display: flex; flex-direction: column; gap: 0.5rem; margin: 1.25rem 0; }
+    .scan-step {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.65rem 0.9rem;
+      border-radius: 9px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+    }
+    .scan-step-icon  { font-size: 1.1rem; flex-shrink: 0; }
+    .scan-step-body  { flex: 1; }
+    .scan-step-label { font-weight: 600; color: #1e293b; }
+    .scan-step-sub   { font-size: 0.75rem; color: #94a3b8; margin-top: 1px; }
+    .scan-step-right { flex-shrink: 0; }
+    .scan-step.running { border-color: #bfdbfe; background: #eff6ff; }
+    .scan-step.running .scan-step-label { color: #2563eb; }
+    .scan-step.done    { border-color: #bbf7d0; background: #f0fdf4; }
+    .scan-step.done .scan-step-label { color: #15803d; }
+    .scan-step.error   { border-color: #fecaca; background: #fef2f2; }
+
+    /* ── Progress bar ── */
+    .progress-wrap { height: 8px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin: 1rem 0 0.5rem; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #7c3aed); border-radius: 99px; transition: width 0.4s; }
+    .progress-label { text-align: center; font-size: 0.78rem; color: #64748b; }
+
+    /* ── Success final card ── */
+    .final-card {
+      text-align: center;
+      padding: 1rem 0;
+    }
+    .final-card .big-icon { font-size: 3.5rem; margin-bottom: 0.75rem; }
+    .final-card h2 { font-size: 1.3rem; margin-bottom: 0.5rem; }
+    .final-card p  { color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .final-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+
+    /* ── Widget select ── */
+    .widget-options { display: flex; flex-direction: column; gap: 0.5rem; margin: 1rem 0; }
+    .widget-option {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 9px;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .widget-option:hover { border-color: #2563eb; background: #eff6ff; }
+    .widget-option.selected { border-color: #2563eb; background: #eff6ff; }
+    .widget-option input[type=radio] { accent-color: #2563eb; flex-shrink:0; }
+    .widget-option .w-name { font-weight: 600; font-size: 0.875rem; }
+
+    /* ── Embed toggle ── */
+    .embed-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-radius: 9px;
+      margin-bottom: 1rem;
+    }
+    .embed-row span { font-size: 0.875rem; font-weight: 600; color: #15803d; }
+    .toggle { position:relative; display:inline-block; width:42px; height:24px; cursor:pointer; }
+    .toggle input { opacity:0; width:0; height:0; }
+    .toggle-track {
+      position:absolute; inset:0;
+      background:#cbd5e1; border-radius:99px;
+      transition: background 0.2s;
+    }
+    .toggle-track::before {
+      content:''; position:absolute;
+      width:18px; height:18px; left:3px; bottom:3px;
+      background:white; border-radius:50%; transition:transform 0.2s;
+    }
+    .toggle input:checked + .toggle-track { background:#22c55e; }
+    .toggle input:checked + .toggle-track::before { transform:translateX(18px); }
+
+    /* ── Divider ── */
+    .divider { height:1px; background:#e2e8f0; margin: 1.25rem 0; }
+
+    /* Hidden */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-brand">
+    <span class="nd-icon">💬</span>
+    NeuraDeskApp
+  </div>
+  <div class="topbar-shopify" id="topbar-shop" style="display:none">
+    <div class="dot"></div>
+    <span id="topbar-shop-name">Shopify</span>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- Steps nav -->
+  <div class="steps-nav" id="steps-nav">
+    <div class="step-dot" id="step-dot-1">
+      <div class="num">1</div>
+      <span>Prihlásenie</span>
+    </div>
+    <div class="step-line" id="step-line-1"></div>
+    <div class="step-dot" id="step-dot-2">
+      <div class="num">2</div>
+      <span>Widget</span>
+    </div>
+    <div class="step-line" id="step-line-2"></div>
+    <div class="step-dot" id="step-dot-3">
+      <div class="num">3</div>
+      <span>Skenovanie</span>
+    </div>
+    <div class="step-line" id="step-line-3"></div>
+    <div class="step-dot" id="step-dot-4">
+      <div class="num">4</div>
+      <span>Hotovo</span>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 1: Login ── -->
+  <div id="screen-login">
+    <div class="card">
+      <div class="card-title">Prihlásenie do NeuraDeskApp</div>
+      <div class="card-sub">Prihláste sa vaším účtom. Ak ešte účet nemáte, <a href="https://neuradesk.online" target="_blank" style="color:#2563eb">zaregistrujte sa zadarmo</a>.</div>
+
+      <div id="login-error" class="banner banner-error hidden"></div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" class="form-input" id="inp-email" placeholder="vas@email.sk" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label>Heslo</label>
+        <input type="password" class="form-input" id="inp-password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+
+      <button class="btn btn-primary btn-full" id="btn-login">
+        <span id="btn-login-text">Prihlásiť sa →</span>
+        <div class="spinner hidden" id="btn-login-spin"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 2: Select/Create Widget ── -->
+  <div id="screen-widget" class="hidden">
+    <div class="card">
+      <div id="shop-badge-widget" class="shop-badge">
+        <div class="shop-icon">🛍️</div>
+        <div>
+          <strong id="shop-name-display">Váš obchod</strong>
+          <span id="shop-url-display"></span>
+        </div>
+      </div>
+
+      <div class="card-title">Vybrať alebo vytvoriť chatbot widget</div>
+      <div class="card-sub">Vyberte existujúci widget z vášho účtu, alebo vytvorte nový priamo pre tento Shopify obchod.</div>
+
+      <div id="widget-error" class="banner banner-error hidden"></div>
+
+      <div class="widget-options" id="widget-list">
+        <label class="widget-option selected" id="opt-new">
+          <input type="radio" name="widget" value="__new__" checked>
+          <div>
+            <div class="w-name">➕ Vytvoriť nový widget</div>
+            <div style="font-size:0.78rem;color:#64748b">Automaticky pomenovaný podľa vášho obchodu</div>
+          </div>
+        </label>
+      </div>
+
+      <button class="btn btn-primary btn-full" id="btn-set-widget" style="margin-top:1rem">
+        <span id="btn-widget-text">Pokračovať →</span>
+        <div class="spinner hidden" id="btn-widget-spin"></div>
+      </button>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 3: Scan ── -->
+  <div id="screen-scan" class="hidden">
+    <div class="card">
+      <div id="shop-badge-scan" class="shop-badge">
+        <div class="shop-icon">🛍️</div>
+        <div>
+          <strong id="shop-name-scan">Váš obchod</strong>
+          <span id="shop-url-scan"></span>
+        </div>
+      </div>
+
+      <!-- Pre-scan state -->
+      <div id="pre-scan">
+        <div class="card-title">Skenovanie obsahu obchodu</div>
+        <div class="card-sub">Plugin naskenuje celý váš obchod – produkty, stránky a blogové články – a automaticky naučí chatbota o vašom biznise.</div>
+
+        <div class="scan-steps">
+          <div class="scan-step" id="prescan-products">
+            <div class="scan-step-icon">🛍️</div>
+            <div class="scan-step-body">
+              <div class="scan-step-label">Produkty</div>
+              <div class="scan-step-sub">všetky aktívne produkty + varianty</div>
+            </div>
+          </div>
+          <div class="scan-step" id="prescan-pages">
+            <div class="scan-step-icon">📄</div>
+            <div class="scan-step-body">
+              <div class="scan-step-label">Stránky</div>
+              <div class="scan-step-sub">O nás, Kontakt, FAQ, Podmienky...</div>
+            </div>
+          </div>
+          <div class="scan-step" id="prescan-blogs">
+            <div class="scan-step-icon">📝</div>
+            <div class="scan-step-body">
+              <div class="scan-step-label">Blogové články</div>
+              <div class="scan-step-sub">všetky publikované articles</div>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-full" id="btn-start-scan">
+          <span id="btn-scan-text">🔍 Spustiť skenovanie</span>
+          <div class="spinner hidden" id="btn-scan-spin"></div>
+        </button>
+      </div>
+
+      <!-- Scanning in progress -->
+      <div id="scanning" class="hidden">
+        <div class="card-title">Skenuje sa...</div>
+        <div class="card-sub" id="scan-subtitle">Toto môže trvať minútu. Neklikajte preč.</div>
+
+        <div class="scan-steps">
+          <div class="scan-step" id="scan-step-products">
+            <div class="scan-step-icon">🛍️</div>
+            <div class="scan-step-body">
+              <div class="scan-step-label">Produkty</div>
+              <div class="scan-step-sub" id="sub-products">čaká...</div>
+            </div>
+            <div class="scan-step-right" id="status-products"></div>
+          </div>
+          <div class="scan-step" id="scan-step-pages">
+            <div class="scan-step-icon">📄</div>
+            <div class="scan-step-body">
+              <div class="scan-step-label">Stránky</div>
+              <div class="scan-step-sub" id="sub-pages">čaká...</div>
+            </div>
+            <div class="scan-step-right" id="status-pages"></div>
+          </div>
+          <div class="scan-step" id="scan-step-blogs">
+            <div class="scan-step-icon">📝</div>
+            <div class="scan-step-body">
+              <div class="scan-step-label">Blogové články</div>
+              <div class="scan-step-sub" id="sub-blogs">čaká...</div>
+            </div>
+            <div class="scan-step-right" id="status-blogs"></div>
+          </div>
+        </div>
+
+        <div class="progress-wrap">
+          <div class="progress-fill" id="progress-fill" style="width:0%"></div>
+        </div>
+        <div class="progress-label" id="progress-label">Pripravujem...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── SCREEN 4: Done ── -->
+  <div id="screen-done" class="hidden">
+    <div class="card final-card">
+      <div class="big-icon">🎉</div>
+      <h2>Chatbot je živý na vašom obchode!</h2>
+      <p>Znalostná báza je naplnená. Widget sa zobrazuje všetkým návštevníkom vášho Shopify obchodu.</p>
+
+      <div class="embed-row">
+        <span>✅ Widget aktívny na obchode</span>
+        <label class="toggle">
+          <input type="checkbox" id="embed-toggle" checked>
+          <div class="toggle-track"></div>
+        </label>
+      </div>
+
+      <div id="scan-summary" class="banner banner-info" style="text-align:left;margin-bottom:1.25rem"></div>
+
+      <div class="final-actions">
+        <a id="link-shop" href="#" target="_blank" class="btn btn-primary">🛍️ Pozrieť obchod →</a>
+        <a href="/dashboard" class="btn btn-secondary">⚙️ NeuraDeskApp dashboard →</a>
+        <button class="btn btn-secondary btn-sm" id="btn-rescan" style="margin-top:0.25rem">🔄 Skenovať znova</button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /page -->
+
+<script src="/js/shopify.js"></script>
+</body>
+</html>

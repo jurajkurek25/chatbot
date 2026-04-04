@@ -15,6 +15,7 @@ const instagramRoutes = require('./routes/instagram');
 const affiliateRoutes = require('./routes/affiliate');
 const { router: creditsRoutes } = require('./routes/credits');
 const productsRoutes = require('./routes/products');
+const shopifyRoutes  = require('./routes/shopify');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -42,6 +43,20 @@ app.use('/api/instagram', instagramRoutes);
 app.use('/api/affiliate', affiliateRoutes);
 app.use('/api/credits', creditsRoutes);
 app.use('/api/products', productsRoutes);
+
+// Shopify integration (OAuth + setup + scan)
+// IMPORTANT: webhook uninstall must receive raw body — mount before express.json() would affect it,
+// but since we apply express.raw() inside the route handler itself it's fine here.
+app.use('/shopify', shopifyRoutes);
+app.use('/api/shopify', shopifyRoutes);
+// Widget loader script (called from Shopify storefront via ScriptTag)
+app.get('/shopify-widget-loader.js', (req, res) => {
+  const widgetId = req.query.widget || '';
+  const origin   = (process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '');
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.send(`(function(){if(window.__neuradeskLoaded)return;window.__neuradeskLoaded=true;window.NeuraDeskConfig={widgetId:${JSON.stringify(widgetId)}};var s=document.createElement('script');s.src=${JSON.stringify(origin+'/widget.js')};s.async=true;document.head.appendChild(s);})();`);
+});
 
 // Page routes
 app.get('/dashboard', (req, res) =>

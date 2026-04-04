@@ -158,6 +158,20 @@ function initDatabase() {
       active INTEGER NOT NULL DEFAULT 1,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+
+    CREATE TABLE IF NOT EXISTS shopify_connections (
+      id TEXT PRIMARY KEY,
+      shop TEXT NOT NULL UNIQUE,
+      access_token TEXT NOT NULL,
+      shop_name TEXT,
+      shop_email TEXT,
+      neuradesk_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      widget_id TEXT REFERENCES widgets(id) ON DELETE SET NULL,
+      script_tag_id TEXT,
+      scan_done INTEGER NOT NULL DEFAULT 0,
+      nonce TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
   `);
 
   // Migrations: add columns for existing DBs
