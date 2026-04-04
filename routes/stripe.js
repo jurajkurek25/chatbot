@@ -75,6 +75,30 @@ router.post('/webhook', async (req, res) => {
   }
 
   const db = getDb();
+  const stripe = getStripe();
+
+  // Helper: find user by stripe_customer_id, with email fallback
+  // If found via email, also saves the customer_id for future lookups
+  async function resolveUser(customerId) {
+    let user = db.prepare('SELECT id, referred_by FROM users WHERE stripe_customer_id = ?').get(customerId);
+    if (user) return user;
+
+    // Fallback: look up customer email from Stripe → match by email in our DB
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      if (!customer.deleted && customer.email) {
+        const email = customer.email.toLowerCase();
+        user = db.prepare('SELECT id, referred_by FROM users WHERE LOWER(email) = ?').get(email);
+        if (user) {
+          db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+          console.log(`[stripe] Linked customer ${customerId} to user ${user.id} via email ${customer.email}`);
+        }
+      }
+    } catch (err) {
+      console.error('[stripe] Could not retrieve customer for email fallback:', err.message);
+    }
+    return user || null;
+  }
 
   switch (event.type) {
     case 'checkout.session.completed': {
@@ -92,24 +116,24 @@ router.post('/webhook', async (req, res) => {
       }
 
       if (session.mode === 'subscription' && session.customer) {
-        db.prepare(`
-          UPDATE users SET subscription_status = 'active', subscription_id = ?
-          WHERE stripe_customer_id = ?
-        `).run(session.subscription, session.customer);
+        const user = await resolveUser(session.customer);
 
-        // Re-activate all widgets for this user
-        const activatedUser = db.prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(session.customer);
-        if (activatedUser) db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(activatedUser.id);
+        if (user) {
+          db.prepare(`UPDATE users SET subscription_status = 'active', subscription_id = ? WHERE id = ?`)
+            .run(session.subscription, user.id);
+          db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(user.id);
+          console.log(`[stripe] Subscription activated for user ${user.id}`);
 
-        // Award 15€ credit to referrer (only on first activation)
-        const newUser = db.prepare('SELECT id, referred_by FROM users WHERE stripe_customer_id = ?').get(session.customer);
-        if (newUser?.referred_by) {
-          // Check not already credited (avoid duplicate webhooks)
-          const already = db.prepare("SELECT id FROM users WHERE id = ? AND referral_credits > 0 AND referred_by IS NOT NULL").get(newUser.id);
-          if (!already) {
-            db.prepare('UPDATE users SET referral_credits = referral_credits + 15 WHERE id = ?').run(newUser.referred_by);
-            console.log(`[affiliate] +15€ credit awarded to referrer ${newUser.referred_by}`);
+          // Award 15€ credit to referrer (only on first activation)
+          if (user.referred_by) {
+            const already = db.prepare('SELECT referral_credits FROM users WHERE id = ?').get(user.id);
+            if (!already?.referral_credits) {
+              db.prepare('UPDATE users SET referral_credits = referral_credits + 15 WHERE id = ?').run(user.referred_by);
+              console.log(`[affiliate] +15€ credit awarded to referrer ${user.referred_by}`);
+            }
           }
+        } else {
+          console.log(`[stripe] checkout.session.completed: no user found for customer ${session.customer} — will sync on next login`);
         }
       }
       break;
@@ -118,26 +142,31 @@ router.post('/webhook', async (req, res) => {
       const sub = event.data.object;
       const isActive = sub.status === 'active' || sub.status === 'trialing';
       const status = isActive ? 'active' : 'inactive';
-      db.prepare(`UPDATE users SET subscription_status = ?, subscription_id = ? WHERE stripe_customer_id = ?`)
-        .run(status, sub.id, sub.customer);
-      const u = db.prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(sub.customer);
-      if (u) db.prepare('UPDATE widgets SET active = ? WHERE user_id = ?').run(isActive ? 1 : 0, u.id);
+
+      const user = await resolveUser(sub.customer);
+      if (user) {
+        db.prepare('UPDATE users SET subscription_status = ?, subscription_id = ? WHERE id = ?')
+          .run(status, sub.id, user.id);
+        db.prepare('UPDATE widgets SET active = ? WHERE user_id = ?').run(isActive ? 1 : 0, user.id);
+      }
       break;
     }
     case 'customer.subscription.deleted': {
       const sub = event.data.object;
-      db.prepare(`UPDATE users SET subscription_status = 'inactive' WHERE stripe_customer_id = ?`)
-        .run(sub.customer);
-      const u = db.prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(sub.customer);
-      if (u) db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(u.id);
+      const user = await resolveUser(sub.customer);
+      if (user) {
+        db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('inactive', user.id);
+        db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(user.id);
+      }
       break;
     }
     case 'invoice.payment_failed': {
       const inv = event.data.object;
-      db.prepare(`UPDATE users SET subscription_status = 'past_due' WHERE stripe_customer_id = ?`)
-        .run(inv.customer);
-      const u = db.prepare('SELECT id FROM users WHERE stripe_customer_id = ?').get(inv.customer);
-      if (u) db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(u.id);
+      const user = await resolveUser(inv.customer);
+      if (user) {
+        db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('past_due', user.id);
+        db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(user.id);
+      }
       break;
     }
   }
@@ -165,11 +194,35 @@ router.post('/portal', requireAuth, async (req, res) => {
 });
 
 // GET /api/stripe/status — subscription status for current user
-router.get('/status', requireAuth, (req, res) => {
+// If user has no stripe_customer_id yet, searches Stripe by email to auto-link
+router.get('/status', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT subscription_status, onboarding_done, free_until FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT email, subscription_status, stripe_customer_id, onboarding_done, free_until FROM users WHERE id = ?').get(req.userId);
   const now = Math.floor(Date.now() / 1000);
   const inFreePeriod = user?.free_until && user.free_until > now;
+
+  // If not yet active and no customer_id, try to find & sync from Stripe by email
+  if (user && user.subscription_status !== 'active' && !inFreePeriod && !user.stripe_customer_id) {
+    try {
+      const stripe = getStripe();
+      const customers = await stripe.customers.list({ email: user.email.toLowerCase(), limit: 5 });
+      for (const customer of customers.data) {
+        const subs = await stripe.subscriptions.list({ customer: customer.id, status: 'active', limit: 1 });
+        if (subs.data.length > 0) {
+          const sub = subs.data[0];
+          db.prepare('UPDATE users SET stripe_customer_id = ?, subscription_status = ?, subscription_id = ? WHERE id = ?')
+            .run(customer.id, 'active', sub.id, req.userId);
+          db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(req.userId);
+          console.log(`[stripe] Auto-linked customer ${customer.id} to user ${req.userId} via email on status check`);
+          return res.json({ active: true, status: 'active', onboarding_done: Boolean(user.onboarding_done), free_until: null, in_free_period: false });
+        }
+      }
+    } catch (err) {
+      console.error('[stripe] Email sync on status check failed:', err.message);
+      // Fall through to return current DB status
+    }
+  }
+
   res.json({
     active: user?.subscription_status === 'active' || !!inFreePeriod,
     status: user?.subscription_status || 'inactive',
