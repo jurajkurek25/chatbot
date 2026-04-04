@@ -1200,7 +1200,7 @@ async function saveProduct() {
     showToast(editingProductId ? 'Produkt aktualizovaný.' : 'Produkt pridaný!', 'success');
     loadProducts();
   } else {
-    const d = await r.json();
+    const d = await r.json().catch(() => ({}));
     showToast(d.error || 'Chyba pri ukladaní.', 'error');
   }
 }
@@ -1217,10 +1217,9 @@ async function deleteProduct(id) {
 
 async function downloadProductTemplate() {
   if (!currentWidget) return;
-  const token = localStorage.getItem('token');
   try {
     const r = await fetch(`/api/products/${currentWidget.id}/template.csv`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
     });
     if (!r.ok) { showToast('Chyba pri sťahovaní šablóny.', 'error'); return; }
     const blob = await r.blob();
@@ -1243,12 +1242,11 @@ async function importProductsCSV(input) {
   const formData = new FormData();
   formData.append('file', file);
 
-  const token = localStorage.getItem('token');
   let r;
   try {
     r = await fetch(`/api/products/${currentWidget.id}/import-csv`, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${getToken()}` },
       body: formData,
     });
   } catch {
