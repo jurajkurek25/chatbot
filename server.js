@@ -14,6 +14,7 @@ const stripeRoutes = require('./routes/stripe');
 const instagramRoutes = require('./routes/instagram');
 const affiliateRoutes = require('./routes/affiliate');
 const { router: creditsRoutes } = require('./routes/credits');
+const productsRoutes = require('./routes/products');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +41,7 @@ app.use('/api/stripe', stripeRoutes);
 app.use('/api/instagram', instagramRoutes);
 app.use('/api/affiliate', affiliateRoutes);
 app.use('/api/credits', creditsRoutes);
+app.use('/api/products', productsRoutes);
 
 // Page routes
 app.get('/dashboard', (req, res) =>

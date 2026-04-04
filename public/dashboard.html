@@ -41,6 +41,9 @@
       <button class="nav-item" onclick="showTab('embed')" id="nav-embed">
         <span class="nav-icon">🔗</span> Embed kód
       </button>
+      <button class="nav-item" onclick="showTab('products')" id="nav-products">
+        <span class="nav-icon">🛍️</span> Produkty
+      </button>
       <button class="nav-item" onclick="showTab('instagram')" id="nav-instagram">
         <span class="nav-icon">📱</span> Instagram
       </button>
@@ -394,6 +397,26 @@
           </div>
         </div>
 
+        <!-- Products Tab -->
+        <div id="tab-products" class="tab-panel">
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Produkty & Služby</div>
+                <div class="panel-subtitle">Chatbot ich použije na inteligentné odporúčanie zákazníkom</div>
+              </div>
+              <button class="btn btn-primary" onclick="openProductModal()">+ Pridať produkt</button>
+            </div>
+
+            <div id="products-empty" class="empty-state" style="padding:2rem;display:none">
+              <div class="empty-state-icon">🛍️</div>
+              <h3>Zatiaľ žiadne produkty</h3>
+              <p>Pridajte produkty a chatbot ich bude vedieť inteligentne odporučiť zákazníkom.</p>
+            </div>
+            <div id="products-list"></div>
+          </div>
+        </div>
+
         <!-- Instagram Tab -->
         <div id="tab-instagram" class="tab-panel">
 
@@ -536,6 +559,106 @@
     <div style="display:flex;gap:0.75rem;margin-top:1.25rem;">
       <button class="btn btn-secondary" style="flex:1;" onclick="document.getElementById('modal-create').style.display='none'">Zrušiť</button>
       <button class="btn btn-primary" style="flex:1;" onclick="createWidget()">Vytvoriť</button>
+    </div>
+  </div>
+</div>
+
+<!-- Product Modal -->
+<div id="modal-product" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem" onclick="if(event.target===this)closeProductModal()">
+  <div style="background:white;border-radius:16px;padding:2rem;width:100%;max-width:600px;box-shadow:0 8px 40px rgba(0,0,0,0.18);margin:auto" onclick="event.stopPropagation()">
+    <h2 id="product-modal-title" style="font-size:1.2rem;font-weight:700;margin-bottom:1.5rem">Nový produkt</h2>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div class="form-group" style="margin:0">
+        <label>Názov *</label>
+        <input type="text" class="form-control" id="pm-name" placeholder="napr. Finančná konzultácia">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Typ *</label>
+        <select class="form-control" id="pm-type">
+          <option value="service">🔧 Služba</option>
+          <option value="consultation">💬 Konzultácia</option>
+          <option value="digital">💾 Digitálny produkt</option>
+          <option value="course">🎓 Kurz</option>
+          <option value="physical">📦 Fyzický produkt</option>
+          <option value="ticket">🎫 Vstupenka</option>
+          <option value="lead_magnet">🎁 Lead magnet</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Popis</label>
+      <textarea class="form-control" id="pm-description" rows="2" placeholder="Krátky popis produktu alebo služby..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>Pre koho je určený</label>
+      <input type="text" class="form-control" id="pm-for-whom" placeholder="napr. Živnostníci a malé firmy, ktoré chcú znížiť dane">
+    </div>
+
+    <div class="form-group">
+      <label>Hlavné benefity</label>
+      <textarea class="form-control" id="pm-benefits" rows="2" placeholder="napr. Ušetríte 2–3 hodiny týždenne, znížite náklady o 20%..."></textarea>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div class="form-group" style="margin:0">
+        <label>Cena</label>
+        <input type="number" class="form-control" id="pm-price" placeholder="napr. 199" min="0" step="0.01">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Mena</label>
+        <select class="form-control" id="pm-currency">
+          <option value="EUR">EUR €</option>
+          <option value="CZK">CZK Kč</option>
+          <option value="USD">USD $</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Stripe link alebo URL produktu</label>
+      <input type="url" class="form-control" id="pm-stripe-link" placeholder="https://buy.stripe.com/... alebo https://vasaweb.sk/produkt">
+    </div>
+
+    <div class="form-group">
+      <label>Text CTA tlačidla</label>
+      <input type="text" class="form-control" id="pm-cta-text" placeholder="napr. Objednať konzultáciu" value="Zistiť viac">
+    </div>
+
+    <div class="form-group">
+      <label style="color:#16a34a;font-weight:600">✅ Odporúčaj keď zákazník...</label>
+      <textarea class="form-control" id="pm-recommend-when" rows="2" placeholder="napr. má konkrétny daňový problém, je živnostník, pýta sa na optimalizáciu..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label style="color:#dc2626;font-weight:600">❌ NEodporúčaj keď zákazník...</label>
+      <textarea class="form-control" id="pm-not-recommend-when" rows="2" placeholder="napr. je zamestnanec, hľadá len všeobecné info, má veľmi malý rozpočet..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label>FAQ k produktu <small style="color:#94a3b8">(voliteľné)</small></label>
+      <textarea class="form-control" id="pm-faq" rows="2" placeholder="Najčastejšie otázky a odpovede k tomuto produktu..."></textarea>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+      <div class="form-group" style="margin:0">
+        <label>Priorita odporúčania <small style="color:#94a3b8">(0–10)</small></label>
+        <input type="number" class="form-control" id="pm-priority" value="0" min="0" max="10">
+      </div>
+      <div class="form-group" style="margin:0">
+        <label>Stav</label>
+        <select class="form-control" id="pm-active">
+          <option value="1">✅ Aktívny</option>
+          <option value="0">⏸️ Neaktívny</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:0.75rem;margin-top:0.5rem">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeProductModal()">Zrušiť</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveProduct()">Uložiť produkt</button>
     </div>
   </div>
 </div>

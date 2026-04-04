@@ -135,6 +135,29 @@ function initDatabase() {
       gdpr_consent INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+
+    CREATE TABLE IF NOT EXISTS products (
+      id TEXT PRIMARY KEY,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'service'
+        CHECK(type IN ('digital','physical','service','consultation','course','ticket','lead_magnet')),
+      description TEXT NOT NULL DEFAULT '',
+      for_whom TEXT NOT NULL DEFAULT '',
+      benefits TEXT NOT NULL DEFAULT '',
+      price REAL,
+      currency TEXT NOT NULL DEFAULT 'EUR',
+      stripe_link TEXT,
+      cta_text TEXT NOT NULL DEFAULT 'Zistiť viac',
+      landing_url TEXT,
+      recommend_when TEXT NOT NULL DEFAULT '',
+      not_recommend_when TEXT NOT NULL DEFAULT '',
+      faq TEXT NOT NULL DEFAULT '',
+      tags TEXT NOT NULL DEFAULT '',
+      priority INTEGER NOT NULL DEFAULT 0,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
   `);
 
   // Migrations: add columns for existing DBs

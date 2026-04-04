@@ -4,8 +4,48 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+const TYPE_LABELS = {
+  digital: 'Digitálny produkt', physical: 'Fyzický produkt', service: 'Služba',
+  consultation: 'Konzultácia', course: 'Kurz', ticket: 'Vstupenka', lead_magnet: 'Lead magnet',
+};
+
+function buildProductsSection(products) {
+  const active = products.filter(p => p.active);
+  if (!active.length) return '';
+
+  // Sort by priority desc
+  active.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+
+  let section = '\n\n## KATALÓG PRODUKTOV & SLUŽIEB\n';
+  section += '\n**Pravidlá odporúčania produktov:**\n';
+  section += '- Odporúčaj max 1–3 produkty naraz — nikdy nedávaj zákazníkovi celý zoznam\n';
+  section += '- Vždy vysvetli PREČO je produkt vhodný pre tohto konkrétneho zákazníka\n';
+  section += '- Použi polia "Odporúčaj keď" a "NEodporúčaj keď" na presné matchovanie\n';
+  section += '- Pri odporúčaní vždy uveď cenu a CTA text s linkom (ak existuje)\n';
+  section += '- Ak zákazník nespĺňa podmienky produktu, neodporúčaj ho — ponúkni vhodnejší\n\n';
+
+  active.forEach((p, i) => {
+    section += `### Produkt ${i + 1}: ${p.name}\n`;
+    section += `Typ: ${TYPE_LABELS[p.type] || p.type}\n`;
+    if (p.description) section += `Popis: ${p.description}\n`;
+    if (p.for_whom) section += `Pre koho: ${p.for_whom}\n`;
+    if (p.benefits) section += `Hlavné benefity: ${p.benefits}\n`;
+    if (p.price != null) section += `Cena: ${p.price} ${p.currency || 'EUR'}\n`;
+    if (p.recommend_when) section += `✅ Odporúčaj keď: ${p.recommend_when}\n`;
+    if (p.not_recommend_when) section += `❌ NEodporúčaj keď: ${p.not_recommend_when}\n`;
+    if (p.cta_text) section += `CTA: ${p.cta_text}`;
+    if (p.stripe_link) section += ` → ${p.stripe_link}`;
+    else if (p.landing_url) section += ` → ${p.landing_url}`;
+    section += '\n';
+    if (p.faq) section += `FAQ: ${p.faq}\n`;
+    section += '\n';
+  });
+
+  return section;
+}
+
 /* ── System prompt builder ─────────────────────────────────────── */
-function buildSystemPrompt(widget, knowledgeItems) {
+function buildSystemPrompt(widget, knowledgeItems, products = []) {
   const cfg = safeParseJSON(widget.cta_config, {});
 
   let knowledgeSection = '';
@@ -29,6 +69,8 @@ function buildSystemPrompt(widget, knowledgeItems) {
   if (widget.goals?.trim()) {
     goalsSection = `\n\n## KONTEXT BIZNISU A PRODUKTU\n${widget.goals}`;
   }
+
+  const productsSection = buildProductsSection(products);
 
   return `Si ${widget.bot_name}, skúsený predajný konzultant. Ovládaš psychológiu predaja a konzultačný predaj. Vieš predať čokoľvek – pretože predávaš cez pochopenie potrieb, nie cez tlak.
 
@@ -77,12 +119,22 @@ Keď zákazník prejaví záujem alebo súhlas:
 - Odpovedaj VŽDY v jazyku zákazníka (sk/cs/en podľa toho ako píše).
 - Nikdy si nevymýšľaj fakty, ceny, mená, kontakty ani referencie.
 - Nebuď agresívny ani nátlakový – predávaj cez dôveru a pochopenie.
-- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}`;
+- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}`;
+}
+
+function loadProducts(widgetId) {
+  try {
+    const { getDb } = require('../db/database');
+    return getDb().prepare(
+      'SELECT * FROM products WHERE widget_id = ? AND active = 1 ORDER BY priority DESC'
+    ).all(widgetId);
+  } catch { return []; }
 }
 
 /* ── Streaming chat response ───────────────────────────────────── */
 async function streamChatResponse(widget, knowledgeItems, history, userMessage, res) {
-  const systemPrompt = buildSystemPrompt(widget, knowledgeItems);
+  const products = loadProducts(widget.id);
+  const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products);
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
@@ -159,7 +211,8 @@ Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
 
 /* ── Non-streaming response (for Instagram DMs) ───────────────── */
 async function getChatResponseText(widget, knowledgeItems, history, userMessage) {
-  const systemPrompt = buildSystemPrompt(widget, knowledgeItems);
+  const products = loadProducts(widget.id);
+  const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products);
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },

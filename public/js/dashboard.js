@@ -124,7 +124,7 @@ function showView(view) {
 
 function showTab(tab) {
   currentTab = tab;
-  ['settings','knowledge','questions','embed','instagram'].forEach(t => {
+  ['settings','knowledge','questions','embed','products','instagram'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -132,6 +132,7 @@ function showTab(tab) {
   if (tab === 'knowledge') loadKnowledge();
   if (tab === 'embed') loadEmbedCode();
   if (tab === 'instagram') loadInstagramStatus();
+  if (tab === 'products') loadProducts();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -1048,5 +1049,162 @@ async function redeemCredits() {
     showToast('Chyba.', 'error');
     btn.disabled = false;
     btn.textContent = '🎁 Uplatniť kredity';
+  }
+}
+
+/* ── Products ───────────────────────────────────────────────────── */
+
+let products = [];
+let editingProductId = null;
+
+const PRODUCT_TYPE_LABELS = {
+  digital: '💾 Digitálny', physical: '📦 Fyzický', service: '🔧 Služba',
+  consultation: '💬 Konzultácia', course: '🎓 Kurz',
+  ticket: '🎫 Vstupenka', lead_magnet: '🎁 Lead magnet',
+};
+
+async function loadProducts() {
+  if (!currentWidget) return;
+  try {
+    const r = await apiFetch(`/api/products/${currentWidget.id}`);
+    if (!r) return;
+    products = await r.json();
+    renderProducts();
+  } catch {
+    showToast('Chyba pri načítaní produktov.', 'error');
+  }
+}
+
+function renderProducts() {
+  const list = document.getElementById('products-list');
+  const empty = document.getElementById('products-empty');
+  if (!list) return;
+
+  if (!products.length) {
+    empty.style.display = '';
+    list.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  list.innerHTML = products.map(p => `
+    <div style="border:1px solid #e2e8f0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.75rem;opacity:${p.active ? 1 : 0.55}">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.25rem">
+            <span style="font-weight:700;font-size:0.95rem">${esc(p.name)}</span>
+            <span style="font-size:0.72rem;background:#f1f5f9;padding:2px 8px;border-radius:99px;color:#475569">${PRODUCT_TYPE_LABELS[p.type] || p.type}</span>
+            ${!p.active ? '<span style="font-size:0.7rem;background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:99px">Neaktívny</span>' : ''}
+            ${p.price != null ? `<span style="font-size:0.8rem;font-weight:600;color:#16a34a">${p.price} ${p.currency}</span>` : ''}
+          </div>
+          ${p.description ? `<div style="font-size:0.82rem;color:#64748b;margin-bottom:0.4rem">${esc(p.description)}</div>` : ''}
+          <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:0.75rem">
+            ${p.recommend_when ? `<span style="color:#16a34a">✅ ${esc(p.recommend_when.slice(0, 60))}${p.recommend_when.length > 60 ? '…' : ''}</span>` : ''}
+            ${p.not_recommend_when ? `<span style="color:#dc2626">❌ ${esc(p.not_recommend_when.slice(0, 60))}${p.not_recommend_when.length > 60 ? '…' : ''}</span>` : ''}
+          </div>
+        </div>
+        <div style="display:flex;gap:0.5rem;flex-shrink:0">
+          <button class="btn btn-sm btn-secondary" onclick="editProduct('${p.id}')">Upraviť</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteProduct('${p.id}')">Zmazať</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openProductModal(id) {
+  editingProductId = null;
+  document.getElementById('product-modal-title').textContent = 'Nový produkt';
+  // Clear fields
+  ['pm-name','pm-description','pm-for-whom','pm-benefits','pm-stripe-link','pm-recommend-when','pm-not-recommend-when','pm-faq'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('pm-price').value = '';
+  document.getElementById('pm-cta-text').value = 'Zistiť viac';
+  document.getElementById('pm-type').value = 'service';
+  document.getElementById('pm-currency').value = 'EUR';
+  document.getElementById('pm-priority').value = '0';
+  document.getElementById('pm-active').value = '1';
+  document.getElementById('modal-product').style.display = 'flex';
+}
+
+function editProduct(id) {
+  const p = products.find(x => x.id === id);
+  if (!p) return;
+  editingProductId = id;
+  document.getElementById('product-modal-title').textContent = 'Upraviť produkt';
+  document.getElementById('pm-name').value = p.name || '';
+  document.getElementById('pm-type').value = p.type || 'service';
+  document.getElementById('pm-description').value = p.description || '';
+  document.getElementById('pm-for-whom').value = p.for_whom || '';
+  document.getElementById('pm-benefits').value = p.benefits || '';
+  document.getElementById('pm-price').value = p.price != null ? p.price : '';
+  document.getElementById('pm-currency').value = p.currency || 'EUR';
+  document.getElementById('pm-stripe-link').value = p.stripe_link || '';
+  document.getElementById('pm-cta-text').value = p.cta_text || 'Zistiť viac';
+  document.getElementById('pm-recommend-when').value = p.recommend_when || '';
+  document.getElementById('pm-not-recommend-when').value = p.not_recommend_when || '';
+  document.getElementById('pm-faq').value = p.faq || '';
+  document.getElementById('pm-priority').value = p.priority || 0;
+  document.getElementById('pm-active').value = p.active ? '1' : '0';
+  document.getElementById('modal-product').style.display = 'flex';
+}
+
+function closeProductModal() {
+  document.getElementById('modal-product').style.display = 'none';
+  editingProductId = null;
+}
+
+async function saveProduct() {
+  if (!currentWidget) return;
+  const name = document.getElementById('pm-name').value.trim();
+  if (!name) { showToast('Zadajte názov produktu.', 'error'); return; }
+
+  const priceRaw = document.getElementById('pm-price').value;
+  const body = {
+    name,
+    type: document.getElementById('pm-type').value,
+    description: document.getElementById('pm-description').value.trim(),
+    for_whom: document.getElementById('pm-for-whom').value.trim(),
+    benefits: document.getElementById('pm-benefits').value.trim(),
+    price: priceRaw !== '' ? parseFloat(priceRaw) : null,
+    currency: document.getElementById('pm-currency').value,
+    stripe_link: document.getElementById('pm-stripe-link').value.trim() || null,
+    cta_text: document.getElementById('pm-cta-text').value.trim() || 'Zistiť viac',
+    recommend_when: document.getElementById('pm-recommend-when').value.trim(),
+    not_recommend_when: document.getElementById('pm-not-recommend-when').value.trim(),
+    faq: document.getElementById('pm-faq').value.trim(),
+    priority: parseInt(document.getElementById('pm-priority').value || '0', 10),
+    active: document.getElementById('pm-active').value === '1' ? 1 : 0,
+  };
+
+  const url = editingProductId
+    ? `/api/products/${currentWidget.id}/${editingProductId}`
+    : `/api/products/${currentWidget.id}`;
+  const method = editingProductId ? 'PUT' : 'POST';
+
+  const r = await apiFetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r) return;
+  if (r.ok) {
+    closeProductModal();
+    showToast(editingProductId ? 'Produkt aktualizovaný.' : 'Produkt pridaný!', 'success');
+    loadProducts();
+  } else {
+    const d = await r.json();
+    showToast(d.error || 'Chyba pri ukladaní.', 'error');
+  }
+}
+
+async function deleteProduct(id) {
+  if (!currentWidget) return;
+  if (!confirm('Zmazať tento produkt?')) return;
+  const r = await apiFetch(`/api/products/${currentWidget.id}/${id}`, { method: 'DELETE' });
+  if (r && r.ok) {
+    showToast('Produkt zmazaný.', 'success');
+    loadProducts();
   }
 }
