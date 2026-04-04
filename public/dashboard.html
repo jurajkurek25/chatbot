@@ -405,7 +405,14 @@
                 <div class="panel-title">Produkty & Služby</div>
                 <div class="panel-subtitle">Chatbot ich použije na inteligentné odporúčanie zákazníkom</div>
               </div>
-              <button class="btn btn-primary" onclick="openProductModal()">+ Pridať produkt</button>
+              <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+                <button class="btn btn-secondary" onclick="downloadProductTemplate()" style="font-size:0.82rem;padding:0.4rem 0.8rem">📥 Šablóna CSV</button>
+                <label class="btn btn-secondary" style="font-size:0.82rem;padding:0.4rem 0.8rem;cursor:pointer;margin:0">
+                  📤 Import CSV
+                  <input type="file" id="csv-import-input" accept=".csv" style="display:none" onchange="importProductsCSV(this)">
+                </label>
+                <button class="btn btn-primary" onclick="openProductModal()">+ Pridať produkt</button>
+              </div>
             </div>
 
             <div id="products-empty" class="empty-state" style="padding:2rem;display:none">

@@ -1208,3 +1208,64 @@ async function deleteProduct(id) {
     loadProducts();
   }
 }
+
+async function downloadProductTemplate() {
+  if (!currentWidget) return;
+  const token = localStorage.getItem('token');
+  try {
+    const r = await fetch(`/api/products/${currentWidget.id}/template.csv`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) { showToast('Chyba pri sťahovaní šablóny.', 'error'); return; }
+    const blob = await r.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'produkty-sablona.csv';
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch {
+    showToast('Chyba siete.', 'error');
+  }
+}
+
+async function importProductsCSV(input) {
+  if (!currentWidget || !input.files[0]) return;
+  const file = input.files[0];
+  input.value = ''; // reset so same file can be re-selected
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const token = localStorage.getItem('token');
+  let r;
+  try {
+    r = await fetch(`/api/products/${currentWidget.id}/import-csv`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+  } catch {
+    showToast('Chyba siete.', 'error');
+    return;
+  }
+
+  const data = await r.json();
+  if (!r.ok) {
+    showToast(data.error || 'Chyba importu.', 'error');
+    return;
+  }
+
+  const { imported, errors } = data;
+  if (imported > 0) {
+    showToast(`Importovaných ${imported} produkt${imported === 1 ? '' : imported < 5 ? 'y' : 'ov'}.`, 'success');
+    loadProducts();
+  }
+  if (errors.length) {
+    console.warn('CSV import errors:', errors);
+    showToast(`${errors.length} riadok${errors.length === 1 ? '' : 'ov'} sa nepodarilo importovať.`, 'error');
+  }
+  if (imported === 0 && !errors.length) {
+    showToast('CSV neobsahuje žiadne platné produkty.', 'error');
+  }
+}

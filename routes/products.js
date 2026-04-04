@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
@@ -9,6 +10,68 @@ const router = express.Router();
 router.use(requireAuth);
 
 const ALLOWED_TYPES = ['digital','physical','service','consultation','course','ticket','lead_magnet'];
+
+// CSV upload — memory storage (files are small)
+const csvUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter(req, file, cb) {
+    const ok = file.mimetype === 'text/csv'
+      || file.mimetype === 'application/vnd.ms-excel'
+      || file.originalname.endsWith('.csv');
+    cb(ok ? null : new Error('Povolený je iba CSV súbor.'), ok);
+  },
+});
+
+const CSV_COLUMNS = [
+  'name','type','description','for_whom','benefits',
+  'price','currency','stripe_link','cta_text','landing_url',
+  'recommend_when','not_recommend_when','faq','tags','priority','active',
+];
+
+/** Robust CSV row parser — handles quoted fields containing commas/newlines */
+function parseCSV(text) {
+  const rows = [];
+  // Normalise line endings
+  const lines = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  let i = 0;
+
+  while (i < lines.length) {
+    const row = [];
+    // Skip blank lines
+    if (lines[i] === '\n') { i++; continue; }
+
+    while (i < lines.length && lines[i] !== '\n') {
+      if (lines[i] === '"') {
+        // Quoted field
+        i++; // skip opening quote
+        let field = '';
+        while (i < lines.length) {
+          if (lines[i] === '"' && lines[i + 1] === '"') {
+            field += '"'; i += 2;
+          } else if (lines[i] === '"') {
+            i++; break; // closing quote
+          } else {
+            field += lines[i++];
+          }
+        }
+        row.push(field);
+        if (lines[i] === ',') i++;
+      } else {
+        // Unquoted field
+        let field = '';
+        while (i < lines.length && lines[i] !== ',' && lines[i] !== '\n') {
+          field += lines[i++];
+        }
+        row.push(field.trim());
+        if (lines[i] === ',') i++;
+      }
+    }
+    if (lines[i] === '\n') i++;
+    if (row.length) rows.push(row);
+  }
+  return rows;
+}
 
 function ownsWidget(widgetId, userId) {
   const db = getDb();
@@ -113,6 +176,88 @@ router.put('/:widgetId/:productId', (req, res) => {
 
   const updated = db.prepare('SELECT * FROM products WHERE id = ?').get(req.params.productId);
   res.json(updated);
+});
+
+// GET /api/products/:widgetId/template.csv — download CSV template
+router.get('/:widgetId/template.csv', (req, res) => {
+  if (!ownsWidget(req.params.widgetId, req.userId)) {
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  }
+  const header = CSV_COLUMNS.join(',');
+  const example = [
+    '"Môj produkt"','service','"Popis produktu"','"Pre koho je vhodný"','"Hlavné benefity"',
+    '99','EUR','"https://stripe.com/pay/xxx"','"Kúpiť teraz"','"https://myweb.com/produkt"',
+    '"Keď zákazník hľadá X"','"Keď zákazník nechce Y"','"Otázka: odpoveď"','"tag1,tag2"','0','1',
+  ].join(',');
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+  res.setHeader('Content-Disposition', 'attachment; filename="produkty-sablona.csv"');
+  res.send('\uFEFF' + header + '\n' + example + '\n');
+});
+
+// POST /api/products/:widgetId/import-csv — bulk import from CSV
+router.post('/:widgetId/import-csv', csvUpload.single('file'), (req, res) => {
+  if (!ownsWidget(req.params.widgetId, req.userId)) {
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  }
+  if (!req.file) return res.status(400).json({ error: 'Chýba CSV súbor.' });
+
+  const text = req.file.buffer.toString('utf-8').replace(/^\uFEFF/, ''); // strip BOM
+  const rows = parseCSV(text);
+  if (!rows.length) return res.status(400).json({ error: 'CSV je prázdne.' });
+
+  // First row: detect if it's a header row
+  const firstRow = rows[0].map(c => c.toLowerCase().trim());
+  const isHeader = firstRow.includes('name') || firstRow.includes('nazov') || firstRow.includes('meno');
+  const dataRows = isHeader ? rows.slice(1) : rows;
+
+  const db = getDb();
+  const insert = db.prepare(`
+    INSERT INTO products (
+      id, widget_id, name, type, description, for_whom, benefits,
+      price, currency, stripe_link, cta_text, landing_url,
+      recommend_when, not_recommend_when, faq, tags, priority, active
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+  `);
+
+  let imported = 0;
+  const errors = [];
+
+  for (let i = 0; i < dataRows.length; i++) {
+    const row = dataRows[i];
+    const lineNum = (isHeader ? i + 2 : i + 1);
+
+    // Map columns by position (same order as CSV_COLUMNS)
+    const [
+      name = '', type = 'service', description = '', for_whom = '', benefits = '',
+      priceRaw = '', currency = 'EUR', stripe_link = '', cta_text = 'Zistiť viac', landing_url = '',
+      recommend_when = '', not_recommend_when = '', faq = '', tags = '', priorityRaw = '0', activeRaw = '1',
+    ] = row;
+
+    if (!name.trim()) {
+      errors.push(`Riadok ${lineNum}: chýba názov produktu`);
+      continue;
+    }
+
+    const resolvedType = ALLOWED_TYPES.includes(type.trim()) ? type.trim() : 'service';
+    const price = priceRaw.trim() !== '' ? parseFloat(priceRaw) : null;
+    const priority = parseInt(priorityRaw, 10) || 0;
+    const active = activeRaw.trim() === '0' ? 0 : 1;
+
+    try {
+      insert.run(
+        uuidv4(), req.params.widgetId, name.trim(), resolvedType,
+        description, for_whom, benefits,
+        isNaN(price) ? null : price, currency.trim() || 'EUR',
+        stripe_link.trim() || null, cta_text.trim() || 'Zistiť viac', landing_url.trim() || null,
+        recommend_when, not_recommend_when, faq, tags, priority, active
+      );
+      imported++;
+    } catch (err) {
+      errors.push(`Riadok ${lineNum}: ${err.message}`);
+    }
+  }
+
+  res.json({ imported, errors });
 });
 
 // DELETE /api/products/:widgetId/:productId — delete product
