@@ -7,12 +7,13 @@
  *   GET  /shopify/install           — start OAuth (redirect to Shopify)
  *   GET  /shopify/callback          — OAuth callback (exchange code → token)
  *   GET  /shopify/setup             — setup UI page (served as HTML)
- *   GET  /api/shopify/status        — connection status for current shop
- *   POST /api/shopify/link-account  — link NeuraDeskApp account to shop
- *   POST /api/shopify/scan          — batch-scan shop content → knowledge base
- *   POST /api/shopify/inject        — inject/update ScriptTag on shop
- *   POST /api/shopify/toggle-embed  — enable/disable widget on shop
- *   DELETE /api/shopify/disconnect  — remove connection
+ *   GET  /api/shopify/status           — connection status for current shop
+ *   GET  /api/shopify/widgets          — list user's NeuraDeskApp widgets
+ *   POST /api/shopify/link-account     — link NeuraDeskApp account to shop
+ *   POST /api/shopify/scan             — batch-scan shop content → knowledge base
+ *   POST /api/shopify/inject           — inject/update ScriptTag on shop
+ *   POST /api/shopify/toggle-embed     — enable/disable widget on shop
+ *   DELETE /api/shopify/disconnect     — remove connection
  *   POST /api/shopify/webhook/uninstall — Shopify sends this when app removed
  */
 
@@ -209,7 +210,7 @@ router.get('/setup', (req, res) => {
 // API: GET /api/shopify/status?shop=…
 // Returns connection + scan status for the shop
 // ═══════════════════════════════════════════════════════════════
-router.get('/api/status', (req, res) => {
+router.get('/status', (req, res) => {
   const shop = sanitizeShop(req.query.shop);
   if (!shop) return res.status(400).json({ error: 'Chýba shop.' });
 
@@ -240,7 +241,7 @@ router.get('/api/status', (req, res) => {
 // Links a NeuraDeskApp account to the Shopify shop
 // Body: { shop, neuradesk_token, widget_id? }
 // ═══════════════════════════════════════════════════════════════
-router.post('/api/link-account', requireAuth, (req, res) => {
+router.post('/link-account', requireAuth, (req, res) => {
   const shop = sanitizeShop(req.body.shop);
   if (!shop) return res.status(400).json({ error: 'Chýba shop.' });
 
@@ -277,7 +278,7 @@ router.post('/api/link-account', requireAuth, (req, res) => {
 // API: GET /api/shopify/widgets?shop=…
 // Returns user's widgets (for selection dropdown)
 // ═══════════════════════════════════════════════════════════════
-router.get('/api/widgets', requireAuth, (req, res) => {
+router.get('/widgets', requireAuth, (req, res) => {
   const db      = getDb();
   const widgets = db.prepare('SELECT id, name FROM widgets WHERE user_id = ? ORDER BY created_at DESC').all(req.userId);
   res.json(widgets);
@@ -288,7 +289,7 @@ router.get('/api/widgets', requireAuth, (req, res) => {
 // Scans a batch of Shopify content → NeuraDeskApp knowledge base
 // Body: { shop, type: 'products'|'pages'|'blogs', offset }
 // ═══════════════════════════════════════════════════════════════
-router.post('/api/scan', requireAuth, async (req, res) => {
+router.post('/scan', requireAuth, async (req, res) => {
   const shop   = sanitizeShop(req.body.shop);
   const type   = req.body.type;
   const offset = Math.max(0, parseInt(req.body.offset) || 0);
@@ -421,7 +422,7 @@ router.post('/api/scan', requireAuth, async (req, res) => {
 // Creates a ScriptTag on the Shopify store (auto-injects widget)
 // Body: { shop }
 // ═══════════════════════════════════════════════════════════════
-router.post('/api/inject', requireAuth, async (req, res) => {
+router.post('/inject', requireAuth, async (req, res) => {
   const shop = sanitizeShop(req.body.shop);
   if (!shop) return res.status(400).json({ error: 'Chýba shop.' });
 
@@ -458,7 +459,7 @@ router.post('/api/inject', requireAuth, async (req, res) => {
 // API: POST /api/shopify/toggle-embed
 // Body: { shop, enabled: true/false }
 // ═══════════════════════════════════════════════════════════════
-router.post('/api/toggle-embed', requireAuth, async (req, res) => {
+router.post('/toggle-embed', requireAuth, async (req, res) => {
   const shop    = sanitizeShop(req.body.shop);
   const enabled = Boolean(req.body.enabled);
   if (!shop) return res.status(400).json({ error: 'Chýba shop.' });
@@ -475,7 +476,7 @@ router.post('/api/toggle-embed', requireAuth, async (req, res) => {
 
   if (enabled && !conn.script_tag_id) {
     // Re-inject
-    return res.redirect(307, '/api/shopify/inject');
+    return res.redirect(307, req.baseUrl + '/inject');
   }
 
   res.json({ ok: true, embed_active: Boolean(conn.script_tag_id) });
@@ -485,7 +486,7 @@ router.post('/api/toggle-embed', requireAuth, async (req, res) => {
 // API: DELETE /api/shopify/disconnect
 // Body: { shop }
 // ═══════════════════════════════════════════════════════════════
-router.delete('/api/disconnect', requireAuth, async (req, res) => {
+router.delete('/disconnect', requireAuth, async (req, res) => {
   const shop = sanitizeShop(req.body?.shop || req.query.shop);
   if (!shop) return res.status(400).json({ error: 'Chýba shop.' });
 
@@ -506,7 +507,7 @@ router.delete('/api/disconnect', requireAuth, async (req, res) => {
 // Webhook: POST /api/shopify/webhook/uninstall
 // Shopify calls this when merchant uninstalls the app
 // ═══════════════════════════════════════════════════════════════
-router.post('/api/webhook/uninstall', express.raw({ type: 'application/json' }), (req, res) => {
+router.post('/webhook/uninstall', express.raw({ type: 'application/json' }), (req, res) => {
   const signature = req.headers['x-shopify-hmac-sha256'] || '';
   const shop      = req.headers['x-shopify-shop-domain'] || '';
 
