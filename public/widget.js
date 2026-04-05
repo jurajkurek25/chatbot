@@ -689,7 +689,7 @@
     setTimeout(() => { overlay.style.display = 'none'; }, 3000);
 
     // Save lead to backend (fire and forget)
-    fetch(`${BASE_URL}/api/widget/${widgetId}/leads`, {
+    fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/leads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, phone: phone || undefined, sessionId, gdprConsent: true })
