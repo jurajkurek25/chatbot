@@ -561,36 +561,43 @@ async function loadLeads() {
   document.getElementById('leads-empty').style.display = 'none';
   document.getElementById('leads-list').innerHTML = '';
 
-  // Populate widget filter if not done yet
-  const filterEl = document.getElementById('leads-widget-filter');
-  if (filterEl.options.length === 1 && widgets.length > 0) {
-    widgets.forEach(w => {
-      const opt = document.createElement('option');
-      opt.value = w.id;
-      opt.textContent = w.name || w.bot_name;
-      filterEl.appendChild(opt);
-    });
+  try {
+    // Single endpoint — returns all leads across all user's widgets at once
+    // No dependency on `widgets` array being pre-loaded (fixes race condition)
+    const r = await apiFetch('/api/widgets/leads/all');
+    if (!r) { document.getElementById('leads-loading').style.display = 'none'; return; }
+    const data = await r.json();
+
+    allLeads = (data.leads || []).map(l => ({
+      ...l,
+      widgetId: l.widget_id,
+      widgetName: l.widget_name || l.bot_name || '',
+    }));
+
+    // Populate widget filter dropdown from the leads data (no separate widgets fetch needed)
+    const filterEl = document.getElementById('leads-widget-filter');
+    if (filterEl.options.length === 1) {
+      const seen = new Set();
+      allLeads.forEach(l => {
+        if (!seen.has(l.widgetId)) {
+          seen.add(l.widgetId);
+          const opt = document.createElement('option');
+          opt.value = l.widgetId;
+          opt.textContent = l.widgetName || l.widgetId;
+          filterEl.appendChild(opt);
+        }
+      });
+    }
+
+    // Apply widget filter if selected
+    const selectedWidget = filterEl?.value;
+    if (selectedWidget) {
+      allLeads = allLeads.filter(l => l.widgetId === selectedWidget);
+    }
+
+  } catch (err) {
+    console.error('loadLeads error:', err);
   }
-
-  const selectedWidget = filterEl?.value;
-  const targetWidgets = selectedWidget
-    ? [{ id: selectedWidget }]
-    : widgets;
-
-  allLeads = [];
-  for (const w of targetWidgets) {
-    try {
-      const r = await apiFetch(`/api/widgets/${w.id}/leads`);
-      if (!r) continue;
-      const data = await r.json();
-      if (data.leads) {
-        allLeads.push(...data.leads.map(l => ({ ...l, widgetId: w.id, widgetName: w.name || w.bot_name })));
-      }
-    } catch { /* skip */ }
-  }
-
-  // Sort newest first
-  allLeads.sort((a, b) => b.created_at - a.created_at);
 
   document.getElementById('leads-loading').style.display = 'none';
 

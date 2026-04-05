@@ -46,6 +46,22 @@ router.get('/', (req, res) => {
   res.json(widgets.map(parseWidget));
 });
 
+// GET /api/widgets/leads/all — all leads across all user's widgets (single request, no race condition)
+router.get('/leads/all', (req, res) => {
+  const db = getDb();
+  const leads = db.prepare(`
+    SELECT l.id, l.name, l.email, l.phone, l.status, l.notes, l.chat_summary,
+           l.gdpr_consent, l.created_at, l.widget_id,
+           w.name AS widget_name, w.bot_name
+    FROM leads l
+    JOIN widgets w ON w.id = l.widget_id
+    WHERE w.user_id = ?
+    ORDER BY l.created_at DESC
+  `).all(req.userId);
+
+  res.json({ leads });
+});
+
 // GET /api/widgets/:id — get single widget
 router.get('/:id', (req, res) => {
   const widget = getOwnedWidget(req.params.id, req.userId);
