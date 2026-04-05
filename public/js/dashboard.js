@@ -636,10 +636,10 @@ function renderLeads() {
 
     const summaryHtml = lead.chat_summary
       ? `<div class="lead-summary">
-           <div class="lead-summary-label">🤖 Predajná karta leadu</div>
+           <div class="lead-summary-label">🤖 Zhrnutie konverzácie</div>
            <div style="white-space:pre-line;font-size:0.82rem;line-height:1.7;color:#374151">${esc(lead.chat_summary)}</div>
          </div>`
-      : `<div class="lead-summary-pending">⏳ Predajná karta sa generuje...</div>`;
+      : `<div class="lead-summary-pending" style="font-size:0.78rem;color:#94a3b8;padding:0.5rem 0">💬 Zákazník nezanechal správu pred kontaktom</div>`;
 
     const notesVal = esc(lead.notes || '');
 

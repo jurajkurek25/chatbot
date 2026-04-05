@@ -179,7 +179,7 @@ router.get('/:id/leads', (req, res) => {
 
   const db = getDb();
   const leads = db.prepare(`
-    SELECT id, name, email, phone, chat_summary, created_at
+    SELECT id, name, email, phone, status, notes, chat_summary, gdpr_consent, created_at
     FROM leads WHERE widget_id = ?
     ORDER BY created_at DESC
   `).all(widget.id);
