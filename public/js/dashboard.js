@@ -521,6 +521,11 @@ async function loadEmbedCode() {
       font-size:1.5rem;color:white;
     ">💬</div>
   `;
+
+  // Knowledge embed code
+  const baseUrl = window.location.origin;
+  const knowledgeCode = `<!-- NeuraDeskApp Knowledge Widget -->\n<div data-nd-knowledge="${currentWidget.id}"></div>\n<script src="${baseUrl}/knowledge-widget.js" async><\/script>`;
+  document.getElementById('knowledge-embed-code').textContent = knowledgeCode;
 }
 
 async function copyEmbedForWidget(widgetId) {
@@ -536,6 +541,13 @@ function copyEmbed() {
   const code = document.getElementById('embed-code').textContent;
   navigator.clipboard.writeText(code).then(() => {
     showToast('Skopírované!', 'success');
+  });
+}
+
+function copyKnowledgeEmbed() {
+  const code = document.getElementById('knowledge-embed-code').textContent;
+  navigator.clipboard.writeText(code).then(() => {
+    showToast('Embed kód znalostnej bázy skopírovaný!', 'success');
   });
 }
 
