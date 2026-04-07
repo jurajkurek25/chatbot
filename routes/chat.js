@@ -25,26 +25,6 @@ function checkRateLimit(ip) {
   return entry.count <= RATE_MAX;
 }
 
-// GET /api/widget/:widgetId/knowledge — public knowledge items for knowledge embed widget
-router.get('/:widgetId/knowledge', (req, res) => {
-  const db = getDb();
-  const widget = db.prepare('SELECT id, primary_color, bot_name FROM widgets WHERE id = ? AND active = 1').get(req.params.widgetId);
-  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
-
-  const items = db.prepare(`
-    SELECT id, title, content, source_type, created_at
-    FROM knowledge_items
-    WHERE widget_id = ?
-    ORDER BY created_at DESC
-  `).all(req.params.widgetId);
-
-  res.json({
-    primary_color: widget.primary_color,
-    bot_name: widget.bot_name,
-    items,
-  });
-});
-
 // GET /api/widget/:widgetId/config — public endpoint for widget configuration
 router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
