@@ -50,7 +50,7 @@ async function getLongLivedToken(shortToken) {
 /* ── Pages & Instagram accounts ───────────────────────────────── */
 async function getPages(userToken) {
   return graphRequest('/me/accounts', 'GET', {
-    fields: 'id,name,access_token,instagram_business_account',
+    fields: 'id,name,access_token,instagram_business_account,connected_instagram_account',
   }, userToken);
 }
 

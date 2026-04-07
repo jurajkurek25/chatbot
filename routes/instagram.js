@@ -80,19 +80,31 @@ router.get('/callback', async (req, res) => {
     const pagesData = await getPages(userToken);
     const pages = pagesData.data || [];
 
-    // 3. Find a page that has an Instagram Business Account
+    // 3. Find a page that has an Instagram Business or Creator account
     let chosenPage = null;
     let igAccountId = null;
 
     for (const page of pages) {
+      // Business account
       if (page.instagram_business_account?.id) {
         chosenPage = page;
         igAccountId = page.instagram_business_account.id;
         break;
       }
+      // Creator account
+      if (page.connected_instagram_account?.id) {
+        chosenPage = page;
+        igAccountId = page.connected_instagram_account.id;
+        break;
+      }
     }
 
     if (!chosenPage || !igAccountId) {
+      console.error('[instagram] No IG account found. Pages:', JSON.stringify(pages.map(p => ({
+        id: p.id, name: p.name,
+        has_business: !!p.instagram_business_account,
+        has_creator: !!p.connected_instagram_account,
+      }))));
       return res.redirect('/dashboard?ig_error=no_ig_account');
     }
 
