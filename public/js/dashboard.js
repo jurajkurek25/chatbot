@@ -236,7 +236,14 @@ async function openWidget(widgetId) {
   `;
 
   showView('editor');
-  showTab('settings');
+
+  // If returning from Instagram OAuth, open Instagram tab directly
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('ig_error') || urlParams.get('ig_connected')) {
+    showTab('instagram');
+  } else {
+    showTab('settings');
+  }
 }
 
 /* ── Create Widget ─────────────────────────────────────────────── */
@@ -888,6 +895,9 @@ function showIgError(code) {
 function dismissIgError() {
   const banner = document.getElementById('ig-error-banner');
   if (banner) banner.style.display = 'none';
+  // Reset button in case it was disabled
+  const btn = document.getElementById('btn-ig-connect');
+  if (btn) { btn.disabled = false; btn.innerHTML = '<span>📱 Prepojiť Instagram cez Facebook</span>'; }
 }
 
 async function connectInstagram() {
