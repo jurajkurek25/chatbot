@@ -95,6 +95,13 @@ function splitText(text, maxLen) {
   return parts;
 }
 
+async function graphRequestDirect(path, token) {
+  const url = new URL(`${GRAPH}${path}`);
+  url.searchParams.set('access_token', token);
+  const r = await fetch(url.toString());
+  return r.json();
+}
+
 module.exports = {
   exchangeCodeForToken,
   getLongLivedToken,
@@ -102,4 +109,5 @@ module.exports = {
   getIgAccountDetails,
   subscribePageToWebhook,
   sendDM,
+  graphRequestDirect,
 };

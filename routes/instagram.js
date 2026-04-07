@@ -11,6 +11,7 @@ const {
   getIgAccountDetails,
   subscribePageToWebhook,
   sendDM,
+  graphRequestDirect,
 } = require('../services/instagram');
 const { getChatResponseText } = require('../services/claude');
 
@@ -79,6 +80,18 @@ router.get('/callback', async (req, res) => {
     // 2. Get all pages + Instagram accounts
     const pagesData = await getPages(userToken);
     const pages = pagesData.data || [];
+
+    console.log('[instagram] OAuth user token received, pages count:', pages.length);
+    console.log('[instagram] Raw pages data:', JSON.stringify(pagesData).slice(0, 2000));
+
+    // Also try fetching IG accounts directly via user token
+    let igFromUser = null;
+    try {
+      igFromUser = await graphRequestDirect(`/me?fields=id,name,instagram_business_account,connected_instagram_account`, userToken);
+      console.log('[instagram] me direct:', JSON.stringify(igFromUser));
+    } catch(e) {
+      console.log('[instagram] me direct failed:', e.message);
+    }
 
     // 3. Find a page that has an Instagram Business or Creator account
     let chosenPage = null;
