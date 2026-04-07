@@ -855,12 +855,13 @@ function showIgError(code) {
 
   const errors = {
     no_pages: {
-      title: 'Počas prihlásenia nebola vybratá žiadna Facebook Stránka',
-      detail: 'Facebook vám počas prihlásenia zobrazil zoznam stránok, ktoré spravujete – buď ste žiadnu nevybrali, alebo váš Facebook účet nemá žiadnu stránku. ' +
-        '<br><br><strong>Čo robiť:</strong><br>' +
-        '1. Uistite sa, že máte na Facebooku vytvorenú <strong>Stránku</strong> (nie osobný profil).<br>' +
-        '2. Kliknite znova na „Prepojiť Instagram" a v dialógu Facebooku <strong>vyberte stránku</strong>, ku ktorej je váš Instagram pripojený.<br>' +
-        '3. Potvrďte všetky oprávnenia (neklikajte Odmietnuť).',
+      title: 'Váš Facebook účet nemá žiadnu Stránku (Page)',
+      detail: 'Meta API vyžaduje, aby ste boli administrátorom <strong>Facebook Stránky</strong> (nie osobného profilu), ku ktorej je pripojený váš Instagram. ' +
+        'Bez Facebook Stránky prepojenie nie je technicky možné.' +
+        '<br><br><strong>Riešenie (5 minút):</strong><br>' +
+        '1. <a href="https://www.facebook.com/pages/create" target="_blank" rel="noopener" style="color:#1d4ed8">Vytvorte Facebook Stránku</a> (napr. názov firmy).<br>' +
+        '2. V Instagrame → Profil → Upraviť profil → <em>Prepojiť Facebook stránku</em> → vyberte novovytvorenú stránku.<br>' +
+        '3. Vráťte sa sem a kliknite znova na „Prepojiť Instagram".',
     },
     no_ig_account: {
       title: 'Facebook Stránka nemá prepojený Instagram účet',
