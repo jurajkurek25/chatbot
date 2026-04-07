@@ -17,12 +17,10 @@ const { getChatResponseText } = require('../services/claude');
 const router = express.Router();
 
 const META_SCOPES = [
-  'instagram_basic',
   'instagram_manage_messages',
-  'instagram_manage_comments',
   'pages_show_list',
   'pages_manage_metadata',
-  'pages_read_engagement',
+  'pages_messaging',
 ].join(',');
 
 /* ── GET /api/instagram/auth-url/:widgetId ─────────────────────── */
