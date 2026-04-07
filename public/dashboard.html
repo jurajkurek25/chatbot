@@ -454,6 +454,20 @@
         <!-- Instagram Tab -->
         <div id="tab-instagram" class="tab-panel">
 
+          <!-- ── Error banner (shown after failed OAuth) ────────── -->
+          <div id="ig-error-banner" style="display:none;margin-bottom:1.25rem;padding:1.25rem 1.5rem;border-radius:12px;background:#fef2f2;border:1.5px solid #fecaca;">
+            <div style="display:flex;align-items:flex-start;gap:0.75rem">
+              <span style="font-size:1.25rem;flex-shrink:0">⚠️</span>
+              <div style="flex:1">
+                <div id="ig-error-title" style="font-weight:700;color:#991b1b;margin-bottom:0.4rem;font-size:0.95rem"></div>
+                <div id="ig-error-detail" style="color:#7f1d1d;font-size:0.85rem;line-height:1.6"></div>
+                <button onclick="dismissIgError()" style="margin-top:0.75rem;font-size:0.8rem;color:#991b1b;background:none;border:1px solid #fca5a5;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer">
+                  Zavrieť a skúsiť znova
+                </button>
+              </div>
+            </div>
+          </div>
+
           <!-- ── Disconnected state ─────────────────────────────── -->
           <div class="panel" style="margin-bottom:1.5rem" id="ig-panel-disconnected">
             <div class="panel-header">

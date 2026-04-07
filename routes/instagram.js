@@ -112,8 +112,13 @@ router.get('/callback', async (req, res) => {
       }
     }
 
+    if (pages.length === 0) {
+      console.error('[instagram] OAuth returned 0 pages. igFromUser:', JSON.stringify(igFromUser));
+      return res.redirect('/dashboard?ig_error=no_pages');
+    }
+
     if (!chosenPage || !igAccountId) {
-      console.error('[instagram] No IG account found. Pages:', JSON.stringify(pages.map(p => ({
+      console.error('[instagram] Pages found but none linked to IG. Pages:', JSON.stringify(pages.map(p => ({
         id: p.id, name: p.name,
         has_business: !!p.instagram_business_account,
         has_creator: !!p.connected_instagram_account,

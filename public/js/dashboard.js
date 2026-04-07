@@ -830,18 +830,64 @@ async function loadInstagramStatus() {
       showToast('Instagram bol úspešne prepojený! ✅');
       window.history.replaceState({}, '', '/dashboard');
     }
-    if (params.get('ig_error')) {
-      const errMap = {
-        cancelled: 'Prepojenie bolo zrušené.',
-        no_ig_account: 'Facebook Stránka nemá pripojený Instagram Business účet.',
-        oauth: 'Chyba pri autorizácii. Skúste znovu.',
-      };
-      showToast(errMap[params.get('ig_error')] || 'Chyba pri prepojení Instagramu.', 'error');
+    const igErr = params.get('ig_error');
+    if (igErr) {
       window.history.replaceState({}, '', '/dashboard');
+      showIgError(igErr);
     }
   } catch (err) {
     console.error('loadInstagramStatus error:', err);
   }
+}
+
+function showIgError(code) {
+  const banner = document.getElementById('ig-error-banner');
+  const title = document.getElementById('ig-error-title');
+  const detail = document.getElementById('ig-error-detail');
+  if (!banner) return;
+
+  const errors = {
+    no_pages: {
+      title: 'Počas prihlásenia nebola vybratá žiadna Facebook Stránka',
+      detail: 'Facebook vám počas prihlásenia zobrazil zoznam stránok, ktoré spravujete – buď ste žiadnu nevybrali, alebo váš Facebook účet nemá žiadnu stránku. ' +
+        '<br><br><strong>Čo robiť:</strong><br>' +
+        '1. Uistite sa, že máte na Facebooku vytvorenú <strong>Stránku</strong> (nie osobný profil).<br>' +
+        '2. Kliknite znova na „Prepojiť Instagram" a v dialógu Facebooku <strong>vyberte stránku</strong>, ku ktorej je váš Instagram pripojený.<br>' +
+        '3. Potvrďte všetky oprávnenia (neklikajte Odmietnuť).',
+    },
+    no_ig_account: {
+      title: 'Facebook Stránka nemá prepojený Instagram účet',
+      detail: 'Facebook stránka bola nájdená, ale nie je k nej pripojený žiadny Instagram Business alebo Creator účet.' +
+        '<br><br><strong>Čo robiť:</strong><br>' +
+        '1. V aplikácii <strong>Instagram</strong> → Profil → Upraviť profil → <em>Prepojiť Facebook stránku</em>.<br>' +
+        '2. Vyberte správnu Facebook Stránku.<br>' +
+        '3. Potom sa tu znova prihláste.',
+    },
+    oauth: {
+      title: 'Chyba pri autorizácii cez Facebook',
+      detail: 'Nastala technická chyba pri spracovaní prihlásenia. Skúste to prosím znova. ' +
+        'Ak chyba pretrváva, skontrolujte, či je váš Instagram nastavený ako Business alebo Creator účet.',
+    },
+    cancelled: {
+      title: 'Prepojenie bolo zrušené',
+      detail: 'Kliknite znova na „Prepojiť Instagram" a dokončite prihlásenie vrátane povolenia všetkých oprávnení.',
+    },
+  };
+
+  const msg = errors[code] || {
+    title: 'Prepojenie sa nepodarilo',
+    detail: 'Skúste to znova. Kód chyby: ' + code,
+  };
+
+  title.textContent = msg.title;
+  detail.innerHTML = msg.detail;
+  banner.style.display = '';
+  banner.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function dismissIgError() {
+  const banner = document.getElementById('ig-error-banner');
+  if (banner) banner.style.display = 'none';
 }
 
 async function connectInstagram() {
