@@ -20,8 +20,9 @@ const router = express.Router();
 const META_SCOPES = [
   'instagram_manage_messages',
   'pages_show_list',
-  'pages_manage_metadata',
   'pages_messaging',
+  'pages_manage_metadata',
+  'pages_read_engagement',
 ].join(',');
 
 /* ── GET /api/instagram/auth-url/:widgetId ─────────────────────── */
@@ -72,25 +73,36 @@ router.get('/callback', async (req, res) => {
   const redirectUri = `${process.env.BASE_URL}/api/instagram/callback`;
 
   try {
-    // 1. Short-lived → long-lived user token
+    // 1. Exchange code for short-lived token
     const shortData = await exchangeCodeForToken(code, redirectUri);
-    const longData = await getLongLivedToken(shortData.access_token);
+    const shortToken = shortData.access_token;
+
+    console.log('[instagram] Short-lived token received, trying /me/accounts...');
+
+    // 2. Get pages with short-lived token first (preserves all granted scopes)
+    let pagesData = await getPages(shortToken);
+    let pages = pagesData.data || [];
+
+    console.log('[instagram] Pages with short token:', pages.length, JSON.stringify(pagesData).slice(0, 1000));
+
+    // 3. Exchange for long-lived token
+    const longData = await getLongLivedToken(shortToken);
     const userToken = longData.access_token;
 
-    // 2. Get all pages + Instagram accounts
-    const pagesData = await getPages(userToken);
-    const pages = pagesData.data || [];
+    // 4. If short token gave no pages, try long-lived token as fallback
+    if (pages.length === 0) {
+      console.log('[instagram] No pages with short token, trying long-lived token...');
+      pagesData = await getPages(userToken);
+      pages = pagesData.data || [];
+      console.log('[instagram] Pages with long token:', pages.length, JSON.stringify(pagesData).slice(0, 1000));
+    }
 
-    console.log('[instagram] OAuth user token received, pages count:', pages.length);
-    console.log('[instagram] Raw pages data:', JSON.stringify(pagesData).slice(0, 2000));
-
-    // Also try fetching IG accounts directly via user token
-    let igFromUser = null;
+    // 5. Also log direct /me info for debugging
     try {
-      igFromUser = await graphRequestDirect(`/me?fields=id,name,instagram_business_account,connected_instagram_account`, userToken);
-      console.log('[instagram] me direct:', JSON.stringify(igFromUser));
+      const meData = await graphRequestDirect(`/me?fields=id,name,instagram_business_account,connected_instagram_account`, shortToken);
+      console.log('[instagram] /me direct:', JSON.stringify(meData));
     } catch(e) {
-      console.log('[instagram] me direct failed:', e.message);
+      console.log('[instagram] /me direct failed:', e.message);
     }
 
     // 3. Find a page that has an Instagram Business or Creator account
