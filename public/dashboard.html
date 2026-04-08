@@ -199,17 +199,43 @@
 
           <!-- Redeem -->
           <div style="padding:1rem;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">
-            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.5rem">Uplatniť kredity</div>
-            <p style="font-size:0.875rem;color:#64748b;margin-bottom:0.75rem">
-              Za každých 29 € kreditov získate 1 mesiac predplatného zadarmo. Stripe predplatné bude pozastavené počas voľného obdobia a automaticky obnoví fakturáciu po jeho skončení.
-            </p>
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.75rem">Uplatniť kredity</div>
+
+            <!-- Option cards -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;margin-bottom:1rem" id="redeem-options">
+
+              <!-- Option A: predplatné -->
+              <label id="redeem-opt-sub" style="cursor:pointer">
+                <input type="radio" name="redeem-type" value="subscription" checked style="display:none">
+                <div class="redeem-option-card" onclick="selectRedeemOption('subscription')">
+                  <div style="font-size:1.3rem;margin-bottom:0.35rem">🗓️</div>
+                  <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">Voľný mesiac</div>
+                  <div style="font-size:0.78rem;color:#64748b">29 € = 1 mesiac<br>predplatného zadarmo</div>
+                </div>
+              </label>
+
+              <!-- Option B: AI správy -->
+              <label id="redeem-opt-ai" style="cursor:pointer">
+                <input type="radio" name="redeem-type" value="ai_credits" style="display:none">
+                <div class="redeem-option-card" onclick="selectRedeemOption('ai_credits')">
+                  <div style="font-size:1.3rem;margin-bottom:0.35rem">💬</div>
+                  <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">AI správy</div>
+                  <div style="font-size:0.78rem;color:#64748b">1 € = 100 odpovedí<br>pridaných k účtu</div>
+                </div>
+              </label>
+            </div>
+
+            <div id="redeem-desc" style="font-size:0.82rem;color:#64748b;margin-bottom:0.75rem">
+              Za každých 29 € kreditov získate 1 mesiac predplatného zadarmo. Stripe predplatné bude pozastavené a automaticky obnoví fakturáciu po skončení.
+            </div>
+
             <div style="display:flex;gap:0.75rem;align-items:center;flex-wrap:wrap">
               <button class="btn btn-primary" id="btn-redeem" onclick="redeemCredits()" disabled>
                 🎁 Uplatniť kredity
               </button>
               <label style="display:flex;align-items:center;gap:0.5rem;font-size:0.875rem;cursor:pointer">
                 <input type="checkbox" id="aff-auto-redeem" onchange="toggleAutoRedeem()">
-                Automaticky uplatňovať kredity
+                Automaticky uplatňovať na predplatné
               </label>
             </div>
           </div>

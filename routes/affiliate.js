@@ -7,7 +7,8 @@ const { getDb } = require('../db/database');
 const router = express.Router();
 router.use(requireAuth);
 
-const MONTHLY_PRICE = 29; // €
+const MONTHLY_PRICE = 29;       // € za 1 voľný mesiac
+const AI_CREDITS_PER_EUR = 100; // AI odpovedí za 1 € (rovnaká sadzba ako platené balíky)
 
 // GET /api/affiliate/status
 router.get('/status', (req, res) => {
@@ -39,6 +40,7 @@ router.get('/status', (req, res) => {
     referred_count: referredCount,
     paid_referrals: paidReferrals,
     monthly_price: MONTHLY_PRICE,
+    ai_credits_per_eur: AI_CREDITS_PER_EUR,
     share_url: `${process.env.BASE_URL || ''}/?ref=${user.referral_code}`,
   });
 });
@@ -107,6 +109,33 @@ router.post('/redeem', async (req, res) => {
     free_months: freeMonths,
     credits_used: creditsToUse,
     free_until: freeUntil,
+  });
+});
+
+// POST /api/affiliate/redeem-ai-credits — uplatniť kredity ako AI správy
+router.post('/redeem-ai-credits', (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT referral_credits FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+
+  const credits = user.referral_credits || 0;
+  if (credits < 1) {
+    return res.status(400).json({ error: 'Nemáte žiadne kredity na uplatnenie.' });
+  }
+
+  const aiResponses = Math.floor(credits * AI_CREDITS_PER_EUR);
+
+  db.prepare(`
+    UPDATE users
+    SET referral_credits = 0,
+        extra_response_credits = extra_response_credits + ?
+    WHERE id = ?
+  `).run(aiResponses, req.userId);
+
+  res.json({
+    ok: true,
+    credits_used: credits,
+    ai_responses_added: aiResponses,
   });
 });
 

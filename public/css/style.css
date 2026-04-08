@@ -721,3 +721,22 @@ input[type="color"] { width: 40px; height: 40px; border: none; background: none;
 .ig-stat { text-align: center; }
 .ig-stat-num { font-size: 1.5rem; font-weight: 800; color: #1e293b; }
 .ig-stat-label { font-size: 0.75rem; color: #94a3b8; margin-top: 0.1rem; }
+
+/* ── Affiliate redeem option cards ──────────────────────────── */
+.redeem-option-card {
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.875rem 0.75rem;
+  text-align: center;
+  transition: border-color 0.2s, background 0.2s;
+  background: white;
+  height: 100%;
+}
+.redeem-option-card:hover { border-color: #93c5fd; }
+input[name="redeem-type"]:checked + .redeem-option-card {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+@media (max-width: 480px) {
+  #redeem-options { grid-template-columns: 1fr; }
+}

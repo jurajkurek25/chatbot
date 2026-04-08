@@ -1057,9 +1057,9 @@ async function loadAffiliateStatus() {
     document.getElementById('aff-free-months').textContent = d.free_months_available || 0;
     document.getElementById('aff-auto-redeem').checked = !!d.credits_redeem_enabled;
 
-    // Enable redeem button if enough credits
+    // Enable redeem button: 1€ minimum for AI credits, 29€ for subscription
     const btnRedeem = document.getElementById('btn-redeem');
-    if (btnRedeem) btnRedeem.disabled = (d.referral_credits || 0) < (d.monthly_price || 29);
+    if (btnRedeem) btnRedeem.disabled = (d.referral_credits || 0) < 1;
 
     // Show free period if active
     const freePeriodEl = document.getElementById('aff-free-period-info');
@@ -1177,16 +1177,40 @@ async function buyCustomCredits() {
   }
 }
 
+let _redeemType = 'subscription';
+
+function selectRedeemOption(type) {
+  _redeemType = type;
+  // Update radio state
+  document.querySelectorAll('input[name="redeem-type"]').forEach(r => {
+    r.checked = r.value === type;
+  });
+  // Update description
+  const desc = document.getElementById('redeem-desc');
+  if (type === 'subscription') {
+    desc.textContent = 'Za každých 29 € kreditov získate 1 mesiac predplatného zadarmo. Stripe predplatné bude pozastavené a automaticky obnoví fakturáciu po skončení.';
+  } else {
+    desc.textContent = 'Všetky vaše kredity sa prevedú na AI odpovede – 1 € = 100 odpovedí. Okamžite sa pripočítajú k vášmu účtu.';
+  }
+}
+
 async function redeemCredits() {
   const btn = document.getElementById('btn-redeem');
   btn.disabled = true;
   btn.textContent = '⏳ Spracovávam...';
+  const endpoint = _redeemType === 'ai_credits'
+    ? '/api/affiliate/redeem-ai-credits'
+    : '/api/affiliate/redeem';
   try {
-    const r = await apiFetch('/api/affiliate/redeem', { method: 'POST' });
+    const r = await apiFetch(endpoint, { method: 'POST' });
     if (!r) { btn.disabled = false; btn.textContent = '🎁 Uplatniť kredity'; return; }
     const d = await r.json();
     if (r.ok) {
-      showToast(`🎉 ${d.free_months} mesiac(e) zadarmo aktivovaný!`, 'success');
+      if (_redeemType === 'ai_credits') {
+        showToast(`💬 +${d.ai_responses_added} AI odpovedí pridaných!`, 'success');
+      } else {
+        showToast(`🎉 ${d.free_months} mesiac(e) zadarmo aktivovaný!`, 'success');
+      }
       loadAffiliateStatus();
     } else {
       showToast(d.error || 'Chyba pri uplatňovaní.', 'error');
