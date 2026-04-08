@@ -159,6 +159,16 @@
     .nd-msg-bot { background: white; color: #1e293b; align-self: flex-start; border: 1px solid #e2e8f0; border-bottom-left-radius: 4px; }
     .nd-msg-user { color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
     .nd-msg-bot.nd-typing { color: #94a3b8; font-style: italic; }
+    .nd-link { color: var(--nd-primary); text-decoration: underline; word-break: break-all; }
+    .nd-link:hover { opacity: 0.8; }
+    .nd-link-btn {
+      display: inline-block; margin: 0.35rem 0;
+      padding: 0.4rem 1rem; border-radius: 20px;
+      background: var(--nd-primary); color: white !important;
+      text-decoration: none !important; font-size: 0.8rem; font-weight: 600;
+      word-break: break-all;
+    }
+    .nd-link-btn:hover { opacity: 0.85; }
 
     /* Suggested questions */
     #nd-suggestions {
@@ -460,10 +470,50 @@
 
   /* ── Markdown renderer (bold, italic, newlines only) ────────── */
   function renderMarkdown(text) {
-    return esc(text)
+    // Match [label](url) and bare https?:// URLs, trim trailing punctuation from bare URLs
+    const URL_RE = /(\[([^\]]{1,200})\]\((https?:\/\/[^\s)]{1,500})\))|(https?:\/\/[^\s<>"]{1,500})/g;
+    let html = '';
+    let last = 0;
+    let m;
+
+    while ((m = URL_RE.exec(text)) !== null) {
+      // Escape plain text before this match
+      html += escInline(text.slice(last, m.index));
+
+      if (m[1]) {
+        // Markdown link: [label](url)
+        html += `<a href="${escAttr(m[3])}" target="_blank" rel="noopener noreferrer" class="nd-link">${esc(m[2])}</a>`;
+      } else {
+        // Bare URL — strip trailing punctuation (.,!?) that AI often appends
+        let url = m[0].replace(/[.,!?:)\]]+$/, '');
+        const trailingPunct = m[0].slice(url.length);
+
+        // Button style if URL is on its own line
+        const before = text.slice(0, m.index);
+        const after  = text.slice(m.index + url.length);
+        const alone  = /(\n|^)\s*$/.test(before) && /^\s*(\n|$)/.test(after);
+
+        const cls = alone ? 'nd-link-btn' : 'nd-link';
+        html += `<a href="${escAttr(url)}" target="_blank" rel="noopener noreferrer" class="${cls}">${esc(url)}</a>`;
+        if (trailingPunct) html += escInline(trailingPunct);
+      }
+      last = m.index + m[0].length;
+    }
+
+    html += escInline(text.slice(last));
+
+    return html
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>')
       .replace(/\n/g, '<br>');
+  }
+
+  function escInline(str) {
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  function escAttr(str) {
+    return str.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
   }
 
   /* ── Messages ───────────────────────────────────────────────── */
