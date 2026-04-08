@@ -363,12 +363,121 @@ input[type="color"] { width: 40px; height: 40px; border: none; background: none;
 .badge-gray { background: #f1f5f9; color: #64748b; }
 .badge-blue { background: #dbeafe; color: #1d4ed8; }
 
-/* Responsive */
+/* ── Hamburger Button (mobile only) ─────────────────────────── */
+.hamburger-btn {
+  display: none;
+  background: none;
+  border: none;
+  padding: 0.4rem;
+  cursor: pointer;
+  flex-direction: column;
+  gap: 5px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+.hamburger-btn:hover { background: #f1f5f9; }
+.hamburger-btn span {
+  display: block;
+  width: 22px;
+  height: 2px;
+  background: #475569;
+  border-radius: 2px;
+  transition: all 0.25s;
+}
+
+/* ── Mobile Sidebar Overlay ─────────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 98;
+}
+.sidebar-overlay.active { display: block; }
+
+/* ── Responsive ─────────────────────────────────────────────── */
 @media (max-width: 768px) {
-  .sidebar { display: none; }
+  /* Hamburger visible */
+  .hamburger-btn { display: flex; }
+
+  /* Sidebar becomes slide-in overlay */
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    z-index: 99;
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  /* Main content full width */
   .main-content { margin-left: 0; }
+
+  /* Topbar adjustments */
+  .topbar { padding: 0 1rem; }
+  .topbar-title { font-size: 0.95rem; }
+
+  /* Page content padding */
+  .page-content { padding: 1.25rem 1rem; }
+
+  /* Forms */
   .form-row { flex-direction: column; }
+
+  /* Widget grid single column */
   .widget-grid { grid-template-columns: 1fr; }
+
+  /* Panels */
+  .panel { padding: 1.25rem 1rem; }
+  .panel-header { flex-wrap: wrap; gap: 0.75rem; }
+
+  /* Tabs – horizontally scrollable */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab-btn { white-space: nowrap; padding: 0.6rem 0.875rem; font-size: 0.82rem; flex-shrink: 0; }
+
+  /* Buttons touch targets */
+  .btn { min-height: 40px; }
+  .btn-sm { min-height: 34px; }
+
+  /* Lead cards */
+  .lead-card { padding: 1rem; }
+  .lead-card-header { flex-direction: column; gap: 0.5rem; }
+  .lead-card-info { flex-wrap: wrap; }
+
+  /* Instagram */
+  .ig-stats { gap: 1rem; flex-wrap: wrap; }
+  .ig-stat { flex: 1; min-width: 80px; }
+
+  /* Toast full width on mobile */
+  .toast { left: 1rem; right: 1rem; bottom: 1rem; max-width: none; }
+
+  /* Widget card actions wrap */
+  .widget-card-actions { flex-wrap: wrap; }
+
+  /* Color picker row */
+  .color-picker-row { flex-wrap: wrap; }
+
+  /* topbar actions wrap */
+  .topbar-actions { gap: 0.5rem; }
+  .topbar-actions .btn { font-size: 0.8rem; padding: 0.45rem 0.75rem; }
+}
+
+@media (max-width: 480px) {
+  .page-content { padding: 1rem 0.875rem; }
+  .panel { padding: 1rem 0.875rem; }
+  .topbar-title { font-size: 0.875rem; }
+  .widget-card { padding: 1rem; }
+  .lead-avatar { width: 34px; height: 34px; font-size: 0.875rem; }
+  .lead-meta { gap: 0.5rem; }
+  .lead-meta-item { font-size: 0.78rem; }
+  .ig-connect-btn { width: 100%; text-align: center; }
+  .form-group label { font-size: 0.8rem; }
+  .form-control { font-size: 0.875rem; padding: 0.55rem 0.75rem; }
 }
 
 /* ── Leads / Contacts ─────────────────────────────────────────── */

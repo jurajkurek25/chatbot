@@ -30,6 +30,25 @@ function logout() {
   window.location.href = '/';
 }
 
+/* ── Mobile Sidebar ──────────────────────────────────────────── */
+function toggleMobileSidebar() {
+  const sidebar = document.querySelector('.sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  const isOpen = sidebar.classList.contains('open');
+  if (isOpen) {
+    sidebar.classList.remove('open');
+    overlay.classList.remove('active');
+  } else {
+    sidebar.classList.add('open');
+    overlay.classList.add('active');
+  }
+}
+
+function closeMobileSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('active');
+}
+
 /* ── Init ─────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
   if (!getToken()) { window.location.href = '/'; return; }
@@ -95,6 +114,7 @@ function renderUserInfo() {
 
 /* ── Views ─────────────────────────────────────────────────────── */
 function showView(view) {
+  closeMobileSidebar();
   document.getElementById('view-widgets').style.display = view === 'widgets' ? '' : 'none';
   document.getElementById('view-editor').style.display = view === 'editor' ? '' : 'none';
   document.getElementById('view-leads').style.display = view === 'leads' ? '' : 'none';
@@ -123,6 +143,7 @@ function showView(view) {
 }
 
 function showTab(tab) {
+  closeMobileSidebar();
   currentTab = tab;
   ['settings','knowledge','questions','embed','products','instagram','gdpr'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);

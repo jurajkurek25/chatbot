@@ -49,7 +49,22 @@ function updateSidebar(active) {
     el.classList.remove('active', 'done');
     if (i < active) el.classList.add('done');
     else if (i === active) el.classList.add('active');
+
+    // Update mobile progress dots
+    const mdot = document.getElementById(`mps-${i}`);
+    if (mdot) {
+      mdot.classList.remove('active', 'done');
+      if (i < active) mdot.classList.add('done');
+      else if (i === active) mdot.classList.add('active');
+    }
+    // Update mobile progress lines
+    if (i < 4) {
+      const mline = document.getElementById(`mpl-${i}`);
+      if (mline) mline.classList.toggle('done', i < active);
+    }
   }
+  const label = document.getElementById('ob-mobile-step-label');
+  if (label) label.textContent = `Krok ${active} z 4`;
 }
 
 // ── Logout ───────────────────────────────────────────────────────

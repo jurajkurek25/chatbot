@@ -80,10 +80,18 @@
     </div>
   </nav>
 
+  <!-- Mobile sidebar overlay backdrop -->
+  <div class="sidebar-overlay" id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+
   <!-- Main Content -->
   <main class="main-content">
     <div class="topbar">
-      <div class="topbar-title" id="topbar-title">Moje widgety</div>
+      <div style="display:flex;align-items:center;gap:0.75rem">
+        <button class="hamburger-btn" id="hamburger-btn" onclick="toggleMobileSidebar()" aria-label="Menu">
+          <span></span><span></span><span></span>
+        </button>
+        <div class="topbar-title" id="topbar-title">Moje widgety</div>
+      </div>
       <div class="topbar-actions" id="topbar-actions">
         <button class="btn btn-primary" onclick="openCreateWidgetModal()">+ Nový widget</button>
       </div>
