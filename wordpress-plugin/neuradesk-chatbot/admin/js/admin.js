@@ -94,9 +94,6 @@
   /* ── Re-scan ──────────────────────────────────────────────── */
   $(document).on('click', '#nd-btn-rescan', function () {
     if (!confirm('Skenovanie pridá obsah znova do znalostnej bázy. Pokračovať?')) return;
-    ajax('neuradesk_disconnect_scan').done(function () { location.reload(); });
-    // simple: just clear scan_done via a dedicated action OR reload and user triggers scan
-    // We trigger via reload + resetting option
     $.post(ajax_url, { action: 'neuradesk_reset_scan', nonce })
       .done(function () { location.reload(); });
   });
