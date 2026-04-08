@@ -16,6 +16,7 @@ const affiliateRoutes = require('./routes/affiliate');
 const { router: creditsRoutes } = require('./routes/credits');
 const productsRoutes = require('./routes/products');
 const shopifyRoutes  = require('./routes/shopify');
+const demoRoutes     = require('./routes/demo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -43,6 +44,7 @@ app.use('/api/instagram', instagramRoutes);
 app.use('/api/affiliate', affiliateRoutes);
 app.use('/api/credits', creditsRoutes);
 app.use('/api/products', productsRoutes);
+app.use('/api/demo', demoRoutes);
 
 // Shopify integration (OAuth + setup + scan)
 // IMPORTANT: webhook uninstall must receive raw body — mount before express.json() would affect it,
@@ -64,6 +66,9 @@ app.get('/dashboard', (req, res) =>
 );
 app.get('/onboarding', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'onboarding.html'))
+);
+app.get('/demo', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'demo.html'))
 );
 
 app.listen(PORT, () => {

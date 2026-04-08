@@ -387,7 +387,7 @@
       if (!res.ok) throw new Error(data.error);
       localStorage.setItem('nd_token', data.token);
       localStorage.setItem('nd_user', JSON.stringify({ ...data.user, hasReferral: !!data.hasReferral }));
-      window.location.href = '/onboarding';
+      window.location.href = '/demo';
     } catch (ex) {
       err.textContent = ex.message; btn.disabled = false; btn.textContent = 'Vytvoriť účet a pokračovať';
     }

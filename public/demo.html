@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uvidíte vášho AI predajcu v akcii – NeuraDeskApp</title>
+  <link rel="stylesheet" href="/css/demo.css">
+</head>
+<body>
+<div class="demo-wrap">
+
+  <div class="demo-logo">Neura<span>Desk</span></div>
+
+  <!-- ── STEP 1: Input ───────────────────────────────── -->
+  <div id="step-input">
+    <div class="demo-badge">⚡ Live demo · bez registrácie karty</div>
+    <h1>Uvidíte svojho AI&nbsp;predajcu v&nbsp;akcii</h1>
+    <p>Napíšte čo predávate — za 10 sekúnd uvidíte, ako váš chatbot kladie otázky, rieši námietky a uzatvára predaj.</p>
+
+    <div class="demo-input-row">
+      <input
+        type="text"
+        class="demo-input"
+        id="demo-business"
+        placeholder="napr. predávam fitness programy online"
+        maxlength="200"
+        autocomplete="off"
+      >
+      <button class="btn-demo-start" id="btn-start" onclick="startDemo()">
+        <span>Spustiť demo</span>
+        <span>→</span>
+      </button>
+    </div>
+
+    <div class="demo-examples">
+      <div class="demo-example-chip" onclick="fillExample(this)">fitness programy</div>
+      <div class="demo-example-chip" onclick="fillExample(this)">účtovné služby pre firmy</div>
+      <div class="demo-example-chip" onclick="fillExample(this)">online kurzy programovania</div>
+      <div class="demo-example-chip" onclick="fillExample(this)">realitná kancelária</div>
+      <div class="demo-example-chip" onclick="fillExample(this)">kozmetický salón</div>
+      <div class="demo-example-chip" onclick="fillExample(this)">e-shop s oblečením</div>
+    </div>
+  </div>
+
+  <!-- ── Loading ─────────────────────────────────────── -->
+  <div class="demo-loading" id="demo-loading">
+    <div class="spinner"></div>
+    <p>AI pripravuje vášho predajcu…</p>
+  </div>
+
+  <!-- ── STEP 2: Demo chat ───────────────────────────── -->
+  <div id="step-demo">
+    <div class="demo-chat-header">
+      <h2>Váš AI predajca v akcii 👇</h2>
+      <p id="demo-chat-subtitle">Simulácia predajného chatu pre váš biznis</p>
+    </div>
+
+    <div class="demo-chat-window">
+      <div class="demo-chat-topbar">
+        <div class="demo-chat-avatar">🤖</div>
+        <div>
+          <div class="demo-chat-name">AI Asistent</div>
+          <div class="demo-chat-status">● Online</div>
+        </div>
+      </div>
+      <div class="demo-messages" id="demo-messages"></div>
+    </div>
+  </div>
+
+  <!-- ── CTA ─────────────────────────────────────────── -->
+  <div class="demo-cta" id="demo-cta">
+    <h3><span class="fire">🔥</span> Toto je váš nový AI predajca</h3>
+    <p>
+      Pracuje 24/7 · odpovedá za sekundy · nikdy nezabudne na follow-up.<br>
+      Nastavte ho pre váš biznis za pár minút.
+    </p>
+    <a href="/onboarding" class="btn-demo-cta">
+      Aktivovať pre môj biznis →
+    </a>
+    <div class="demo-cta-note">€29/mesiac · zrušenie kedykoľvek</div>
+    <br>
+    <button class="btn-restart" onclick="restartDemo()">← Skúsiť iný biznis</button>
+  </div>
+
+</div>
+
+<script src="/js/demo.js"></script>
+</body>
+</html>
