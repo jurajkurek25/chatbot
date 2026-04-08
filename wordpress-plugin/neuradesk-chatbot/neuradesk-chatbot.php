@@ -216,18 +216,46 @@ add_action( 'wp_ajax_neuradesk_disconnect', function () {
 } );
 
 /* ── Widget embed ─────────────────────────────────────────────────── */
-add_action( 'wp_footer', function () {
+// Use wp_enqueue_scripts — fires during wp_head, always works regardless of theme
+add_action( 'wp_enqueue_scripts', function () {
     if ( ! get_option( 'neuradesk_embed_enabled', 0 ) ) return;
     $widget_id = get_option( 'neuradesk_widget_id', '' );
     $api_base  = get_option( 'neuradesk_api_base', 'https://neuradesk.online' );
     if ( ! $widget_id ) return;
+
+    $script_url = esc_url( trailingslashit( $api_base ) . 'widget.js' );
+
+    // Register & enqueue in <head> (5th param false = head, not footer)
+    wp_enqueue_script( 'neuradesk-widget', $script_url, [], null, false );
+
+    // Inject config object before the script tag
+    wp_add_inline_script(
+        'neuradesk-widget',
+        'window.NeuraDeskConfig = ' . wp_json_encode( [ 'widgetId' => $widget_id ] ) . ';',
+        'before'
+    );
+} );
+
+// Add async attribute to avoid blocking page render
+add_filter( 'script_loader_tag', function ( $tag, $handle ) {
+    if ( $handle !== 'neuradesk-widget' ) return $tag;
+    return str_replace( ' src=', ' async src=', $tag );
+}, 10, 2 );
+
+// Fallback: also hook wp_head directly in case a theme/builder bypasses wp_enqueue
+add_action( 'wp_head', function () {
+    // Only inject if wp_enqueue_scripts was already used (script registered)
+    // or if some exotic theme skips the enqueue pipeline entirely
+    if ( ! get_option( 'neuradesk_embed_enabled', 0 ) ) return;
+    $widget_id = get_option( 'neuradesk_widget_id', '' );
+    $api_base  = get_option( 'neuradesk_api_base', 'https://neuradesk.online' );
+    if ( ! $widget_id ) return;
+    if ( wp_script_is( 'neuradesk-widget', 'enqueued' ) ) return; // already handled above
     ?>
-    <script>
-      window.NeuraDeskConfig = { widgetId: <?php echo wp_json_encode( $widget_id ); ?> };
-    </script>
+    <script>window.NeuraDeskConfig = <?php echo wp_json_encode( [ 'widgetId' => $widget_id ] ); ?>;</script>
     <script src="<?php echo esc_url( trailingslashit( $api_base ) . 'widget.js' ); ?>" async></script>
     <?php
-} );
+}, 99 );
 
 /* ── Helpers ─────────────────────────────────────────────────────── */
 function neuradesk_get_widgets( $api_base, $token ) {
