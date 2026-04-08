@@ -124,7 +124,7 @@ function showView(view) {
 
 function showTab(tab) {
   currentTab = tab;
-  ['settings','knowledge','questions','embed','products','instagram'].forEach(t => {
+  ['settings','knowledge','questions','embed','products','instagram','gdpr'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -133,6 +133,7 @@ function showTab(tab) {
   if (tab === 'embed') loadEmbedCode();
   if (tab === 'instagram') loadInstagramStatus();
   if (tab === 'products') loadProducts();
+  if (tab === 'gdpr') loadGdpr();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -794,6 +795,62 @@ function updateLeadsBadge(count) {
 }
 
 /* ── Instagram ─────────────────────────────────────────────────── */
+
+/* ── GDPR ──────────────────────────────────────────────────────── */
+function loadGdpr() {
+  if (!currentWidget) return;
+  document.getElementById('gdpr-text').value = currentWidget.gdpr_text || '';
+}
+
+async function generateGdpr() {
+  if (!currentWidget) return;
+  const companyName = document.getElementById('gdpr-company-name').value.trim();
+  if (!companyName) { showToast('Zadajte názov spoločnosti.', 'error'); return; }
+
+  const btn = document.getElementById('btn-generate-gdpr');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generujem...';
+
+  const body = {
+    companyName,
+    companyAddress: document.getElementById('gdpr-company-address').value.trim(),
+    companyId:      document.getElementById('gdpr-company-id').value.trim(),
+    email:          document.getElementById('gdpr-email').value.trim(),
+    purposes:       document.getElementById('gdpr-purposes').value.trim(),
+    retention:      document.getElementById('gdpr-retention').value.trim(),
+  };
+
+  try {
+    const r = await apiFetch(`/api/widgets/${currentWidget.id}/generate-gdpr`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+    if (!r) return;
+    const data = await r.json();
+    if (data.gdpr_text) {
+      document.getElementById('gdpr-text').value = data.gdpr_text;
+      showToast('GDPR text bol vygenerovaný. Skontrolujte a uložte.', 'success');
+    } else {
+      showToast(data.error || 'Chyba pri generovaní.', 'error');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Vygenerovať GDPR text';
+  }
+}
+
+async function saveGdpr() {
+  if (!currentWidget) return;
+  const gdpr_text = document.getElementById('gdpr-text').value;
+  const r = await apiFetch(`/api/widgets/${currentWidget.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ gdpr_text }),
+  });
+  if (!r) return;
+  const data = await r.json();
+  currentWidget.gdpr_text = data.gdpr_text || gdpr_text;
+  showToast('GDPR text uložený.', 'success');
+}
 
 async function loadInstagramStatus() {
   if (!currentWidget) return;

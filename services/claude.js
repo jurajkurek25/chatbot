@@ -283,4 +283,35 @@ function safeParseJSON(str, fallback) {
   try { return JSON.parse(str); } catch { return fallback; }
 }
 
-module.exports = { streamChatResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation };
+/* ── Generate GDPR text ──────────────────────────────────────── */
+async function generateGdprText({ companyName, companyAddress, companyId, email, purposes, retention }) {
+  const prompt = `Si právny expert na GDPR a ochranu osobných údajov. Napíš stručný, ale kompletný súhlas so spracovaním osobných údajov v slovenčine pre webový kontaktný formulár.
+
+Informácie o prevádzkovateľovi:
+- Názov: ${companyName}
+- Adresa: ${companyAddress || 'neuvedená'}
+- IČO/ID: ${companyId || 'neuvedené'}
+- Kontaktný email: ${email || 'neuvedený'}
+- Účel spracovania: ${purposes || 'spätný kontakt a zodpovedanie otázok'}
+- Doba uchovávania: ${retention || '3 roky'}
+
+Napíš súhlas GDPR v tomto formáte:
+1. Krátky úvodný odsek (2-3 vety) o tom kto spracúva údaje a na aký účel
+2. Výpis spracúvaných osobných údajov (meno, email, telefón)
+3. Právny základ spracovania
+4. Doba uchovávania
+5. Práva dotknutej osoby (právo na prístup, opravu, vymazanie, odvolanie súhlasu)
+6. Kontakt na prevádzkovateľa
+
+Text musí byť zrozumiteľný pre bežného človeka, nie príliš dlhý (max 300 slov), v slovenčine. Nepoužívaj markdown headingy (#), iba odseky.`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 800,
+    messages: [{ role: 'user', content: prompt }],
+  });
+
+  return response.content[0]?.text?.trim() || '';
+}
+
+module.exports = { streamChatResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText };

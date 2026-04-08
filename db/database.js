@@ -198,6 +198,7 @@ function initDatabase() {
     `ALTER TABLE leads ADD COLUMN status TEXT NOT NULL DEFAULT 'new'`,
     `ALTER TABLE leads ADD COLUMN notes TEXT`,
     `ALTER TABLE leads ADD COLUMN gdpr_consent INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE widgets ADD COLUMN gdpr_text TEXT NOT NULL DEFAULT ''`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists */ }

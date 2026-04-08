@@ -44,6 +44,9 @@
       <button class="nav-item" onclick="showTab('products')" id="nav-products">
         <span class="nav-icon">🛍️</span> Produkty
       </button>
+      <button class="nav-item" onclick="showTab('gdpr')" id="nav-gdpr">
+        <span class="nav-icon">🔒</span> GDPR
+      </button>
       <button class="nav-item" onclick="showTab('instagram')" id="nav-instagram">
         <span class="nav-icon">📱</span> Instagram
       </button>
@@ -448,6 +451,65 @@
               <p>Pridajte produkty a chatbot ich bude vedieť inteligentne odporučiť zákazníkom.</p>
             </div>
             <div id="products-list"></div>
+          </div>
+        </div>
+
+        <!-- GDPR Tab -->
+        <div id="tab-gdpr" class="tab-panel">
+
+          <!-- AI Generator -->
+          <div class="panel" style="margin-bottom:1.5rem">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">🤖 Vygenerovať GDPR text pomocou AI</div>
+                <div class="panel-subtitle">Zadajte údaje o vašej spoločnosti a AI vytvorí kompletný súhlas so spracovaním osobných údajov</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Názov spoločnosti / živnostníka *</label>
+              <input type="text" class="form-control" id="gdpr-company-name" placeholder="napr. ABC s.r.o., Ján Novák – živnostník">
+            </div>
+            <div class="form-group">
+              <label>Adresa <small style="color:#94a3b8">(voliteľné)</small></label>
+              <input type="text" class="form-control" id="gdpr-company-address" placeholder="napr. Hlavná 1, 010 01 Žilina">
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+              <div class="form-group">
+                <label>IČO <small style="color:#94a3b8">(voliteľné)</small></label>
+                <input type="text" class="form-control" id="gdpr-company-id" placeholder="12345678">
+              </div>
+              <div class="form-group">
+                <label>Kontaktný email</label>
+                <input type="email" class="form-control" id="gdpr-email" placeholder="gdpr@vasafirma.sk">
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Účel spracovania osobných údajov</label>
+              <input type="text" class="form-control" id="gdpr-purposes" placeholder="napr. spätný kontakt so zákazníkom, zasielanie cenovej ponuky, konzultácia...">
+            </div>
+            <div class="form-group">
+              <label>Doba uchovávania údajov <small style="color:#94a3b8">(voliteľné, predvolene 3 roky)</small></label>
+              <input type="text" class="form-control" id="gdpr-retention" placeholder="napr. 3 roky, 12 mesiacov...">
+            </div>
+            <button class="btn btn-primary" id="btn-generate-gdpr" onclick="generateGdpr()">
+              ✨ Vygenerovať GDPR text
+            </button>
+          </div>
+
+          <!-- Manual edit / save -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Text súhlasu so spracovaním osobných údajov</div>
+                <div class="panel-subtitle">Zobrazí sa vo widgete pred aj po zanechaní kontaktných údajov. Môžete ho upraviť podľa potreby.</div>
+              </div>
+              <button class="btn btn-primary" onclick="saveGdpr()">Uložiť</button>
+            </div>
+            <textarea class="form-control" id="gdpr-text" rows="12"
+              placeholder="Tu sa zobrazí vygenerovaný GDPR text. Môžete ho aj napísať manuálne alebo upraviť vygenerovaný.&#10;&#10;Ak necháte pole prázdne, vo widgete sa zobrazí len základný text: 'Súhlasím so spracovaním osobných údajov za účelom spätného kontaktu.'"></textarea>
+            <div style="margin-top:0.75rem;font-size:0.8rem;color:#94a3b8">
+              💡 Tip: Vo widgete bude text zobrazený v rozbaľovacej sekcii „Podmienky spracovania osobných údajov" — zákazník si ho môže prečítať pred aj po odoslaní formuláru.
+            </div>
           </div>
         </div>
 

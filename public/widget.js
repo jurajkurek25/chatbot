@@ -288,6 +288,11 @@
     .nd-btn-cancel { background: #f1f5f9; color: #374151; }
     .nd-btn-submit { color: white; }
     .nd-success-msg { text-align: center; padding: 2rem 1rem; }
+    .nd-gdpr-details { margin: 0.5rem 0; font-size: 0.78rem; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; }
+    .nd-gdpr-details summary { padding: 0.5rem 0.75rem; cursor: pointer; font-weight: 600; color: #475569; background: #f8fafc; list-style: none; display: flex; align-items: center; gap: 0.4rem; }
+    .nd-gdpr-details summary::-webkit-details-marker { display: none; }
+    .nd-gdpr-details[open] summary { border-bottom: 1px solid #e2e8f0; }
+    .nd-gdpr-content { padding: 0.75rem; color: #475569; line-height: 1.65; max-height: 160px; overflow-y: auto; white-space: pre-wrap; font-size: 0.77rem; }
     .nd-success-msg .nd-check { font-size: 2.5rem; margin-bottom: 0.75rem; }
     .nd-success-msg h3 { font-size: 1rem; font-weight: 700; color: #15803d; margin-bottom: 0.4rem; }
     .nd-success-msg p { font-size: 0.82rem; color: #64748b; }
@@ -688,16 +693,23 @@
   function showContactForm() {
     const primary = config.primary_color || '#2563eb';
     const overlay = shadow.getElementById('nd-contact-overlay');
+    const gdprText = config.gdpr_text || '';
+    const gdprBlock = gdprText ? `
+      <details class="nd-gdpr-details">
+        <summary>📋 Podmienky spracovania osobných údajov</summary>
+        <div class="nd-gdpr-content">${esc(gdprText)}</div>
+      </details>` : '';
     overlay.innerHTML = `
       <h3>Zanechajte kontakt</h3>
       <p>Ozveme sa vám čo najskôr.</p>
       <div class="nd-field"><label>Meno *</label><input type="text" id="nd-cf-name" placeholder="Vaše meno" required></div>
       <div class="nd-field"><label>Email *</label><input type="email" id="nd-cf-email" placeholder="vas@email.sk" required></div>
       <div class="nd-field"><label>Telefón</label><input type="tel" id="nd-cf-phone" placeholder="+421 900 000 000"></div>
+      ${gdprBlock}
       <div class="nd-field nd-gdpr-row">
         <label style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem;font-weight:400;color:#374151;cursor:pointer">
           <input type="checkbox" id="nd-cf-gdpr" style="margin-top:2px;width:14px;height:14px;flex-shrink:0" required>
-          <span>Súhlasím so spracovaním osobných údajov za účelom spätného kontaktu.*</span>
+          <span>${gdprText ? 'Prečítal/a som si podmienky spracovania osobných údajov a súhlasím s nimi.*' : 'Súhlasím so spracovaním osobných údajov za účelom spätného kontaktu.*'}</span>
         </label>
       </div>
       <div class="nd-contact-actions">
@@ -732,13 +744,28 @@
     }
 
     const overlay = shadow.getElementById('nd-contact-overlay');
+    const gdprNote = config.gdpr_text
+      ? `<p class="nd-gdpr-note">Vaše osobné údaje spracúvame v súlade s GDPR. <span id="nd-gdpr-toggle" style="color:var(--nd-primary);cursor:pointer;text-decoration:underline">Zobraziť podrobnosti</span></p>
+         <div id="nd-gdpr-after" style="display:none;font-size:0.75rem;color:#64748b;line-height:1.6;max-height:120px;overflow-y:auto;white-space:pre-wrap;margin-top:0.5rem;padding:0.5rem;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">${esc(config.gdpr_text)}</div>`
+      : '';
     overlay.innerHTML = `
       <div class="nd-success-msg">
         <div class="nd-check">✅</div>
         <h3>Ďakujeme!</h3>
         <p>Ozveme sa vám čo najskôr, ${esc(name)}.</p>
+        ${gdprNote}
       </div>
     `;
+    if (config.gdpr_text) {
+      const toggle = overlay.querySelector('#nd-gdpr-toggle');
+      const detail = overlay.querySelector('#nd-gdpr-after');
+      if (toggle && detail) {
+        toggle.addEventListener('click', () => {
+          detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
+          toggle.textContent = detail.style.display === 'none' ? 'Zobraziť podrobnosti' : 'Skryť';
+        });
+      }
+    }
     setTimeout(() => { overlay.style.display = 'none'; }, 3000);
 
     // Save lead to backend (fire and forget)

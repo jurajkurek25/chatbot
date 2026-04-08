@@ -30,7 +30,7 @@ router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
     SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
-           active, avatar_url, proactive_enabled, proactive_delay, proactive_message
+           active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text
     FROM widgets WHERE id = ?
   `).get(req.params.widgetId);
 
@@ -50,6 +50,7 @@ router.get('/:widgetId/config', (req, res) => {
     proactive_enabled: Boolean(widget.proactive_enabled),
     proactive_delay: widget.proactive_delay || 4,
     proactive_message: widget.proactive_message || '',
+    gdpr_text: widget.gdpr_text || '',
   });
 });
 

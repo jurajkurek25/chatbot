@@ -7,6 +7,7 @@ const fs = require('fs');
 const multer = require('multer');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
+const { generateGdprText } = require('../services/claude');
 
 const avatarStorage = multer.diskStorage({
   destination(req, file, cb) {
@@ -106,7 +107,7 @@ router.put('/:id', (req, res) => {
   if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
 
   const { name, bot_name, welcome_message, primary_color, goals, cta_type, cta_config, suggested_questions, active,
-          proactive_enabled, proactive_delay, proactive_message } = req.body;
+          proactive_enabled, proactive_delay, proactive_message, gdpr_text } = req.body;
 
   const db = getDb();
   db.prepare(`
@@ -122,7 +123,8 @@ router.put('/:id', (req, res) => {
       active = ?,
       proactive_enabled = ?,
       proactive_delay = ?,
-      proactive_message = ?
+      proactive_message = ?,
+      gdpr_text = ?
     WHERE id = ?
   `).run(
     name !== undefined ? name.trim() : widget.name,
@@ -137,11 +139,36 @@ router.put('/:id', (req, res) => {
     proactive_enabled !== undefined ? (proactive_enabled ? 1 : 0) : (widget.proactive_enabled || 0),
     proactive_delay !== undefined ? Math.max(1, Math.min(60, parseInt(proactive_delay) || 4)) : (widget.proactive_delay || 4),
     proactive_message !== undefined ? String(proactive_message).slice(0, 500) : (widget.proactive_message || ''),
+    gdpr_text !== undefined ? String(gdpr_text).slice(0, 5000) : (widget.gdpr_text || ''),
     widget.id
   );
 
   const updated = db.prepare('SELECT * FROM widgets WHERE id = ?').get(widget.id);
   res.json(parseWidget(updated));
+});
+
+// POST /api/widgets/:id/generate-gdpr — AI generates GDPR text from company info
+router.post('/:id/generate-gdpr', async (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const { companyName, companyAddress, companyId, email, purposes, retention } = req.body;
+  if (!companyName?.trim()) return res.status(400).json({ error: 'Názov spoločnosti je povinný.' });
+
+  try {
+    const text = await generateGdprText({
+      companyName: companyName.trim(),
+      companyAddress: companyAddress?.trim() || '',
+      companyId: companyId?.trim() || '',
+      email: email?.trim() || '',
+      purposes: purposes?.trim() || '',
+      retention: retention?.trim() || '',
+    });
+    res.json({ gdpr_text: text });
+  } catch (err) {
+    console.error('generateGdpr error:', err.message);
+    res.status(500).json({ error: 'Chyba pri generovaní GDPR textu.' });
+  }
 });
 
 // DELETE /api/widgets/:id — delete widget
@@ -293,6 +320,7 @@ function parseWidget(w) {
     proactive_enabled: Boolean(w.proactive_enabled),
     proactive_delay: w.proactive_delay || 4,
     proactive_message: w.proactive_message || '',
+    gdpr_text: w.gdpr_text || '',
   };
 }
 
