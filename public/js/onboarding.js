@@ -38,6 +38,9 @@ function goToStep(n) {
   currentStep = n;
   updateSidebar(n);
   window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  if (n === 2) ensureWidget().then(() => loadKnowledge());
+  if (n === 4) loadEmbedCode();
 }
 
 function updateSidebar(active) {
@@ -150,10 +153,11 @@ async function ensureWidget() {
   try {
     const r = await fetch(`${API}/api/widgets`, { headers: authHeaders() });
     const data = await r.json();
-    if (data.widgets && data.widgets.length > 0) {
-      widgetId = data.widgets[0].id;
+    const widgetList = Array.isArray(data) ? data : (data.widgets || []);
+    if (widgetList.length > 0) {
+      widgetId = widgetList[0].id;
       // Populate bot name / color from existing widget
-      const w = data.widgets[0];
+      const w = widgetList[0];
       if (w.bot_name) document.getElementById('ob-bot-name').value = w.bot_name;
       if (w.primary_color) {
         document.getElementById('ob-color').value = w.primary_color;
@@ -187,7 +191,7 @@ async function loadKnowledge() {
   try {
     const r = await fetch(`${API}/api/knowledge/${widgetId}`, { headers: authHeaders() });
     const data = await r.json();
-    knowledgeItems = data.items || [];
+    knowledgeItems = Array.isArray(data) ? data : (data.items || []);
     renderKnowledgeList();
   } catch { /* ignore */ }
 }
@@ -522,23 +526,6 @@ async function init() {
     }
   } else {
     goToStep(1);
-  }
-}
-
-// Override goToStep to lazy-load data
-const _origGoToStep = goToStep;
-function goToStep(n) {
-  document.querySelectorAll('.ob-panel').forEach(p => p.classList.add('hidden'));
-  document.getElementById(`step-${n}`).classList.remove('hidden');
-  currentStep = n;
-  updateSidebar(n);
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-
-  if (n === 2) {
-    ensureWidget().then(() => loadKnowledge());
-  }
-  if (n === 4) {
-    loadEmbedCode();
   }
 }
 
