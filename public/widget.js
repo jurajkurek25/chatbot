@@ -351,6 +351,9 @@
         <textarea id="nd-input" rows="1" placeholder="Napíšte správu..."></textarea>
         <button id="nd-send" style="background:${primary}">${ICON_SEND}</button>
       </div>
+      <div id="nd-powered" style="text-align:center;padding:0.35rem 0.5rem;font-size:0.7rem;color:#94a3b8;background:white;border-top:1px solid #f1f5f9;flex-shrink:0;">
+        Toto je AI predajca — <a href="https://NeuraDesk.online" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:underline;">chceš ho tiež?</a>
+      </div>
       <div id="nd-contact-overlay"></div>
     `);
     shadow.appendChild(win);
