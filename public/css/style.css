@@ -364,6 +364,20 @@ input[type="color"] { width: 40px; height: 40px; border: none; background: none;
 .badge-gray { background: #f1f5f9; color: #64748b; }
 .badge-blue { background: #dbeafe; color: #1d4ed8; }
 
+/* Main content overflow guard */
+.main-content { overflow-x: hidden; }
+
+/* ── Responsive Utility Classes ─────────────────────────────── */
+/* 2-column grid that collapses to 1 on mobile */
+.form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+/* Flex row for icon + upload + button (avatar) */
+.upload-row { display: flex; align-items: center; gap: 1rem; }
+/* Flex row for text input + add button */
+.input-add-row { display: flex; gap: 0.5rem; }
+/* Modal inner box */
+.modal-box { background: white; border-radius: 16px; padding: 2rem; width: 100%; max-width: 480px; box-shadow: 0 8px 40px rgba(0,0,0,0.15); }
+.modal-box-lg { max-width: 600px; padding: 2rem; margin: auto; }
+
 /* ── Hamburger Button (mobile only) ─────────────────────────── */
 .hamburger-btn {
   display: none;
@@ -444,6 +458,20 @@ input[type="color"] { width: 40px; height: 40px; border: none; background: none;
   /* Buttons touch targets */
   .btn { min-height: 40px; }
   .btn-sm { min-height: 34px; }
+
+  /* Utility responsive classes */
+  .form-grid-2 { grid-template-columns: 1fr; }
+  .upload-row { flex-wrap: wrap; }
+  .input-add-row { flex-direction: column; }
+  .input-add-row .btn { width: 100%; justify-content: center; }
+  /* Products panel-header action buttons */
+  #tab-products .panel-header > div:last-child { flex-direction: column; align-items: stretch; }
+  #tab-products .panel-header > div:last-child .btn,
+  #tab-products .panel-header > div:last-child label.btn { width: 100%; justify-content: center; }
+  /* Modals: constrain to viewport */
+  .modal-box, .modal-box-lg { margin: 0.75rem; padding: 1.5rem 1.25rem; max-width: calc(100vw - 1.5rem); border-radius: 14px; }
+  /* Embed code box: scroll internally, don't push layout */
+  .embed-code-box { max-width: 100%; overflow-x: auto; }
 
   /* Lead cards */
   .lead-card { padding: 1rem; }

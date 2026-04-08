@@ -254,7 +254,7 @@
 
             <div class="form-group">
               <label>Foto avatara chatbota</label>
-              <div style="display:flex;align-items:center;gap:1rem">
+              <div class="upload-row">
                 <div id="s-avatar-preview" style="width:52px;height:52px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;overflow:hidden;flex-shrink:0">🤖</div>
                 <div>
                   <input type="file" id="s-avatar-file" accept="image/jpeg,image/png,image/webp" style="font-size:0.875rem">
@@ -384,7 +384,7 @@
               <button class="btn btn-primary" onclick="saveQuestionsAndCta()">Uložiť</button>
             </div>
             <div id="questions-list" class="questions-list"></div>
-            <div style="display:flex;gap:0.5rem;margin-top:0.5rem;">
+            <div class="input-add-row" style="margin-top:0.5rem;">
               <input type="text" class="form-control" id="new-question" placeholder="Pridať otázku...">
               <button class="btn btn-secondary" onclick="addQuestion()">+ Pridať</button>
             </div>
@@ -481,12 +481,12 @@
               <label>Adresa <small style="color:#94a3b8">(voliteľné)</small></label>
               <input type="text" class="form-control" id="gdpr-company-address" placeholder="napr. Hlavná 1, 010 01 Žilina">
             </div>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
-              <div class="form-group">
+            <div class="form-grid-2">
+              <div class="form-group" style="margin:0">
                 <label>IČO <small style="color:#94a3b8">(voliteľné)</small></label>
                 <input type="text" class="form-control" id="gdpr-company-id" placeholder="12345678">
               </div>
-              <div class="form-group">
+              <div class="form-group" style="margin:0">
                 <label>Kontaktný email</label>
                 <input type="email" class="form-control" id="gdpr-email" placeholder="gdpr@vasafirma.sk">
               </div>
@@ -692,8 +692,8 @@
 </div>
 
 <!-- Create Widget Modal -->
-<div id="modal-create" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;" onclick="closeModal(event)">
-  <div style="background:white;border-radius:16px;padding:2rem;width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,0.15);" onclick="event.stopPropagation()">
+<div id="modal-create" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;padding:0.75rem;" onclick="closeModal(event)">
+  <div class="modal-box" onclick="event.stopPropagation()">
     <h2 style="font-size:1.25rem;font-weight:700;margin-bottom:1.5rem;">Nový widget</h2>
     <div class="form-group">
       <label>Názov widgetu</label>
@@ -711,11 +711,11 @@
 </div>
 
 <!-- Product Modal -->
-<div id="modal-product" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:flex-start;justify-content:center;overflow-y:auto;padding:2rem 1rem" onclick="if(event.target===this)closeProductModal()">
-  <div style="background:white;border-radius:16px;padding:2rem;width:100%;max-width:600px;box-shadow:0 8px 40px rgba(0,0,0,0.18);margin:auto" onclick="event.stopPropagation()">
+<div id="modal-product" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:flex-start;justify-content:center;overflow-y:auto;padding:0.75rem" onclick="if(event.target===this)closeProductModal()">
+  <div class="modal-box modal-box-lg" onclick="event.stopPropagation()">
     <h2 id="product-modal-title" style="font-size:1.2rem;font-weight:700;margin-bottom:1.5rem">Nový produkt</h2>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+    <div class="form-grid-2">
       <div class="form-group" style="margin:0">
         <label>Názov *</label>
         <input type="text" class="form-control" id="pm-name" placeholder="napr. Finančná konzultácia">
@@ -749,7 +749,7 @@
       <textarea class="form-control" id="pm-benefits" rows="2" placeholder="napr. Ušetríte 2–3 hodiny týždenne, znížite náklady o 20%..."></textarea>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+    <div class="form-grid-2">
       <div class="form-group" style="margin:0">
         <label>Cena</label>
         <input type="number" class="form-control" id="pm-price" placeholder="napr. 199" min="0" step="0.01">
@@ -789,7 +789,7 @@
       <textarea class="form-control" id="pm-faq" rows="2" placeholder="Najčastejšie otázky a odpovede k tomuto produktu..."></textarea>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">
+    <div class="form-grid-2">
       <div class="form-group" style="margin:0">
         <label>Priorita odporúčania <small style="color:#94a3b8">(0–10)</small></label>
         <input type="number" class="form-control" id="pm-priority" value="0" min="0" max="10">
@@ -811,8 +811,8 @@
 </div>
 
 <!-- Credits Modal -->
-<div id="modal-credits" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:center;justify-content:center;" onclick="if(event.target===this)this.style.display='none'">
-  <div style="background:white;border-radius:16px;padding:2rem;width:100%;max-width:480px;box-shadow:0 8px 40px rgba(0,0,0,0.18);" onclick="event.stopPropagation()">
+<div id="modal-credits" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:center;justify-content:center;padding:0.75rem;" onclick="if(event.target===this)this.style.display='none'">
+  <div class="modal-box" onclick="event.stopPropagation()">
     <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:0.25rem">Dobiť AI kredity</h2>
     <p style="font-size:0.875rem;color:#64748b;margin-bottom:1.5rem">1 € = 100 AI odpovedí · kredity sa neobnovia mesačne, spotrebúvajú sa postupne</p>
 
