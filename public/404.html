@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>404 – Stránka nenájdená | NeuraDeskApp</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #f1f5f9;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+    }
+    .wrap { max-width: 420px; }
+    .code {
+      font-size: 6rem;
+      font-weight: 900;
+      letter-spacing: -4px;
+      background: linear-gradient(135deg, #2563eb, #60a5fa);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      line-height: 1;
+      margin-bottom: 1rem;
+    }
+    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; }
+    p { font-size: 0.95rem; color: #64748b; margin-bottom: 2rem; line-height: 1.6; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: #2563eb;
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 700;
+      padding: 0.75rem 1.5rem;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+    .btn:hover { background: #1d4ed8; }
+    .logo { font-size: 1rem; font-weight: 800; color: #475569; margin-bottom: 2.5rem; }
+    .logo span { color: #60a5fa; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="logo">Neura<span>Desk</span></div>
+    <div class="code">404</div>
+    <h1>Stránka nenájdená</h1>
+    <p>Táto stránka neexistuje alebo bola presunutá.<br>Skontrolujte adresu alebo sa vráťte domov.</p>
+    <a href="/" class="btn">← Späť na hlavnú</a>
+  </div>
+</body>
+</html>
