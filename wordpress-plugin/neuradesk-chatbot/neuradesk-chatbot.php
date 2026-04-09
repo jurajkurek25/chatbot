@@ -3,7 +3,7 @@
  * Plugin Name: NeuraDeskApp Chatbot
  * Plugin URI:  https://neuradesk.online
  * Description: Automatická integrácia AI chatbota – prihlás sa, plugin naskenuje celý web a nasadí sa sám.
- * Version:     1.0.2
+ * Version:     1.0.3
  * Author:      NeuraDeskApp
  * License:     GPL-2.0+
  * Text Domain: neuradesk-chatbot
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NEURADESK_VERSION', '1.0.2' );
+define( 'NEURADESK_VERSION', '1.0.3' );
 define( 'NEURADESK_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'NEURADESK_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -219,9 +219,11 @@ add_action( 'wp_ajax_neuradesk_disconnect', function () {
 
 /**
  * Returns true when the widget should be injected on this request.
+ * Called both at hook-registration time and inside the ob_start callback.
  */
 function neuradesk_should_inject() {
     if ( is_admin() ) return false;
+    if ( is_feed() ) return false;          // Don't corrupt RSS/Atom feeds
     if ( ! get_option( 'neuradesk_embed_enabled', 0 ) ) return false;
     if ( ! get_option( 'neuradesk_widget_id', '' ) ) return false;
     return true;
@@ -241,26 +243,42 @@ function neuradesk_embed_html() {
 
 // ── Method 1: wp_footer (priority 99999) ────────────────────────────
 // Covers: standard themes, Elementor Full Width / Hello Elementor,
-// Divi, Avada, Bricks (non-canvas), GeneratePress, Astra, OceanWP …
+// Divi, Avada, Bricks, GeneratePress, Astra, OceanWP …
+// Fires last in the footer, after all other scripts.
 add_action( 'wp_footer', function () {
     if ( ! neuradesk_should_inject() ) return;
     // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     echo neuradesk_embed_html();
 }, 99999 );
 
-// ── Method 2: output-buffer fallback (template_redirect) ─────────────
-// Covers: Elementor Canvas, Divi Builder (canvas mode), Oxygen,
-// any builder that never fires wp_footer.
-// If Method 1 already injected the script this callback detects it and
-// skips re-injection to avoid duplicates.
+// ── Method 2: wp_head fallback (priority 99999) ──────────────────────
+// Extra safety: async/defer scripts in <head> load without blocking.
+// Deduplication: only inject here if wp_footer didn't already run
+// (it won't have at this point, but we flag it for the ob callback).
+add_action( 'wp_head', function () {
+    if ( ! neuradesk_should_inject() ) return;
+    // Only inject via wp_head if wp_footer is not hooked at all
+    // (some heavily customised themes skip get_footer() entirely).
+    if ( ! has_action( 'wp_footer' ) ) {
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo neuradesk_embed_html();
+    }
+}, 99999 );
+
+// ── Method 3: output-buffer catch-all (template_redirect) ────────────
+// Covers: Elementor Canvas, Oxygen Builder, Breakdance, and any
+// other builder/setup that never calls wp_footer().
+// Checks for '<html' so it only modifies real HTML pages, never
+// XML feeds, REST JSON, or sitemaps that slip past is_feed().
 add_action( 'template_redirect', function () {
     if ( ! neuradesk_should_inject() ) return;
 
     ob_start( function ( $html ) {
-        // Bail if wp_footer already added the script (avoid duplicates).
-        if ( strpos( $html, 'NeuraDeskConfig' ) !== false ) {
-            return $html;
-        }
+        // Skip non-HTML responses (REST API, sitemaps, etc.)
+        if ( stripos( $html, '<html' ) === false ) return $html;
+
+        // Skip if already injected (by wp_footer or wp_head above).
+        if ( strpos( $html, 'NeuraDeskConfig' ) !== false ) return $html;
 
         $inject = neuradesk_embed_html();
 
@@ -270,6 +288,7 @@ add_action( 'template_redirect', function () {
         if ( stripos( $html, '</html>' ) !== false ) {
             return str_ireplace( '</html>', $inject . '</html>', $html );
         }
+        // Last resort: append (handles pages with non-standard structure)
         return $html . $inject;
     } );
 } );
