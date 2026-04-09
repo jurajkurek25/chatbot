@@ -3,7 +3,7 @@
  * Plugin Name: NeuraDeskApp Chatbot
  * Plugin URI:  https://neuradesk.online
  * Description: Automatická integrácia AI chatbota – prihlás sa, plugin naskenuje celý web a nasadí sa sám.
- * Version:     1.0.0
+ * Version:     1.0.2
  * Author:      NeuraDeskApp
  * License:     GPL-2.0+
  * Text Domain: neuradesk-chatbot
@@ -11,7 +11,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'NEURADESK_VERSION', '1.0.0' );
+define( 'NEURADESK_VERSION', '1.0.2' );
 define( 'NEURADESK_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'NEURADESK_URL',     plugin_dir_url( __FILE__ ) );
 
@@ -216,32 +216,60 @@ add_action( 'wp_ajax_neuradesk_disconnect', function () {
 } );
 
 /* ── Widget embed ─────────────────────────────────────────────────── */
-// Output-buffer injection: works 100% regardless of theme, builder or plugin
-// (Elementor, Divi, Beaver Builder, Bricks, Oxygen, etc.)
-// Captures the full HTML output and injects the script before </body>.
-add_action( 'template_redirect', function () {
-    if ( is_admin() ) return;
-    if ( ! get_option( 'neuradesk_embed_enabled', 0 ) ) return;
 
+/**
+ * Returns true when the widget should be injected on this request.
+ */
+function neuradesk_should_inject() {
+    if ( is_admin() ) return false;
+    if ( ! get_option( 'neuradesk_embed_enabled', 0 ) ) return false;
+    if ( ! get_option( 'neuradesk_widget_id', '' ) ) return false;
+    return true;
+}
+
+/**
+ * Builds the two <script> tags that load the widget.
+ */
+function neuradesk_embed_html() {
     $widget_id = get_option( 'neuradesk_widget_id', '' );
     $api_base  = get_option( 'neuradesk_api_base', 'https://neuradesk.online' );
-    if ( ! $widget_id ) return;
+    $config    = wp_json_encode( [ 'widgetId' => $widget_id ] );
+    $src       = esc_url( trailingslashit( $api_base ) . 'widget.js' );
+    return "\n<script>window.NeuraDeskConfig={$config};</script>\n"
+         . "<script src=\"{$src}\" async defer></script>\n";
+}
 
-    $config = wp_json_encode( [ 'widgetId' => $widget_id ] );
-    $src    = esc_url( trailingslashit( $api_base ) . 'widget.js' );
-    $inject = "\n<script>window.NeuraDeskConfig={$config};</script>\n"
-            . "<script src=\"{$src}\" async defer></script>\n";
+// ── Method 1: wp_footer (priority 99999) ────────────────────────────
+// Covers: standard themes, Elementor Full Width / Hello Elementor,
+// Divi, Avada, Bricks (non-canvas), GeneratePress, Astra, OceanWP …
+add_action( 'wp_footer', function () {
+    if ( ! neuradesk_should_inject() ) return;
+    // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    echo neuradesk_embed_html();
+}, 99999 );
 
-    ob_start( function ( $html ) use ( $inject ) {
-        // Prefer injecting before </body>
+// ── Method 2: output-buffer fallback (template_redirect) ─────────────
+// Covers: Elementor Canvas, Divi Builder (canvas mode), Oxygen,
+// any builder that never fires wp_footer.
+// If Method 1 already injected the script this callback detects it and
+// skips re-injection to avoid duplicates.
+add_action( 'template_redirect', function () {
+    if ( ! neuradesk_should_inject() ) return;
+
+    ob_start( function ( $html ) {
+        // Bail if wp_footer already added the script (avoid duplicates).
+        if ( strpos( $html, 'NeuraDeskConfig' ) !== false ) {
+            return $html;
+        }
+
+        $inject = neuradesk_embed_html();
+
         if ( stripos( $html, '</body>' ) !== false ) {
             return str_ireplace( '</body>', $inject . '</body>', $html );
         }
-        // Fallback: before </html>
         if ( stripos( $html, '</html>' ) !== false ) {
             return str_ireplace( '</html>', $inject . '</html>', $html );
         }
-        // Last resort: append
         return $html . $inject;
     } );
 } );
