@@ -417,6 +417,44 @@ function renderKnowledgeList(items) {
   `).join('')}</div>`;
 }
 
+async function scrapeWebsite() {
+  let url = document.getElementById('scrape-url').value.trim();
+  if (!url) { showToast('Zadajte URL adresu webu.', 'error'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  const btn = document.getElementById('btn-scrape');
+  const status = document.getElementById('scrape-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Skenujem...';
+  status.style.display = 'block';
+  status.style.color = '#64748b';
+  status.textContent = 'Skenujem stránky webu, prosím čakajte…';
+
+  try {
+    const r = await apiFetch(`/api/scraper/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, widget_id: currentWidget.id, max_pages: 15 }),
+    });
+    if (!r) throw new Error('no response');
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Chyba');
+
+    status.style.color = '#16a34a';
+    status.textContent = `✓ Importovaných ${d.imported} stránok do znalostnej bázy.`;
+    showToast(`✓ ${d.imported} stránok naskenovaných a uložených!`, 'success');
+    document.getElementById('scrape-url').value = '';
+    loadKnowledge();
+  } catch (err) {
+    status.style.color = '#dc2626';
+    status.textContent = '✗ ' + err.message;
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Skenovať';
+  }
+}
+
 async function addTextKnowledge() {
   const title = document.getElementById('k-title').value.trim();
   const content = document.getElementById('k-content').value.trim();

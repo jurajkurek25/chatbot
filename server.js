@@ -18,6 +18,7 @@ const productsRoutes = require('./routes/products');
 const shopifyRoutes  = require('./routes/shopify');
 const demoRoutes     = require('./routes/demo');
 const coachRoutes    = require('./routes/coach');
+const scraperRoutes  = require('./routes/scraper');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -47,6 +48,7 @@ app.use('/api/credits', creditsRoutes);
 app.use('/api/products', productsRoutes);
 app.use('/api/demo', demoRoutes);
 app.use('/api/coach', coachRoutes);
+app.use('/api/scraper', scraperRoutes);
 
 // Shopify integration (OAuth + setup + scan)
 // IMPORTANT: webhook uninstall must receive raw body — mount before express.json() would affect it,

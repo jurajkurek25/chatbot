@@ -405,6 +405,17 @@
               </div>
             </div>
 
+            <!-- Scan Website -->
+            <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid #e2e8f0;">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.25rem;">🌐 Skenovať web</div>
+              <div class="hint" style="margin-bottom:0.75rem;">Zadajte adresu webu — automaticky naskenujeme stránky a importujeme obsah do znalostnej bázy.</div>
+              <div class="input-add-row" style="margin-bottom:0.5rem;">
+                <input type="url" class="form-control" id="scrape-url" placeholder="napr. https://vasafirma.sk">
+                <button class="btn btn-primary" id="btn-scrape" onclick="scrapeWebsite()">Skenovať</button>
+              </div>
+              <div id="scrape-status" style="display:none;font-size:0.82rem;margin-top:0.5rem;"></div>
+            </div>
+
             <!-- Add Text -->
             <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid #e2e8f0;">
               <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Pridať text</div>

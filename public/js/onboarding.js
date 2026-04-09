@@ -236,6 +236,44 @@ function renderKnowledgeList() {
   `).join('');
 }
 
+async function obScrapeWebsite() {
+  if (!widgetId) { showToast('Najprv uložte nastavenia chatbota.', 'error'); return; }
+  let url = document.getElementById('ob-scrape-url').value.trim();
+  if (!url) { showToast('Zadajte URL adresu webu.', 'error'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  const btn = document.getElementById('ob-btn-scrape');
+  const status = document.getElementById('ob-scrape-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Skenujem...';
+  status.style.display = 'block';
+  status.style.color = '#64748b';
+  status.textContent = 'Skenujem stránky webu, prosím čakajte…';
+
+  try {
+    const res = await fetch(`${API}/api/scraper/scan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ url, widget_id: widgetId, max_pages: 15 }),
+    });
+    const d = await res.json();
+    if (!res.ok) throw new Error(d.error || 'Chyba');
+
+    status.style.color = '#16a34a';
+    status.textContent = `✓ Importovaných ${d.imported} stránok do znalostnej bázy.`;
+    showToast(`✓ ${d.imported} stránok naskenovaných!`, 'success');
+    document.getElementById('ob-scrape-url').value = '';
+    loadKnowledge();
+  } catch (err) {
+    status.style.color = '#dc2626';
+    status.textContent = '✗ ' + err.message;
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Skenovať';
+  }
+}
+
 async function addKnowledgeText() {
   const title = document.getElementById('ob-k-title').value.trim();
   const content = document.getElementById('ob-k-content').value.trim();

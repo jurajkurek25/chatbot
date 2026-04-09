@@ -124,6 +124,19 @@
         </div>
       </div>
 
+      <!-- Scan Website -->
+      <div class="ob-card" style="margin-bottom:1.25rem">
+        <div class="ob-card-title">🌐 Skenovať váš web</div>
+        <div class="ob-card-desc">Zadajte adresu webu — automaticky naskenujeme stránky a importujeme obsah do znalostnej bázy chatbota.</div>
+        <div class="ob-form-row" style="margin-bottom:0.5rem">
+          <div class="ob-field" style="margin:0">
+            <input type="url" id="ob-scrape-url" class="ob-input" placeholder="napr. https://vasafirma.sk">
+          </div>
+          <button class="btn-ob-primary" id="ob-btn-scrape" onclick="obScrapeWebsite()" style="white-space:nowrap">Skenovať</button>
+        </div>
+        <div id="ob-scrape-status" style="display:none;font-size:0.82rem;margin-top:0.5rem;"></div>
+      </div>
+
       <!-- Text input -->
       <div class="ob-card" style="margin-bottom:1.25rem">
         <div class="ob-card-title">Pridať text</div>
