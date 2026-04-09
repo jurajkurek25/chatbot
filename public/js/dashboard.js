@@ -889,6 +889,7 @@ async function generateGdpr() {
   try {
     const r = await apiFetch(`/api/widgets/${currentWidget.id}/generate-gdpr`, {
       method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     if (!r) return;
@@ -910,6 +911,7 @@ async function saveGdpr() {
   const gdpr_text = document.getElementById('gdpr-text').value;
   const r = await apiFetch(`/api/widgets/${currentWidget.id}`, {
     method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ gdpr_text }),
   });
   if (!r) return;
