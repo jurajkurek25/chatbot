@@ -43,11 +43,11 @@ router.post('/scan', async (req, res) => {
 
     // Import each page as a knowledge item
     const stmt = db.prepare(
-      'INSERT INTO knowledge (id, widget_id, title, content, type) VALUES (?, ?, ?, ?, ?)'
+      'INSERT INTO knowledge_items (id, widget_id, title, content, source_type) VALUES (?, ?, ?, ?, ?)'
     );
     const insertMany = db.transaction((items) => {
       for (const item of items) {
-        stmt.run(uuidv4(), widget_id, item.title, item.content, 'text');
+        stmt.run(uuidv4(), widget_id, item.title, item.content, 'url');
       }
     });
     insertMany(pages);
