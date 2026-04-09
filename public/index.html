@@ -3,241 +3,878 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NeuraDeskApp – AI Chatbot pre váš web</title>
-  <meta name="description" content="Inteligentný AI chatbot, ktorý zahreje zákazníkov a optimalizuje customer journey. Nahrajte know-how, vložte kód a sledujte, ako rastú konverzie.">
-  <link rel="stylesheet" href="/css/landing.css">
-</head>
-<body>
+  <title>NeuraDesk – AI obchodník pre váš web a Instagram</title>
+  <meta name="description" content="Nie chatbot. Vyškolený AI obchodník – vedie zákazníka od prvej otázky po uzavretý predaj. 24/7. Na webe aj Instagrame.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080810; --bg2: #0d0d18; --bg3: #111120;
+      --surface: #18182a; --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+      --text: #eeeef5; --muted: #6e6e90; --muted2: #9898b8;
+      --accent: #5b4fff; --accent2: #9b8cff;
+      --danger: #ff4060; --success: #1fd89a; --warn: #f59e0b;
+      --grad: linear-gradient(135deg, #5b4fff 0%, #9b8cff 60%, #c084fc 100%);
+      --px: clamp(16px, 5vw, 60px);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; font-size: 16px; line-height: 1.6; }
+    body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 999; opacity: .025; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
+    /* ── NAV ── */
+    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: rgba(8,8,16,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); }
+    .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 var(--px); display: flex; align-items: center; justify-content: space-between; height: 58px; }
+    .nav-logo { font-weight: 800; font-size: 1.2rem; letter-spacing: -0.02em; flex-shrink: 0; }
+    .nav-logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-links { display: none; }
+    .nav-cta-desktop { display: none; }
+    .checkbox-group {
+  display: flex;
+  align-items: flex-start;
+  gap: .7rem;
+  margin-bottom: .9rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: .85rem .9rem;
+}
+
+.checkbox-group input[type="checkbox"] {
+  margin-top: .2rem;
+  width: 16px;
+  height: 16px;
+  accent-color: #7c5cff;
+  flex-shrink: 0;
+}
+
+.checkbox-group label {
+  margin: 0;
+  font-size: .8rem;
+  color: var(--muted2);
+  line-height: 1.55;
+}
+
+.checkbox-group a {
+  color: var(--accent2);
+  text-decoration: none;
+}
+
+.checkbox-group a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+    /* Hamburger */
+    .nav-hamburger { display: flex; flex-direction: column; justify-content: center; gap: 5px; width: 40px; height: 40px; background: none; border: 1px solid var(--border2); border-radius: 8px; cursor: pointer; padding: 8px; }
+    .nav-hamburger span { display: block; height: 2px; background: var(--text); border-radius: 2px; transition: all .25s; }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    /* Mobile menu */
+    .nav-mobile { display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(8,8,16,0.98); border-bottom: 1px solid var(--border); padding: 1rem var(--px) 1.5rem; flex-direction: column; gap: .25rem; }
+    .nav-mobile.open { display: flex; }
+    .nav-mobile a { color: var(--muted2); text-decoration: none; font-size: .95rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
+    .nav-mobile a:last-of-type { border-bottom: none; }
+    .nav-mobile-cta { display: flex; flex-direction: column; gap: .5rem; margin-top: .75rem; }
+
+    /* ── BUTTONS ── */
+    .btn-ghost { background: none; border: 1px solid var(--border2); color: var(--muted2); padding: .5rem 1rem; border-radius: 8px; cursor: pointer; font-size: .875rem; font-family: inherit; transition: all .2s; width: 100%; }
+    .btn-ghost:hover { color: var(--text); border-color: var(--accent2); }
+    .btn-primary { background: var(--grad); border: none; color: white; padding: .9rem 1.75rem; border-radius: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 0 40px rgba(91,79,255,0.35); transition: all .25s; width: 100%; display: block; text-align: center; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(91,79,255,0.52); }
+    .btn-outline { background: none; border: 1px solid var(--border2); color: var(--muted2); padding: .9rem 1.5rem; border-radius: 14px; font-size: .95rem; cursor: pointer; text-decoration: none; display: block; text-align: center; font-family: inherit; transition: all .2s; width: 100%; }
+    .btn-outline:hover { border-color: var(--accent2); color: var(--text); }
+    .btn-nav-cta { background: var(--grad); border: none; color: white; padding: .5rem 1.1rem; border-radius: 8px; font-size: .875rem; font-weight: 700; font-family: inherit; cursor: pointer; transition: opacity .2s; }
+
+    /* ── HERO ── */
+    .hero { min-height: 100svh; padding: calc(58px + 48px) var(--px) 64px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; position: relative; }
+    .hero-glow { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(800px, 100vw); height: 500px; background: radial-gradient(ellipse at 50% -10%, rgba(91,79,255,0.2) 0%, transparent 65%); pointer-events: none; }
+    .alert-bar { display: inline-flex; align-items: center; gap: .5rem; background: rgba(255,64,96,0.1); border: 1px solid rgba(255,64,96,0.28); border-radius: 100px; padding: .35rem 1rem; margin-bottom: 1.5rem; font-size: .78rem; color: #ff8fa3; font-weight: 500; max-width: 100%; }
+    .alert-dot { width: 6px; height: 6px; background: var(--danger); border-radius: 50%; animation: pulse 1.5s infinite; flex-shrink: 0; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(1.5)} }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .hero-eyebrow { font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); margin-bottom: .75rem; }
+    .hero-h1 { font-weight: 800; font-size: clamp(2.1rem, 8vw, 4.4rem); line-height: 1.08; letter-spacing: -0.03em; margin-bottom: 1.25rem; }
+    .grad-text { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero-sub { font-size: clamp(.95rem, 3vw, 1.12rem); color: var(--muted2); line-height: 1.72; margin-bottom: 2rem; max-width: 600px; }
+    .hero-sub strong { color: var(--text); font-weight: 500; }
+    .hero-ctas { display: flex; flex-direction: column; gap: .75rem; width: 100%; max-width: 400px; margin-bottom: 1.5rem; }
+    .hero-trust { display: flex; flex-direction: column; gap: .45rem; font-size: .8rem; color: var(--muted); width: 100%; max-width: 340px; }
+    .hero-trust span { display: flex; align-items: center; gap: .4rem; }
+    .hero-trust span::before { content: '✓'; color: var(--success); font-weight: 700; flex-shrink: 0; }
+
+    /* Sales badge */
+    .sp-badge { margin: 2rem auto 0; width: 100%; max-width: 540px; background: linear-gradient(135deg, rgba(91,79,255,0.1), rgba(192,132,252,0.06)); border: 1px solid rgba(155,140,255,0.22); border-radius: 18px; padding: 1.25rem; text-align: center; }
+    .sp-badge-label { font-size: .68rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; color: var(--accent2); margin-bottom: .75rem; }
+    .sp-framework { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: .1rem; }
+    .sp-step { padding: .3rem .5rem; text-align: center; }
+    .sp-step-num { font-size: .65rem; font-weight: 700; color: var(--accent2); margin-bottom: .1rem; }
+    .sp-step-name { font-size: .78rem; font-weight: 600; color: var(--text); white-space: nowrap; }
+    .sp-arrow { color: var(--muted); font-size: .8rem; }
+    .sp-badge p { color: var(--muted); font-size: .78rem; margin-top: .65rem; line-height: 1.5; }
+
+    /* ── SECTION COMMON ── */
+    .section-wrap { padding: 72px var(--px); }
+    .section-wrap.bg2 { background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .inner { max-width: 1100px; margin: 0 auto; }
+    .inner-sm { max-width: 720px; margin: 0 auto; }
+    .inner-xs { max-width: 520px; margin: 0 auto; text-align: center; }
+    .section-label { font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); margin-bottom: .8rem; text-align: center; display: block; }
+    .section-h2 { font-size: clamp(1.65rem, 5vw, 2.5rem); font-weight: 800; text-align: center; line-height: 1.15; margin-bottom: .75rem; letter-spacing: -0.025em; }
+    .section-sub { text-align: center; color: var(--muted2); font-size: .95rem; margin-bottom: 2.5rem; line-height: 1.65; }
+
+    /* ── PAIN ── */
+    .pain-label { color: var(--danger) !important; }
+    .pain-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    .pain-card { background: var(--bg3); border: 1px solid rgba(255,64,96,0.13); border-radius: 16px; padding: 1.35rem; position: relative; overflow: hidden; }
+    .pain-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, var(--danger), transparent 70%); }
+    .pain-emoji { font-size: 1.5rem; margin-bottom: .6rem; }
+    .pain-card h3 { font-weight: 700; font-size: .92rem; color: #ffc8d4; margin-bottom: .4rem; }
+    .pain-card p { color: var(--muted); font-size: .85rem; line-height: 1.6; }
+    .pain-card p strong { color: var(--muted2); }
+
+    /* ── BRIDGE ── */
+    .bridge { padding: 64px var(--px); text-align: center; background: linear-gradient(to bottom, var(--bg2), var(--bg)); border-top: 1px solid var(--border); }
+    .bridge-eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--success); margin-bottom: .75rem; display: block; }
+    .bridge h2 { font-size: clamp(1.65rem, 5vw, 2.7rem); font-weight: 800; letter-spacing: -0.025em; line-height: 1.12; margin-bottom: 1rem; }
+    .bridge p { color: var(--muted2); font-size: .97rem; line-height: 1.72; max-width: 640px; margin: 0 auto; }
+
+    /* ── LOGOS ── */
+    .logos-section { padding: 32px var(--px); border-bottom: 1px solid var(--border); }
+    .logos-label { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 1rem; text-align: center; display: block; }
+    .logos-row { display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center; }
+    .logo-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 100px; padding: .32rem .85rem; font-size: .78rem; color: var(--muted2); }
+
+    /* ── FEATURES TABS ── */
+    .feat-tabs { display: flex; gap: .4rem; overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: .25rem; margin-bottom: 2rem; scrollbar-width: none; }
+    .feat-tabs::-webkit-scrollbar { display: none; }
+    .feat-tab { background: var(--surface); border: 1px solid var(--border); color: var(--muted2); padding: .5rem 1rem; border-radius: 100px; font-size: .82rem; cursor: pointer; font-family: inherit; transition: all .2s; white-space: nowrap; flex-shrink: 0; }
+    .feat-tab.active { background: var(--accent); border-color: var(--accent); color: white; font-weight: 700; }
+    .feat-tab:hover:not(.active) { border-color: var(--accent2); color: var(--text); }
+    .feat-panel { display: none; }
+    .feat-panel.active { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+    .feature-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 18px; padding: 1.5rem; position: relative; overflow: hidden; }
+    .feature-card::after { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at top left, rgba(91,79,255,0.06), transparent 60%); pointer-events: none; }
+    .feature-icon { font-size: 1.6rem; margin-bottom: .75rem; }
+    .feature-card h3 { font-weight: 700; font-size: .94rem; margin-bottom: .45rem; }
+    .feature-card p { color: var(--muted); font-size: .86rem; line-height: 1.62; }
+    .feature-card p strong { color: var(--muted2); }
+    .feature-tag { display: inline-block; background: rgba(91,79,255,0.15); color: var(--accent2); font-size: .65rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: .18rem .5rem; border-radius: 5px; margin-bottom: .6rem; }
+    .feature-tag.sales { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .feature-tag.lead { background: rgba(31,216,154,0.15); color: var(--success); }
+
+    /* ── PROACTIVE BUBBLE SECTION ── */
+    .bubble-section { padding: 72px var(--px); }
+    .bubble-inner { max-width: 1050px; margin: 0 auto; display: flex; flex-direction: column; gap: 2.5rem; }
+    .bubble-content .section-label { text-align: left; color: var(--warn); }
+    .bubble-content .section-h2 { text-align: left; }
+    .bubble-content p { color: var(--muted2); line-height: 1.75; margin-bottom: 1rem; font-size: .95rem; }
+    .bubble-content p strong { color: var(--text); }
+    .bubble-perks { display: flex; flex-direction: column; gap: .6rem; margin-top: .5rem; }
+    .bubble-perk { display: flex; align-items: flex-start; gap: .7rem; }
+    .bubble-perk-icon { width: 30px; height: 30px; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0; }
+    .bubble-perk p { color: var(--muted2); font-size: .87rem; margin: 0; }
+    .bubble-perk p strong { color: var(--text); }
+    .bubble-mockup { background: var(--bg3); border: 1px solid var(--border); border-radius: 18px; padding: 1.25rem; position: relative; min-height: 220px; }
+    .bubble-mockup-site { display: flex; flex-direction: column; gap: .5rem; opacity: .4; margin-bottom: 1.5rem; }
+    .bubble-line { height: 10px; background: var(--surface); border-radius: 4px; }
+    .bubble-launcher { position: absolute; bottom: 1.25rem; right: 1.25rem; display: flex; flex-direction: column; align-items: flex-end; gap: .5rem; }
+    .bubble-speech { background: white; color: #111; border-radius: 14px 14px 4px 14px; padding: .65rem .9rem; font-size: .8rem; font-weight: 600; max-width: 200px; box-shadow: 0 4px 20px rgba(0,0,0,.3); position: relative; line-height: 1.4; }
+    .bubble-speech::after { content: '✕'; position: absolute; top: .3rem; right: .45rem; font-size: .6rem; color: #888; cursor: pointer; }
+    .bubble-btn { width: 52px; height: 52px; background: var(--grad); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; box-shadow: 0 0 24px rgba(91,79,255,0.5); animation: bob 2.5s ease-in-out infinite; }
+    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-5px)} }
+    .bubble-delay-badge { display: inline-flex; align-items: center; gap: .4rem; background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.2); border-radius: 100px; padding: .28rem .75rem; font-size: .72rem; color: #fbbf24; font-weight: 600; margin-top: .75rem; }
+
+    /* ── PAGE CONTEXT SECTION ── */
+    .context-section { padding: 72px var(--px); background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .context-inner { max-width: 1050px; margin: 0 auto; display: flex; flex-direction: column; gap: 2.5rem; }
+    .context-content .section-label { text-align: left; color: var(--success); }
+    .context-content .section-h2 { text-align: left; }
+    .context-content p { color: var(--muted2); line-height: 1.75; margin-bottom: 1rem; font-size: .95rem; }
+    .context-content p strong { color: var(--text); }
+    .context-cards { display: flex; flex-direction: column; gap: .75rem; }
+    .context-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; padding: 1.1rem 1.25rem; }
+    .context-card-url { font-size: .68rem; color: var(--muted); margin-bottom: .5rem; font-family: monospace; background: var(--surface); display: inline-block; padding: .2rem .5rem; border-radius: 5px; }
+    .context-card-msg { font-size: .84rem; color: var(--text); font-weight: 500; margin-bottom: .3rem; }
+    .context-card-sub { font-size: .78rem; color: var(--muted2); }
+    .context-card-sub span { color: var(--accent2); }
+
+    /* ── INSTAGRAM ── */
+    .ig-section { padding: 72px var(--px); background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .ig-inner { max-width: 1050px; margin: 0 auto; display: flex; flex-direction: column; gap: 2.5rem; }
+    .ig-content .section-label { text-align: left; color: #f472b6; }
+    .ig-content .section-h2 { text-align: left; }
+    .ig-content p { color: var(--muted2); line-height: 1.75; margin-bottom: 1rem; font-size: .95rem; }
+    .ig-content p strong { color: var(--text); }
+    .ig-list { display: flex; flex-direction: column; gap: .6rem; }
+    .ig-list-item { display: flex; align-items: flex-start; gap: .65rem; }
+    .ig-list-icon { width: 30px; height: 30px; background: rgba(225,48,108,0.12); border: 1px solid rgba(225,48,108,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .85rem; flex-shrink: 0; }
+    .ig-list-item p { color: var(--muted2); font-size: .87rem; margin: 0; }
+    .ig-list-item p strong { color: var(--text); }
+    .ig-visual { background: var(--bg3); border: 1px solid var(--border); border-radius: 18px; overflow: hidden; }
+    .ig-phone-bar { background: var(--surface); padding: .65rem 1rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: .55rem; }
+    .ig-phone-avatar { width: 26px; height: 26px; background: linear-gradient(135deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888); border-radius: 50%; flex-shrink: 0; }
+    .ig-phone-name { font-size: .78rem; font-weight: 700; }
+    .ig-phone-status { font-size: .65rem; color: var(--success); }
+    .ig-messages { padding: .85rem; display: flex; flex-direction: column; gap: .55rem; }
+    .ig-msg { padding: .5rem .8rem; border-radius: 12px; font-size: .78rem; line-height: 1.45; max-width: 88%; }
+    .ig-msg.them { background: var(--surface); color: var(--text); align-self: flex-start; }
+    .ig-msg.us { background: linear-gradient(135deg, #5b4fff, #9b8cff); color: white; align-self: flex-end; }
+    .ig-msg-label { font-size: .63rem; color: var(--muted); margin-bottom: .12rem; }
+    .ig-input-bar { background: var(--surface); border-top: 1px solid var(--border); padding: .6rem .85rem; display: flex; gap: .45rem; align-items: center; }
+    .ig-input { flex: 1; background: var(--bg3); border: 1px solid var(--border); border-radius: 100px; padding: .38rem .85rem; font-size: .75rem; color: var(--muted); }
+    .ig-send { background: var(--grad); border: none; border-radius: 100px; padding: .35rem .8rem; font-size: .72rem; color: white; font-weight: 700; cursor: pointer; font-family: inherit; }
+
+    /* ── PRODUCT CATALOG ── */
+    .catalog-section { padding: 72px var(--px); }
+    .catalog-inner { max-width: 1050px; margin: 0 auto; display: flex; flex-direction: column; gap: 2.5rem; }
+    .catalog-content .section-label { text-align: left; color: var(--accent2); }
+    .catalog-content .section-h2 { text-align: left; }
+    .catalog-content p { color: var(--muted2); line-height: 1.75; margin-bottom: 1rem; font-size: .95rem; }
+    .catalog-content p strong { color: var(--text); }
+    .catalog-cards { display: flex; flex-direction: column; gap: .75rem; }
+    .catalog-product { background: var(--bg3); border: 1px solid rgba(91,79,255,0.18); border-radius: 16px; padding: 1.1rem 1.25rem; }
+    .catalog-product-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+    .catalog-product-name { font-weight: 700; font-size: .9rem; }
+    .catalog-product-price { font-size: .85rem; color: var(--accent2); font-weight: 700; }
+    .catalog-product-when { font-size: .75rem; color: var(--muted); margin-bottom: .55rem; }
+    .catalog-product-when span { color: var(--success); font-weight: 600; }
+    .catalog-ai-bubble { background: linear-gradient(135deg, rgba(91,79,255,0.12), rgba(155,140,255,0.06)); border: 1px solid rgba(91,79,255,0.2); border-radius: 10px; padding: .6rem .85rem; font-size: .78rem; color: var(--muted2); }
+    .catalog-ai-bubble strong { color: var(--text); }
+    .catalog-import { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; }
+    .catalog-import-badge { display: inline-flex; align-items: center; gap: .35rem; background: rgba(31,216,154,0.1); border: 1px solid rgba(31,216,154,0.2); border-radius: 100px; padding: .25rem .7rem; font-size: .72rem; color: var(--success); font-weight: 600; }
+
+    /* ── HOW ── */
+    .steps { display: flex; flex-direction: column; gap: .75rem; margin-top: 2rem; }
+    .step { background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; padding: 1.35rem; display: flex; gap: 1rem; align-items: flex-start; }
+    .step-num { width: 36px; height: 36px; min-width: 36px; border-radius: 10px; background: var(--grad); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .9rem; box-shadow: 0 0 16px rgba(91,79,255,0.38); }
+    .step-body h3 { font-weight: 700; font-size: .92rem; margin-bottom: .3rem; }
+    .step-body p { color: var(--muted); font-size: .84rem; line-height: 1.58; }
+
+    /* ── ONBOARDING ── */
+    .onboarding-section { padding: 72px var(--px); background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .onboarding-inner { max-width: 1050px; margin: 0 auto; display: flex; flex-direction: column; gap: 2.5rem; }
+    .onboarding-content .section-label { text-align: left; color: var(--accent2); }
+    .onboarding-content .section-h2 { text-align: left; }
+    .onboarding-content p { color: var(--muted2); line-height: 1.75; margin-bottom: 1rem; font-size: .95rem; }
+    .onboarding-steps { display: flex; flex-direction: column; gap: .65rem; }
+    .onboarding-step { background: var(--bg3); border: 1px solid var(--border); border-radius: 14px; padding: 1rem 1.2rem; display: flex; align-items: flex-start; gap: .85rem; }
+    .ob-num { width: 28px; height: 28px; min-width: 28px; border-radius: 8px; background: var(--grad); display: flex; align-items: center; justify-content: center; font-size: .75rem; font-weight: 800; }
+    .ob-body h4 { font-size: .88rem; font-weight: 700; margin-bottom: .2rem; }
+    .ob-body p { font-size: .8rem; color: var(--muted2); line-height: 1.5; }
+    .ob-time { display: inline-flex; align-items: center; gap: .3rem; font-size: .7rem; color: var(--success); font-weight: 600; background: rgba(31,216,154,0.1); border: 1px solid rgba(31,216,154,0.18); border-radius: 100px; padding: .18rem .55rem; margin-top: .5rem; }
+
+    /* ── VICTORY ── */
+    .victory-section { padding: 72px var(--px); }
+    .victory-section .section-label { color: var(--success); }
+    .victory-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 2rem; }
+    .victory-card { background: linear-gradient(135deg, rgba(31,216,154,0.07), rgba(6,182,212,0.03)); border: 1px solid rgba(31,216,154,0.18); border-radius: 16px; padding: 1.35rem; }
+    .victory-icon { font-size: 1.4rem; margin-bottom: .6rem; }
+    .victory-card h4 { font-weight: 700; font-size: .9rem; color: #6ee7b7; margin-bottom: .35rem; }
+    .victory-card p { font-size: .83rem; color: var(--muted); line-height: 1.55; }
+
+    /* ── PRICING ── */
+    .pricing-section { padding: 72px var(--px); }
+    .pricing-card { background: var(--bg3); border: 1px solid rgba(91,79,255,0.32); border-radius: 24px; padding: 2rem 1.5rem; box-shadow: 0 0 60px rgba(91,79,255,0.12); position: relative; overflow: hidden; margin-top: 2rem; }
+    .pricing-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--grad); }
+    .pricing-badge { display: inline-block; background: var(--grad); color: white; font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: .25rem .8rem; border-radius: 100px; margin-bottom: 1.1rem; }
+    .pricing-name { font-size: 1.05rem; font-weight: 700; margin-bottom: .4rem; }
+    .pricing-price { display: flex; align-items: baseline; gap: .2rem; margin-bottom: .35rem; }
+    .price-amount { font-size: 2.8rem; font-weight: 800; line-height: 1; }
+    .price-period { color: var(--muted2); font-size: .9rem; }
+    .pricing-note-small { color: var(--muted); font-size: .78rem; margin-bottom: 1.5rem; }
+    .pricing-credits { background: var(--surface); border-radius: 10px; padding: .9rem 1rem; margin-bottom: 1.5rem; }
+    .pricing-credits h4 { font-size: .78rem; font-weight: 700; color: var(--muted2); margin-bottom: .5rem; }
+    .credit-row { display: flex; justify-content: space-between; font-size: .8rem; margin-bottom: .3rem; color: var(--muted); }
+    .credit-row span:last-child { color: var(--text); font-weight: 500; }
+    .pricing-features { list-style: none; margin-bottom: 1.5rem; display: flex; flex-direction: column; gap: .55rem; }
+    .pricing-features li { font-size: .88rem; color: var(--muted2); display: flex; gap: .55rem; align-items: flex-start; }
+    .pricing-features li::before { content: '✓'; color: var(--success); font-weight: 700; flex-shrink: 0; line-height: 1.5; }
+    .pricing-features li strong { color: var(--text); font-weight: 500; }
+    .btn-pricing { width: 100%; background: var(--grad); border: none; color: white; padding: 1rem; border-radius: 12px; font-size: .97rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-bottom: .75rem; box-shadow: 0 0 30px rgba(91,79,255,0.3); transition: all .2s; }
+    .btn-pricing:hover { transform: translateY(-2px); }
+    .pricing-urgency { font-size: .8rem; color: var(--warn); margin-bottom: .5rem; }
+    .pricing-fine { font-size: .76rem; color: var(--muted); }
+
+    /* ── FAQ ── */
+    .faq-section { padding: 72px var(--px); background: var(--bg2); border-top: 1px solid var(--border); }
+    .faq-list { margin-top: 2rem; display: flex; flex-direction: column; gap: .6rem; }
+    .faq-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 13px; overflow: hidden; }
+    .faq-q { width: 100%; background: none; border: none; padding: 1rem 1.25rem; text-align: left; color: var(--text); font-size: .9rem; font-weight: 500; cursor: pointer; font-family: inherit; display: flex; justify-content: space-between; align-items: center; gap: 1rem; transition: color .2s; }
+    .faq-q:hover { color: var(--accent2); }
+    .faq-q span { color: var(--accent2); font-size: 1.1rem; font-weight: 300; flex-shrink: 0; }
+    .faq-a { display: none; padding: 0 1.25rem 1rem; color: var(--muted2); font-size: .86rem; line-height: 1.7; }
+    .faq-item.open .faq-a { display: block; }
+
+    /* ── FOOTER CTA ── */
+    .footer-cta { padding: 80px var(--px); text-align: center; border-top: 1px solid var(--border); position: relative; overflow: hidden; }
+    .footer-cta-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: min(600px,100vw); height: 400px; background: radial-gradient(ellipse, rgba(91,79,255,0.15) 0%, transparent 70%); pointer-events: none; }
+    .footer-cta h2 { font-size: clamp(1.6rem, 5vw, 2.7rem); font-weight: 800; margin-bottom: .9rem; letter-spacing: -0.025em; position: relative; line-height: 1.2; }
+    .footer-cta p { color: var(--muted2); font-size: .97rem; margin-bottom: 1.75rem; position: relative; }
+    .footer-cta-btn { max-width: 400px; margin: 0 auto; }
+    .footer-cta-fine { font-size: .78rem; color: var(--muted); margin-top: 1rem; position: relative; }
+
+    /* ── FOOTER ── */
+    .footer { background: var(--bg); border-top: 1px solid var(--border); padding: 1.5rem var(--px); }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: .75rem; }
+    .footer-logo { font-weight: 800; font-size: 1.1rem; }
+    .footer-logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .footer-links { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+    .footer-links a { color: var(--muted); text-decoration: none; font-size: .82rem; transition: color .2s; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { color: var(--muted); font-size: .74rem; }
+
+    /* ── AUTH MODAL ── */
+    .auth-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.82); backdrop-filter: blur(10px); z-index: 300; display: flex; align-items: flex-end; justify-content: center; padding: 0; }
+    .auth-modal { background: var(--bg3); border: 1px solid var(--border2); border-radius: 20px 20px 0 0; padding: 1.75rem 1.5rem 2rem; width: 100%; max-width: 480px; position: relative; box-shadow: 0 -20px 60px rgba(0,0,0,.5); max-height: 92svh; overflow-y: auto; }
+    .auth-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 1.1rem; padding: .25rem .5rem; border-radius: 6px; font-family: inherit; }
+    .auth-close:hover { color: var(--text); }
+    .auth-logo { font-weight: 800; font-size: 1.25rem; margin-bottom: 1.25rem; }
+    .auth-logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .auth-tabs { display: flex; gap: .35rem; margin-bottom: 1.4rem; background: var(--surface); border-radius: 10px; padding: .2rem; }
+    .auth-tab { flex: 1; background: none; border: none; padding: .55rem; border-radius: 8px; color: var(--muted2); font-size: .86rem; cursor: pointer; font-family: inherit; transition: all .2s; }
+    .auth-tab.active { background: var(--accent); color: white; font-weight: 700; }
+    .field { margin-bottom: .85rem; }
+    .field label { display: block; font-size: .78rem; color: var(--muted2); margin-bottom: .35rem; font-weight: 500; }
+    .field input { width: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .7rem 1rem; color: var(--text); font-size: .92rem; font-family: inherit; transition: border-color .2s; }
+    .field input:focus { outline: none; border-color: var(--accent); }
+    .field input::placeholder { color: var(--muted); }
+    .btn-submit { width: 100%; background: var(--grad); border: none; color: white; padding: .9rem; border-radius: 12px; font-size: .95rem; font-weight: 700; cursor: pointer; font-family: inherit; margin-top: .35rem; transition: opacity .2s; }
+    .btn-submit:disabled { opacity: .55; }
+    .auth-error { color: var(--danger); font-size: .78rem; margin-top: .6rem; }
+    .auth-note { color: var(--muted); font-size: .74rem; margin-top: .65rem; text-align: center; }
+
+    .toast { position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%); background: var(--surface); border: 1px solid var(--border2); border-radius: 10px; padding: .65rem 1.25rem; font-size: .85rem; z-index: 9999; white-space: nowrap; max-width: calc(100vw - 2rem); }
+    .toast-error { border-color: var(--danger); color: var(--danger); }
+
+    /* ── TABLET 640px+ ── */
+    @media (min-width: 640px) {
+      .hero-ctas { flex-direction: row; justify-content: center; }
+      .hero-ctas .btn-primary, .hero-ctas .btn-outline { width: auto; }
+      .hero-trust { flex-direction: row; flex-wrap: wrap; justify-content: center; max-width: 100%; }
+      .pain-grid { grid-template-columns: repeat(2, 1fr); }
+      .feat-panel.active { grid-template-columns: repeat(2, 1fr); }
+      .victory-grid { grid-template-columns: repeat(2, 1fr); }
+      .steps { flex-direction: row; flex-wrap: wrap; }
+      .step { flex: 1 1 calc(50% - .4rem); }
+      .footer-inner { flex-direction: row; align-items: center; justify-content: space-between; }
+      .auth-overlay { align-items: center; padding: 1rem; }
+      .auth-modal { border-radius: 20px; }
+    }
+
+    /* ── DESKTOP 900px+ ── */
+    @media (min-width: 900px) {
+      .nav-links { display: flex; gap: 2rem; }
+      .nav-links a { color: var(--muted); text-decoration: none; font-size: .875rem; transition: color .2s; }
+      .nav-links a:hover { color: var(--text); }
+      .nav-cta-desktop { display: flex; gap: .6rem; align-items: center; }
+      .nav-hamburger { display: none; }
+      .nav-mobile { display: none !important; }
+      .pain-grid { grid-template-columns: repeat(3, 1fr); }
+      .feat-panel.active { grid-template-columns: repeat(3, 1fr); }
+      .victory-grid { grid-template-columns: repeat(3, 1fr); }
+      .steps { flex-wrap: nowrap; }
+      .step { flex: 1; flex-direction: column; }
+      .bubble-inner, .context-inner, .ig-inner, .catalog-inner, .onboarding-inner { flex-direction: row; align-items: center; gap: 4rem; }
+      .bubble-content, .context-content, .ig-content, .catalog-content, .onboarding-content { flex: 1; }
+      .bubble-mockup, .context-cards, .ig-visual, .catalog-cards, .onboarding-steps { flex: 1; }
+      .btn-primary { display: inline-block; width: auto; }
+      .btn-outline { display: inline-flex; width: auto; }
+    }
+
+    /* ── LARGE 1100px+ ── */
+    @media (min-width: 1100px) {
+      .feat-panel.active { grid-template-columns: repeat(3, 1fr); }
+    }
+  </style>
+<!-- NeuraDeskApp Chat Widget -->
+<script>
+  window.NeuraDeskConfig = { widgetId: '20abc842-bdc3-4b97-83d8-47562f2d15d2' };
+</script>
+<script src="https://neuradesk.online/widget.js" async></script>
+  
 <!-- NAV -->
-<nav class="nav">
+<nav class="nav" id="main-nav">
   <div class="nav-inner">
     <div class="nav-logo">Neura<span>Desk</span></div>
     <div class="nav-links">
+      <a href="#pain">Problém</a>
       <a href="#features">Funkcie</a>
-      <a href="#how">Ako to funguje</a>
+      <a href="#instagram">Instagram</a>
+      <a href="/wordpress">WordPress</a>
       <a href="#pricing">Cena</a>
     </div>
-    <div class="nav-cta">
-      <button class="btn-ghost" onclick="showAuth('login')">Prihlásiť sa</button>
-      <button class="btn-nav-primary" onclick="showAuth('register')">Začať zadarmo</button>
+    <div class="nav-cta-desktop">
+      <button class="btn-ghost" style="width:auto" onclick="showAuth('login')">Prihlásiť sa</button>
+      <button class="btn-nav-cta" onclick="showAuth('register')">Začať</button>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile" id="nav-mobile">
+    <a href="#pain" onclick="closeMobileNav()">Problém</a>
+    <a href="#features" onclick="closeMobileNav()">Funkcie</a>
+    <a href="#instagram" onclick="closeMobileNav()">Instagram</a>
+    <a href="/wordpress" onclick="closeMobileNav()">WordPress</a>
+    <a href="#pricing" onclick="closeMobileNav()">Cena</a>
+    <div class="nav-mobile-cta">
+      <button class="btn-ghost" onclick="closeMobileNav();showAuth('login')">Prihlásiť sa</button>
+      <button class="btn-primary" style="padding:.75rem" onclick="closeMobileNav();showAuth('register')">Začať</button>
     </div>
   </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-badge">🚀 Spustite chatbota za 10 minút</div>
-  <h1 class="hero-h1">AI chatbot, ktorý<br><span class="gradient-text">konvertuje návštevníkov</span><br>na zákazníkov</h1>
-  <p class="hero-sub">Nahrajte vaše know-how. Nastavte cieľ konverzie – hovor, formulár, nákup. Vložte jeden riadok kódu. Chatbot sa postará o zvyšok.</p>
-  <div class="hero-actions">
-    <button class="btn-hero-primary" onclick="showAuth('register')">Vyskúšať za €29/mesiac</button>
-    <a href="#how" class="btn-hero-ghost">Pozrieť demo ↓</a>
+  <div class="hero-glow"></div>
+  <div class="alert-bar"><span class="alert-dot"></span>Každú hodinu vám odchádza zákazník, lebo nikto neodpovedal</div>
+  <div class="hero-eyebrow">Nie chatbot. Vyškolený AI obchodník.</div>
+  <h1 class="hero-h1">Váš web konečne<br><span class="grad-text">predáva ako ľudia.</span><br><span style="font-size:.58em;color:var(--muted2);font-weight:600;letter-spacing:0">Aj o polnoci. Aj na Instagrame.</span></h1>
+  <p class="hero-sub">NeuraDesk nie je len chatbot, čo odpovedá na otázky. Je to <strong>vyškolený AI predajca</strong> – kladie otázky, identifikuje problém zákazníka, spracúva námietky a aktívne uzatvára predaj. Na webe aj v Instagram DMs.</p>
+  <div class="hero-ctas">
+    <button class="btn-primary" onclick="showAuth('register')">Získať AI obchodníka – €37/mes</button>
+    <a href="#pain" class="btn-outline">Vidím sa v tom ↓</a>
   </div>
-  <div class="hero-proof">
-    <span>✓ Bez kreditnej karty pri registrácii</span>
-    <span>✓ Zrušenie kedykoľvek</span>
-    <span>✓ Nastavenie za 10 minút</span>
+  <div class="hero-trust">
+    <span>Live za 10 minút</span>
+    <span>Zrušenie kedykoľvek</span>
+    <span>GDPR v cene</span>
   </div>
+  <div class="sp-badge">
+    <div class="sp-badge-label">Zabudovaný predajný framework</div>
+    <div class="sp-framework">
+      <div class="sp-step"><div class="sp-step-num">01</div><div class="sp-step-name">Discovery</div></div>
+      <div class="sp-arrow">→</div>
+      <div class="sp-step"><div class="sp-step-num">02</div><div class="sp-step-name">Problém</div></div>
+      <div class="sp-arrow">→</div>
+      <div class="sp-step"><div class="sp-step-num">03</div><div class="sp-step-name">Riešenie</div></div>
+      <div class="sp-arrow">→</div>
+      <div class="sp-step"><div class="sp-step-num">04</div><div class="sp-step-name">Námietky</div></div>
+      <div class="sp-arrow">→</div>
+      <div class="sp-step"><div class="sp-step-num">05</div><div class="sp-step-name">Close</div></div>
+    </div>
+    <p>AI sa prispôsobí vášmu produktu automaticky – stačí opísať váš biznis v pár vetách.</p>
+  </div>
+</section>
 
-  <!-- Floating widget preview -->
-  <div class="hero-demo">
-    <div class="demo-browser">
-      <div class="demo-browser-bar">
-        <span class="demo-dot red"></span><span class="demo-dot yellow"></span><span class="demo-dot green"></span>
-        <div class="demo-url">vasaweb.sk</div>
-      </div>
-      <div class="demo-content">
-        <div class="demo-page-lines">
-          <div class="demo-line w80"></div>
-          <div class="demo-line w60"></div>
-          <div class="demo-line w90"></div>
-          <div class="demo-line w50"></div>
-        </div>
-        <!-- Animated chat widget -->
-        <div class="demo-widget">
-          <div class="demo-widget-header">
-            <div class="demo-avatar">🤖</div>
-            <div>
-              <div class="demo-name">Sofia</div>
-              <div class="demo-status">● Online</div>
-            </div>
-          </div>
-          <div class="demo-messages">
-            <div class="demo-msg bot anim-1">Ahoj! Môžem vám pomôcť vybrať správny produkt? 👋</div>
-            <div class="demo-chips anim-2">
-              <div class="demo-chip">Aké sú ceny?</div>
-              <div class="demo-chip">Ako to funguje?</div>
-            </div>
-            <div class="demo-msg user anim-3">Aké sú ceny?</div>
-            <div class="demo-msg bot anim-4">Základný plán začína od €29/mes. Zahŕňa... <span class="demo-cursor">|</span></div>
-          </div>
-          <div class="demo-cta-bar">✉️ Zanechajte kontakt</div>
-        </div>
-      </div>
+<!-- PAIN -->
+<section class="section-wrap bg2" id="pain">
+  <div class="inner">
+    <span class="section-label pain-label">Poznáte to?</span>
+    <h2 class="section-h2">Tiché straty, ktoré sa hromadia každý deň</h2>
+    <br>
+    <div class="pain-grid">
+      <div class="pain-card"><div class="pain-emoji">😔</div><h3>Zákazník napísal o 22:00. Ráno už kúpil u konkurencie.</h3><p>Stalo sa to znova. A znova. A vy o tom väčšinou ani <strong>neviete</strong> – len tušíte, že konverzia je nízka.</p></div>
+      <div class="pain-card"><div class="pain-emoji">💸</div><h3>Platíte za reklamu, ale ľudia odchádzajú s otázkami</h3><p>Každý klik vás stojí peniaze. Zákazník príde, nenájde odpoveď, <strong>odíde. Vaše ROI sa rozpadá</strong> pred očami.</p></div>
+      <div class="pain-card"><div class="pain-emoji">😤</div><h3>„Aká je cena?" – desiaty krát dnes</h3><p>Odpovedáte na tie isté otázky dookola namiesto toho, aby ste robili prácu, <strong>ktorá vás posúva vpred</strong>.</p></div>
+      <div class="pain-card"><div class="pain-emoji">📱</div><h3>Instagram komentáre bez odpovede = stratené leady</h3><p>„Cena?" pod vaším postom – vy to vidíte o 6 hodín. <strong>Zákazník medzitým kúpil inde</strong> alebo zabudol.</p></div>
+      <div class="pain-card"><div class="pain-emoji">😰</div><h3>Chatboty, čo ste skúšali, boli hlúpe</h3><p>Rigid flowcharty, zlé odpovede, frustrovaný zákazník. <strong>Horšie než nič</strong> – a stálo to čas aj peniaze.</p></div>
+      <div class="pain-card"><div class="pain-emoji">🧱</div><h3>Veľké riešenia sú pre vás príliš drahé</h3><p>Intercom, ManyChat, Salesforce – tisíce eur, mesiace nastavení. <strong>Vy chcete výsledok zajtra, nie IT projekt.</strong></p></div>
     </div>
   </div>
 </section>
+
+<!-- BRIDGE -->
+<div class="bridge">
+  <div class="inner-sm">
+    <span class="bridge-eyebrow">Koniec toho všetkého</span>
+    <h2>Čo keby mal váš web<br><span class="grad-text">najlepšieho obchodníka,</span><br>čo nikdy nespí?</h2>
+    <p>NeuraDesk sa naučí váš produkt, vaše ceny, vaše námietky – a vedie každého návštevníka od prvej otázky po uzavretý predaj. Presne tak, ako by ste to robili vy, len <strong>24 hodín denne, 7 dní v týždni</strong>.</p>
+  </div>
+</div>
 
 <!-- LOGOS -->
 <section class="logos-section">
-  <p class="logos-label">Funguje na akejkoľvek webstránke</p>
-  <div class="logos-row">
-    <div class="logo-pill">WordPress</div>
-    <div class="logo-pill">Shopify</div>
-    <div class="logo-pill">Webflow</div>
-    <div class="logo-pill">Wix</div>
-    <div class="logo-pill">HTML stránky</div>
-    <div class="logo-pill">React / Next.js</div>
-  </div>
-</section>
-
-<!-- FEATURES -->
-<section class="features-section" id="features">
-  <div class="section-label">Funkcie</div>
-  <h2 class="section-h2">Všetko, čo potrebujete<br>pre inteligentný chatbot</h2>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon">🧠</div>
-      <h3>Vlastná znalostná báza</h3>
-      <p>Nahrajte PDF, texty, cenníky, FAQ. AI chatbot odpovie presne na základe vašich podkladov – žiadne halucinácie.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🎯</div>
-      <h3>Cielená konverzia</h3>
-      <p>Nastavte cieľ: telefonát, kontaktný formulár, nákup alebo objednávka. Chatbot aktívne vedie zákazníka k akcii.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">✨</div>
-      <h3>AI navrhované otázky</h3>
-      <p>Systém automaticky vygeneruje navrhované otázky z vašich dokumentov. Zákazník klikne – chatbot odpovie.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">⚡</div>
-      <h3>Embed za 30 sekúnd</h3>
-      <p>Dva riadky kódu do hlavičky webu. Chatbot sa okamžite zobrazí. Funguje na akomkoľvek webe.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🌍</div>
-      <h3>Viacjazyčný</h3>
-      <p>Zákazník napíše po slovensky, česky alebo anglicky – chatbot automaticky odpovie v rovnakom jazyku.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">🔒</div>
-      <h3>Vaše dáta, vaša kontrola</h3>
-      <p>Každý widget je izolovaný. Zákaznícividia len vaše know-how. Kedykoľvek zmeníte alebo vymažete obsah.</p>
+  <div class="inner">
+    <span class="logos-label">Funguje na akejkoľvek webstránke</span>
+    <div class="logos-row">
+      <div class="logo-pill">WordPress</div>
+      <div class="logo-pill">Shopify</div>
+      <div class="logo-pill">Webflow</div>
+      <div class="logo-pill">Wix</div>
+      <div class="logo-pill">HTML stránky</div>
+      <div class="logo-pill">React / Next.js</div>
+      <div class="logo-pill" style="border-color:rgba(91,79,255,0.35);color:var(--accent2)">🌐 Akýkoľvek web (URL scan)</div>
     </div>
   </div>
 </section>
 
-<!-- HOW IT WORKS -->
-<section class="how-section" id="how">
-  <div class="section-label">Ako to funguje</div>
-  <h2 class="section-h2">Od registrácie po chatbot<br>za menej ako 10 minút</h2>
-  <div class="steps">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-content">
-        <h3>Zaregistrujte sa a uhraďte predplatné</h3>
-        <p>Vytvorte účet, zvoľte plán za €29/mesiac. Bezpečná platba cez Stripe.</p>
+<!-- FEATURES TABS -->
+<section class="section-wrap" id="features">
+  <div class="inner">
+    <span class="section-label">Funkcie</span>
+    <h2 class="section-h2">Všetko, čo potrebujete.<br>Nič zbytočné navyše.</h2>
+    <p class="section-sub">Vyberte kategóriu a zistite, ako každá funkcia rieši konkrétny problém vášho biznisu.</p>
+    <div class="feat-tabs">
+      <button class="feat-tab active" data-panel="sales">🎯 Predajný AI</button>
+      <button class="feat-tab" data-panel="chatbot">💬 Chatbot</button>
+      <button class="feat-tab" data-panel="knowledge">🧠 Znalostná báza</button>
+      <button class="feat-tab" data-panel="leads">📋 Leady</button>
+      <button class="feat-tab" data-panel="tech">🔧 Technické</button>
+    </div>
+    <div class="feat-panel active" id="panel-sales">
+      <div class="feature-card"><div class="feature-tag sales">Predajný AI</div><div class="feature-icon">🎯</div><h3>Discovery → Close framework</h3><p>AI prechádza overenými predajnými krokmi: zisťuje situáciu zákazníka, <strong>identifikuje jeho skutočný problém</strong>, ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.</p></div>
+      <div class="feature-card"><div class="feature-tag sales">Predajný AI</div><div class="feature-icon">🔍</div><h3>Kladie otázky, nie len odpovedá</h3><p>Namiesto pasívneho čakania chatbot <strong>aktívne zisťuje</strong> čo zákazník potrebuje. Presne ako by to robil skúsený obchodník pri prvom stretnutí.</p></div>
+      <div class="feature-card"><div class="feature-tag sales">Predajný AI</div><div class="feature-icon">🛡️</div><h3>Spracúva námietky automaticky</h3><p>„Je to drahé", „Musím sa poradiť" – AI pozná <strong>typické námietky vášho odvetvia</strong> a vie na ne reagovať presvedčivo.</p></div>
+      <div class="feature-card"><div class="feature-tag sales">Predajný AI</div><div class="feature-icon">💡</div><h3>Predáva benefity, nie vlastnosti</h3><p>AI <strong>automaticky prekladá vlastnosti na benefity</strong>, ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".</p></div>
+      <div class="feature-card"><div class="feature-tag sales">Predajný AI</div><div class="feature-icon">🎨</div><h3>Prispôsobí sa vášmu produktu</h3><p>Opíšete váš produkt, cieľovku, námietky – AI si <strong>vytvorí vlastný predajný playbook</strong> špecifický pre váš biznis.</p></div>
+      <div class="feature-card"><div class="feature-tag sales">Predajný AI</div><div class="feature-icon">📞</div><h3>Aktívne vedie k akcii (CTA)</h3><p>V správnom momente AI <strong>navrhne zákazníkovi ďalší krok</strong> – zavolať, vyplniť formulár, kúpiť. Prirodzene a načasovane.</p></div>
+    </div>
+    <div class="feat-panel" id="panel-chatbot">
+      <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">⚡</div><h3>1 riadok kódu – chatbot live</h3><p>Jeden script tag. Chatbot sa zobrazí okamžite na <strong>akomkoľvek webe</strong> – WordPress, Shopify, čistý HTML aj React.</p></div>
+      <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">🎨</div><h3>Váš branding, nie náš</h3><p>Vlastné meno asistenta, farba widgetu, uvítacia správa, <strong>upload vlastnej fotky ako avatara</strong>. Zákazník vidí vášho asistenta.</p></div>
+      <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">🌐</div><h3>Shadow DOM – nič nepokazí</h3><p>Widget beží v izolovanom prostredí. <strong>Žiadny konflikt so štýlmi vášho webu</strong>, žiadne spomalenie, žiadny broken dizajn.</p></div>
+      <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">✨</div><h3>Navrhované otázky na start</h3><p>Zákazník vidí <strong>klikateľné otázky</strong> hneď po otvorení – manuálne alebo AI generované z vašich dokumentov.</p></div>
+      <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">⌨️</div><h3>Streaming + Markdown formátovanie</h3><p>Text sa píše v reálnom čase. Odpovede podporujú <strong>tučné písmo, zoznamy, štruktúru</strong> – čitateľné, nie stena textu.</p></div>
+      <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">📱</div><h3>Až 10 widgetov na 1 účet</h3><p>Každý widget má vlastnú bázu a nastavenia. <strong>Ideálne pre agentúry alebo viac produktov</strong> za jeden paušál.</p></div>
+    </div>
+    <div class="feat-panel" id="panel-knowledge">
+      <div class="feature-card"><div class="feature-tag">Báza</div><div class="feature-icon">📁</div><h3>PDF, TXT, CSV, MD – jednoduché nahranie</h3><p>Nahráte súbory jedným kliknutím. AI ich spracuje a <strong>začne odpovedať z vašich informácií</strong> okamžite.</p></div>
+      <div class="feature-card"><div class="feature-tag">Báza</div><div class="feature-icon">✏️</div><h3>Pridajte text priamo</h3><p>FAQ, cenník, popis produktov – napíšete priamo do editora. Ideálne pre <strong>dynamické informácie, ktoré sa menia</strong>.</p></div>
+      <div class="feature-card"><div class="feature-tag">Báza</div><div class="feature-icon">🌐</div><h3>Skenovanie URL webu</h3><p>Zadáte URL a AI automaticky naskenuje celý web – stránky, blog, produkty. <strong>Znalostná báza sa naplní sama</strong> bez nahrávania jediného súboru.</p></div>
+      <div class="feature-card"><div class="feature-tag">Báza</div><div class="feature-icon">🔍</div><h3>Full-text vyhľadávanie (FTS5)</h3><p>AI <strong>rozumie kontextu otázky</strong> a nájde relevantnú odpoveď aj keď zákazník nepoužije presné slová z vašich dokumentov.</p></div>
+      <div class="feature-card"><div class="feature-tag">Báza</div><div class="feature-icon">🔒</div><h3>Vaše dáta sú len vaše</h3><p>Každý widget je izolovaný sandbox. <strong>Iní zákazníci nevidia vaše dokumenty.</strong> Nie sú použité na tréning AI.</p></div>
+    </div>
+    <div class="feat-panel" id="panel-leads">
+      <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">📋</div><h3>Kontaktný formulár priamo v chate</h3><p>Meno, email, telefón, GDPR súhlas – <strong>zákazník vyplní v chate</strong> bez toho, aby opustil konverzáciu.</p></div>
+      <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">🧠</div><h3>AI predajná karta pre každý lead</h3><p>Po konverzácii dostanete <strong>automatickú analýzu</strong>: teplota zákazníka, problém, urgentnosť, námietky, odporúčaný ďalší krok.</p></div>
+      <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">📊</div><h3>CRM v dashboarde</h3><p>Stavy leadov (nový / kontaktovaný / uzavretý), <strong>vlastné poznámky</strong>, história konverzácií. Bez komplexnosti Salesforce.</p></div>
+      <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">📧</div><h3>Email notifikácia pri novom leade</h3><p>Zákazník zanechá kontakt – <strong>vy dostanete email okamžite</strong> s AI kartou. Viete zavolať pripravení, nie naslep.</p></div>
+      <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">⬇️</div><h3>Export do CSV jedným kliknutím</h3><p>Všetky leady do Excelu, Google Sheets, vášho CRM. <strong>Dáta sú vždy vaše</strong>, nie uväznené v platforme.</p></div>
+      <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">🎯</div><h3>CTA typy: hovor, formulár, nákup, vlastný</h3><p>AI <strong>aktívne smeruje zákazníka k akcii</strong> – nie náhodne, ale v správnom momente konverzácie.</p></div>
+    </div>
+    <div class="feat-panel" id="panel-tech">
+      <div class="feature-card"><div class="feature-tag">Bezpečnosť</div><div class="feature-icon">🔐</div><h3>JWT autentifikácia + rate limiting</h3><p>Každý request overený JWT tokenmi. <strong>Rate limiting 30 správ / 10 min / IP</strong> – ochrana pred zneužitím.</p></div>
+      <div class="feature-card"><div class="feature-tag">Infraštruktúra</div><div class="feature-icon">⚡</div><h3>Vlastný server, nie zdieľaný cloud</h3><p>Dedikovaný server, <strong>žiadne throttling ani výpadky</strong>. SQLite s WAL mode a FTS5 pre bleskové vyhľadávanie.</p></div>
+      <div class="feature-card"><div class="feature-tag">Platby</div><div class="feature-icon">💳</div><h3>Stripe billing portál</h3><p>Zákazník si sám spravuje predplatné, <strong>mení kartu, sťahuje faktúry</strong> – bez kontaktovania podpory.</p></div>
+      <div class="feature-card"><div class="feature-tag">Kredity</div><div class="feature-icon">📊</div><h3>Email pri 80% a 100% využití</h3><p><strong>Upozornenie pred vyčerpaním kreditov</strong> – máte čas dokúpiť bez toho, aby chatbot prestal odpovedať.</p></div>
+      <div class="feature-card"><div class="feature-tag">GDPR</div><div class="feature-icon">🛡️</div><h3>GDPR súhlas zabudovaný</h3><p>Kontaktný formulár obsahuje <strong>checkbox GDPR súhlasu</strong>. Skutočný súhlas podľa legislatívy EÚ.</p></div>
+      <div class="feature-card"><div class="feature-tag">Affiliate</div><div class="feature-icon">🤝</div><h3>Affiliate systém v cene</h3><p>Unikátny kód pre každého. <strong>+€15 kredit za odporúčanie</strong>, -15% zľava pre nového zákazníka.</p></div>
+      <div class="feature-card"><div class="feature-tag">Onboarding</div><div class="feature-icon">🌐</div><h3>Skenovanie webu (URL scraping)</h3><p>Zadáte URL – AI naskenuje celý web: stránky, blog, produkty. Znalostná báza sa <strong>naplní automaticky za pár sekúnd</strong>. Bez nahrávania súborov, bez copy-paste.</p></div>
+      <div class="feature-card"><div class="feature-tag" style="background:rgba(31,216,154,0.12);color:#6ee7b7">AI Coach</div><div class="feature-icon">🎓</div><h3>AI Coach – zákaznícka podpora</h3><p>Uvítajte zákazníka, odpovedzte na otázky, ale <strong>AI Coach tiež aktívne radí</strong> ako z produktu vyťažiť maximum. Zákazník dostane viac hodnoty – a vy menej support ticketov.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PROACTIVE BUBBLE -->
+<section class="bubble-section">
+  <div class="bubble-inner">
+    <div class="bubble-content">
+      <span class="section-label" style="text-align:left;color:var(--warn)">Proaktívna správa</span>
+      <h2 class="section-h2" style="text-align:left">Chatbot osloví zákazníka<br><span class="grad-text">sám. Skôr než odíde.</span></h2>
+      <p>Väčšina návštevníkov nenapíše ako prvá. Nie preto, že ich to nezaujíma – ale preto, že <strong>nevedia kde začať</strong>. Proaktívna bublina to zmení.</p>
+      <p>Nastavíte text a oneskorenie (napr. 10 sekúnd). Po tom čase sa nad chatbotom objaví animovaná správa – ako keď vás v obchode osloví predavač. Zákazník klikne a konverzácia začne.</p>
+      <div class="bubble-perks">
+        <div class="bubble-perk"><div class="bubble-perk-icon">⏱️</div><p><strong>Oneskorenie 1–60 sekúnd</strong> – zobrazí sa v správnom momente, nie hneď po príchode</p></div>
+        <div class="bubble-perk"><div class="bubble-perk-icon">✕</div><p><strong>Zákazník môže zavrieť</strong> – nie je to agresívny popup, je to prirodzená výzva</p></div>
+        <div class="bubble-perk"><div class="bubble-perk-icon">📝</div><p><strong>Vlastný text bubliny</strong> – napíšete čo chcete, AI potom prevezme rozhovor</p></div>
+      </div>
+      <div class="bubble-delay-badge">⏱ Napr.: „Môžem vám pomôcť s výberom?" po 12 sekundách</div>
+    </div>
+    <div class="bubble-mockup">
+      <div class="bubble-mockup-site">
+        <div class="bubble-line" style="width:75%"></div>
+        <div class="bubble-line" style="width:55%"></div>
+        <div class="bubble-line" style="width:85%"></div>
+        <div class="bubble-line" style="width:45%"></div>
+      </div>
+      <div class="bubble-launcher">
+        <div class="bubble-speech">Ahoj! 👋 Môžem vám pomôcť s výberom produktu?</div>
+        <div class="bubble-btn">💬</div>
       </div>
     </div>
-    <div class="step-arrow">→</div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-content">
-        <h3>Nahrajte know-how</h3>
-        <p>PDF, texty, cenníky, FAQ o vašom biznise. AI sa to naučí a bude odpovedať presne.</p>
+  </div>
+</section>
+
+<!-- PAGE CONTEXT -->
+<section class="context-section">
+  <div class="context-inner">
+    <div class="context-content">
+      <span class="section-label" style="text-align:left;color:var(--success)">Sledovanie stránky</span>
+      <h2 class="section-h2" style="text-align:left">AI vie čo zákazník<br><span class="grad-text">práve prezerá.</span></h2>
+      <p>Väčšina chatbotov nevie, kde na webe zákazník je. NeuraDesk číta <strong>aktuálnu URL a názov stránky</strong> a posiela to AI s každou správou.</p>
+      <p>Výsledok? Chatbot na stránke produktu sa pýta na iné veci ako na blogu. <strong>Nie genericky – kontextuálne.</strong> Zákazník cíti, že ho chatbot „vidí".</p>
+      <p style="margin-bottom:0">Toto je funkcia, ktorú konkurencia nemá.</p>
+    </div>
+    <div class="context-cards">
+      <div class="context-card">
+        <div class="context-card-url">vasshop.sk/produkt/bezdrôtové-slúchadlá</div>
+        <div class="context-card-msg">„Vidím, že si pozriete naše bezdrôtové slúchadlá. Plánujete ich na šport alebo na prácu? 🎧"</div>
+        <div class="context-card-sub">AI reaguje na <span>stránku produktu</span></div>
+      </div>
+      <div class="context-card">
+        <div class="context-card-url">vasshop.sk/blog/ako-vybrat-sluchadla</div>
+        <div class="context-card-msg">„Čítate náš sprievodca výberom. Máte konkrétne otázky, ktoré vám článok nevysvetlil? 📖"</div>
+        <div class="context-card-sub">AI reaguje na <span>blogový článok</span></div>
+      </div>
+      <div class="context-card">
+        <div class="context-card-url">vasshop.sk/kosik</div>
+        <div class="context-card-msg">„Vidím, že máte niečo v košíku! Môžem vám pomôcť dokončiť objednávku alebo máte otázky? 🛒"</div>
+        <div class="context-card-sub">AI reaguje na <span>košík</span> – zachytáva opustenie</div>
       </div>
     </div>
-    <div class="step-arrow">→</div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-content">
-        <h3>Nastavte cieľ a otázky</h3>
-        <p>Vyberte konverzný cieľ (hovor, formulár, nákup). AI automaticky navrhne vhodné otázky.</p>
+  </div>
+</section>
+
+<!-- PRODUCT CATALOG -->
+<section class="catalog-section" id="catalog">
+  <div class="catalog-inner">
+    <div class="catalog-content">
+      <span class="section-label" style="text-align:left">Produktový katalóg</span>
+      <h2 class="section-h2" style="text-align:left">AI sám rozhodne<br><span class="grad-text">čo a kedy odporučiť.</span></h2>
+      <p>Pridáte produkty s popisom, cenou a podmienkami – <strong>„odporúčaj keď"</strong> a <strong>„NEodporúčaj keď"</strong>. AI sa riadi týmito pravidlami a zákazníkovi navrhne správny produkt v správnom momente.</p>
+      <p>Nie agresívny upsell. Prirodzené odporúčanie s vysvetlením prečo – <strong>max 1–3 produkty naraz</strong>, vždy s priamym odkazom na nákup.</p>
+      <div class="catalog-import">
+        <div class="catalog-import-badge">✓ Import z CSV</div>
+        <div class="catalog-import-badge">✓ Shopify skenovanie</div>
+        <div class="catalog-import-badge">✓ WooCommerce skenovanie</div>
+        <div class="catalog-import-badge">✓ Skenovanie ľubovoľnej URL</div>
       </div>
     </div>
-    <div class="step-arrow">→</div>
-    <div class="step">
-      <div class="step-num">4</div>
-      <div class="step-content">
-        <h3>Vložte kód na web</h3>
-        <p>Skopírujte 2 riadky kódu do hlavičky vašej stránky. Chatbot je online.</p>
+    <div class="catalog-cards">
+      <div class="catalog-product">
+        <div class="catalog-product-header">
+          <div class="catalog-product-name">🎧 Bezdrôtové slúchadlá Pro</div>
+          <div class="catalog-product-price">€149</div>
+        </div>
+        <div class="catalog-product-when">Odporúčaj keď: <span>zákazník hľadá slúchadlá na šport alebo prácu</span></div>
+        <div class="catalog-ai-bubble">💬 AI zákazníkovi: <strong>„Na základe toho, čo hľadáte, by vám najlepšie sedeli naše Pro slúchadlá – 40h výdrž a aktívne potlačenie hluku. Tu je priamy odkaz →"</strong></div>
       </div>
+      <div class="catalog-product">
+        <div class="catalog-product-header">
+          <div class="catalog-product-name">📦 Starter balík</div>
+          <div class="catalog-product-price">€79</div>
+        </div>
+        <div class="catalog-product-when">Odporúčaj keď: <span>zákazník má obmedzený rozpočet</span></div>
+        <div class="catalog-ai-bubble">💬 AI zákazníkovi: <strong>„Ak hľadáte skôr cenovo dostupnejšiu možnosť, Starter balík pokryje všetko čo potrebujete na začiatok →"</strong></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INSTAGRAM -->
+<section class="ig-section" id="instagram">
+  <div class="ig-inner">
+    <div class="ig-content">
+      <span class="section-label" style="text-align:left;color:#f472b6">Instagram DM Bot</span>
+      <h2 class="section-h2" style="text-align:left">Komentár „Cena?" →<br><span class="grad-text">automatický predaj v DMs</span></h2>
+      <p>Vaši sledovatelia komentujú. Vy to vidíte o hodiny. <strong>Zákazník medzitým kúpil inde.</strong> S NeuraDesk to končí dnes.</p>
+      <p>Nastavíte kľúčové slová. Zákazník napíše „cena", „info", „záujem" – <strong>AI mu okamžite pošle DM</strong> a vedie ho k predaju z vašej znalostnej bázy.</p>
+      <div class="ig-list">
+        <div class="ig-list-item"><div class="ig-list-icon">🔑</div><p><strong>Kľúčové slová v komentároch</strong> spúšťajú DM automaticky – žiadne čakanie</p></div>
+        <div class="ig-list-item"><div class="ig-list-icon">🧠</div><p><strong>AI vedie celú DM konverzáciu</strong> z vašej znalostnej bázy – presné odpovede</p></div>
+        <div class="ig-list-item"><div class="ig-list-icon">🔗</div><p><strong>Prepojenie cez Instagram OAuth</strong> – bezpečné, bez hesiel, kedykoľvek odopnúť</p></div>
+        <div class="ig-list-item"><div class="ig-list-icon">💰</div><p><strong>Nahradí vám ManyChat</strong> za zlomok ceny – spolu s web chatbotom v cene €37</p></div>
+      </div>
+    </div>
+    <div class="ig-visual">
+      <div class="ig-phone-bar">
+        <div class="ig-phone-avatar"></div>
+        <div><div class="ig-phone-name">Sofia_AI 🤖</div><div class="ig-phone-status">● Práve píše...</div></div>
+      </div>
+      <div class="ig-messages">
+        <div><div class="ig-msg-label">Zákazník komentoval: „cena?"</div><div class="ig-msg them">Ahoj! Zaujíma ťa cena? 😊</div></div>
+        <div class="ig-msg us">Ahoj Marek! Pre aký účel by si to využíval?</div>
+        <div class="ig-msg them">Mám malý e-shop, chcem zlepšiť konverzie</div>
+        <div class="ig-msg us">Perfektné! Pre e-shopy vidíme nárast konverzie o 15–40%. Plán €37/mes zahŕňa všetko. Poslať ti konkrétne čísla? 📊</div>
+        <div class="ig-msg them">Áno, super</div>
+        <div class="ig-msg us">Zanechaj mi email a kontaktujem ťa do 24h ✉️</div>
+      </div>
+      <div class="ig-input-bar">
+        <div class="ig-input">Napíšte správu...</div>
+        <button class="ig-send">Odoslať</button>
+      </div>
+    </div>
+  </div>
+</section>
+  
+<!-- GDPR -->
+<section class="section-wrap bg2" id="gdpr">
+  <div class="inner">
+    <span class="section-label" style="color:#6ee7b7">GDPR & Dokumenty</span>
+    <h2 class="section-h2">GDPR compliance v cene.<br><span class="grad-text">Dokumenty vygeneruje AI za 30 sekúnd.</span></h2>
+    <p class="section-sub">NeuraDesk má GDPR ochranu zabudovanú priamo – súhlas v chate, izolácia dát, právo na výmaz. Navyše: AI generátor vytvorí vaše právne dokumenty na mieru.</p>
+
+    <div style="display:grid;grid-template-columns:1fr;gap:1rem;margin-bottom:2.5rem">
+      <div class="victory-card" style="border-color:rgba(31,216,154,0.18)">
+        <div class="victory-icon">🛡️</div>
+        <h4 style="color:#6ee7b7">GDPR súhlas priamo v chate</h4>
+        <p>Zákazník dáva súhlas pred odoslaním kontaktného formulára v chate – skutočný, právne platný checkbox podľa GDPR čl. 7. Žiadne dopĺňanie, zabudované od prvého dňa.</p>
+      </div>
+      <div class="victory-card" style="border-color:rgba(31,216,154,0.18)">
+        <div class="victory-icon">🔒</div>
+        <h4 style="color:#6ee7b7">Vaše dáta sú izolované</h4>
+        <p>Každý widget beží v samostatnom sandboxe. Iný zákazník nemá prístup k vašim dokumentom, konverzáciám ani leadom. Dáta nie sú použité na tréning AI modelov.</p>
+      </div>
+      <div class="victory-card" style="border-color:rgba(31,216,154,0.18)">
+        <div class="victory-icon">🗑️</div>
+        <h4 style="color:#6ee7b7">Právo na výmaz (čl. 17)</h4>
+        <p>Zákazník požiada o vymazanie – vy to vykonáte jedným kliknutím v dashboarde. Dáta skutočne zmiznú, nie len skryjú.</p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ONBOARDING -->
+<section class="onboarding-section">
+  <div class="onboarding-inner">
+    <div class="onboarding-content">
+      <span class="section-label" style="text-align:left">Onboarding</span>
+      <h2 class="section-h2" style="text-align:left">Od platby po live chatbot<br><span class="grad-text">za 10 minút.</span></h2>
+      <p>Žiadne technické nastavenia, žiadna dokumentácia na 50 strán. 4 kroky a chatbot predáva.</p>
+      <p style="margin-bottom:0">Každý krok je sprevádzaný vizuálnym sprievodcom priamo v aplikácii.</p>
+    </div>
+    <div class="onboarding-steps">
+      <div class="onboarding-step">
+        <div class="ob-num">1</div>
+        <div class="ob-body">
+          <h4>Potvrdenie predplatného</h4>
+          <p>Platba cez Stripe. Účet aktivovaný okamžite automaticky.</p>
+          <div class="ob-time">⚡ ~1 minúta</div>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="ob-num">2</div>
+        <div class="ob-body">
+          <h4>Naučte AI váš biznis</h4>
+          <p>Zadajte URL vášho webu – AI ho naskenuje automaticky. Alebo nahrajte PDF, texty, cenníky drag &amp; drop. AI navrhne otázky ihneď po spracovaní.</p>
+          <div class="ob-time">⚡ ~3 minúty</div>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="ob-num">3</div>
+        <div class="ob-body">
+          <h4>Nastavte otázky a CTA</h4>
+          <p>Vyberiete navrhované otázky a akciu – hovor, formulár, nákup.</p>
+          <div class="ob-time">⚡ ~3 minúty</div>
+        </div>
+      </div>
+      <div class="onboarding-step">
+        <div class="ob-num">4</div>
+        <div class="ob-body">
+          <h4>Embed kód na web</h4>
+          <p>Skopírujete 1 riadok kódu. Chatbot je live. Pre WordPress a Shopify plugin za kliknutie.</p>
+          <div class="ob-time">⚡ ~2 minúty</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW -->
+<section class="section-wrap" id="how">
+  <div class="inner-sm">
+    <span class="section-label">Ako to funguje</span>
+    <h2 class="section-h2">Od registrácie po prvý<br>uzavretý predaj</h2>
+    <div class="steps">
+      <div class="step"><div class="step-num">1</div><div class="step-body"><h3>Zaregistrujte sa</h3><p>Účet za 2 minúty. €37/mes cez Stripe. Bez záväzkov.</p></div></div>
+      <div class="step"><div class="step-num">2</div><div class="step-body"><h3>Naskenujte alebo nahrajte obsah</h3><p>Zadáte URL webu alebo nahráte PDF, texty, cenníky. AI sa naučí váš biznis za pár sekúnd.</p></div></div>
+      <div class="step"><div class="step-num">3</div><div class="step-body"><h3>Nastavte predajný cieľ</h3><p>Opíšete produkt a CTA. AI si vytvorí playbook automaticky.</p></div></div>
+      <div class="step"><div class="step-num">4</div><div class="step-body"><h3>1 riadok kódu na web</h3><p>Chatbot je online. Zákazníci dostávajú odpovede. Vy predávate.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- VICTORY -->
+<section class="section-wrap bg2 victory-section">
+  <div class="inner">
+    <span class="section-label" style="color:var(--success)">Výsledok</span>
+    <h2 class="section-h2">Ako vyzerá váš biznis,<br>keď <span class="grad-text">AI obchodník robí svoju prácu</span></h2>
+    <p class="section-sub">Konkrétne zmeny od prvého dňa – nie sľuby na rok dopredu.</p>
+    <div class="victory-grid">
+      <div class="victory-card"><div class="victory-icon">🌙</div><h4>Predávate aj o polnoci</h4><p>Zákazník príde o 23:30. Dostane odpoveď. Kúpi. Ráno sa zobudíte s objednávkou a lead kartou.</p></div>
+      <div class="victory-card"><div class="victory-icon">📱</div><h4>Instagram pracuje za vás</h4><p>Komentár pod postom = automatický DM = predajná konverzácia. Bez vás. Stále.</p></div>
+      <div class="victory-card"><div class="victory-icon">🧘</div><h4>Koniec opakujúcich sa otázok</h4><p>Chatbot rieši „Aká je cena?" tisíckrát. Vy sa venujete práci s hodnotou.</p></div>
+      <div class="victory-card"><div class="victory-icon">📈</div><h4>Reklama konečne dáva zmysel</h4><p>Každý návštevník dostane odpoveď. ROI stúpa, pretože zákazníci nezmiznú bez akcie.</p></div>
+      <div class="victory-card"><div class="victory-icon">🧠</div><h4>Viete čo zákazníci naozaj riešia</h4><p>AI karty leadov odhaľujú vzory – aké námietky sú najčastejšie, čo ich blokuje.</p></div>
+      <div class="victory-card"><div class="victory-icon">🎓</div><h4>Zákazníci dostávajú AI Coach podporu</h4><p>AI nielen odpovedá – aktívne radí ako z vášho produktu vyťažiť maximum. Menej support ticketov, spokojnejší zákazníci.</p></div>
+      <div class="victory-card"><div class="victory-icon">🏆</div><h4>Ste roky vpredu pred konkurenciou</h4><p>Väčšina firiem ešte nemá inteligentný predajný AI. Vy budete mať náskok od zajtra ráno.</p></div>
+    </div>
+    <div style="text-align:center">
+      <button class="btn-primary" style="display:inline-block;width:auto;margin-top:.5rem" onclick="showAuth('register')">Chcem tieto výsledky od zajtra</button>
     </div>
   </div>
 </section>
 
 <!-- PRICING -->
 <section class="pricing-section" id="pricing">
-  <div class="section-label">Cena</div>
-  <h2 class="section-h2">Jednoduché predplatné,<br>žiadne prekvapenia</h2>
-  <div class="pricing-card">
-    <div class="pricing-badge">Najpopulárnejší</div>
-    <div class="pricing-name">Pro plán</div>
-    <div class="pricing-price">
-      <span class="price-amount">€29</span>
-      <span class="price-period">/mesiac</span>
+  <div class="inner-xs">
+    <span class="section-label">Cena</span>
+    <h2 class="section-h2">Menej ako jeden stratený<br>zákazník za mesiac.</h2>
+    <div class="pricing-card">
+      <div class="pricing-badge">Všetko v jednom pláne</div>
+      <div class="pricing-name">Pro plán</div>
+      <div class="pricing-price"><span class="price-amount">€37</span><span class="price-period">/mesiac</span></div>
+      <p class="pricing-note-small">1 500 AI odpovedí mesačne · Ďalšie dokúpite kedykoľvek</p>
+      <div class="pricing-credits">
+        <h4>Doplnkové kredity</h4>
+        <div class="credit-row"><span>€5</span><span>500 odpovedí</span></div>
+        <div class="credit-row"><span>€10</span><span>1 200 odpovedí</span></div>
+        <div class="credit-row"><span>Ľubovoľná suma</span><span>1€ = 100 odpovedí</span></div>
+      </div>
+      <ul class="pricing-features">
+        <li><strong>Predajný AI framework</strong> (Discovery → Close)</li>
+        <li>Proaktívna bublina – chatbot osloví zákazníka sám</li>
+        <li>Sledovanie stránky – AI vie čo zákazník prezerá</li>
+        <li>Produktový katalóg s AI odporúčaním</li>
+        <li>Až 10 chatbotov / widgetov na rôznych weboch</li>
+        <li>Instagram DM Bot (náhrada ManyChat)</li>
+        <li>Znalostná báza z PDF, TXT, CSV, MD + priamy text</li>
+        <li><strong>URL scraping</strong> – AI naskenuje váš web automaticky</li>
+        <li><strong>AI Coach</strong> – zákaznícka podpora s aktívnym radením</li>
+        <li>AI predajné karty pre každý lead</li>
+        <li>CRM správa leadov + CSV export</li>
+        <li>Email notifikácie pri nových leadoch</li>
+        <li>Shadow DOM – žiadny konflikt so štýlmi webu</li>
+        <li>Affiliate systém + Stripe billing portál</li>
+        <li>GDPR súhlas v kontaktnom formulári</li>
+      </ul>
+      <p class="pricing-urgency">⚡ Každý deň bez AI obchodníka = ďalší zákazník, čo odišiel</p>
+      <button class="btn-pricing" onclick="showAuth('register')">Začať teraz – prvý mesiac bez rizika</button>
+      <p class="pricing-fine">Zrušenie kedykoľvek · Žiadne skryté poplatky · Platba kartou cez Stripe</p>
     </div>
-    <ul class="pricing-features">
-      <li>✓ Neobmedzené konverzácie</li>
-      <li>✓ Až 10 widgetov</li>
-      <li>✓ Znalostná báza (PDF, text, CSV)</li>
-      <li>✓ AI navrhované otázky</li>
-      <li>✓ Všetky typy konverzií (hovor, formulár, nákup...)</li>
-      <li>✓ Claude Opus AI (najlepší model)</li>
-      <li>✓ Embed kód pre akýkoľvek web</li>
-      <li>✓ Email podpora</li>
-    </ul>
-    <button class="btn-pricing-primary" onclick="showAuth('register')">Začať teraz</button>
-    <p class="pricing-note">Zrušenie kedykoľvek · Platba kartou cez Stripe</p>
   </div>
 </section>
 
 <!-- FAQ -->
 <section class="faq-section">
-  <h2 class="section-h2">Časté otázky</h2>
-  <div class="faq-list">
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Musím vedieť programovať? <span>+</span></button>
-      <div class="faq-a">Nie. Stačí skopírovať 2 riadky kódu do HTML vašej stránky. Ak používate WordPress, Shopify alebo Wix, existuje návod pre každú platformu.</div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Čo sa stane s mojimi dátami? <span>+</span></button>
-      <div class="faq-a">Vaše dokumenty sú uložené bezpečne a používajú sa výhradne pre váš chatbot. Nikdy nie sú zdieľané s inými klientmi ani použité na tréning AI modelov.</div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Môžem mať viac chatbotov? <span>+</span></button>
-      <div class="faq-a">Áno. Pro plán zahŕňa až 10 widgetov. Každý widget má svoju vlastnú znalosttnú bázu, nastavenia a embed kód – ideálne pre viacero webstránok alebo produktov.</div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Ako funguje AI? Čo ak odpovie zle? <span>+</span></button>
-      <div class="faq-a">Chatbot odpovedá výhradne na základe dokumentov, ktoré ste nahral. Ak informácia v báze nie je, povie to zákazníkovi a odkáže ho na vás. Nevymýšľa si fakty.</div>
-    </div>
-    <div class="faq-item">
-      <button class="faq-q" onclick="toggleFaq(this)">Môžem zrušiť predplatné? <span>+</span></button>
-      <div class="faq-a">Áno, kedykoľvek bez poplatkov. Po zrušení bude chatbot aktívny do konca zaplateného obdobia.</div>
+  <div class="inner-sm">
+    <h2 class="section-h2">Rozumieme vašim pochybnostiam</h2>
+    <div class="faq-list">
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Je NeuraDesk naozaj „predajca" alebo len chatbot? <span>+</span></button><div class="faq-a">Je to skutočný predajný AI. Má zabudovaný 5-fázový framework (Discovery → Pain → Solution → Objections → Close), kladie otázky namiesto len odpovedania, identifikuje problém zákazníka a spracúva námietky. To je fundamentálny rozdiel oproti chatbotom, čo len hľadajú v FAQ.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Musím vedieť programovať? <span>+</span></button><div class="faq-a">Vôbec nie. Jeden riadok kódu do HTML – presne ako Google Analytics alebo Facebook Pixel. Pre WordPress a Shopify máme plugin/app, kde stačí kliknúť „Inštalovať". Onboarding vás prevedie krok za krokom.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo ak chatbot odpovie zle alebo si niečo vymyslí? <span>+</span></button><div class="faq-a">Chatbot odpovedá výhradne z dokumentov, ktoré ste nahrali. Ak informácia v báze nie je, povie zákazníkovi „Toto neviem, spojte sa priamo." Nevymýšľa si fakty. A keď aktualizujete dokumenty, chatbot sa okamžite učí nové info.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Ako funguje Instagram DM Bot? Nepotrebujem ManyChat? <span>+</span></button><div class="faq-a">Prepojíte Instagram cez OAuth (bezpečne, bez hesiel). Nastavíte kľúčové slová (napr. „cena", „info", „chcem"). Keď zákazník napíše tieto slová do komentára, AI mu automaticky pošle DM a vedie predajnú konverzáciu. Áno, nahradzuje ManyChat – a máte to v cene €37/mes spolu so web chatbotom.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo je proaktívna bublina a ako funguje? <span>+</span></button><div class="faq-a">Je to animovaná správa, ktorá sa objaví nad chatbotom po nastavenom čase (napr. 10 sekúnd po príchode na stránku). Zákazník ju vidí, klikne na ňu a chat sa otvorí. Presne tak, ako keď vás v obchode osloví predavač. Text si nastavíte sami, chatbot potom prevezme konverzáciu.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Je €37/mesiac naozaj všetko? <span>+</span></button><div class="faq-a">€37/mes = flat fee + 1 500 AI odpovedí. Pre väčšinu biznis typov to pokryje všetko. Ak máte veľkú návštevnosť, dokúpite kredity (1€ = 100 odpovedí). Dostanete upozornenie pri 80% a 100% – žiadne prekvapenia.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo sa stane s mojimi dátami? <span>+</span></button><div class="faq-a">Vaše dokumenty sú izolované – iný zákazník k nim nemá prístup, nie sú použité na tréning AI modelov. GDPR súhlas je zabudovaný. Zmažete kedykoľvek – skutočne zmizne.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Ako funguje skenovanie webu (URL scraping)? <span>+</span></button><div class="faq-a">V dashboarde zadáte URL vašej webstránky a kliknete „Skenovať". Systém automaticky prejde stránky, blog a produkty a pridá ich obsah do znalostnej bázy chatbota. Funguje na akomkoľvek verejnom webe – WordPress, Shopify, vlastný HTML. Skenovanie trvá zvyčajne 30–120 sekúnd podľa veľkosti webu. Môžete ho kedykoľvek opakovať keď aktualizujete obsah.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo je AI Coach a čím sa líši od bežnej podpory? <span>+</span></button><div class="faq-a">AI Coach je špeciálny mód, kde chatbot nielen odpovedá na otázky zákazníkov, ale aktívne im radí ako z vášho produktu alebo služby dostať maximum. Namiesto pasívneho helpdesku dostanete proaktívnu podporu, ktorá zvyšuje spokojnosť zákazníkov a znižuje počet opakujúcich sa support ticketov. Nastavíte ho rovnako ako predajného AI – cez znalostná bázu a systémový prompt.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Môžem zrušiť kedykoľvek? <span>+</span></button><div class="faq-a">Áno. Kliknutím v Stripe portáli – bez telefonátov, formulárov, vysvetľovania. Chatbot ostane aktívny do konca zaplateného mesiaca. Dáta si exportujete pred odchodom.</div></div>
     </div>
   </div>
 </section>
 
 <!-- FOOTER CTA -->
 <section class="footer-cta">
-  <h2>Začnite ešte dnes</h2>
-  <p>Prvý chatbot live za menej ako 10 minút.</p>
-  <button class="btn-hero-primary" onclick="showAuth('register')">Vyskúšať za €29/mesiac</button>
+  <div class="footer-cta-glow"></div>
+  <h2>Zákazník, čo práve čaká na vašom webe<br>alebo komentuje na Instagrame –<br><span class="grad-text">si zaslúži odpoveď teraz.</span></h2>
+  <p>Dajte mu AI obchodníka. Automaticky. Okamžite. 24/7.</p>
+  <div class="footer-cta-btn">
+    <button class="btn-primary" onclick="showAuth('register')">Spustiť AI obchodníka – €37/mesiac</button>
+  </div>
+  <p class="footer-cta-fine">Nastavenie za 10 minút · Zrušenie kedykoľvek</p>
 </section>
 
 <footer class="footer">
   <div class="footer-inner">
     <div class="footer-logo">Neura<span>Desk</span></div>
     <div class="footer-links">
-      <a href="#">Ochrana súkromia</a>
-      <a href="#">Podmienky</a>
+      <a href="https://neuradesk.online/policy.pdf">Ochrana súkromia</a>
+      <a href="https://neuradesk.online/policy.pdf">Podmienky</a>
       <a href="mailto:info@neuradesk.online">Kontakt</a>
     </div>
-    <div class="footer-copy">© 2025 NeuraDeskApp. Všetky práva vyhradené.</div>
+    <div class="footer-copy">© 2025 NeuraDesk. Všetky práva vyhradené.</div>
   </div>
 </footer>
 
@@ -246,73 +883,107 @@
   <div class="auth-modal">
     <button class="auth-close" onclick="hideAuth()">✕</button>
     <div class="auth-logo">Neura<span>Desk</span></div>
-
     <div class="auth-tabs">
-      <button class="auth-tab active" id="tab-login" onclick="switchTab('login')">Prihlásiť sa</button>
-      <button class="auth-tab" id="tab-register" onclick="switchTab('register')">Registrácia</button>
+      <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Prihlásiť sa</button>
+      <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Registrácia</button>
     </div>
-
-    <!-- Login -->
     <form id="form-login" onsubmit="handleLogin(event)">
-      <div class="field">
-        <label>Email</label>
-        <input type="email" name="email" required placeholder="vas@email.sk">
-      </div>
-      <div class="field">
-        <label>Heslo</label>
-        <input type="password" name="password" required placeholder="••••••••">
-      </div>
+      <div class="field"><label>Email</label><input type="email" name="email" required placeholder="vas@email.sk" autocomplete="email"></div>
+      <div class="field"><label>Heslo</label><input type="password" name="password" required placeholder="••••••••" autocomplete="current-password"></div>
       <button type="submit" class="btn-submit" id="btn-login">Prihlásiť sa</button>
       <div class="auth-error" id="err-login"></div>
     </form>
-
-    <!-- Register -->
     <form id="form-register" style="display:none" onsubmit="handleRegister(event)">
+      <div class="field"><label>Meno a priezvisko</label><input type="text" name="name" required placeholder="Ján Novák" autocomplete="name"></div>
+      <div class="field"><label>Email</label><input type="email" name="email" required placeholder="vas@email.sk" autocomplete="email"></div>
+      <div class="field"><label>Heslo <small>(min. 8 znakov)</small></label><input type="password" name="password" required minlength="8" placeholder="••••••••" autocomplete="new-password"></div>
       <div class="field">
-        <label>Meno a priezvisko</label>
-        <input type="text" name="name" required placeholder="Ján Novák">
-      </div>
-      <div class="field">
-        <label>Email</label>
-        <input type="email" name="email" required placeholder="vas@email.sk">
-      </div>
-      <div class="field">
-        <label>Heslo <small>(min. 8 znakov)</small></label>
-        <input type="password" name="password" required minlength="8" placeholder="••••••••">
-      </div>
-      <div class="field" id="field-referral">
         <label>Referral kód <small>(voliteľné)</small></label>
-        <input type="text" name="referralCode" id="input-referral-code" placeholder="napr. JANA4X2K" style="text-transform:uppercase">
-        <div id="referral-valid-note" style="display:none;font-size:0.78rem;color:#16a34a;margin-top:0.25rem">🎁 Kód je platný – dostanete zvýhodnenú cenu!</div>
+        <input type="text" name="referralCode" id="input-referral-code" placeholder="napr. JANA4X2K" style="text-transform:uppercase" autocomplete="off">
+        <div id="referral-valid-note" style="display:none;font-size:.75rem;color:#1fd89a;margin-top:.25rem">🎁 Kód je platný – dostanete 15% zľavu!</div>
       </div>
-      <button type="submit" class="btn-submit" id="btn-register">Vytvoriť účet a pokračovať</button>
+      <div class="checkbox-group">
+        <input type="checkbox" id="agree-privacy" name="agreePrivacy" required>
+        <label for="agree-privacy">
+          Potvrdzujem, že som sa oboznámil/a s
+          <a href="/policy.pdf" target="_blank" rel="noopener noreferrer">ochranou osobných údajov</a>.
+        </label>
+      </div>
+      <div class="checkbox-group">
+        <input type="checkbox" id="agree-terms" name="agreeTerms" required>
+        <label for="agree-terms">
+          Súhlasím s
+          <a href="/policy.pdf" target="_blank" rel="noopener noreferrer">podmienkami používania</a>.
+        </label>
+      </div>
+      <button type="submit" class="btn-submit" id="btn-register">Vytvoriť účet a získať AI obchodníka →</button>
       <div class="auth-error" id="err-register"></div>
-      <p class="auth-note">Po registrácii budete presmerovaní na výber predplatného.</p>
+      <p class="auth-note">Po registrácii vás presmerujeme na výber predplatného.</p>
     </form>
   </div>
 </div>
 
 <script>
-  // Redirect logged-in users
+  // ── REDIRECT IF LOGGED IN ──
   if (localStorage.getItem('nd_token')) window.location.href = '/dashboard';
 
-  // URL params
+  // ── URL PARAMS ──
   const params = new URLSearchParams(location.search);
-  if (params.get('canceled')) showToast('Platba bola zrušená.', 'error');
 
-  // Auto-fill referral code from ?ref= param
-  const refCode = params.get('ref');
-  if (refCode) {
-    document.addEventListener('DOMContentLoaded', () => {
-      const input = document.getElementById('input-referral-code');
-      if (input) {
-        input.value = refCode.toUpperCase();
-        validateReferralCode(refCode);
-      }
-    });
-    showAuth('register');
+  // ── MOBILE NAV ──
+  const hamburger = document.getElementById('hamburger');
+  const navMobile = document.getElementById('nav-mobile');
+  hamburger.addEventListener('click', () => {
+    const open = navMobile.classList.toggle('open');
+    hamburger.classList.toggle('open', open);
+    hamburger.setAttribute('aria-expanded', String(open));
+    document.body.style.overflow = open ? 'hidden' : '';
+  });
+  function closeMobileNav() {
+    navMobile.classList.remove('open');
+    hamburger.classList.remove('open');
+    hamburger.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
   }
 
+  // ── FEATURE TABS ──
+  document.querySelectorAll('.feat-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.feat-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.feat-panel').forEach(p => p.classList.remove('active'));
+      tab.classList.add('active');
+      const panel = document.getElementById('panel-' + tab.dataset.panel);
+      if (panel) panel.classList.add('active');
+    });
+  });
+
+  // ── SMOOTH SCROLL ──
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      e.preventDefault();
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth' });
+    });
+  });
+
+  // ── AUTH ──
+  function showAuth(tab) {
+    document.getElementById('auth-overlay').style.display = 'flex';
+    switchAuthTab(tab);
+    document.body.style.overflow = 'hidden';
+  }
+  function hideAuth() {
+    document.getElementById('auth-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+  function switchAuthTab(tab) {
+    document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
+    document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
+    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+  }
+
+  // ── REFERRAL ──
   async function validateReferralCode(code) {
     if (!code || code.length < 4) return;
     try {
@@ -320,99 +991,110 @@
       const d = await r.json();
       const note = document.getElementById('referral-valid-note');
       if (note) note.style.display = d.valid ? '' : 'none';
-    } catch { /* ignore */ }
+    } catch {}
   }
 
-  // Validate referral code on input
-  document.addEventListener('DOMContentLoaded', () => {
-    const input = document.getElementById('input-referral-code');
-    if (input) {
-      input.addEventListener('blur', () => validateReferralCode(input.value.trim()));
-    }
-  });
-
-  function showAuth(tab) {
-    document.getElementById('auth-overlay').style.display = 'flex';
-    switchTab(tab);
-    document.body.style.overflow = 'hidden';
-  }
-  function hideAuth() {
-    document.getElementById('auth-overlay').style.display = 'none';
-    document.body.style.overflow = '';
-  }
-  function switchTab(tab) {
-    document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
-    document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
-    document.getElementById('tab-login').classList.toggle('active', tab === 'login');
-    document.getElementById('tab-register').classList.toggle('active', tab === 'register');
-  }
-
+  // ── LOGIN ──
   async function handleLogin(e) {
     e.preventDefault();
-    const btn = document.getElementById('btn-login');
-    const err = document.getElementById('err-login');
+    const btn = document.getElementById('btn-login'), err = document.getElementById('err-login');
     err.textContent = ''; btn.disabled = true; btn.textContent = 'Prihlasujem...';
     const f = e.target;
     try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: f.email.value, password: f.password.value }),
-      });
+      const res = await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: f.email.value, password: f.password.value }) });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'Nepodarilo sa prihlásiť');
       localStorage.setItem('nd_token', data.token);
       localStorage.setItem('nd_user', JSON.stringify(data.user));
-      // Check subscription status
-      const sr = await fetch('/api/stripe/status', { headers: { 'Authorization': `Bearer ${data.token}` } });
+      const sr = await fetch('/api/stripe/status', { headers: {'Authorization': `Bearer ${data.token}`} });
       const sd = await sr.json();
       window.location.href = sd.active ? '/dashboard' : '/onboarding';
-    } catch (ex) {
-      err.textContent = ex.message; btn.disabled = false; btn.textContent = 'Prihlásiť sa';
-    }
+    } catch (ex) { err.textContent = ex.message; btn.disabled = false; btn.textContent = 'Prihlásiť sa'; }
   }
 
+  // ── REGISTER ──
   async function handleRegister(e) {
     e.preventDefault();
+
     const btn = document.getElementById('btn-register');
     const err = document.getElementById('err-register');
-    err.textContent = ''; btn.disabled = true; btn.textContent = 'Registrujem...';
+    err.textContent = '';
+
     const f = e.target;
-    const referralCode = (document.getElementById('input-referral-code')?.value || '').trim().toUpperCase() || undefined;
+    const agreePrivacy = document.getElementById('agree-privacy')?.checked;
+    const agreeTerms = document.getElementById('agree-terms')?.checked;
+
+    if (!agreePrivacy || !agreeTerms) {
+      err.textContent = 'Pred registráciou musíte potvrdiť ochranu osobných údajov aj podmienky používania.';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Registrujem...';
+
+    const referralCode =
+      (document.getElementById('input-referral-code')?.value || '').trim().toUpperCase() || undefined;
+
     try {
       const res = await fetch('/api/auth/register', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: f.name.value, email: f.email.value, password: f.password.value, referralCode }),
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: f.name.value,
+          email: f.email.value,
+          password: f.password.value,
+          referralCode,
+          agreePrivacy: true,
+          agreeTerms: true,
+          policyVersion: '2026-04'
+        })
       });
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      if (!res.ok) throw new Error(data.error || 'Nepodarilo sa zaregistrovať');
+
       localStorage.setItem('nd_token', data.token);
       localStorage.setItem('nd_user', JSON.stringify({ ...data.user, hasReferral: !!data.hasReferral }));
       window.location.href = '/demo';
     } catch (ex) {
-      err.textContent = ex.message; btn.disabled = false; btn.textContent = 'Vytvoriť účet a pokračovať';
+      err.textContent = ex.message;
+      btn.disabled = false;
+      btn.textContent = 'Vytvoriť účet a získať AI obchodníka →';
     }
   }
 
+  // ── FAQ ──
   function toggleFaq(btn) {
     const item = btn.parentElement;
     const open = item.classList.toggle('open');
     btn.querySelector('span').textContent = open ? '−' : '+';
   }
 
+  // ── TOAST ──
   function showToast(msg, type) {
     const t = document.createElement('div');
-    t.className = `toast toast-${type}`;
+    t.className = 'toast' + (type ? ' toast-' + type : '');
     t.textContent = msg;
     document.body.appendChild(t);
     setTimeout(() => t.remove(), 4000);
   }
 
-  // Smooth scroll for nav links
-  document.querySelectorAll('a[href^="#"]').forEach(a => {
-    a.addEventListener('click', e => {
-      e.preventDefault();
-      document.querySelector(a.getAttribute('href'))?.scrollIntoView({ behavior: 'smooth' });
-    });
+  // ── ESC ──
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { hideAuth(); closeMobileNav(); } });
+
+  // ── ON LOAD ──
+  document.addEventListener('DOMContentLoaded', () => {
+    if (params.get('canceled')) showToast('Platba bola zrušená.', 'error');
+
+    const refCode = params.get('ref');
+    if (refCode) {
+      const inp = document.getElementById('input-referral-code');
+      if (inp) { inp.value = refCode.toUpperCase(); validateReferralCode(refCode); }
+      showAuth('register');
+    }
+
+    const inp = document.getElementById('input-referral-code');
+    if (inp) inp.addEventListener('blur', () => validateReferralCode(inp.value.trim()));
   });
 </script>
 </body>
