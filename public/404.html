@@ -3,59 +3,266 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>404 – Stránka nenájdená | NeuraDeskApp</title>
+  <title>404 – Stránka nenájdená | NeuraDesk</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080810; --bg2: #0d0d18; --bg3: #111120;
+      --surface: #18182a; --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+      --text: #eeeef5; --muted: #6e6e90; --muted2: #9898b8;
+      --accent: #5b4fff; --accent2: #9b8cff;
+      --danger: #ff4060; --success: #1fd89a;
+      --grad: linear-gradient(135deg, #5b4fff 0%, #9b8cff 60%, #c084fc 100%);
+      --px: clamp(16px, 5vw, 60px);
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0f172a;
-      color: #f1f5f9;
-      min-height: 100vh;
+      font-family: Arial, Helvetica, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100svh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+    body::after {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 999; opacity: .025;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* NAV */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      background: rgba(8,8,16,0.92); backdrop-filter: blur(24px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-inner {
+      max-width: 1200px; margin: 0 auto; padding: 0 var(--px);
+      display: flex; align-items: center; justify-content: space-between; height: 58px;
+    }
+    .nav-logo { font-weight: 800; font-size: 1.2rem; letter-spacing: -0.02em; text-decoration: none; color: var(--text); }
+    .nav-logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+
+    /* MAIN */
+    main {
+      flex: 1;
       display: flex;
       align-items: center;
       justify-content: center;
-      padding: 2rem;
+      padding: calc(58px + 48px) var(--px) 64px;
       text-align: center;
+      position: relative;
     }
-    .wrap { max-width: 420px; }
-    .code {
-      font-size: 6rem;
-      font-weight: 900;
-      letter-spacing: -4px;
-      background: linear-gradient(135deg, #2563eb, #60a5fa);
+
+    /* GLOW */
+    .glow {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -60%);
+      width: min(700px, 100vw); height: 500px;
+      background: radial-gradient(ellipse at 50% 50%, rgba(91,79,255,0.18) 0%, transparent 65%);
+      pointer-events: none;
+    }
+    .glow-danger {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -60%);
+      width: min(400px, 80vw); height: 300px;
+      background: radial-gradient(ellipse at 50% 50%, rgba(255,64,96,0.08) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    /* 404 NUMBER */
+    .err-wrap { position: relative; z-index: 1; max-width: 580px; width: 100%; }
+
+    .err-number {
+      font-size: clamp(7rem, 28vw, 14rem);
+      font-weight: 800;
+      line-height: 1;
+      letter-spacing: -0.05em;
+      background: var(--grad);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
-      background-clip: text;
-      line-height: 1;
-      margin-bottom: 1rem;
+      margin-bottom: .1em;
+      animation: fadeUp .6s ease both;
+      position: relative;
     }
-    h1 { font-size: 1.4rem; font-weight: 700; margin-bottom: 0.5rem; }
-    p { font-size: 0.95rem; color: #64748b; margin-bottom: 2rem; line-height: 1.6; }
-    .btn {
-      display: inline-flex;
+    .err-number::after {
+      content: '404';
+      position: absolute; inset: 0;
+      background: var(--grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      filter: blur(32px);
+      opacity: .35;
+      z-index: -1;
+    }
+
+    .err-eyebrow {
+      font-size: .72rem; font-weight: 700; letter-spacing: .14em;
+      text-transform: uppercase; color: var(--danger);
+      margin-bottom: .75rem;
+      display: flex; align-items: center; justify-content: center; gap: .5rem;
+      animation: fadeUp .6s .1s ease both; opacity: 0;
+    }
+    .err-dot {
+      width: 6px; height: 6px; background: var(--danger); border-radius: 50%;
+      animation: pulse 1.5s infinite;
+    }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.35;transform:scale(1.5)} }
+
+    .err-title {
+      font-size: clamp(1.4rem, 5vw, 2.2rem);
+      font-weight: 800; line-height: 1.15;
+      letter-spacing: -0.025em;
+      margin-bottom: .85rem;
+      animation: fadeUp .6s .15s ease both; opacity: 0;
+    }
+    .err-sub {
+      color: var(--muted2); font-size: .97rem; line-height: 1.72;
+      margin-bottom: 2rem; max-width: 440px; margin-left: auto; margin-right: auto;
+      animation: fadeUp .6s .2s ease both; opacity: 0;
+    }
+    .err-sub strong { color: var(--text); font-weight: 500; }
+
+    /* BUTTONS */
+    .err-ctas {
+      display: flex; flex-direction: column; gap: .75rem;
       align-items: center;
-      gap: 0.5rem;
-      background: #2563eb;
-      color: white;
-      font-size: 0.9rem;
-      font-weight: 700;
-      padding: 0.75rem 1.5rem;
-      border-radius: 10px;
-      text-decoration: none;
-      transition: background 0.15s;
+      animation: fadeUp .6s .25s ease both; opacity: 0;
     }
-    .btn:hover { background: #1d4ed8; }
-    .logo { font-size: 1rem; font-weight: 800; color: #475569; margin-bottom: 2.5rem; }
-    .logo span { color: #60a5fa; }
+    .btn-primary {
+      background: var(--grad); border: none; color: white;
+      padding: .9rem 1.75rem; border-radius: 14px;
+      font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit;
+      box-shadow: 0 0 40px rgba(91,79,255,0.35); transition: all .25s;
+      text-decoration: none; display: inline-block;
+    }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(91,79,255,0.52); }
+    .btn-outline {
+      background: none; border: 1px solid var(--border2); color: var(--muted2);
+      padding: .9rem 1.5rem; border-radius: 14px;
+      font-size: .95rem; cursor: pointer; text-decoration: none; display: inline-block;
+      font-family: inherit; transition: all .2s;
+    }
+    .btn-outline:hover { border-color: var(--accent2); color: var(--text); }
+
+    /* SUGGESTIONS */
+    .err-suggest {
+      margin-top: 2.5rem;
+      animation: fadeUp .6s .35s ease both; opacity: 0;
+    }
+    .err-suggest-label {
+      font-size: .7rem; font-weight: 700; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 1rem;
+    }
+    .err-links {
+      display: flex; flex-wrap: wrap; gap: .5rem; justify-content: center;
+    }
+    .err-link {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 100px; padding: .35rem .9rem;
+      font-size: .8rem; color: var(--muted2); text-decoration: none;
+      transition: all .2s;
+    }
+    .err-link:hover { border-color: var(--accent2); color: var(--text); }
+
+    /* AI BUBBLE */
+    .err-bubble {
+      margin-top: 2.5rem;
+      background: var(--bg3); border: 1px solid var(--border);
+      border-radius: 18px; padding: 1.1rem 1.25rem;
+      display: flex; align-items: flex-start; gap: .85rem;
+      text-align: left; max-width: 440px; margin-left: auto; margin-right: auto;
+      animation: fadeUp .6s .4s ease both; opacity: 0;
+    }
+    .bubble-avatar {
+      width: 36px; height: 36px; min-width: 36px;
+      background: var(--grad); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+    }
+    .bubble-text { font-size: .84rem; color: var(--muted2); line-height: 1.6; }
+    .bubble-text strong { color: var(--text); font-weight: 500; }
+    .bubble-cursor {
+      display: inline-block; width: 2px; height: .9em;
+      background: var(--accent2); margin-left: 2px; vertical-align: middle;
+      animation: blink .8s step-end infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 1.25rem var(--px);
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: .5rem;
+    }
+    .footer-logo { font-weight: 800; font-size: 1rem; }
+    .footer-logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .footer-copy { color: var(--muted); font-size: .74rem; }
+
+    @media (min-width: 480px) {
+      .err-ctas { flex-direction: row; justify-content: center; }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="logo">Neura<span>Desk</span></div>
-    <div class="code">404</div>
-    <h1>Stránka nenájdená</h1>
-    <p>Táto stránka neexistuje alebo bola presunutá.<br>Skontrolujte adresu alebo sa vráťte domov.</p>
-    <a href="/" class="btn">← Späť na hlavnú</a>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Neura<span>Desk</span></a>
   </div>
+</nav>
+
+<main>
+  <div class="glow"></div>
+  <div class="glow-danger"></div>
+
+  <div class="err-wrap">
+    <div class="err-eyebrow">
+      <span class="err-dot"></span>
+      Stránka nenájdená
+    </div>
+
+    <div class="err-number">404</div>
+
+    <h1 class="err-title">Táto stránka odišla<br><span style="background:var(--grad);-webkit-background-clip:text;-webkit-text-fill-color:transparent">bez odpovede.</span></h1>
+
+    <p class="err-sub">Aj zákazníci, čo narazia na chybnú stránku, si zaslúžia pomoc. Ale táto URL jednoducho <strong>neexistuje</strong> – skúste sa vrátiť na správnu stopu.</p>
+
+    <div class="err-ctas">
+      <a href="/" class="btn-primary">Späť na hlavnú →</a>
+      <a href="/#pricing" class="btn-outline">Pozrieť ceny</a>
+    </div>
+
+    <div class="err-suggest">
+      <div class="err-suggest-label">Možno hľadáte</div>
+      <div class="err-links">
+        <a href="/#features" class="err-link">Funkcie</a>
+        <a href="/#instagram" class="err-link">Instagram Bot</a>
+        <a href="/#pricing" class="err-link">Cena €37/mes</a>
+        <a href="/#pain" class="err-link">Problém</a>
+        <a href="/wordpress" class="err-link">WordPress</a>
+        <a href="/dashboard" class="err-link">Dashboard</a>
+      </div>
+    </div>
+
+    <div class="err-bubble">
+      <div class="bubble-avatar">🤖</div>
+      <div class="bubble-text">
+        <strong>NeuraDeskAI</strong><br>
+        Ahoj! Táto stránka neexistuje, ale ja som tu 24/7. Môžem vám pomôcť nájsť čo hľadáte alebo vás nasmerovať na správne miesto.<span class="bubble-cursor"></span>
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="footer-logo">Neura<span>Desk</span></div>
+  <div class="footer-copy">© 2025 NeuraDesk. Všetky práva vyhradené.</div>
+</footer>
+
 </body>
 </html>
