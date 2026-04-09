@@ -119,11 +119,13 @@ function showView(view) {
   document.getElementById('view-editor').style.display = view === 'editor' ? '' : 'none';
   document.getElementById('view-leads').style.display = view === 'leads' ? '' : 'none';
   document.getElementById('view-affiliate').style.display = view === 'affiliate' ? '' : 'none';
+  document.getElementById('view-coach').style.display = view === 'coach' ? '' : 'none';
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
   document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
   document.getElementById('nav-leads').classList.toggle('active', view === 'leads');
   document.getElementById('nav-affiliate').classList.toggle('active', view === 'affiliate');
+  document.getElementById('nav-coach').classList.toggle('active', view === 'coach');
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
@@ -139,6 +141,11 @@ function showView(view) {
     document.getElementById('topbar-title').textContent = 'Affiliate';
     document.getElementById('topbar-actions').innerHTML = '';
     loadAffiliateStatus();
+  }
+  if (view === 'coach') {
+    document.getElementById('topbar-title').textContent = 'AI Coach';
+    document.getElementById('topbar-actions').innerHTML =
+      '<button class="btn btn-secondary btn-sm" onclick="clearCoachHistory()">Vymazať chat</button>';
   }
 }
 
@@ -1093,6 +1100,106 @@ async function toggleAutoRedeem() {
   } catch {
     showToast('Chyba.', 'error');
   }
+}
+
+/* ── AI Coach ────────────────────────────────────────────────── */
+let coachHistory = [];
+
+function coachAsk(btn) {
+  const text = btn.textContent;
+  // Hide suggestions after first question
+  document.getElementById('coach-suggestions').style.display = 'none';
+  document.getElementById('coach-input').value = text;
+  sendCoachMessage();
+}
+
+async function sendCoachMessage() {
+  const input = document.getElementById('coach-input');
+  const message = input.value.trim();
+  if (!message) return;
+
+  input.value = '';
+  document.getElementById('coach-suggestions').style.display = 'none';
+
+  // Add user bubble
+  appendCoachMsg('user', message);
+
+  // Show typing indicator
+  const typing = appendCoachTyping();
+
+  const btn = document.getElementById('coach-send-btn');
+  btn.disabled = true;
+
+  try {
+    const r = await apiFetch('/api/coach/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message, history: coachHistory }),
+    });
+    if (!r) throw new Error('no response');
+    const d = await r.json();
+    typing.remove();
+
+    if (!r.ok) {
+      appendCoachMsg('assistant', d.error || 'Nastala chyba. Skúste znova.');
+    } else {
+      appendCoachMsg('assistant', d.reply);
+      coachHistory.push({ role: 'user', content: message });
+      coachHistory.push({ role: 'assistant', content: d.reply });
+      // Keep history reasonable
+      if (coachHistory.length > 24) coachHistory = coachHistory.slice(-24);
+    }
+  } catch {
+    typing.remove();
+    appendCoachMsg('assistant', 'Nastala chyba spojenia. Skúste znova.');
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
+function appendCoachMsg(role, text) {
+  const container = document.getElementById('coach-messages');
+  const div = document.createElement('div');
+  div.className = `coach-msg ${role}`;
+  const icon = role === 'assistant' ? '🎓' : (currentUser?.name?.[0]?.toUpperCase() || '👤');
+  div.innerHTML = `
+    <div class="coach-msg-icon">${icon}</div>
+    <div class="coach-msg-bubble">${escCoach(text)}</div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function appendCoachTyping() {
+  const container = document.getElementById('coach-messages');
+  const div = document.createElement('div');
+  div.className = 'coach-msg assistant';
+  div.innerHTML = `
+    <div class="coach-msg-icon">🎓</div>
+    <div class="coach-typing"><span></span><span></span><span></span></div>
+  `;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+  return div;
+}
+
+function clearCoachHistory() {
+  coachHistory = [];
+  document.getElementById('coach-messages').innerHTML = '';
+  document.getElementById('coach-suggestions').style.display = '';
+}
+
+function escCoach(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/`(.*?)`/g, '<code style="background:#f1f5f9;padding:0.1rem 0.3rem;border-radius:4px;font-size:0.85em">$1</code>')
+    .replace(/\n/g, '<br>');
 }
 
 /* ── Credits / Usage ────────────────────────────────────────────── */

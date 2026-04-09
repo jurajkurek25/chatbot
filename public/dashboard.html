@@ -25,6 +25,9 @@
       <button class="nav-item" onclick="showView('affiliate')" id="nav-affiliate">
         <span class="nav-icon">🎁</span> Affiliate
       </button>
+      <button class="nav-item" onclick="showView('coach')" id="nav-coach">
+        <span class="nav-icon">🎓</span> AI Coach
+      </button>
     </div>
 
     <div class="sidebar-section" id="widget-nav-section" style="display:none">
@@ -250,6 +253,50 @@
               <div>🎁 <strong>29 € kreditov = 1 mesiac zadarmo</strong> – predplatné sa pozastaví, kredity sa odpočítajú</div>
             </div>
           </div>
+        </div>
+      </div>
+
+      <!-- ── View: AI Coach ────────────────────────────── -->
+      <div id="view-coach" style="display:none">
+        <div class="coach-wrap">
+
+          <!-- Header -->
+          <div class="coach-header">
+            <div class="coach-avatar-lg">🎓</div>
+            <div>
+              <div class="coach-title">AI Coach</div>
+              <div class="coach-subtitle">Opýtaj sa ma čokoľvek o NeuraDeskApp — som tu pre teba</div>
+            </div>
+          </div>
+
+          <!-- Suggestions -->
+          <div class="coach-suggestions" id="coach-suggestions">
+            <button class="coach-chip" onclick="coachAsk(this)">Ako vložím chatbot na web?</button>
+            <button class="coach-chip" onclick="coachAsk(this)">Chatbot odpovedá zle, čo robím?</button>
+            <button class="coach-chip" onclick="coachAsk(this)">Ako pripojiť Instagram?</button>
+            <button class="coach-chip" onclick="coachAsk(this)">Ako získať viac AI kreditov zadarmo?</button>
+            <button class="coach-chip" onclick="coachAsk(this)">Čo je affiliate program?</button>
+            <button class="coach-chip" onclick="coachAsk(this)">Ako nastaviť GDPR súhlas?</button>
+          </div>
+
+          <!-- Messages -->
+          <div class="coach-messages" id="coach-messages"></div>
+
+          <!-- Input -->
+          <div class="coach-input-row">
+            <input
+              type="text"
+              class="coach-input"
+              id="coach-input"
+              placeholder="Napíšte otázku…"
+              maxlength="1000"
+              onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendCoachMessage();}"
+            >
+            <button class="coach-send-btn" id="coach-send-btn" onclick="sendCoachMessage()">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
+
         </div>
       </div>
 
