@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WordPress Plugin – NeuraDeskApp</title>
+  <meta name="description" content="Stiahnite NeuraDeskApp WordPress plugin. AI obchodník na vašom webe za 2 minúty – bez programovania.">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080810; --bg2: #0d0d18; --bg3: #111120;
+      --surface: #18182a; --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+      --text: #eeeef5; --muted: #6e6e90; --muted2: #9898b8;
+      --accent: #5b4fff; --accent2: #9b8cff;
+      --success: #1fd89a; --warn: #f59e0b; --danger: #ff4060;
+      --wp: #3858e9; --wp-light: #7b9de8;
+      --grad: linear-gradient(135deg, #5b4fff 0%, #9b8cff 60%, #c084fc 100%);
+      --grad-wp: linear-gradient(135deg, #3858e9, #7b9de8);
+      --px: clamp(16px, 5vw, 5%);
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; font-size: 16px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+    body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 999; opacity: .02; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+    @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.3;transform:scale(1.5)} }
+    @keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-4px)} }
+    @keyframes scanLine { 0%{top:0} 100%{top:100%} }
+    @keyframes checkPop { 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
+
+    /* ── NAV ── */
+    .nav { position: sticky; top: 0; z-index: 100; background: rgba(8,8,16,0.94); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
+    .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 var(--px); display: flex; align-items: center; justify-content: space-between; height: 56px; }
+    .logo { font-weight: 800; font-size: 1.15rem; letter-spacing: -.025em; }
+    .logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-wp-badge { display: flex; align-items: center; gap: .4rem; background: rgba(56,88,233,0.12); border: 1px solid rgba(56,88,233,0.28); border-radius: 100px; padding: .28rem .85rem; font-size: .72rem; font-weight: 700; color: var(--wp-light); letter-spacing: .04em; }
+    .wp-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--wp-light); animation: pulse 2s infinite; }
+
+    /* ── HERO ── */
+    .hero { padding: 4rem var(--px) 3rem; text-align: center; position: relative; isolation: isolate; }
+    .hero-glow { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(700px, 100vw); height: 450px; background: radial-gradient(ellipse at 50% 0%, rgba(56,88,233,0.16) 0%, rgba(91,79,255,0.1) 40%, transparent 70%); pointer-events: none; z-index: -1; }
+
+    .wp-logo-wrap { display: flex; align-items: center; justify-content: center; gap: .75rem; margin-bottom: 1.75rem; animation: fadeUp .5s ease both; }
+    .wp-logo-icon { width: 52px; height: 52px; background: var(--grad-wp); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; box-shadow: 0 0 30px rgba(56,88,233,0.4); }
+    .wp-logo-plus { font-size: 1.3rem; color: var(--muted); }
+    .nd-logo-icon { width: 52px; height: 52px; background: var(--grad); border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 1.6rem; box-shadow: 0 0 30px rgba(91,79,255,0.4); }
+
+    .hero-eyebrow { font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--wp-light); margin-bottom: .75rem; animation: fadeUp .5s .05s ease both; display: block; }
+    .hero-h1 { font-weight: 800; font-size: clamp(1.9rem, 6vw, 3.2rem); line-height: 1.08; letter-spacing: -.03em; margin-bottom: 1rem; animation: fadeUp .5s .1s ease both; }
+    .grad-text { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero-sub { font-size: clamp(.92rem, 2.5vw, 1.05rem); color: var(--muted2); line-height: 1.72; max-width: 560px; margin: 0 auto 2rem; animation: fadeUp .5s .15s ease both; }
+    .hero-sub strong { color: var(--text); font-weight: 500; }
+
+    /* DOWNLOAD CTA */
+    .download-box { max-width: 480px; margin: 0 auto 1.5rem; animation: fadeUp .5s .2s ease both; }
+    .btn-download { display: flex; align-items: center; justify-content: center; gap: .75rem; width: 100%; background: var(--grad); border: none; color: white; padding: 1.1rem 1.75rem; border-radius: 16px; font-family: inherit; font-size: 1rem; font-weight: 700; cursor: pointer; text-decoration: none; box-shadow: 0 0 50px rgba(91,79,255,0.35); transition: all .25s; animation: bob 3s ease-in-out infinite; }
+    .btn-download:hover { transform: translateY(-3px); box-shadow: 0 0 70px rgba(91,79,255,0.52); animation: none; }
+    .btn-download-icon { font-size: 1.3rem; }
+    .btn-download-text { display: flex; flex-direction: column; align-items: flex-start; }
+    .btn-download-main { font-size: 1rem; font-weight: 700; line-height: 1.2; }
+    .btn-download-sub { font-size: .72rem; font-weight: 400; opacity: .85; }
+
+    .download-meta { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; font-size: .75rem; color: var(--muted); animation: fadeUp .5s .25s ease both; }
+    .download-meta span { display: flex; align-items: center; gap: .3rem; }
+    .download-meta span::before { content: '✓'; color: var(--success); font-weight: 700; }
+
+    /* ── REQUIREMENTS STRIP ── */
+    .req-strip { background: rgba(245,158,11,0.06); border-top: 1px solid rgba(245,158,11,0.15); border-bottom: 1px solid rgba(245,158,11,0.15); padding: .9rem var(--px); }
+    .req-inner { max-width: 800px; margin: 0 auto; display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; justify-content: center; font-size: .82rem; color: var(--muted2); }
+    .req-label { font-weight: 700; color: var(--warn); white-space: nowrap; }
+    .req-item { display: flex; align-items: center; gap: .35rem; }
+    .req-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--muted); }
+
+    /* ── INSTALL STEPS ── */
+    .install-section { padding: 4rem var(--px); }
+    .install-inner { max-width: 780px; margin: 0 auto; }
+    .section-label { font-size: .7rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); margin-bottom: .85rem; text-align: center; display: block; }
+    .section-h2 { font-size: clamp(1.55rem, 4vw, 2.2rem); font-weight: 800; text-align: center; line-height: 1.15; letter-spacing: -.025em; margin-bottom: .75rem; }
+    .section-sub { text-align: center; color: var(--muted2); font-size: .92rem; margin-bottom: 2.5rem; line-height: 1.65; }
+
+    .install-steps { display: flex; flex-direction: column; gap: .75rem; }
+    .install-step { background: var(--bg3); border: 1px solid var(--border2); border-radius: 16px; padding: 1.35rem; display: flex; gap: 1rem; align-items: flex-start; position: relative; overflow: hidden; transition: border-color .2s; }
+    .install-step:hover { border-color: rgba(91,79,255,0.28); }
+    .install-step::before { content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 3px; background: var(--grad); opacity: 0; transition: opacity .2s; }
+    .install-step:hover::before { opacity: 1; }
+
+    .install-num { width: 34px; height: 34px; min-width: 34px; border-radius: 10px; background: var(--grad); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: .88rem; box-shadow: 0 0 14px rgba(91,79,255,0.35); }
+    .install-body { flex: 1; }
+    .install-body h3 { font-weight: 700; font-size: .95rem; margin-bottom: .35rem; }
+    .install-body p { color: var(--muted2); font-size: .86rem; line-height: 1.65; }
+    .install-body p strong { color: var(--text); font-weight: 500; }
+
+    .code-block { background: var(--surface); border: 1px solid var(--border2); border-radius: 8px; padding: .6rem .9rem; font-family: monospace; font-size: .82rem; color: var(--accent3); margin-top: .55rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .code-block code { word-break: break-all; }
+    .code-copy { background: none; border: 1px solid var(--border2); color: var(--muted2); padding: .2rem .55rem; border-radius: 6px; font-size: .7rem; cursor: pointer; font-family: inherit; transition: all .2s; white-space: nowrap; flex-shrink: 0; }
+    .code-copy:hover { border-color: var(--accent2); color: var(--text); }
+    .code-copy.copied { border-color: var(--success); color: var(--success); }
+
+    .install-step-img { margin-top: .75rem; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: .75rem 1rem; display: flex; align-items: center; gap: .65rem; font-size: .82rem; color: var(--muted2); }
+    .install-step-img-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+    /* ── FEATURES ── */
+    .features-section { padding: 4rem var(--px); background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .features-inner { max-width: 1000px; margin: 0 auto; }
+    .features-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 2rem; }
+    .feat-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem; display: flex; gap: .85rem; align-items: flex-start; transition: border-color .2s, transform .2s; }
+    .feat-card:hover { border-color: rgba(91,79,255,0.25); transform: translateY(-2px); }
+    .feat-icon { width: 38px; height: 38px; min-width: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: .95rem; flex-shrink: 0; }
+    .feat-icon.blue { background: rgba(56,88,233,0.12); border: 1px solid rgba(56,88,233,0.22); }
+    .feat-icon.purple { background: rgba(91,79,255,0.12); border: 1px solid rgba(91,79,255,0.22); }
+    .feat-icon.green { background: rgba(31,216,154,0.1); border: 1px solid rgba(31,216,154,0.2); }
+    .feat-icon.warn { background: rgba(245,158,11,0.1); border: 1px solid rgba(245,158,11,0.2); }
+    .feat-body h4 { font-weight: 700; font-size: .92rem; margin-bottom: .25rem; }
+    .feat-body p { font-size: .83rem; color: var(--muted2); line-height: 1.6; }
+    .feat-body p strong { color: var(--text); font-weight: 500; }
+    .feat-woo-badge { display: inline-flex; align-items: center; gap: .3rem; background: rgba(150,88,138,0.15); border: 1px solid rgba(150,88,138,0.25); border-radius: 100px; padding: .15rem .55rem; font-size: .67rem; font-weight: 700; color: #d4a0cc; margin-top: .4rem; }
+
+    /* ── MOCKUP ── */
+    .mockup-section { padding: 4rem var(--px); }
+    .mockup-inner { max-width: 900px; margin: 0 auto; }
+    .wp-admin-mockup { background: var(--bg3); border: 1px solid var(--border2); border-radius: 18px; overflow: hidden; box-shadow: 0 32px 64px rgba(0,0,0,.4); }
+
+    .mockup-topbar { background: #1d2327; padding: .6rem 1rem; display: flex; align-items: center; gap: .5rem; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .mockup-wp-logo { font-size: .9rem; }
+    .mockup-admin-title { font-size: .75rem; color: rgba(255,255,255,0.6); margin-left: .25rem; }
+    .mockup-admin-title strong { color: white; }
+
+    .mockup-body { display: flex; }
+    .mockup-sidebar { width: 160px; min-width: 160px; background: #1d2327; padding: .75rem 0; border-right: 1px solid rgba(255,255,255,0.06); }
+    .mockup-menu-item { padding: .5rem .85rem; font-size: .72rem; color: rgba(255,255,255,0.5); cursor: pointer; display: flex; align-items: center; gap: .45rem; }
+    .mockup-menu-item.active { background: rgba(56,88,233,0.25); color: white; border-right: 2px solid var(--wp-light); }
+    .mockup-menu-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: .6; flex-shrink: 0; }
+
+    .mockup-content { flex: 1; padding: 1.25rem; background: var(--bg3); min-height: 340px; }
+    .mockup-content-title { font-size: .85rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: .5rem; }
+    .mockup-content-title .nd-badge { background: var(--grad); border-radius: 6px; padding: .12rem .45rem; font-size: .65rem; font-weight: 700; color: white; }
+
+    .mockup-tabs { display: flex; gap: .35rem; margin-bottom: 1rem; }
+    .mockup-tab { padding: .3rem .7rem; border-radius: 7px; font-size: .7rem; font-weight: 600; cursor: pointer; border: 1px solid var(--border); color: var(--muted2); }
+    .mockup-tab.active { background: rgba(91,79,255,0.15); border-color: rgba(91,79,255,0.3); color: var(--accent2); }
+
+    .mockup-status-row { display: flex; align-items: center; gap: .65rem; background: rgba(31,216,154,0.07); border: 1px solid rgba(31,216,154,0.15); border-radius: 10px; padding: .6rem .85rem; margin-bottom: .85rem; }
+    .mockup-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: pulse 1.8s infinite; flex-shrink: 0; }
+    .mockup-status-text { font-size: .75rem; color: var(--muted2); }
+    .mockup-status-text strong { color: var(--success); }
+
+    .mockup-scan-row { display: flex; gap: .5rem; margin-bottom: .65rem; }
+    .mockup-scan-item { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .55rem .7rem; }
+    .mockup-scan-label { font-size: .62rem; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: .2rem; }
+    .mockup-scan-val { font-size: .85rem; font-weight: 700; }
+    .mockup-scan-val.green { color: var(--success); }
+
+    .mockup-btn { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .9rem; border-radius: 8px; font-size: .75rem; font-weight: 700; cursor: pointer; border: none; font-family: inherit; transition: all .2s; }
+    .mockup-btn.primary { background: var(--grad); color: white; }
+    .mockup-btn.outline { background: none; border: 1px solid var(--border2); color: var(--muted2); }
+    .mockup-btn.danger { background: rgba(255,64,96,0.1); border: 1px solid rgba(255,64,96,0.2); color: #ff8fa3; }
+    .mockup-btn-row { display: flex; gap: .4rem; flex-wrap: wrap; }
+
+    .mockup-embed-row { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .55rem .75rem; margin-top: .75rem; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .mockup-embed-code { font-family: monospace; font-size: .7rem; color: var(--accent3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .mockup-toggle { display: flex; align-items: center; gap: .4rem; font-size: .72rem; color: var(--muted2); }
+    .toggle-track { width: 30px; height: 16px; background: var(--success); border-radius: 100px; position: relative; cursor: pointer; }
+    .toggle-thumb { width: 12px; height: 12px; background: white; border-radius: 50%; position: absolute; top: 2px; right: 2px; transition: all .2s; }
+
+    /* ── FAQ ── */
+    .faq-section { padding: 4rem var(--px); background: var(--bg2); border-top: 1px solid var(--border); }
+    .faq-inner { max-width: 680px; margin: 0 auto; }
+    .faq-list { margin-top: 2rem; display: flex; flex-direction: column; gap: .55rem; }
+    .faq-item { background: var(--bg3); border: 1px solid var(--border); border-radius: 13px; overflow: hidden; }
+    .faq-q { width: 100%; background: none; border: none; padding: 1rem 1.2rem; text-align: left; color: var(--text); font-size: .88rem; font-weight: 500; cursor: pointer; font-family: inherit; display: flex; justify-content: space-between; align-items: center; gap: 1rem; transition: color .2s; }
+    .faq-q:hover { color: var(--accent2); }
+    .faq-toggle { color: var(--accent2); font-size: 1.1rem; flex-shrink: 0; }
+    .faq-a { display: none; padding: 0 1.2rem 1rem; color: var(--muted2); font-size: .85rem; line-height: 1.7; }
+    .faq-item.open .faq-a { display: block; }
+
+    /* ── CTA ── */
+    .cta-section { padding: 4.5rem var(--px); text-align: center; border-top: 1px solid var(--border); position: relative; isolation: isolate; }
+    .cta-glow { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: min(500px,100vw); height: 350px; background: radial-gradient(ellipse, rgba(91,79,255,0.14) 0%, transparent 70%); pointer-events: none; z-index: -1; }
+    .cta-section h2 { font-size: clamp(1.5rem, 4vw, 2.3rem); font-weight: 800; letter-spacing: -.025em; margin-bottom: .85rem; line-height: 1.15; }
+    .cta-section p { color: var(--muted2); font-size: .95rem; margin-bottom: 1.75rem; }
+    .cta-btn-wrap { max-width: 400px; margin: 0 auto; }
+    .cta-fine { font-size: .75rem; color: var(--muted); margin-top: .85rem; }
+    .cta-fine a { color: var(--accent2); text-decoration: none; }
+
+    /* ── FOOTER ── */
+    .footer { border-top: 1px solid var(--border); padding: 1.5rem var(--px); }
+    .footer-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: .75rem; }
+    .footer-logo { font-weight: 800; font-size: 1.05rem; }
+    .footer-logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .footer-links { display: flex; gap: 1.25rem; flex-wrap: wrap; }
+    .footer-links a { color: var(--muted); text-decoration: none; font-size: .8rem; transition: color .2s; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-copy { color: var(--muted); font-size: .73rem; }
+
+    @media (min-width: 600px) {
+      .features-grid { grid-template-columns: repeat(2, 1fr); }
+      .footer-inner { flex-direction: row; align-items: center; justify-content: space-between; }
+    }
+    @media (min-width: 900px) {
+      .features-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 540px) {
+      .mockup-sidebar { display: none; }
+      .mockup-scan-row { flex-direction: column; }
+      .wp-logo-wrap { gap: .5rem; }
+      .wp-logo-icon, .nd-logo-icon { width: 44px; height: 44px; font-size: 1.3rem; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-inner">
+    <div class="logo">Neura<span>Desk</span></div>
+    <div class="nav-wp-badge"><span class="wp-dot"></span>WordPress Plugin</div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+
+  <div class="wp-logo-wrap">
+    <div class="wp-logo-icon">⚡</div>
+    <div class="wp-logo-plus">×</div>
+    <div class="nd-logo-icon">🤖</div>
+  </div>
+
+  <span class="hero-eyebrow">WordPress Integrácia</span>
+  <h1 class="hero-h1">AI obchodník na vašom<br><span class="grad-text">WordPress webe za 2 minúty.</span></h1>
+  <p class="hero-sub">
+    Stiahnite plugin, nainštalujte cez WP Admin, prihláste sa NeuraDeskApp účtom.<br>
+    Plugin <strong>automaticky naskenuje váš obsah</strong> a vloží chatbota – bez programovania.
+  </p>
+
+  <div class="download-box">
+    <a href="https://neuradesk.online/neuradesk-chatbot.zip" class="btn-download" download>
+      <span class="btn-download-icon">⬇️</span>
+      <span class="btn-download-text">
+        <span class="btn-download-main">Stiahnuť NeuraDeskApp Plugin</span>
+        <span class="btn-download-sub">neuradesk-chatbot.zip · WordPress 5.6+ · PHP 7.4+</span>
+      </span>
+    </a>
+  </div>
+
+  <div class="download-meta">
+    <span>Bezplatná inštalácia</span>
+    <span>Vyžaduje aktívne predplatné</span>
+    <span>WooCommerce podpora</span>
+    <span>Bez programovania</span>
+  </div>
+</section>
+
+<!-- REQUIREMENTS -->
+<div class="req-strip">
+  <div class="req-inner">
+    <span class="req-label">⚙️ Požiadavky:</span>
+    <span class="req-item"><span class="req-dot"></span>WordPress 5.6 alebo novší</span>
+    <span class="req-item"><span class="req-dot"></span>PHP 7.4+</span>
+    <span class="req-item"><span class="req-dot"></span>Aktívny NeuraDeskApp účet</span>
+    <span class="req-item"><span class="req-dot"></span>WooCommerce (voliteľné – pre skenovanie produktov)</span>
+  </div>
+</div>
+
+<!-- INSTALL STEPS -->
+<section class="install-section">
+  <div class="install-inner">
+    <span class="section-label">Inštalácia</span>
+    <h2 class="section-h2">Hotový za 2 minúty.<br><span class="grad-text">Krok za krokom.</span></h2>
+    <p class="section-sub">Žiadne programovanie. Žiadne FTP. Všetko cez WP Admin.</p>
+
+    <div class="install-steps">
+
+      <div class="install-step">
+        <div class="install-num">1</div>
+        <div class="install-body">
+          <h3>Stiahnite a nainštalujte plugin</h3>
+          <p>Kliknite na tlačidlo vyššie a stiahnite <strong>neuradesk-chatbot.zip</strong>. Potom v WordPress Admine prejdite na <strong>Pluginy → Pridať nový → Nahrať plugin</strong>. Vyberte ZIP súbor a kliknite Inštalovať a aktivovať.</p>
+          <div class="install-step-img">
+            <span class="install-step-img-icon">🗂️</span>
+            WP Admin → Pluginy → Pridať nový → Nahrať plugin → vyberte .zip → Inštalovať
+          </div>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-num">2</div>
+        <div class="install-body">
+          <h3>Otvorte NeuraDeskApp v menu</h3>
+          <p>Po aktivácii sa v ľavom menu WP Adminu objaví položka <strong>NeuraDeskApp</strong>. Kliknite na ňu.</p>
+          <div class="install-step-img">
+            <span class="install-step-img-icon">📋</span>
+            WP Admin → ľavé menu → <strong>NeuraDeskApp</strong>
+          </div>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-num">3</div>
+        <div class="install-body">
+          <h3>Prihláste sa NeuraDeskApp účtom</h3>
+          <p>Zadajte email a heslo vášho účtu na <strong>neuradesk.online</strong>. Plugin sa prihlási a načíta vaše widgety. Prihlasovacie údaje sú bezpečne uložené len na vašom serveri.</p>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-num">4</div>
+        <div class="install-body">
+          <h3>Vyberte widget alebo vytvorte nový</h3>
+          <p>Plugin zobrazí všetky existujúce widgety z vášho účtu. Vyberte ten, ktorý chcete použiť – alebo vytvorte nový priamo z pluginu. Každý widget má vlastnú znalostná bázu a nastavenia.</p>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-num">5</div>
+        <div class="install-body">
+          <h3>Naskenujte obsah webu</h3>
+          <p>Kliknite <strong>„Skenovať obsah"</strong>. Plugin postupne naskenuje stránky, príspevky a WooCommerce produkty (ak máte WooCommerce aktívne). Obsah sa pridá do znalostnej bázy chatbota – AI bude odpovedať z vašich reálnych textov.</p>
+          <div class="install-step-img">
+            <span class="install-step-img-icon">📊</span>
+            Skenovanie beží po 10 položkách naraz – žiadny timeout, funguje aj na veľkých weboch
+          </div>
+        </div>
+      </div>
+
+      <div class="install-step">
+        <div class="install-num">6</div>
+        <div class="install-body">
+          <h3>Chatbot je live na vašom webe</h3>
+          <p>Po skenovaní sa chatbot automaticky vloží do vášho webu cez <code style="background:var(--surface);padding:.1rem .35rem;border-radius:4px;font-size:.85em">wp_footer</code> hook. Žiadne kopírovanie kódu – zapne sa sám. Kedykoľvek ho môžete vypnúť alebo znova zapnúť toggleom.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features-section">
+  <div class="features-inner">
+    <span class="section-label">Čo plugin robí</span>
+    <h2 class="section-h2">Všetko čo potrebujete.<br><span class="grad-text">Nič navyše.</span></h2>
+    <div class="features-grid">
+
+      <div class="feat-card">
+        <div class="feat-icon blue">🔐</div>
+        <div class="feat-body">
+          <h4>Prihlásenie priamo z WP</h4>
+          <p>Zadáte email a heslo raz. Plugin sa prihlási, uloží token a automaticky obnovuje prístup. <strong>Žiadne API kľúče.</strong></p>
+        </div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon purple">🤖</div>
+        <div class="feat-body">
+          <h4>Výber existujúceho widgetu</h4>
+          <p>Vidíte všetky vaše NeuraDeskApp widgety. Prepínate medzi nimi jedným kliknutím – <strong>každý má vlastnú bázu.</strong></p>
+        </div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon green">📄</div>
+        <div class="feat-body">
+          <h4>Skenovanie stránok a príspevkov</h4>
+          <p>Plugin naskenuje všetky publikované pages a posts. AI bude vedieť odpovedať na otázky <strong>o akomkoľvek obsahu</strong> vášho webu.</p>
+        </div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon warn">🛒</div>
+        <div class="feat-body">
+          <h4>WooCommerce produkty</h4>
+          <p>Ak máte WooCommerce, plugin naskenuje produkty vrátane <strong>ceny, SKU a kategórií</strong>. Produkty sa pridajú aj ako AI produktové karty – chatbot ich bude aktívne odporúčať.</p>
+          <div class="feat-woo-badge">🟣 WooCommerce</div>
+        </div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon blue">⚡</div>
+        <div class="feat-body">
+          <h4>AJAX batch skenovanie</h4>
+          <p>Skenovanie beží po <strong>10 položkách na request</strong> – žiadny PHP timeout, funguje aj na webe s tisíckami produktov. Progress bar ukazuje stav v reálnom čase.</p>
+        </div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon purple">🔌</div>
+        <div class="feat-body">
+          <h4>Auto-embed cez wp_footer</h4>
+          <p>Chatbot sa vloží automaticky do každej stránky. <strong>Toggle zapnúť/vypnúť</strong> – bez dotyku kódu. Embed kód môžete aj skopírovať pre manuálne použitie.</p>
+        </div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon green">🔄</div>
+        <div class="feat-body">
+          <h4>Re-skenovanie kedykoľvek</h4>
+          <p>Pridali ste nové produkty alebo stránky? Kliknete <strong>„Skenovať znova"</strong> a AI sa naučí nový obsah. Staré záznamy sa prepíšu.</p>
+        </div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon warn">🚪</div>
+        <div class="feat-body">
+          <h4>Odpojenie účtu</h4>
+          <p>Jedným kliknutím odpojíte NeuraDeskApp účet z WP. Widget sa deaktivuje, token sa vymaže. <strong>Čisté a jednoduché.</strong></p>
+        </div>
+      </div>
+
+      <div class="feat-card">
+        <div class="feat-icon blue">📋</div>
+        <div class="feat-body">
+          <h4>Kópia embed kódu</h4>
+          <p>Chcete chatbota len na konkrétnej stránke? Skopírujete embed kód a vložíte ho manuálne – <strong>funguje v akomkoľvek HTML bloku.</strong></p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- WP ADMIN MOCKUP -->
+<section class="mockup-section">
+  <div class="mockup-inner">
+    <span class="section-label" style="text-align:center;display:block;margin-bottom:.85rem">Ukážka</span>
+    <h2 class="section-h2" style="margin-bottom:2rem">Takto vyzerá plugin<br><span class="grad-text">vo WP Admine</span></h2>
+
+    <div class="wp-admin-mockup">
+      <div class="mockup-topbar">
+        <span class="mockup-wp-logo">⚡</span>
+        <span class="mockup-admin-title">WordPress Admin · <strong>NeuraDeskApp</strong></span>
+      </div>
+      <div class="mockup-body">
+        <div class="mockup-sidebar">
+          <div class="mockup-menu-item"><span class="mockup-menu-dot"></span>Dashboard</div>
+          <div class="mockup-menu-item"><span class="mockup-menu-dot"></span>Príspevky</div>
+          <div class="mockup-menu-item"><span class="mockup-menu-dot"></span>Stránky</div>
+          <div class="mockup-menu-item"><span class="mockup-menu-dot"></span>WooCommerce</div>
+          <div class="mockup-menu-item active"><span class="mockup-menu-dot"></span>NeuraDeskApp</div>
+          <div class="mockup-menu-item"><span class="mockup-menu-dot"></span>Pluginy</div>
+          <div class="mockup-menu-item"><span class="mockup-menu-dot"></span>Nastavenia</div>
+        </div>
+        <div class="mockup-content">
+          <div class="mockup-content-title">
+            NeuraDeskApp <span class="nd-badge">Pro</span>
+          </div>
+
+          <div class="mockup-tabs">
+            <div class="mockup-tab active">📊 Prehľad</div>
+            <div class="mockup-tab">🤖 Widget</div>
+            <div class="mockup-tab">🔍 Skenovanie</div>
+            <div class="mockup-tab">⚙️ Nastavenia</div>
+          </div>
+
+          <div class="mockup-status-row">
+            <div class="mockup-status-dot"></div>
+            <div class="mockup-status-text">Prihlásený ako <strong>vas@email.sk</strong> · Widget: <strong>Môj e-shop</strong></div>
+          </div>
+
+          <div class="mockup-scan-row">
+            <div class="mockup-scan-item">
+              <div class="mockup-scan-label">Stránky</div>
+              <div class="mockup-scan-val green">24 naskenovaných</div>
+            </div>
+            <div class="mockup-scan-item">
+              <div class="mockup-scan-label">Príspevky</div>
+              <div class="mockup-scan-val green">87 naskenovaných</div>
+            </div>
+            <div class="mockup-scan-item">
+              <div class="mockup-scan-label">Produkty WC</div>
+              <div class="mockup-scan-val green">142 naskenovaných</div>
+            </div>
+          </div>
+
+          <div class="mockup-btn-row" style="margin-bottom:.75rem">
+            <button class="mockup-btn primary">🔄 Skenovať znova</button>
+            <button class="mockup-btn outline">📋 Kopírovať embed kód</button>
+            <button class="mockup-btn danger">🚪 Odpojiť účet</button>
+          </div>
+
+          <div class="mockup-embed-row">
+            <div class="mockup-embed-code">&lt;script src="https://neuradesk.online/widget.js"&gt;&lt;/script&gt;</div>
+            <div class="mockup-toggle">
+              Embed:
+              <div class="toggle-track"><div class="toggle-thumb"></div></div>
+              <span style="color:var(--success);font-size:.7rem;font-weight:700">ZAP</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="faq-section">
+  <div class="faq-inner">
+    <span class="section-label">Otázky</span>
+    <h2 class="section-h2" style="margin-bottom:0">Časté otázky</h2>
+    <div class="faq-list">
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Potrebujem programovanie alebo FTP? <span class="faq-toggle">+</span></button><div class="faq-a">Nie. Plugin inštalujete priamo cez WordPress Admin – presne ako akýkoľvek iný WP plugin. ZIP nahráte cez rozhranie, aktivujete, prihlásite sa. Žiadne FTP, žiadny kód.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Funguje plugin bez aktívneho predplatného? <span class="faq-toggle">+</span></button><div class="faq-a">Plugin si môžete nainštalovať zadarmo, ale pre aktiváciu chatbota na webe je potrebné aktívne predplatné NeuraDeskApp (€29/mes). Plugin overí stav predplatného pri prihlásení.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo sa stane, ak aktualizujem web alebo pridám produkty? <span class="faq-toggle">+</span></button><div class="faq-a">Skenovanie nie je automatické – spustíte ho ručne kliknutím „Skenovať znova". Odporúčame re-skenovanie vždy, keď pridáte nový obsah, ktorý chcete aby chatbot poznal.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Spomaľuje plugin môj web? <span class="faq-toggle">+</span></button><div class="faq-a">Nie. Widget beží v Shadow DOM a načítava sa asynchrónne – neblokuje renderovanie stránky. Skenovanie beží na pozadí v AJAX requestoch a nezaťažuje frontend návštevníkov.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Môžem použiť plugin na viacerých WordPress weboch? <span class="faq-toggle">+</span></button><div class="faq-a">Áno. Jeden NeuraDeskApp účet podporuje až 10 widgetov. Na každom WordPress webe nainštalujete plugin a prepojíte iný widget – každý má vlastnú znalostná bázu a nastavenia.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo sa stane po odpojení účtu? <span class="faq-toggle">+</span></button><div class="faq-a">Widget sa automaticky deaktivuje a prestane sa zobrazovať na webe. Token sa vymaže z databázy. Obsah naskenovaný do znalostnej bázy zostáva v NeuraDeskApp – môžete ho kedykoľvek znovu použiť po opätovnom prihlásení.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="cta-glow"></div>
+  <h2>Stiahnite plugin a spustite<br><span class="grad-text">chatbota za 2 minúty.</span></h2>
+  <p>Bez programovania. Bez FTP. Stačí WordPress a NeuraDeskApp účet.</p>
+  <div class="cta-btn-wrap">
+    <a href="https://neuradesk.online/neuradesk-chatbot.zip" class="btn-download" download style="animation:none;border-radius:14px;">
+      <span class="btn-download-icon">⬇️</span>
+      <span class="btn-download-text">
+        <span class="btn-download-main">Stiahnuť neuradesk-chatbot.zip</span>
+        <span class="btn-download-sub">Zadarmo · WordPress 5.6+ · PHP 7.4+</span>
+      </span>
+    </a>
+  </div>
+  <p class="cta-fine">
+    Nemáte ešte účet? <a href="https://neuradesk.online">Zaregistrujte sa na neuradesk.online →</a>
+  </p>
+</section>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-logo">Neura<span>Desk</span></div>
+    <div class="footer-links">
+      <a href="https://neuradesk.online">neuradesk.online</a>
+      <a href="#">Ochrana súkromia</a>
+      <a href="#">Podmienky</a>
+      <a href="mailto:info@neuradesk.online">Kontakt</a>
+    </div>
+    <div class="footer-copy">© 2025 NeuraDeskApp</div>
+  </div>
+</footer>
+
+<script>
+  function toggleFaq(btn) {
+    const item = btn.closest('.faq-item');
+    const open = item.classList.toggle('open');
+    btn.querySelector('.faq-toggle').textContent = open ? '−' : '+';
+  }
+
+  // Copy embed code buttons
+  document.querySelectorAll('.code-copy').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const code = btn.previousElementSibling?.textContent || '';
+      navigator.clipboard.writeText(code).then(() => {
+        btn.textContent = '✓ Skopírované';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = 'Kopírovať'; btn.classList.remove('copied'); }, 2000);
+      });
+    });
+  });
+</script>
+</body>
+</html>
