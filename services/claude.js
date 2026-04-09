@@ -305,7 +305,7 @@ Napíš súhlas GDPR v tomto formáte:
 
 Text musí byť zrozumiteľný pre bežného človeka, nie príliš dlhý (max 300 slov), v slovenčine. Nepoužívaj markdown headingy (#), iba odseky.`;
 
-  const response = await anthropic.messages.create({
+  const response = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 800,
     messages: [{ role: 'user', content: prompt }],
