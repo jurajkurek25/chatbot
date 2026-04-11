@@ -28,8 +28,7 @@
   background: rgba(255,255,255,0.07);
   color: #fff;
 }
-.lsw-cur-flag { font-size: 1.05rem; line-height: 1; }
-.lsw-cur-code { font-size: 0.75rem; letter-spacing: 0.05em; }
+.lsw-cur-code { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.06em; }
 .lsw-arrow {
   opacity: 0.55;
   transition: transform 0.2s ease;
@@ -77,7 +76,22 @@
   color: #fff;
   font-weight: 600;
 }
-.lsw-flag { font-size: 1.05rem; flex-shrink: 0; }
+.lsw-code {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  padding: 1px 5px;
+  flex-shrink: 0;
+  min-width: 26px;
+  text-align: center;
+}
+.lsw-item.active .lsw-code {
+  color: rgba(255,255,255,0.9);
+  background: rgba(91,79,255,0.4);
+}
 .lsw-name { font-size: 0.82rem; }
 
 /* Light-background variant */
