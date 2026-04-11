@@ -679,10 +679,19 @@
         break;
       }
       case 'custom': {
-        const customText = (config.cta_config || {}).text || '';
+        const cfg2       = config.cta_config || {};
+        const customText = cfg2.text || '';
         if (!customText) return;
         textEl.textContent = customText;
-        btnEl.style.display = 'none';
+        const customLink  = cfg2.customLink || '';
+        const customLabel = cfg2.customBtnLabel || 'Zistiť viac';
+        if (customLink) {
+          btnEl.textContent = '→ ' + customLabel;
+          btnEl.addEventListener('click', () => { window.open(customLink, '_blank', 'noopener'); });
+          btnEl.style.display = '';
+        } else {
+          btnEl.style.display = 'none';
+        }
         ctaEl.style.display = 'flex';
         break;
       }

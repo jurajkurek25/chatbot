@@ -253,6 +253,8 @@ async function openWidget(widgetId) {
   const cc = currentWidget.cta_config || {};
   document.getElementById('cta-phone').value = cc.phone || '';
   document.getElementById('cta-text').value = cc.text || '';
+  document.getElementById('cta-custom-btn-label').value = cc.customBtnLabel || '';
+  document.getElementById('cta-custom-link').value = cc.customLink || '';
   document.getElementById('cta-btn-label').value = cc.label || 'Zanechajte kontakt';
   updateCtaFields();
 
@@ -556,7 +558,11 @@ async function saveQuestionsAndCta() {
   const ctaType = document.getElementById('cta-type').value;
   const ctaConfig = {};
   if (ctaType === 'call') ctaConfig.phone = document.getElementById('cta-phone').value.trim();
-  if (ctaType === 'custom') ctaConfig.text = document.getElementById('cta-text').value.trim();
+  if (ctaType === 'custom') {
+    ctaConfig.text          = document.getElementById('cta-text').value.trim();
+    ctaConfig.customBtnLabel = document.getElementById('cta-custom-btn-label').value.trim();
+    ctaConfig.customLink    = document.getElementById('cta-custom-link').value.trim();
+  }
   if (ctaType === 'contact') ctaConfig.label = document.getElementById('cta-btn-label').value.trim() || 'Zanechajte kontakt';
 
   const res = await apiFetch(`/api/widgets/${currentWidget.id}`, {
