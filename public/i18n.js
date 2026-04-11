@@ -98,6 +98,16 @@
 
   var switcherBuilt = false;
 
+  function closeAllMenus() {
+    document.querySelectorAll('.lsw-wrap.open').forEach(function (w) {
+      w.classList.remove('open');
+      var m = w.querySelector('.lsw-menu');
+      var t = w.querySelector('.lsw-trigger');
+      if (m) m.style.display = 'none';
+      if (t) t.setAttribute('aria-expanded', 'false');
+    });
+  }
+
   function buildSwitcher() {
     var containers = document.querySelectorAll('.lang-switcher');
     if (!containers.length) return;
@@ -112,11 +122,11 @@
     containers.forEach(function (c) {
       c.innerHTML =
         '<div class="lsw-wrap">'
-        + '<button type="button" class="lsw-trigger">'
+        + '<button type="button" class="lsw-trigger" aria-haspopup="true" aria-expanded="false">'
         +   '<span class="lsw-cur-code"></span>'
         +   '<svg class="lsw-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
         + '</button>'
-        + '<div class="lsw-menu">' + items + '</div>'
+        + '<div class="lsw-menu" style="display:none">' + items + '</div>'
         + '</div>';
 
       var wrap    = c.querySelector('.lsw-wrap');
@@ -125,24 +135,23 @@
 
       trigger.addEventListener('click', function (e) {
         e.stopPropagation();
-        var isOpen = wrap.classList.toggle('open');
-        trigger.setAttribute('aria-expanded', isOpen);
+        var isOpen = !wrap.classList.contains('open');
+        closeAllMenus();
+        if (isOpen) {
+          wrap.classList.add('open');
+          menu.style.display = 'block';
+          trigger.setAttribute('aria-expanded', 'true');
+        }
       });
 
       menu.addEventListener('click', function (e) {
         var btn = e.target.closest('.lsw-item');
-        if (btn) i18n.setLang(btn.dataset.lang);
+        if (btn) { closeAllMenus(); i18n.setLang(btn.dataset.lang); }
       });
     });
 
     if (!switcherBuilt) {
-      document.addEventListener('click', function () {
-        document.querySelectorAll('.lsw-wrap.open').forEach(function (w) {
-          w.classList.remove('open');
-          var t = w.querySelector('.lsw-trigger');
-          if (t) t.setAttribute('aria-expanded', 'false');
-        });
-      });
+      document.addEventListener('click', closeAllMenus);
       switcherBuilt = true;
     }
 
