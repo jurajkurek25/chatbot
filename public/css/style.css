@@ -1,6 +1,34 @@
 /* ── Global Reset & Base ─────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* ── Language Switcher ───────────────────────────────────────── */
+.lang-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  align-items: center;
+}
+.lang-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: rgba(255,255,255,0.6);
+  border-radius: 6px;
+  padding: 0.2rem 0.45rem;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+.lang-btn:hover { border-color: rgba(255,255,255,0.4); color: #fff; }
+.lang-btn.active { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.5); color: #fff; font-weight: 600; }
+/* Light variant (for light-background pages) */
+.lang-switcher-light .lang-btn { border-color: rgba(0,0,0,0.15); color: rgba(0,0,0,0.5); }
+.lang-switcher-light .lang-btn:hover { border-color: rgba(0,0,0,0.4); color: #111; }
+.lang-switcher-light .lang-btn.active { background: rgba(37,99,235,0.1); border-color: #2563eb; color: #2563eb; }
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #1e293b;

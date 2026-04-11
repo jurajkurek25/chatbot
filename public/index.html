@@ -402,7 +402,8 @@
       <a href="/wordpress">WordPress</a>
       <a href="#pricing">Cena</a>
     </div>
-    <div class="nav-cta-desktop">
+    <div class="nav-cta-desktop" style="display:flex;align-items:center;gap:0.75rem">
+      <div class="lang-switcher" style="display:flex;gap:0.2rem"></div>
       <button class="btn-ghost" style="width:auto" onclick="showAuth('login')">Prihlásiť sa</button>
       <button class="btn-nav-cta" onclick="showAuth('register')">Začať</button>
     </div>
@@ -1097,5 +1098,6 @@
     if (inp) inp.addEventListener('blur', () => validateReferralCode(inp.value.trim()));
   });
 </script>
+<script src="/i18n.js"></script>
 </body>
 </html>
