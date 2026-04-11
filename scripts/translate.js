@@ -23,7 +23,7 @@ const LANGS = {
   hr: 'Croatian',
 };
 
-// Split into chunks of 150 keys to stay within token limits
+// Split into chunks of 50 keys — smaller = safer JSON output, fewer token issues
 function chunk(obj, size) {
   const keys = Object.keys(obj);
   const chunks = [];
@@ -35,48 +35,54 @@ function chunk(obj, size) {
   return chunks;
 }
 
-async function translateChunk(skChunk, lang, langName) {
-  const prompt = `You are a professional translator specialising in SaaS and business software UI.
-Translate the VALUES of this JSON object from Slovak to ${langName}.
-RULES:
-- Keep ALL JSON keys exactly as-is (they are Slovak text used as translation keys)
-- Only translate the values
-- Keep {variable} and %{variable} placeholders unchanged
-- Keep brand names unchanged: NeuraDeskApp, NeuraDesk, AI Coach, WooCommerce, Elementor, GDPR, CTA, API, Instagram
-- Use professional, natural business language — not overly formal
-- Return ONLY valid JSON, no markdown, no explanation
+async function translateChunk(skChunk, lang, langName, attempt = 1) {
+  const prompt = `Translate JSON values from Slovak to ${langName}. Return ONLY a valid JSON object, nothing else — no explanation, no markdown, no code blocks.
+Rules: keep keys unchanged, keep brand names (NeuraDeskApp, NeuraDesk, AI Coach, WooCommerce, GDPR, CTA, API, Instagram), keep {variable} placeholders.
 
-${JSON.stringify(skChunk, null, 2)}`;
+${JSON.stringify(skChunk)}`;
 
   const response = await client.messages.create({
     model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4000,
+    max_tokens: 8000,
     messages: [{ role: 'user', content: prompt }],
   });
 
   const text = response.content[0].text.trim();
-  const match = text.match(/\{[\s\S]*\}/);
+  // Strip markdown code fences if present
+  const clean = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+  const match = clean.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('No JSON in response');
   return JSON.parse(match[0]);
 }
 
 async function translateLang(lang, langName) {
-  const chunks = chunk(sk, 150);
+  const chunks = chunk(sk, 50);
   const result = {};
 
   for (let i = 0; i < chunks.length; i++) {
     process.stdout.write(`  chunk ${i + 1}/${chunks.length}... `);
-    try {
-      const translated = await translateChunk(chunks[i], lang, langName);
-      Object.assign(result, translated);
-      process.stdout.write('✓\n');
-    } catch (err) {
-      process.stdout.write(`✗ (${err.message})\n`);
-      // Use SK as fallback for failed chunk
-      Object.assign(result, chunks[i]);
+    let success = false;
+    // Retry up to 3 times on failure
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const translated = await translateChunk(chunks[i], lang, langName, attempt);
+        Object.assign(result, translated);
+        process.stdout.write('✓\n');
+        success = true;
+        break;
+      } catch (err) {
+        if (attempt < 3) {
+          process.stdout.write(`retry${attempt}... `);
+          await new Promise(r => setTimeout(r, 1000 * attempt));
+        } else {
+          process.stdout.write(`✗ (${err.message})\n`);
+          // SK fallback for this chunk
+          Object.assign(result, chunks[i]);
+        }
+      }
     }
-    // Small delay between chunks
-    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 500));
+    // Delay between chunks to avoid rate limits
+    if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 300));
   }
 
   return result;
