@@ -24,7 +24,7 @@
     /* ── NAV ── */
     .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: rgba(8,8,16,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); }
     .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 var(--px); display: flex; align-items: center; justify-content: space-between; height: 58px; }
-    .nav-logo { font-weight: 800; font-size: 1.2rem; letter-spacing: -0.02em; flex-shrink: 0; }
+    .nav-logo { font-weight: 800; font-size: clamp(1rem, 4vw, 1.2rem); letter-spacing: -0.02em; flex-shrink: 0; }
     .nav-logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
     .nav-links { display: none; }
     .nav-cta-desktop { display: none; }
@@ -403,7 +403,7 @@
       <a href="/wordpress">WordPress</a>
       <a href="#pricing">Cena</a>
     </div>
-    <div class="nav-cta-desktop" style="display:flex;align-items:center;gap:0.75rem">
+    <div class="nav-cta-desktop">
       <div class="lang-switcher"></div>
       <button class="btn-ghost" style="width:auto" onclick="showAuth('login')">Prihlásiť sa</button>
       <button class="btn-nav-cta" onclick="showAuth('register')">Začať</button>

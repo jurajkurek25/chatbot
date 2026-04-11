@@ -114,3 +114,9 @@
 .lang-switcher-light .lsw-item { color: rgba(0,0,0,0.6); }
 .lang-switcher-light .lsw-item:hover { background: rgba(0,0,0,0.05); color: #111; }
 .lang-switcher-light .lsw-item.active { background: rgba(37,99,235,0.09); color: #2563eb; }
+
+/* Compact trigger on narrow screens */
+@media (max-width: 400px) {
+  .lsw-trigger { padding: 4px 7px; font-size: 0.75rem; }
+  .lsw-cur-code { font-size: 0.7rem; }
+}
