@@ -29,6 +29,7 @@
       translations = {};
       currentLang  = DEFAULT;
       localStorage.setItem('nd_lang', DEFAULT);
+      document.documentElement.lang = DEFAULT;
       if (callback) callback();
       return;
     }
@@ -44,9 +45,10 @@
         currentLang  = DEFAULT;
         localStorage.setItem('nd_lang', DEFAULT);
       }
+      document.documentElement.lang = currentLang;
       if (callback) callback();
     };
-    xhr.onerror = function () { translations = {}; currentLang = DEFAULT; if (callback) callback(); };
+    xhr.onerror = function () { translations = {}; currentLang = DEFAULT; document.documentElement.lang = DEFAULT; if (callback) callback(); };
     xhr.send();
   }
 
