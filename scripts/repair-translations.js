@@ -1,8 +1,8 @@
 'use strict';
 
-// Repairs only the chunks that failed in the previous translate.js run.
-// Run this AFTER translate.js has already created all lang files.
-// It reads existing files, re-translates only the failed key ranges, and patches in-place.
+// v2: Repairs failed translation chunks using a quote-placeholder technique.
+// Keys/values containing " are sanitized before sending to Claude (replaced with __DQ__),
+// then restored after — this prevents Claude from producing unescaped quotes in JSON output.
 
 try { require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }); } catch {}
 
@@ -15,113 +15,151 @@ const locales = path.join(__dirname, '..', 'public', 'locales');
 const sk      = JSON.parse(fs.readFileSync(path.join(locales, 'sk.json'), 'utf8'));
 const skKeys  = Object.keys(sk);
 
-// Which 1-based chunk numbers failed per language (chunk size = 50 keys)
-const FAILED = {
-  de: [3, 12, 16, 17],
-  pl: [16],
-  cs: [3, 16],
-  hu: [3, 5, 16],
-  ro: [16],
-  hr: [16, 17],
-};
-
 const LANG_NAMES = {
-  de: 'German', pl: 'Polish', cs: 'Czech',
-  hu: 'Hungarian', ro: 'Romanian', hr: 'Croatian',
+  de: 'German', en: 'English', fr: 'French', es: 'Spanish',
+  pl: 'Polish', cs: 'Czech', hu: 'Hungarian', ro: 'Romanian', hr: 'Croatian',
 };
 
-// Return the sk sub-object for a given 1-based chunk number (original chunk size 50)
-function chunkKeys(chunkNum, chunkSize = 50) {
-  const start = (chunkNum - 1) * chunkSize;
-  return skKeys.slice(start, start + chunkSize);
-}
+// ─── Quote placeholder helpers ────────────────────────────────────────────────
+const DQ = '__DQ__';
+const sanitize   = s => s.replace(/"/g, DQ);
+const desanitize = s => s.replace(/__DQ__/g, '"');
 
-// Split an object into sub-chunks of `size`
-function splitObj(obj, size) {
-  const entries = Object.entries(obj);
-  const parts = [];
-  for (let i = 0; i < entries.length; i += size) {
-    parts.push(Object.fromEntries(entries.slice(i, i + size)));
+// Sanitize an object's keys AND values; return { sanitized, keyMap }
+function sanitizeObj(obj) {
+  const sanitized = {};
+  const keyMap    = {}; // sanitizedKey → originalKey
+  for (const [k, v] of Object.entries(obj)) {
+    const sk2 = sanitize(k);
+    sanitized[sk2] = sanitize(v);
+    keyMap[sk2]    = k;
   }
-  return parts;
+  return { sanitized, keyMap };
 }
 
-async function translateChunk(skChunk, langName) {
-  const prompt = `Translate JSON values from Slovak to ${langName}. Return ONLY a valid JSON object, nothing else — no explanation, no markdown, no code blocks.
-Rules: keep keys unchanged, keep brand names (NeuraDeskApp, NeuraDesk, AI Coach, WooCommerce, GDPR, CTA, API, Instagram), keep {variable} placeholders.
+// Restore original keys and desanitize values
+function restoreObj(translated, keyMap) {
+  const out = {};
+  for (const [sk2, sv] of Object.entries(translated)) {
+    const origKey  = keyMap[sk2] ?? desanitize(sk2);
+    out[origKey]   = desanitize(sv);
+  }
+  return out;
+}
 
-${JSON.stringify(skChunk)}`;
+// ─── API call ─────────────────────────────────────────────────────────────────
+async function translateChunk(skChunk, langName) {
+  const { sanitized, keyMap } = sanitizeObj(skChunk);
+
+  const prompt = `Translate JSON values from Slovak to ${langName}. Return ONLY a valid JSON object — no explanation, no markdown, no code blocks.
+Rules: keep keys EXACTLY unchanged, keep brand names (NeuraDeskApp, NeuraDesk, AI Coach, WooCommerce, GDPR, CTA, API, Instagram), keep {variable} placeholders, keep __DQ__ tokens as-is.
+
+${JSON.stringify(sanitized)}`;
 
   const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+    model:      'claude-haiku-4-5-20251001',
     max_tokens: 8000,
-    messages: [{ role: 'user', content: prompt }],
+    messages:   [{ role: 'user', content: prompt }],
   });
 
   const text  = response.content[0].text.trim();
   const clean = text.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
   const match = clean.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('No JSON in response');
-  return JSON.parse(match[0]);
+  const raw = JSON.parse(match[0]);
+  return restoreObj(raw, keyMap);
 }
 
-async function repairLang(lang, failedChunks) {
+// ─── Detect which keys still need translation ─────────────────────────────────
+// A key is "untranslated" if value === sk[key] AND key has Slovak letters OR length > 15
+const SK_CHARS = /[áäčďéíĺľňóôŕšťúýžÁÄČĎÉÍĹĽŇÓÔŔŠŤÚÝŽ]/;
+function needsTranslation(key, value) {
+  if (value !== sk[key]) return false;          // already translated
+  if (key.length <= 3) return false;            // too short to matter
+  // If value has Slovak chars or is long → likely untranslated
+  return SK_CHARS.test(value) || value.length > 20;
+}
+
+// Split object entries into sub-arrays of `size`
+function splitObj(obj, size) {
+  const entries = Object.entries(obj);
+  const parts   = [];
+  for (let i = 0; i < entries.length; i += size) {
+    parts.push(Object.fromEntries(entries.slice(i, i + size)));
+  }
+  return parts;
+}
+
+// ─── Repair one language file ─────────────────────────────────────────────────
+async function repairLang(lang) {
   const langName = LANG_NAMES[lang];
   const outFile  = path.join(locales, `${lang}.json`);
   const existing = JSON.parse(fs.readFileSync(outFile, 'utf8'));
-  let patched = 0;
 
-  for (const chunkNum of failedChunks) {
-    const keys    = chunkKeys(chunkNum);
-    const skChunk = Object.fromEntries(keys.map(k => [k, sk[k]]));
+  // Find keys that are still in Slovak
+  const todo = {};
+  for (const key of skKeys) {
+    if (needsTranslation(key, existing[key])) todo[key] = sk[key];
+  }
 
-    // Re-split into sub-chunks of 25 to keep well within token limits
-    const parts = splitObj(skChunk, 25);
-    console.log(`  chunk ${chunkNum} (${keys.length} keys → ${parts.length} sub-chunks):`);
+  const todoCount = Object.keys(todo).length;
+  if (todoCount === 0) {
+    console.log(`  ${lang}: nothing to repair ✓\n`);
+    return;
+  }
+  console.log(`  ${lang}: ${todoCount} keys still in Slovak — translating in chunks of 15`);
 
-    for (let i = 0; i < parts.length; i++) {
-      process.stdout.write(`    sub ${i + 1}/${parts.length}... `);
-      let ok = false;
-      for (let attempt = 1; attempt <= 4; attempt++) {
-        try {
-          const translated = await translateChunk(parts[i], langName);
-          Object.assign(existing, translated);
-          patched += Object.keys(parts[i]).length;
-          process.stdout.write('✓\n');
-          ok = true;
-          break;
-        } catch (err) {
-          if (attempt < 4) {
-            process.stdout.write(`retry${attempt}... `);
-            await new Promise(r => setTimeout(r, 1500 * attempt));
-          } else {
-            process.stdout.write(`✗ (${err.message}) — keeping SK fallback\n`);
-          }
+  const parts   = splitObj(todo, 15);
+  let patched   = 0;
+
+  for (let i = 0; i < parts.length; i++) {
+    process.stdout.write(`    chunk ${i + 1}/${parts.length}... `);
+    let ok = false;
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      try {
+        const translated = await translateChunk(parts[i], langName);
+        Object.assign(existing, translated);
+        patched += Object.keys(parts[i]).length;
+        process.stdout.write('✓\n');
+        ok = true;
+        break;
+      } catch (err) {
+        if (attempt < 4) {
+          process.stdout.write(`retry${attempt}... `);
+          await new Promise(r => setTimeout(r, 1500 * attempt));
+        } else {
+          process.stdout.write(`✗ (${err.message}) — keeping SK\n`);
         }
       }
-      if (i < parts.length - 1) await new Promise(r => setTimeout(r, 400));
     }
+    if (i < parts.length - 1) await new Promise(r => setTimeout(r, 400));
   }
 
   fs.writeFileSync(outFile, JSON.stringify(existing, null, 2), 'utf8');
-  console.log(`  ✓ ${lang}.json patched (${patched} keys updated)\n`);
+  console.log(`  ✓ ${lang}.json: patched ${patched} keys\n`);
 }
 
+// ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
-  const total = Object.values(FAILED).reduce((s, a) => s + a.length, 0);
-  console.log(`Repairing ${total} failed chunks across ${Object.keys(FAILED).length} languages...\n`);
+  const langs = Object.keys(LANG_NAMES).filter(l => l !== 'sk');
+  console.log(`Scanning ${langs.length} language files for untranslated keys...\n`);
 
-  for (const [lang, chunks] of Object.entries(FAILED)) {
-    console.log(`${lang} (${LANG_NAMES[lang]}) — failed chunks: ${chunks.join(', ')}`);
-    try {
-      await repairLang(lang, chunks);
-    } catch (err) {
-      console.error(`  ✗ ${lang} error: ${err.message}\n`);
+  for (const lang of langs) {
+    const outFile = path.join(locales, `${lang}.json`);
+    if (!fs.existsSync(outFile)) {
+      console.log(`  ${lang}: file missing, skipping\n`);
+      continue;
     }
-    await new Promise(r => setTimeout(r, 800));
+    console.log(`${lang} (${LANG_NAMES[lang]}):`);
+    try {
+      await repairLang(lang);
+    } catch (err) {
+      console.error(`  ✗ ${lang}: ${err.message}\n`);
+    }
+    await new Promise(r => setTimeout(r, 600));
   }
 
-  console.log('Done! Commit public/locales/ when satisfied.');
+  console.log('Done! Run: git add public/locales/ && git commit -m "patch translations"');
 }
 
 main().catch(console.error);
