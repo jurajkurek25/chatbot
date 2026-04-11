@@ -141,14 +141,19 @@ async function repairLang(lang) {
 
 // ─── Main ─────────────────────────────────────────────────────────────────────
 async function main() {
-  const langs = Object.keys(LANG_NAMES).filter(l => l !== 'sk');
-  console.log(`Scanning ${langs.length} language files for untranslated keys...\n`);
+  // Optional: translate only a specific language passed as CLI arg (e.g. node repair-translations.js en)
+  const targetLang = process.argv[2];
+  const langs = targetLang
+    ? [targetLang].filter(l => LANG_NAMES[l])
+    : Object.keys(LANG_NAMES).filter(l => l !== 'sk');
+
+  console.log(`Scanning ${langs.length} language file(s) for untranslated keys...\n`);
 
   for (const lang of langs) {
     const outFile = path.join(locales, `${lang}.json`);
     if (!fs.existsSync(outFile)) {
-      console.log(`  ${lang}: file missing, skipping\n`);
-      continue;
+      console.log(`  ${lang}: file missing — creating baseline from sk.json\n`);
+      fs.writeFileSync(outFile, JSON.stringify(sk, null, 2), 'utf8');
     }
     console.log(`${lang} (${LANG_NAMES[lang]}):`);
     try {
