@@ -96,24 +96,66 @@
     window.location.href = url.toString();
   }
 
+  var switcherBuilt = false;
+
   function buildSwitcher() {
     var containers = document.querySelectorAll('.lang-switcher');
     if (!containers.length) return;
 
-    var opts = SUPPORTED.map(function (l) {
-      return '<option value="' + l + '">' + FLAGS[l] + ' ' + NAMES[l] + '</option>';
+    var items = SUPPORTED.map(function (l) {
+      return '<button type="button" class="lsw-item" data-lang="' + l + '">'
+           + '<span class="lsw-flag">' + FLAGS[l] + '</span>'
+           + '<span class="lsw-name">' + NAMES[l] + '</span>'
+           + '</button>';
     }).join('');
 
     containers.forEach(function (c) {
-      c.innerHTML = '<select class="lang-select" onchange="i18n.setLang(this.value)">' + opts + '</select>';
+      c.innerHTML =
+        '<div class="lsw-wrap">'
+        + '<button type="button" class="lsw-trigger">'
+        +   '<span class="lsw-cur-flag"></span>'
+        +   '<span class="lsw-cur-code"></span>'
+        +   '<svg class="lsw-arrow" width="10" height="6" viewBox="0 0 10 6" fill="none"><path d="M1 1l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+        + '</button>'
+        + '<div class="lsw-menu">' + items + '</div>'
+        + '</div>';
+
+      var wrap    = c.querySelector('.lsw-wrap');
+      var trigger = c.querySelector('.lsw-trigger');
+      var menu    = c.querySelector('.lsw-menu');
+
+      trigger.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var isOpen = wrap.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', isOpen);
+      });
+
+      menu.addEventListener('click', function (e) {
+        var btn = e.target.closest('.lsw-item');
+        if (btn) i18n.setLang(btn.dataset.lang);
+      });
     });
+
+    if (!switcherBuilt) {
+      document.addEventListener('click', function () {
+        document.querySelectorAll('.lsw-wrap.open').forEach(function (w) {
+          w.classList.remove('open');
+          var t = w.querySelector('.lsw-trigger');
+          if (t) t.setAttribute('aria-expanded', 'false');
+        });
+      });
+      switcherBuilt = true;
+    }
 
     updateSwitcherUI();
   }
 
   function updateSwitcherUI() {
-    document.querySelectorAll('.lang-select').forEach(function (sel) {
-      sel.value = currentLang;
+    var lang = currentLang;
+    document.querySelectorAll('.lsw-cur-flag').forEach(function (el) { el.textContent = FLAGS[lang] || FLAGS[DEFAULT]; });
+    document.querySelectorAll('.lsw-cur-code').forEach(function (el) { el.textContent = lang.toUpperCase(); });
+    document.querySelectorAll('.lsw-item').forEach(function (btn) {
+      btn.classList.toggle('active', btn.dataset.lang === lang);
     });
   }
 

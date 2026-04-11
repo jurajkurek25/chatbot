@@ -1,56 +1,102 @@
 /* ── Language Switcher — shared across all pages ────────────── */
 .lang-switcher { display: inline-flex; align-items: center; }
 
-.lang-select {
-  appearance: none;
-  -webkit-appearance: none;
-  background-color: transparent;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='rgba(255,255,255,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  border: 1px solid rgba(255,255,255,0.18);
+.lsw-wrap { position: relative; display: inline-block; }
+
+/* Trigger button */
+.lsw-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.2);
   border-radius: 8px;
-  padding: 5px 28px 5px 10px;
+  padding: 5px 10px;
   color: rgba(255,255,255,0.8);
   font-size: 0.8rem;
   font-weight: 500;
   font-family: inherit;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
-  outline: none;
-  line-height: 1.4;
+  line-height: 1;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  white-space: nowrap;
+  user-select: none;
 }
-.lang-select:hover {
-  border-color: rgba(255,255,255,0.4);
+.lsw-trigger:hover,
+.lsw-wrap.open .lsw-trigger {
+  border-color: rgba(255,255,255,0.45);
+  background: rgba(255,255,255,0.07);
   color: #fff;
-  background-color: rgba(255,255,255,0.06);
 }
-.lang-select:focus {
-  border-color: rgba(91,79,255,0.7);
-  box-shadow: 0 0 0 2px rgba(91,79,255,0.2);
+.lsw-cur-flag { font-size: 1.05rem; line-height: 1; }
+.lsw-cur-code { font-size: 0.75rem; letter-spacing: 0.05em; }
+.lsw-arrow {
+  opacity: 0.55;
+  transition: transform 0.2s ease;
+  flex-shrink: 0;
 }
-.lang-select option {
-  background: #1a1a2e;
-  color: #eeeef5;
-  font-size: 0.85rem;
+.lsw-wrap.open .lsw-arrow { transform: rotate(180deg); opacity: 1; }
+
+/* Dropdown menu */
+.lsw-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 160px;
+  background: #16162a;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 10px 36px rgba(0,0,0,0.5);
+  z-index: 9999;
 }
+.lsw-wrap.open .lsw-menu { display: block; }
+
+/* Menu items */
+.lsw-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  background: none;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: rgba(255,255,255,0.65);
+  font-size: 0.84rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  white-space: nowrap;
+  transition: background 0.1s, color 0.1s;
+}
+.lsw-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.lsw-item.active {
+  background: rgba(91,79,255,0.22);
+  color: #fff;
+  font-weight: 600;
+}
+.lsw-flag { font-size: 1.05rem; flex-shrink: 0; }
+.lsw-name { font-size: 0.82rem; }
 
 /* Light-background variant */
-.lang-switcher-light .lang-select {
-  border-color: rgba(0,0,0,0.15);
+.lang-switcher-light .lsw-trigger {
+  border-color: rgba(0,0,0,0.18);
   color: rgba(0,0,0,0.65);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='rgba(0,0,0,0.4)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
 }
-.lang-switcher-light .lang-select:hover {
+.lang-switcher-light .lsw-trigger:hover,
+.lang-switcher-light .lsw-wrap.open .lsw-trigger {
   border-color: rgba(0,0,0,0.35);
+  background: rgba(0,0,0,0.05);
   color: #111;
-  background-color: rgba(0,0,0,0.04);
 }
-.lang-switcher-light .lang-select:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
-}
-.lang-switcher-light .lang-select option {
+.lang-switcher-light .lsw-arrow { filter: invert(1); }
+.lang-switcher-light .lsw-menu {
   background: #fff;
-  color: #111;
+  border-color: rgba(0,0,0,0.1);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
 }
+.lang-switcher-light .lsw-item { color: rgba(0,0,0,0.6); }
+.lang-switcher-light .lsw-item:hover { background: rgba(0,0,0,0.05); color: #111; }
+.lang-switcher-light .lsw-item.active { background: rgba(37,99,235,0.09); color: #2563eb; }
