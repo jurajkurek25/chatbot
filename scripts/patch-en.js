@@ -2,6 +2,7 @@
 // Manual patch for English strings that the AI kept returning unchanged
 // (brand slogans, objection-handling phrases, marketing copy)
 // Run: node scripts/patch-en.js
+// Re-runnable safely – already-correct keys are overwritten with same value
 
 const fs   = require('fs');
 const path = require('path');
@@ -73,6 +74,52 @@ const patch = {
 
   'Je to skutočný predajný AI. Má zabudovaný 5-fázový framework (Discovery → Pain → Solution → Objections → Close), kladie otázky namiesto len odpovedania, identifikuje problém zákazníka a spracúva námietky. To je fundamentálny rozdiel oproti chatbotom, čo len hľadajú v FAQ.':
     'It\'s a real sales AI. It has a built-in 5-phase framework (Discovery → Pain → Solution → Objections → Close), asks questions instead of just answering, identifies the customer\'s problem and handles objections. That\'s a fundamental difference from chatbots that just search FAQs.',
+
+  // ── Nav & section headings ────────────────────────────────────────────────
+  'Funkcie':            'Features',
+  'Leady':              'Leads',
+  '📋 Leady':           '📋 Leads',
+  'Cena':               'Price',
+  '/mesiac':            '/month',
+  'GDPR v cene':        'GDPR included',
+  'Podmienky':          'Terms',
+  'Kontakt':            'Contact',
+  'Ako to funguje':     'How it works',
+  'Ako to funguje?':    'How does it work?',
+  'Zaregistrujte sa':   'Sign up',
+  'Ako vyzerá váš biznis,': 'What does your business look like,',
+
+  // ── Inline partial text nodes ─────────────────────────────────────────────
+  'neviete':            'know',
+  'alebo zabudol.':     'or forgot.',
+  'AI reaguje na':      'AI responds to',
+  'GDPR & Dokumenty':   'GDPR & Documents',
+  '✓ Import z CSV':     '✓ CSV import',
+  '✓ Shopify skenovanie': '✓ Shopify scanning',
+
+  // ── Onboarding step 2 ────────────────────────────────────────────────────
+  'Zadajte URL vášho webu – AI ho naskenuje automaticky. Alebo nahrajte PDF, texty, cenníky drag & drop. AI navrhne otázky ihneď po spracovaní.':
+    'Enter your website URL – AI will scan it automatically. Or upload PDFs, texts, price lists via drag & drop. AI will suggest questions immediately after processing.',
+
+  // ── Hardcoded partial text nodes NOT in sk.json ───────────────────────────
+  // (text walker finds these exact strings in the HTML)
+  'ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.':
+    'offers a solution through benefits and closes the sale. Not randomly – systematically.',
+
+  'ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".':
+    'that customers understand and appreciate. Not "8GB RAM" but "you can edit video on it".',
+
+  'Proaktívna bublina to zmení.':
+    'The proactive bubble changes that.',
+
+  'AI sa riadi týmito pravidlami a zákazníkovi navrhne správny produkt v správnom momente.':
+    'AI follows these rules and suggests the right product to the customer at the right moment.',
+
+  'vždy s priamym odkazom na nákup.':
+    'always with a direct link to purchase.',
+
+  'keď AI obchodník robí svoju prácu':
+    'when the AI salesman does its job',
 };
 
 let count = 0;
