@@ -79,6 +79,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.history.replaceState({}, '', '/dashboard');
     loadUsageBar();
   }
+
+  // Wire "add language" button via JS (not onclick attribute) to avoid scope issues
+  const addLangBtn = document.getElementById('btn-add-welcome-lang');
+  if (addLangBtn) addLangBtn.addEventListener('click', () => addWelcomeLang());
 });
 
 function renderBillingButton() {
@@ -345,7 +349,8 @@ const WELCOME_LANG_NAMES = {
 };
 
 function clearWelcomeLangs() {
-  document.getElementById('welcome-langs-container').innerHTML = '';
+  const c = document.getElementById('welcome-langs-container');
+  if (c) c.innerHTML = '';
 }
 
 function loadWelcomeLangs(wmObj) {
@@ -358,6 +363,7 @@ function loadWelcomeLangs(wmObj) {
 
 function addWelcomeLang(lang, msg) {
   const container = document.getElementById('welcome-langs-container');
+  if (!container) { console.error('[ND] welcome-langs-container not found'); return; }
   const row = document.createElement('div');
   row.className = 'welcome-lang-row';
   row.style.cssText = 'display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem';
