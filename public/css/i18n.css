@@ -1,92 +1,56 @@
 /* ── Language Switcher — shared across all pages ────────────── */
-.lang-switcher { position: relative; display: inline-flex; align-items: center; }
+.lang-switcher { display: inline-flex; align-items: center; }
 
-.lang-drop { position: relative; }
-
-.lang-current {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: transparent;
+.lang-select {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='rgba(255,255,255,0.5)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
   border: 1px solid rgba(255,255,255,0.18);
   border-radius: 8px;
-  padding: 5px 10px;
-  color: rgba(255,255,255,0.75);
+  padding: 5px 28px 5px 10px;
+  color: rgba(255,255,255,0.8);
   font-size: 0.8rem;
   font-weight: 500;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
-  white-space: nowrap;
   font-family: inherit;
-  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background-color 0.15s;
+  outline: none;
+  line-height: 1.4;
 }
-.lang-current:hover {
+.lang-select:hover {
   border-color: rgba(255,255,255,0.4);
   color: #fff;
-  background: rgba(255,255,255,0.06);
+  background-color: rgba(255,255,255,0.06);
 }
-.lang-flag-cur { font-size: 1rem; line-height: 1; }
-.lang-code-cur { font-size: 0.75rem; letter-spacing: 0.04em; }
-.lang-chevron {
-  opacity: 0.5;
-  transition: transform 0.2s;
-  flex-shrink: 0;
+.lang-select:focus {
+  border-color: rgba(91,79,255,0.7);
+  box-shadow: 0 0 0 2px rgba(91,79,255,0.2);
 }
-.lang-drop.open .lang-chevron { transform: rotate(180deg); opacity: 0.9; }
-
-.lang-menu {
-  display: none;
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 150px;
+.lang-select option {
   background: #1a1a2e;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 10px;
-  padding: 4px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-  z-index: 9999;
-  overflow: hidden;
+  color: #eeeef5;
+  font-size: 0.85rem;
 }
-.lang-drop.open .lang-menu { display: block; }
-
-.lang-option {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  background: transparent;
-  border: none;
-  border-radius: 7px;
-  padding: 7px 10px;
-  color: rgba(255,255,255,0.65);
-  font-size: 0.83rem;
-  cursor: pointer;
-  transition: background 0.12s, color 0.12s;
-  text-align: left;
-  font-family: inherit;
-  white-space: nowrap;
-}
-.lang-option:hover { background: rgba(255,255,255,0.08); color: #fff; }
-.lang-option.active { color: #fff; font-weight: 600; background: rgba(91,79,255,0.25); }
-.lang-option-flag { font-size: 1rem; flex-shrink: 0; }
-.lang-option-name { font-size: 0.82rem; }
 
 /* Light-background variant */
-.lang-switcher-light .lang-current {
+.lang-switcher-light .lang-select {
   border-color: rgba(0,0,0,0.15);
-  color: rgba(0,0,0,0.6);
+  color: rgba(0,0,0,0.65);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2 4l4 4 4-4' stroke='rgba(0,0,0,0.4)' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E");
 }
-.lang-switcher-light .lang-current:hover {
+.lang-switcher-light .lang-select:hover {
   border-color: rgba(0,0,0,0.35);
   color: #111;
-  background: rgba(0,0,0,0.04);
+  background-color: rgba(0,0,0,0.04);
 }
-.lang-switcher-light .lang-menu {
+.lang-switcher-light .lang-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+.lang-switcher-light .lang-select option {
   background: #fff;
-  border-color: rgba(0,0,0,0.1);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  color: #111;
 }
-.lang-switcher-light .lang-option { color: rgba(0,0,0,0.6); }
-.lang-switcher-light .lang-option:hover { background: rgba(0,0,0,0.05); color: #111; }
-.lang-switcher-light .lang-option.active { background: rgba(37,99,235,0.08); color: #2563eb; }

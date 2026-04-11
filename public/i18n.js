@@ -100,53 +100,20 @@
     var containers = document.querySelectorAll('.lang-switcher');
     if (!containers.length) return;
 
-    var chevron = '<svg class="lang-chevron" width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 3.5L5 6.5L8 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-
-    var options = SUPPORTED.map(function (l) {
-      return '<button class="lang-option" data-lang="' + l + '" onclick="i18n.setLang(\'' + l + '\')">'
-           + '<span class="lang-option-flag">' + FLAGS[l] + '</span>'
-           + '<span class="lang-option-name">' + NAMES[l] + '</span>'
-           + '</button>';
+    var opts = SUPPORTED.map(function (l) {
+      return '<option value="' + l + '">' + FLAGS[l] + ' ' + NAMES[l] + '</option>';
     }).join('');
 
     containers.forEach(function (c) {
-      c.innerHTML =
-        '<div class="lang-drop">'
-        + '<button class="lang-current" id="lang-current-btn" aria-haspopup="true" aria-expanded="false">'
-        +   '<span class="lang-flag-cur"></span>'
-        +   '<span class="lang-code-cur"></span>'
-        +   chevron
-        + '</button>'
-        + '<div class="lang-menu" role="menu">' + options + '</div>'
-        + '</div>';
-
-      c.querySelector('.lang-current').addEventListener('click', function (e) {
-        e.stopPropagation();
-        var drop = c.querySelector('.lang-drop');
-        var open = drop.classList.toggle('open');
-        this.setAttribute('aria-expanded', open);
-      });
-    });
-
-    // Close on outside click
-    document.addEventListener('click', function () {
-      document.querySelectorAll('.lang-drop.open').forEach(function (d) {
-        d.classList.remove('open');
-        var btn = d.querySelector('.lang-current');
-        if (btn) btn.setAttribute('aria-expanded', 'false');
-      });
+      c.innerHTML = '<select class="lang-select" onchange="i18n.setLang(this.value)">' + opts + '</select>';
     });
 
     updateSwitcherUI();
   }
 
   function updateSwitcherUI() {
-    var flag = FLAGS[currentLang] || FLAGS[DEFAULT];
-    var code = currentLang.toUpperCase();
-    document.querySelectorAll('.lang-flag-cur').forEach(function (el) { el.textContent = flag; });
-    document.querySelectorAll('.lang-code-cur').forEach(function (el) { el.textContent = code; });
-    document.querySelectorAll('.lang-option').forEach(function (btn) {
-      btn.classList.toggle('active', btn.dataset.lang === currentLang);
+    document.querySelectorAll('.lang-select').forEach(function (sel) {
+      sel.value = currentLang;
     });
   }
 
