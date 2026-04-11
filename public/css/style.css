@@ -1,9 +1,6 @@
 /* ── Global Reset & Base ─────────────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-/* ── Language Switcher — see /css/i18n.css ───────────────────── */
-@import url('/css/i18n.css');
-
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #1e293b;
