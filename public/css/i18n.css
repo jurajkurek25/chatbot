@@ -1,0 +1,92 @@
+/* ── Language Switcher — shared across all pages ────────────── */
+.lang-switcher { position: relative; display: inline-flex; align-items: center; }
+
+.lang-drop { position: relative; }
+
+.lang-current {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 8px;
+  padding: 5px 10px;
+  color: rgba(255,255,255,0.75);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+  line-height: 1;
+}
+.lang-current:hover {
+  border-color: rgba(255,255,255,0.4);
+  color: #fff;
+  background: rgba(255,255,255,0.06);
+}
+.lang-flag-cur { font-size: 1rem; line-height: 1; }
+.lang-code-cur { font-size: 0.75rem; letter-spacing: 0.04em; }
+.lang-chevron {
+  opacity: 0.5;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.lang-drop.open .lang-chevron { transform: rotate(180deg); opacity: 0.9; }
+
+.lang-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 150px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 9999;
+  overflow: hidden;
+}
+.lang-drop.open .lang-menu { display: block; }
+
+.lang-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 7px 10px;
+  color: rgba(255,255,255,0.65);
+  font-size: 0.83rem;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  text-align: left;
+  font-family: inherit;
+  white-space: nowrap;
+}
+.lang-option:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.lang-option.active { color: #fff; font-weight: 600; background: rgba(91,79,255,0.25); }
+.lang-option-flag { font-size: 1rem; flex-shrink: 0; }
+.lang-option-name { font-size: 0.82rem; }
+
+/* Light-background variant */
+.lang-switcher-light .lang-current {
+  border-color: rgba(0,0,0,0.15);
+  color: rgba(0,0,0,0.6);
+}
+.lang-switcher-light .lang-current:hover {
+  border-color: rgba(0,0,0,0.35);
+  color: #111;
+  background: rgba(0,0,0,0.04);
+}
+.lang-switcher-light .lang-menu {
+  background: #fff;
+  border-color: rgba(0,0,0,0.1);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+}
+.lang-switcher-light .lang-option { color: rgba(0,0,0,0.6); }
+.lang-switcher-light .lang-option:hover { background: rgba(0,0,0,0.05); color: #111; }
+.lang-switcher-light .lang-option.active { background: rgba(37,99,235,0.08); color: #2563eb; }
