@@ -340,8 +340,11 @@
             </div>
 
             <div class="form-group">
-              <label>Uvítacia správa</label>
+              <label>Uvítacia správa <span style="font-weight:400;color:#94a3b8">(predvolená)</span></label>
               <input type="text" class="form-control" id="s-welcome" placeholder="Ahoj! Ako vám môžem pomôcť?">
+              <div id="welcome-langs-container"></div>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="addWelcomeLang()" style="margin-top:0.6rem">+ Pridať jazyk</button>
+              <div class="hint" style="margin-top:0.4rem">Pre viacjazyčné weby – widget automaticky rozpozná jazyk stránky zákazníka.</div>
             </div>
 
             <div class="form-group">

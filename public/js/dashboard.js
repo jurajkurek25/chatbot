@@ -229,7 +229,18 @@ async function openWidget(widgetId) {
   // Populate settings form
   document.getElementById('s-name').value = currentWidget.name;
   document.getElementById('s-bot-name').value = currentWidget.bot_name;
-  document.getElementById('s-welcome').value = currentWidget.welcome_message;
+  // Welcome message (plain string or JSON for multilingual)
+  const rawWelcome = currentWidget.welcome_message || '';
+  if (rawWelcome.startsWith('{')) {
+    try {
+      const wmObj = JSON.parse(rawWelcome);
+      document.getElementById('s-welcome').value = wmObj.default || '';
+      loadWelcomeLangs(wmObj);
+    } catch { document.getElementById('s-welcome').value = rawWelcome; clearWelcomeLangs(); }
+  } else {
+    document.getElementById('s-welcome').value = rawWelcome;
+    clearWelcomeLangs();
+  }
   document.getElementById('s-color').value = currentWidget.primary_color;
   document.getElementById('s-goals').value = currentWidget.goals || '';
   document.getElementById('s-active').value = currentWidget.active ? '1' : '0';
@@ -326,13 +337,62 @@ async function deleteWidget(widgetId, event) {
   }
 }
 
+/* ── Multilingual Welcome Messages ─────────────────────────────── */
+const WELCOME_LANG_NAMES = {
+  sk:'Slovenčina', en:'English', de:'Deutsch', fr:'Français', es:'Español',
+  pl:'Polski', cs:'Čeština', hu:'Magyar', ro:'Română', hr:'Hrvatski',
+  it:'Italiano', nl:'Nederlands', pt:'Português', ru:'Русский', uk:'Українська'
+};
+
+function clearWelcomeLangs() {
+  document.getElementById('welcome-langs-container').innerHTML = '';
+}
+
+function loadWelcomeLangs(wmObj) {
+  clearWelcomeLangs();
+  for (const [lang, msg] of Object.entries(wmObj)) {
+    if (lang === 'default') continue;
+    addWelcomeLang(lang, msg);
+  }
+}
+
+function addWelcomeLang(lang, msg) {
+  const container = document.getElementById('welcome-langs-container');
+  const row = document.createElement('div');
+  row.className = 'welcome-lang-row';
+  row.style.cssText = 'display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem';
+  const options = Object.entries(WELCOME_LANG_NAMES)
+    .map(([code, name]) => `<option value="${code}">${name} (${code})</option>`).join('');
+  row.innerHTML =
+    `<select class="form-control wl-lang" style="width:150px;flex-shrink:0">${options}</select>` +
+    `<input type="text" class="form-control wl-msg" placeholder="Uvítacia správa..." style="flex:1">` +
+    `<button type="button" class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:0.35rem 0.65rem" ` +
+    `onclick="this.closest('.welcome-lang-row').remove()">×</button>`;
+  container.appendChild(row);
+  if (lang) { row.querySelector('.wl-lang').value = lang; }
+  if (msg)  { row.querySelector('.wl-msg').value  = msg; }
+}
+
+function buildWelcomeMessage() {
+  const def = document.getElementById('s-welcome').value.trim();
+  const rows = document.querySelectorAll('.welcome-lang-row');
+  if (!rows.length) return def;
+  const obj = { default: def };
+  rows.forEach(r => {
+    const lang = r.querySelector('.wl-lang').value;
+    const msg  = r.querySelector('.wl-msg').value.trim();
+    if (lang && msg) obj[lang] = msg;
+  });
+  return JSON.stringify(obj);
+}
+
 /* ── Save Settings ─────────────────────────────────────────────── */
 async function saveSettings() {
   if (!currentWidget) return;
   const body = {
     name: document.getElementById('s-name').value.trim(),
     bot_name: document.getElementById('s-bot-name').value.trim(),
-    welcome_message: document.getElementById('s-welcome').value.trim(),
+    welcome_message: buildWelcomeMessage(),
     primary_color: document.getElementById('s-color').value,
     goals: document.getElementById('s-goals').value.trim(),
     active: document.getElementById('s-active').value === '1',

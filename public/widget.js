@@ -381,8 +381,8 @@
     });
     shadow.getElementById('nd-input').addEventListener('input', autoResize);
 
-    // Add welcome message
-    addBotMessage(config.welcome_message || 'Ahoj! Ako vám môžem pomôcť?');
+    // Add welcome message (multilingual if configured)
+    addBotMessage(getWelcomeMessage(config.welcome_message));
 
     // Render suggested questions
     renderSuggestions();
@@ -783,6 +783,31 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, phone: phone || undefined, sessionId, gdprConsent: true })
     }).catch(() => { /* ignore network errors */ });
+  }
+
+  /* ── Language detection (zero API cost) ─────────────────────── */
+  function detectPageLang() {
+    // 1. HTML lang attribute – set by WordPress/WPML/Polylang/Shopify automatically
+    const htmlLang = document.documentElement.lang;
+    if (htmlLang) return htmlLang.toLowerCase().split('-')[0];
+    // 2. URL path prefix: /en/, /de/, ...
+    const pathMatch = location.pathname.match(/^\/([a-z]{2})\//);
+    if (pathMatch) return pathMatch[1];
+    // 3. Subdomain: en.example.com (skip www)
+    const subMatch = location.hostname.match(/^([a-z]{2})\./);
+    if (subMatch && subMatch[1] !== 'ww') return subMatch[1];
+    // 4. Browser language as last resort
+    return (navigator.language || 'sk').toLowerCase().split('-')[0];
+  }
+
+  function getWelcomeMessage(raw) {
+    const fallback = raw || 'Ahoj! Ako vám môžem pomôcť?';
+    if (!raw || !raw.startsWith('{')) return fallback;
+    try {
+      const obj = JSON.parse(raw);
+      const lang = detectPageLang();
+      return obj[lang] || obj['default'] || fallback;
+    } catch { return fallback; }
   }
 
   /* ── Helpers ────────────────────────────────────────────────── */
