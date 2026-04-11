@@ -86,15 +86,17 @@ const PATCH_KEYS = {
     'AI karty leadov odhaľujú vzory – aké námietky sú najčastejšie, čo ich blokuje.',
   'Chatbot rieši „Aká je cena?" tisíckrát. Vy sa venujete práci s hodnotou.':
     'Chatbot rieši „Aká je cena?" tisíckrát. Vy sa venujete práci s hodnotou.',
-  'ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.':
-    'ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.',
+  // Text nodes split around <strong> — key includes leading , or . punctuation
+  ', ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.':
+    ', ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.',
   'ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".':
     'ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".',
-  'Proaktívna bublina to zmení.': 'Proaktívna bublina to zmení.',
-  'AI sa riadi týmito pravidlami a zákazníkovi navrhne správny produkt v správnom momente.':
-    'AI sa riadi týmito pravidlami a zákazníkovi navrhne správny produkt v správnom momente.',
-  'vždy s priamym odkazom na nákup.': 'vždy s priamym odkazom na nákup.',
-  'keď AI obchodník robí svoju prácu': 'keď AI obchodník robí svoju prácu',
+  '. Proaktívna bublina to zmení.': '. Proaktívna bublina to zmení.',
+  '. AI sa riadi týmito pravidlami a zákazníkovi navrhne správny produkt v správnom momente.':
+    '. AI sa riadi týmito pravidlami a zákazníkovi navrhne správny produkt v správnom momente.',
+  ', vždy s priamym odkazom na nákup.': ', vždy s priamym odkazom na nákup.',
+  'keď': 'keď',
+  'AI obchodník robí svoju prácu': 'AI obchodník robí svoju prácu',
   'Zadajte URL vášho webu – AI ho naskenuje automaticky. Alebo nahrajte PDF, texty, cenníky drag & drop. AI navrhne otázky ihneď po spracovaní.':
     'Zadajte URL vášho webu – AI ho naskenuje automaticky. Alebo nahrajte PDF, texty, cenníky drag & drop. AI navrhne otázky ihneď po spracovaní.',
   'Opíšete váš produkt, cieľovku, námietky – AI si':

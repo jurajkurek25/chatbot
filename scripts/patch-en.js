@@ -101,25 +101,34 @@ const patch = {
   'Zadajte URL vášho webu – AI ho naskenuje automaticky. Alebo nahrajte PDF, texty, cenníky drag & drop. AI navrhne otázky ihneď po spracovaní.':
     'Enter your website URL – AI will scan it automatically. Or upload PDFs, texts, price lists via drag & drop. AI will suggest questions immediately after processing.',
 
-  // ── Hardcoded partial text nodes NOT in sk.json ───────────────────────────
-  // (text walker finds these exact strings in the HTML)
-  'ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.':
-    'offers a solution through benefits and closes the sale. Not randomly – systematically.',
+  // ── Hardcoded partial text nodes split around <strong> tags ──────────────
+  // The text walker finds the EXACT text node including leading punctuation.
+  // Key must match orig.trim() — comma/period prefix stays, only whitespace is stripped.
 
-  'ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".':
-    'that customers understand and appreciate. Not "8GB RAM" but "you can edit video on it".',
+  // <strong>identifikuje jeho skutočný problém</strong>, ponúka riešenie...
+  ', ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.':
+    ', offers a solution through benefits and closes the sale. Not randomly – systematically.',
 
-  'Proaktívna bublina to zmení.':
-    'The proactive bubble changes that.',
+  // <strong>nevedia kde začať</strong>. Proaktívna bublina to zmení.
+  '. Proaktívna bublina to zmení.':
+    '. The proactive bubble changes that.',
 
-  'AI sa riadi týmito pravidlami a zákazníkovi navrhne správny produkt v správnom momente.':
-    'AI follows these rules and suggests the right product to the customer at the right moment.',
+  // <strong>„NEodporúčaj keď"</strong>. AI sa riadi...
+  '. AI sa riadi týmito pravidlami a zákazníkovi navrhne správny produkt v správnom momente.':
+    '. AI follows these rules and suggests the right product to the customer at the right moment.',
 
-  'vždy s priamym odkazom na nákup.':
-    'always with a direct link to purchase.',
+  // <strong>max 1–3 produkty naraz</strong>, vždy s priamym...
+  ', vždy s priamym odkazom na nákup.':
+    ', always with a direct link to purchase.',
 
-  'keď AI obchodník robí svoju prácu':
-    'when the AI salesman does its job',
+  // <h2>Ako vyzerá váš biznis,<br>keď <span>AI obchodník...</span></h2>
+  // "keď" is its own text node between <br> and <span>
+  'keď':
+    'when',
+
+  // <span class="grad-text">AI obchodník robí svoju prácu</span>
+  'AI obchodník robí svoju prácu':
+    'AI salesman does its job',
 };
 
 let count = 0;
