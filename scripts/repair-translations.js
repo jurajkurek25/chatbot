@@ -96,9 +96,13 @@ async function repairLang(lang) {
   const outFile  = path.join(locales, `${lang}.json`);
   const existing = JSON.parse(fs.readFileSync(outFile, 'utf8'));
 
-  // Find keys that are still in Slovak
+  // __done__ tracks keys that were already processed (even if result == SK value)
+  const done = new Set(existing.__done__ || []);
+
+  // Find keys that are still in Slovak AND were not already processed
   const todo = {};
   for (const key of skKeys) {
+    if (done.has(key)) continue;
     if (needsTranslation(key, existing[key])) todo[key] = sk[key];
   }
 
@@ -114,14 +118,14 @@ async function repairLang(lang) {
 
   for (let i = 0; i < parts.length; i++) {
     process.stdout.write(`    chunk ${i + 1}/${parts.length}... `);
-    let ok = false;
     for (let attempt = 1; attempt <= 4; attempt++) {
       try {
         const translated = await translateChunk(parts[i], langName);
         Object.assign(existing, translated);
+        // Mark all keys in this chunk as done (even if result == SK value)
+        Object.keys(parts[i]).forEach(k => done.add(k));
         patched += Object.keys(parts[i]).length;
         process.stdout.write('✓\n');
-        ok = true;
         break;
       } catch (err) {
         if (attempt < 4) {
@@ -135,6 +139,7 @@ async function repairLang(lang) {
     if (i < parts.length - 1) await new Promise(r => setTimeout(r, 400));
   }
 
+  existing.__done__ = [...done].sort();
   fs.writeFileSync(outFile, JSON.stringify(existing, null, 2), 'utf8');
   console.log(`  ✓ ${lang}.json: patched ${patched} keys\n`);
 }

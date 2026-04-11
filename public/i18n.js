@@ -37,7 +37,7 @@
     xhr.open('GET', '/locales/' + lang + '.json?v=2', true);
     xhr.onload = function () {
       if (xhr.status === 200) {
-        try { translations = JSON.parse(xhr.responseText); } catch (e) { translations = {}; }
+        try { const p = JSON.parse(xhr.responseText); delete p.__done__; translations = p; } catch (e) { translations = {}; }
         currentLang = lang;
         localStorage.setItem('nd_lang', lang);
       } else {
