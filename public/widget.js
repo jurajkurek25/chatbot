@@ -1018,12 +1018,11 @@
 
   /* ── Welcome message (multilingual JSON or plain text) ──────── */
   function getWelcomeMessage(raw) {
-    const fallback = raw || 'Ahoj! Ako vám môžem pomôcť?';
-    if (!raw || !raw.startsWith('{')) return fallback;
+    if (!raw || !raw.startsWith('{')) return raw || '';
     try {
       const obj = JSON.parse(raw);
-      return obj[_lang] || obj['default'] || fallback;
-    } catch { return fallback; }
+      return obj[_lang] || obj['default'] || obj['en'] || obj['sk'] || '';
+    } catch { return raw; }
   }
 
   /* ── Helpers ────────────────────────────────────────────────── */
