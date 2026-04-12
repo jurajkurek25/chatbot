@@ -8,9 +8,18 @@
   'use strict';
 
   const BASE_URL = (function () {
+    // document.currentScript is reliable for both sync and async scripts
+    if (document.currentScript && document.currentScript.src) {
+      try { return new URL(document.currentScript.src).origin; } catch {}
+    }
+    // Fallback: find widget.js in the script list
     const scripts = document.getElementsByTagName('script');
-    const me = scripts[scripts.length - 1];
-    try { return new URL(me.src).origin; } catch { return 'https://neuradesk.online'; }
+    for (let i = scripts.length - 1; i >= 0; i--) {
+      if (scripts[i].src && scripts[i].src.includes('widget.js')) {
+        try { return new URL(scripts[i].src).origin; } catch {}
+      }
+    }
+    return 'https://neuradesk.online';
   })();
 
   const cfg = window.NeuraDeskConfig || {};
@@ -29,7 +38,13 @@
   }
 
   const _SUPPORTED = ['sk','en','de','fr','es','pl','cs','hu','ro','hr'];
-  const _lang = (() => { const l = detectPageLang(); return _SUPPORTED.includes(l) ? l : 'sk'; })();
+  // _lang is computed lazily on first call — ensures i18n.js has already set html[lang]
+  // (i18n.js runs synchronously before DOMContentLoaded; widget init() runs after)
+  let _lang = null;
+  function getLang() {
+    if (!_lang) { const l = detectPageLang(); _lang = _SUPPORTED.includes(l) ? l : 'sk'; }
+    return _lang;
+  }
 
   const WIDGET_I18N = {
     sk: {
@@ -245,7 +260,8 @@
   };
 
   function wt(key) {
-    return (WIDGET_I18N[_lang] || {})[key] || WIDGET_I18N.sk[key] || key;
+    const lang = getLang();
+    return (WIDGET_I18N[lang] || {})[key] || WIDGET_I18N.sk[key] || key;
   }
 
   /* ── Styles ─────────────────────────────────────────────────── */
@@ -613,7 +629,8 @@
     shadow.getElementById('nd-input').addEventListener('input', autoResize);
 
     // Add welcome message (multilingual if configured)
-    addBotMessage(getWelcomeMessage(config.welcome_message));
+    const _welcomeMsg = getWelcomeMessage(config.welcome_message);
+    if (_welcomeMsg) addBotMessage(_welcomeMsg);
 
     // Render suggested questions
     renderSuggestions();
@@ -1021,7 +1038,8 @@
     if (!raw || !raw.startsWith('{')) return raw || '';
     try {
       const obj = JSON.parse(raw);
-      return obj[_lang] || obj['default'] || obj['en'] || obj['sk'] || '';
+      const lang = getLang();
+      return obj[lang] || obj['default'] || obj['en'] || obj['sk'] || '';
     } catch { return raw; }
   }
 
