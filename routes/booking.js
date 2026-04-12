@@ -323,22 +323,8 @@ router.delete('/:widgetId/overrides/:overrideId', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-/** GET /api/booking/:widgetId/bookings?from=&to=&status= */
-router.get('/:widgetId/bookings', requireAuth, (req, res) => {
-  if (!getOwnedWidget(req.params.widgetId, req.userId))
-    return res.status(404).json({ error: 'Widget nenájdený.' });
-  const cfg = getOrCreateConfig(req.params.widgetId);
-  const { from, to, status } = req.query;
-  let sql = 'SELECT * FROM bookings WHERE booking_config_id = ?';
-  const params = [cfg.id];
-  if (from) { sql += ' AND date >= ?'; params.push(from); }
-  if (to)   { sql += ' AND date <= ?'; params.push(to); }
-  if (status) { sql += ' AND status = ?'; params.push(status); }
-  sql += ' ORDER BY date, start_time';
-  res.json(getDb().prepare(sql).all(...params));
-});
-
 /** GET /api/booking/all/bookings?from=&to= — all bookings across all user's widgets */
+// NOTE: must be registered BEFORE /:widgetId/bookings to avoid route conflict
 router.get('/all/bookings', requireAuth, (req, res) => {
   const db = getDb();
   const { from, to } = req.query;
@@ -354,6 +340,21 @@ router.get('/all/bookings', requireAuth, (req, res) => {
   if (to)   { sql += ' AND b.date <= ?'; params.push(to); }
   sql += ' ORDER BY b.date, b.start_time';
   res.json(db.prepare(sql).all(...params));
+});
+
+/** GET /api/booking/:widgetId/bookings?from=&to=&status= */
+router.get('/:widgetId/bookings', requireAuth, (req, res) => {
+  if (!getOwnedWidget(req.params.widgetId, req.userId))
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  const cfg = getOrCreateConfig(req.params.widgetId);
+  const { from, to, status } = req.query;
+  let sql = 'SELECT * FROM bookings WHERE booking_config_id = ?';
+  const params = [cfg.id];
+  if (from) { sql += ' AND date >= ?'; params.push(from); }
+  if (to)   { sql += ' AND date <= ?'; params.push(to); }
+  if (status) { sql += ' AND status = ?'; params.push(status); }
+  sql += ' ORDER BY date, start_time';
+  res.json(getDb().prepare(sql).all(...params));
 });
 
 /** PATCH /api/booking/:widgetId/bookings/:bookingId */
