@@ -114,6 +114,47 @@ NeuraDeskApp je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvor
 - Widget sa automaticky vloží do hlavičky — bez ručného kopírovania kódu
 - Aktualizácia obsahu: Re-scan tlačidlo v nastaveniach pluginu
 
+13. BOOKING SYSTÉM (REZERVÁCIE)
+- Klienti si môžu nastaviť rezervačný kalendár pre každý widget zvlášť
+- Dashboard → váš widget → záložka "📅 Rezervácie"
+
+NASTAVENIA REZERVÁCIÍ:
+- Časové pásmo, dĺžka slotu (napr. 30 min), prestávka medzi slotmi (napr. 15 min)
+- Minimálna notifikácia (napr. zákazník musí rezervovať aspoň 24h dopredu)
+- Maximálny horizont (zákazník môže rezervovať max X dní dopredu)
+- Potvrdzovacia správa (zobrazí sa zákazníkovi po úspešnej rezervácii)
+
+ROZVRH DOSTUPNOSTI:
+- Nastavíte pracovné dni a hodiny (napr. Po–Pi 09:00–17:00)
+- Každý deň v týždni môžete zapnúť/vypnúť samostatne
+- Systém automaticky generuje dostupné sloty
+
+VÝNIMKY A SVIATKY:
+- Môžete pridať konkrétny dátum ako "zatvorené" (napr. štátny sviatok)
+- Alebo nastaviť iné hodiny pre konkrétny deň (napr. sobota 10:00–13:00)
+
+REZERVÁCIA PRIAMO CEZ CHATBOTA:
+- Keď zákazník v chate napíše že chce rezervovať termín, chatbot otvorí rezervačný formulár priamo v bubline widgetu
+- Zákazník si vyberie dátum → čas → vyplní meno/email/telefón → odošle
+- Rezervácia sa uloží a zákazník dostane potvrdzujúcu správu
+
+SAMOSTATNÁ REZERVAČNÁ STRÁNKA:
+- Každý widget má vlastnú booking page: neuradesk.online/book/WIDGET_ID
+- Táto stránka sa dá zdieľať ako link (email, WhatsApp, bio na Instagrame)
+- Embed kód (iframe) pre vloženie rezervačného widgetu na váš web – nájdete v záložke Rezervácie → Embed kód
+
+GOOGLE CALENDAR INTEGRÁCIA:
+- Voliteľné napojenie na Google Calendar cez OAuth (tlačidlo "Pripojiť Google Calendar")
+- Po prepojení: nová rezervácia sa automaticky vytvorí ako event v Google Calendari
+- Zákazník dostane pozvánku na event na jeho email
+- Pri zrušení rezervácie sa event z Calendaru automaticky vymaže
+- Odpojenie: tlačidlo "Odpojiť" v záložke Rezervácie
+
+SPRÁVA REZERVÁCIÍ (DASHBOARD):
+- Zoznam všetkých rezervácií: meno, email, telefón, dátum, čas, stav
+- Stavy: Potvrdená / Zrušená / No-show
+- Zmena stavu jedným klikom
+
 ━━━ ČASTÉ PROBLÉMY A RIEŠENIA ━━━
 
 Chatbot nič nevie / odpovedá nesprávne:
