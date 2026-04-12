@@ -49,6 +49,14 @@
   const WIDGET_I18N = {
     sk: {
       open:'Otvoriť chat', close:'Zavrieť', online:'Online',
+      book_title:'Rezervovať termín', book_date:'Vyberte dátum', book_time:'Vyberte čas',
+      book_name:'Meno *', book_name_ph:'Ján Novák', book_email:'Email *', book_email_ph:'jan@email.sk',
+      book_phone:'Telefón', book_phone_ph:'+421 900 000 000',
+      book_gdpr:'Súhlasím so spracovaním osobných údajov za účelom rezervácie.*',
+      book_confirm:'Potvrdiť rezerváciu', book_back:'← Späť', book_next:'Ďalej →',
+      book_no_slots:'Žiadne voľné termíny pre tento deň.',
+      book_success:'Rezervácia potvrdená! Tešíme sa na vás.',
+      book_loading:'Načítavam termíny...', book_open:'📅 Rezervovať termín',
       quick_q:'Rýchle otázky', placeholder:'Napíšte správu...',
       powered:'Toto je AI predajca\u00a0\u2014\u00a0', powered_link:'chceš ho tiež?',
       write:'Napísať \u2192',
@@ -70,6 +78,14 @@
     },
     en: {
       open:'Open chat', close:'Close', online:'Online',
+      book_title:'Book an appointment', book_date:'Choose a date', book_time:'Choose a time',
+      book_name:'Name *', book_name_ph:'John Smith', book_email:'Email *', book_email_ph:'john@email.com',
+      book_phone:'Phone', book_phone_ph:'+1 000 000 0000',
+      book_gdpr:'I consent to the processing of my personal data for booking purposes.*',
+      book_confirm:'Confirm booking', book_back:'← Back', book_next:'Next →',
+      book_no_slots:'No available slots for this day.',
+      book_success:'Booking confirmed! We look forward to seeing you.',
+      book_loading:'Loading slots...', book_open:'📅 Book an appointment',
       quick_q:'Quick questions', placeholder:'Write a message...',
       powered:'This is an AI salesman\u00a0\u2014\u00a0', powered_link:'want one too?',
       write:'Write \u2192',
@@ -91,6 +107,14 @@
     },
     de: {
       open:'Chat öffnen', close:'Schließen', online:'Online',
+      book_title:'Termin buchen', book_date:'Datum wählen', book_time:'Uhrzeit wählen',
+      book_name:'Name *', book_name_ph:'Max Mustermann', book_email:'E-Mail *', book_email_ph:'max@email.de',
+      book_phone:'Telefon', book_phone_ph:'+49 000 0000000',
+      book_gdpr:'Ich stimme der Verarbeitung meiner Daten für Buchungszwecke zu.*',
+      book_confirm:'Termin bestätigen', book_back:'← Zurück', book_next:'Weiter →',
+      book_no_slots:'Keine freien Termine für diesen Tag.',
+      book_success:'Termin bestätigt! Wir freuen uns auf Sie.',
+      book_loading:'Lade Termine...', book_open:'📅 Termin buchen',
       quick_q:'Schnelle Fragen', placeholder:'Nachricht schreiben...',
       powered:'Das ist ein KI-Verkäufer\u00a0\u2014\u00a0', powered_link:'auch einen haben?',
       write:'Schreiben \u2192',
@@ -112,6 +136,14 @@
     },
     fr: {
       open:'Ouvrir le chat', close:'Fermer', online:'En ligne',
+      book_title:'Prendre rendez-vous', book_date:'Choisir une date', book_time:'Choisir un horaire',
+      book_name:'Nom *', book_name_ph:'Jean Dupont', book_email:'Email *', book_email_ph:'jean@email.fr',
+      book_phone:'Téléphone', book_phone_ph:'+33 0 00 00 00 00',
+      book_gdpr:'Je consens au traitement de mes données à des fins de réservation.*',
+      book_confirm:'Confirmer la réservation', book_back:'← Retour', book_next:'Suivant →',
+      book_no_slots:'Aucun créneau disponible pour ce jour.',
+      book_success:'Réservation confirmée\u00a0! À bientôt.',
+      book_loading:'Chargement des créneaux...', book_open:'📅 Prendre rendez-vous',
       quick_q:'Questions rapides', placeholder:'\u00c9crire un message...',
       powered:"C'est un vendeur IA\u00a0\u2014\u00a0", powered_link:'en vouloir un aussi\u00a0?',
       write:'\u00c9crire \u2192',
@@ -133,6 +165,14 @@
     },
     es: {
       open:'Abrir chat', close:'Cerrar', online:'En l\u00ednea',
+      book_title:'Reservar cita', book_date:'Elegir fecha', book_time:'Elegir hora',
+      book_name:'Nombre *', book_name_ph:'Juan García', book_email:'Email *', book_email_ph:'juan@email.es',
+      book_phone:'Teléfono', book_phone_ph:'+34 000 000 000',
+      book_gdpr:'Acepto el tratamiento de mis datos personales para fines de reserva.*',
+      book_confirm:'Confirmar reserva', book_back:'← Volver', book_next:'Siguiente →',
+      book_no_slots:'No hay horarios disponibles para este día.',
+      book_success:'¡Reserva confirmada! Le esperamos.',
+      book_loading:'Cargando horarios...', book_open:'📅 Reservar cita',
       quick_q:'Preguntas r\u00e1pidas', placeholder:'Escribe un mensaje...',
       powered:'Este es un vendedor IA\u00a0\u2014\u00a0', powered_link:'\u00bfquieres uno tambi\u00e9n?',
       write:'Escribir \u2192',
@@ -154,6 +194,14 @@
     },
     pl: {
       open:'Otwórz czat', close:'Zamknij', online:'Online',
+      book_title:'Zarezerwuj termin', book_date:'Wybierz datę', book_time:'Wybierz godzinę',
+      book_name:'Imię i nazwisko *', book_name_ph:'Jan Kowalski', book_email:'Email *', book_email_ph:'jan@email.pl',
+      book_phone:'Telefon', book_phone_ph:'+48 000 000 000',
+      book_gdpr:'Wyrażam zgodę na przetwarzanie danych osobowych w celu rezerwacji.*',
+      book_confirm:'Potwierdź rezerwację', book_back:'← Wstecz', book_next:'Dalej →',
+      book_no_slots:'Brak dostępnych terminów w tym dniu.',
+      book_success:'Rezerwacja potwierdzona! Do zobaczenia.',
+      book_loading:'Ładowanie terminów...', book_open:'📅 Zarezerwuj termin',
       quick_q:'Szybkie pytania', placeholder:'Napisz wiadomość...',
       powered:'To jest sprzedawca AI\u00a0\u2014\u00a0', powered_link:'chcesz też?',
       write:'Napisz \u2192',
@@ -175,6 +223,14 @@
     },
     cs: {
       open:'Otevřít chat', close:'Zavřít', online:'Online',
+      book_title:'Rezervovat termín', book_date:'Vyberte datum', book_time:'Vyberte čas',
+      book_name:'Jméno *', book_name_ph:'Jan Novák', book_email:'Email *', book_email_ph:'jan@email.cz',
+      book_phone:'Telefon', book_phone_ph:'+420 000 000 000',
+      book_gdpr:'Souhlasím se zpracováním osobních údajů pro účely rezervace.*',
+      book_confirm:'Potvrdit rezervaci', book_back:'← Zpět', book_next:'Pokračovat →',
+      book_no_slots:'Žádné volné termíny pro tento den.',
+      book_success:'Rezervace potvrzena! Těšíme se na vás.',
+      book_loading:'Načítám termíny...', book_open:'📅 Rezervovat termín',
       quick_q:'Rychlé otázky', placeholder:'Napište zprávu...',
       powered:'Toto je AI obchodník\u00a0\u2014\u00a0', powered_link:'chcete ho také?',
       write:'Napsat \u2192',
@@ -196,6 +252,14 @@
     },
     hu: {
       open:'Chat megnyitása', close:'Bezárás', online:'Online',
+      book_title:'Időpont foglalás', book_date:'Válasszon dátumot', book_time:'Válasszon időpontot',
+      book_name:'Név *', book_name_ph:'Kovács János', book_email:'Email *', book_email_ph:'kovacs@email.hu',
+      book_phone:'Telefon', book_phone_ph:'+36 00 000 0000',
+      book_gdpr:'Hozzájárulok személyes adataim foglalási célú kezeléséhez.*',
+      book_confirm:'Foglalás megerősítése', book_back:'← Vissza', book_next:'Tovább →',
+      book_no_slots:'Nincs szabad időpont ezen a napon.',
+      book_success:'Foglalás megerősítve! Várjuk Önt.',
+      book_loading:'Időpontok betöltése...', book_open:'📅 Időpont foglalás',
       quick_q:'Gyors kérdések', placeholder:'Írjon üzenetet...',
       powered:'Ez egy AI értékesítő\u00a0\u2014\u00a0', powered_link:'szeretne egyet?',
       write:'Írjon \u2192',
@@ -217,6 +281,14 @@
     },
     ro: {
       open:'Deschide chat', close:'Închide', online:'Online',
+      book_title:'Rezervare programare', book_date:'Alegeți data', book_time:'Alegeți ora',
+      book_name:'Nume *', book_name_ph:'Ion Popescu', book_email:'Email *', book_email_ph:'ion@email.ro',
+      book_phone:'Telefon', book_phone_ph:'+40 000 000 000',
+      book_gdpr:'Sunt de acord cu prelucrarea datelor personale în scopul rezervării.*',
+      book_confirm:'Confirmați rezervarea', book_back:'← Înapoi', book_next:'Înainte →',
+      book_no_slots:'Nu există sloturi disponibile pentru această zi.',
+      book_success:'Rezervare confirmată! Vă așteptăm.',
+      book_loading:'Se încarcă programările...', book_open:'📅 Rezervare programare',
       quick_q:'Întrebări rapide', placeholder:'Scrieți un mesaj...',
       powered:'Acesta este un vânzător AI\u00a0\u2014\u00a0', powered_link:'vreți și dvs.?',
       write:'Scrieți \u2192',
@@ -238,6 +310,14 @@
     },
     hr: {
       open:'Otvori chat', close:'Zatvori', online:'Online',
+      book_title:'Rezervacija termina', book_date:'Odaberite datum', book_time:'Odaberite vrijeme',
+      book_name:'Ime *', book_name_ph:'Ivan Horvat', book_email:'Email *', book_email_ph:'ivan@email.hr',
+      book_phone:'Telefon', book_phone_ph:'+385 00 000 0000',
+      book_gdpr:'Suglasan/na sam s obradom osobnih podataka u svrhu rezervacije.*',
+      book_confirm:'Potvrdite rezervaciju', book_back:'← Natrag', book_next:'Naprijed →',
+      book_no_slots:'Nema dostupnih termina za ovaj dan.',
+      book_success:'Rezervacija potvrđena! Radujemo se vašem dolasku.',
+      book_loading:'Učitavam termine...', book_open:'📅 Rezervacija termina',
       quick_q:'Brza pitanja', placeholder:'Napišite poruku...',
       powered:'Ovo je AI prodavač\u00a0\u2014\u00a0', powered_link:'želite li i vi?',
       write:'Piši \u2192',
@@ -870,11 +950,14 @@
               typingEl.textContent = parsed.error;
               typingEl.classList.remove('nd-typing');
             } else if (parsed.done) {
-              // Stream finished — render markdown on final text
-              const final = parsed.fullText || fullText;
+              // Stream finished — detect booking trigger, then render markdown
+              let final = parsed.fullText || fullText;
+              const bookingTrigger = final.includes('__BOOKING__');
+              if (bookingTrigger) final = final.replace(/__BOOKING__/g, '').trim();
               typingEl.innerHTML = renderMarkdown(final);
               history.push({ role: 'assistant', content: final });
               maybeShowCta();
+              if (bookingTrigger) showInlineBookingCard();
             } else if (parsed.text) {
               if (first) {
                 typingEl.textContent = '';
@@ -1031,6 +1114,215 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, phone: phone || undefined, sessionId, gdprConsent: true })
     }).catch(() => { /* ignore network errors */ });
+  }
+
+  /* ── Inline Booking UI ──────────────────────────────────────── */
+  let _bookingShownInSession = false;
+
+  function showInlineBookingCard() {
+    if (_bookingShownInSession) return;
+    const msgs = shadow.getElementById('nd-messages');
+    if (!msgs) return;
+    const primary = config.primary_color || '#2563eb';
+    const card = elem('div', { class: 'nd-msg nd-msg-bot', style: 'padding:0.75rem;max-width:100%' });
+    card.innerHTML = `
+      <div style="font-size:0.8rem;font-weight:700;color:#1e293b;margin-bottom:0.5rem">📅 ${esc(wt('book_title'))}</div>
+      <button id="nd-book-open-btn" style="background:${primary};color:white;border:none;border-radius:8px;padding:0.55rem 1.1rem;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;width:100%">
+        ${esc(wt('book_open'))}
+      </button>
+    `;
+    msgs.appendChild(card);
+    scrollToBottom();
+    card.querySelector('#nd-book-open-btn').addEventListener('click', () => showInlineBooking());
+  }
+
+  function showInlineBooking() {
+    _bookingShownInSession = true;
+    const overlay = shadow.getElementById('nd-contact-overlay');
+    const primary = config.primary_color || '#2563eb';
+    const MONTH_SK = ['Jan','Feb','Mar','Apr','Máj','Jún','Júl','Aug','Sep','Okt','Nov','Dec'];
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth();
+    let selDate = null, selSlot = null;
+    let slotsCache = {};
+    let bookingStep = 1; // 1=date, 2=slot, 3=form
+
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function todayStr() { return new Date().toLocaleDateString('sv-SE'); }
+
+    function isAvailDay(ds) {
+      const bCfg = config._bookingCfg;
+      if (!bCfg || !bCfg.schedules) return true;
+      const [y,mo,d] = ds.split('-').map(Number);
+      const dow = new Date(y,mo-1,d).getDay();
+      const sched = bCfg.schedules.find(s => s.day_of_week === dow && s.active);
+      const maxD = new Date(); maxD.setDate(maxD.getDate() + (bCfg.maxAdvanceDays || 60));
+      if (ds > maxD.toLocaleDateString('sv-SE')) return false;
+      return !!sched;
+    }
+
+    function renderCal() {
+      const grid = overlay.querySelector('.nd-book-cal-grid');
+      const title = overlay.querySelector('.nd-book-cal-title');
+      if (!grid || !title) return;
+      title.textContent = `${MONTH_SK[calMonth]} ${calYear}`;
+      grid.innerHTML = '';
+      const DOW = ['Ne','Po','Ut','St','Št','Pi','So'];
+      DOW.forEach(d => {
+        const el = document.createElement('div');
+        el.style.cssText = 'text-align:center;font-size:0.65rem;font-weight:600;color:#94a3b8;padding:2px 0';
+        el.textContent = d; grid.appendChild(el);
+      });
+      const firstDay = new Date(calYear, calMonth, 1).getDay();
+      const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+      const today = todayStr();
+      for (let i = 0; i < firstDay; i++) { const el = document.createElement('div'); grid.appendChild(el); }
+      for (let d = 1; d <= daysInMonth; d++) {
+        const ds = `${calYear}-${pad(calMonth+1)}-${pad(d)}`;
+        const btn = document.createElement('button');
+        btn.style.cssText = `aspect-ratio:1;border:none;border-radius:6px;font-size:0.78rem;cursor:pointer;font-family:inherit;transition:background 0.15s;width:100%;background:${ds===selDate?primary:'transparent'};color:${ds===selDate?'white':'#1e293b'};`;
+        btn.textContent = d;
+        if (ds < today || !isAvailDay(ds)) {
+          btn.disabled = true; btn.style.color = '#cbd5e1'; btn.style.cursor = 'not-allowed';
+        } else {
+          btn.addEventListener('click', () => { selDate = ds; selSlot = null; bookingStep = 2; renderOverlay(); loadSlots(ds); });
+        }
+        grid.appendChild(btn);
+      }
+    }
+
+    async function loadSlots(date) {
+      const sg = overlay.querySelector('.nd-book-slots');
+      if (!sg) return;
+      sg.innerHTML = `<div style="color:#94a3b8;font-size:0.78rem;padding:0.5rem 0">${esc(wt('book_loading'))}</div>`;
+      if (!slotsCache[date]) {
+        try {
+          const r = await fetch(`${BASE_URL}/api/booking/${WIDGET_ID}/public/slots?date=${date}`);
+          slotsCache[date] = r.ok ? await r.json() : [];
+        } catch { slotsCache[date] = []; }
+      }
+      renderSlots(date);
+    }
+
+    function renderSlots(date) {
+      const sg = overlay.querySelector('.nd-book-slots');
+      if (!sg) return;
+      const list = slotsCache[date] || [];
+      if (!list.length) { sg.innerHTML = `<div style="color:#94a3b8;font-size:0.78rem;padding:0.5rem 0">${esc(wt('book_no_slots'))}</div>`; return; }
+      sg.innerHTML = '';
+      list.forEach(s => {
+        const btn = document.createElement('button');
+        btn.style.cssText = `padding:0.4rem 0.6rem;border:1.5px solid ${selSlot===s.start_time?primary:'#e2e8f0'};border-radius:7px;background:${selSlot===s.start_time?primary:'white'};color:${selSlot===s.start_time?'white':'#374151'};font-size:0.8rem;font-weight:600;cursor:pointer;font-family:inherit;`;
+        btn.textContent = s.start_time;
+        btn.addEventListener('click', () => { selSlot = s.start_time; renderSlots(date); });
+        sg.appendChild(btn);
+      });
+    }
+
+    function renderOverlay() {
+      overlay.style.display = 'flex';
+      overlay.style.flexDirection = 'column';
+      overlay.style.padding = '1rem';
+      overlay.style.gap = '0.5rem';
+      overlay.style.overflowY = 'auto';
+
+      const [y,mo,d] = (selDate||'----').split('-');
+      const dateLabel = selDate ? `${parseInt(d)}. ${MONTH_SK[parseInt(mo)-1]} ${y}` : '';
+
+      overlay.innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.25rem">
+          <div style="font-size:0.9rem;font-weight:700;color:#1e293b">📅 ${esc(wt('book_title'))}</div>
+          <button id="nd-book-close" style="background:none;border:none;cursor:pointer;color:#94a3b8;font-size:1.1rem;line-height:1;padding:2px">✕</button>
+        </div>
+
+        ${bookingStep >= 1 ? `
+        <div style="font-size:0.72rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em">${esc(wt('book_date'))}</div>
+        <div style="display:flex;align-items:center;gap:0.25rem;margin-bottom:0.25rem">
+          <button class="nd-cal-nav" data-dir="-1" style="background:none;border:1px solid #e2e8f0;border-radius:6px;padding:0.2rem 0.5rem;cursor:pointer;font-size:0.85rem">‹</button>
+          <span class="nd-book-cal-title" style="flex:1;text-align:center;font-size:0.8rem;font-weight:700"></span>
+          <button class="nd-cal-nav" data-dir="1" style="background:none;border:1px solid #e2e8f0;border-radius:6px;padding:0.2rem 0.5rem;cursor:pointer;font-size:0.85rem">›</button>
+        </div>
+        <div class="nd-book-cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:0.5rem"></div>
+        ` : ''}
+
+        ${bookingStep >= 2 ? `
+        <div style="font-size:0.72rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em">${esc(wt('book_time'))} — ${dateLabel}</div>
+        <div class="nd-book-slots" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:0.5rem"></div>
+        ` : ''}
+
+        ${bookingStep === 3 ? `
+        <div style="font-size:0.72rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:0.05em">Kontakt</div>
+        <input id="nd-b-name" type="text" placeholder="${esc(wt('book_name_ph'))}" style="width:100%;padding:0.45rem 0.7rem;border:1.5px solid #d1d5db;border-radius:7px;font-size:0.82rem;font-family:inherit;outline:none">
+        <input id="nd-b-email" type="email" placeholder="${esc(wt('book_email_ph'))}" style="width:100%;padding:0.45rem 0.7rem;border:1.5px solid #d1d5db;border-radius:7px;font-size:0.82rem;font-family:inherit;outline:none">
+        <input id="nd-b-phone" type="tel" placeholder="${esc(wt('book_phone_ph'))}" style="width:100%;padding:0.45rem 0.7rem;border:1.5px solid #d1d5db;border-radius:7px;font-size:0.82rem;font-family:inherit;outline:none">
+        <label style="display:flex;align-items:flex-start;gap:0.4rem;font-size:0.72rem;color:#475569;cursor:pointer">
+          <input type="checkbox" id="nd-b-gdpr" style="margin-top:2px;width:13px;height:13px;flex-shrink:0">
+          <span>${esc(wt('book_gdpr'))}</span>
+        </label>
+        ` : ''}
+
+        <div style="display:flex;gap:0.5rem;margin-top:auto;padding-top:0.25rem">
+          ${bookingStep > 1 ? `<button id="nd-book-back" style="flex:0 0 auto;padding:0.5rem 0.85rem;border:1px solid #e2e8f0;border-radius:7px;background:#f1f5f9;font-size:0.8rem;font-weight:600;cursor:pointer;font-family:inherit;color:#374151">${esc(wt('book_back'))}</button>` : ''}
+          ${bookingStep < 3 ? `<button id="nd-book-next" style="flex:1;padding:0.5rem;border:none;border-radius:7px;background:${primary};color:white;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit" ${(!selDate && bookingStep===1)||(!selSlot && bookingStep===2)?'disabled':''}>` + esc(wt('book_next')) + `</button>` : ''}
+          ${bookingStep === 3 ? `<button id="nd-book-submit" style="flex:1;padding:0.5rem;border:none;border-radius:7px;background:${primary};color:white;font-size:0.8rem;font-weight:700;cursor:pointer;font-family:inherit">${esc(wt('book_confirm'))}</button>` : ''}
+        </div>
+      `;
+
+      overlay.querySelector('#nd-book-close')?.addEventListener('click', () => { overlay.style.display = 'none'; });
+      overlay.querySelectorAll('.nd-cal-nav').forEach(btn => {
+        btn.addEventListener('click', () => {
+          calMonth += parseInt(btn.dataset.dir);
+          if (calMonth > 11) { calMonth = 0; calYear++; }
+          if (calMonth < 0)  { calMonth = 11; calYear--; }
+          renderCal();
+        });
+      });
+      overlay.querySelector('#nd-book-back')?.addEventListener('click', () => { bookingStep--; renderOverlay(); if (bookingStep===2) { renderSlots(selDate); } });
+      overlay.querySelector('#nd-book-next')?.addEventListener('click', () => { bookingStep++; renderOverlay(); if (bookingStep===2 && selDate) loadSlots(selDate); });
+      overlay.querySelector('#nd-book-submit')?.addEventListener('click', submitBooking);
+
+      if (bookingStep >= 1) renderCal();
+      if (bookingStep === 2 && selDate && slotsCache[selDate]) renderSlots(selDate);
+    }
+
+    async function submitBooking() {
+      const name  = overlay.querySelector('#nd-b-name')?.value.trim();
+      const email = overlay.querySelector('#nd-b-email')?.value.trim();
+      const phone = overlay.querySelector('#nd-b-phone')?.value.trim();
+      const gdpr  = overlay.querySelector('#nd-b-gdpr')?.checked;
+      if (!name || !email || !gdpr) return;
+      const btn = overlay.querySelector('#nd-book-submit');
+      if (btn) { btn.disabled = true; btn.textContent = '...'; }
+      try {
+        const r = await fetch(`${BASE_URL}/api/booking/${WIDGET_ID}/public/book`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ customerName:name, customerEmail:email, customerPhone:phone||undefined,
+                                 date:selDate, startTime:selSlot, sessionId }),
+        });
+        const data = await r.json();
+        if (!r.ok) { if (btn) { btn.disabled=false; btn.textContent=wt('book_confirm'); } return; }
+        overlay.innerHTML = `
+          <div style="text-align:center;padding:1.5rem 0.5rem">
+            <div style="font-size:2rem;margin-bottom:0.75rem">✅</div>
+            <div style="font-size:0.95rem;font-weight:700;color:#15803d;margin-bottom:0.4rem">${esc(wt('book_success'))}</div>
+            <div style="font-size:0.8rem;color:#64748b">${esc(selDate)} ${esc(selSlot)}</div>
+            <button id="nd-book-done" style="margin-top:1rem;padding:0.5rem 1.25rem;border:none;border-radius:7px;background:${primary};color:white;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit">OK</button>
+          </div>`;
+        overlay.querySelector('#nd-book-done')?.addEventListener('click', () => { overlay.style.display='none'; });
+        addBotMessage(`✅ ${wt('book_success')} ${selDate} ${selSlot}`);
+      } catch { if (btn) { btn.disabled=false; btn.textContent=wt('book_confirm'); } }
+    }
+
+    // Pre-fetch booking config for schedule validation
+    if (!config._bookingCfg) {
+      fetch(`${BASE_URL}/api/booking/${WIDGET_ID}/public/config`)
+        .then(r => r.ok ? r.json() : null)
+        .then(d => { if (d) config._bookingCfg = d; renderOverlay(); })
+        .catch(() => {});
+    }
+
+    renderOverlay();
   }
 
   /* ── Welcome message (multilingual JSON or plain text) ──────── */

@@ -54,6 +54,9 @@
       <button class="nav-item" onclick="showTab('instagram')" id="nav-instagram">
         <span class="nav-icon">📱</span> Instagram
       </button>
+      <button class="nav-item" onclick="showTab('booking')" id="nav-booking">
+        <span class="nav-icon">📅</span> Rezervácie
+      </button>
     </div>
 
     <div class="sidebar-footer" id="sidebar-footer">
@@ -781,6 +784,152 @@
               <div style="position:absolute;bottom:1rem;right:1rem;" id="preview-bubble"></div>
             </div>
           </div>
+        <!-- Booking Tab -->
+        <div id="tab-booking" class="tab-panel">
+          <!-- Config panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">📅 Nastavenia rezervácií</div>
+                <div class="panel-subtitle">Nastavte dostupnosť, trvanie termínov a konfirmačnú správu</div>
+              </div>
+              <button class="btn btn-primary" onclick="saveBookingConfig()">Uložiť</button>
+            </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem">
+              <div class="form-group">
+                <label>Časové pásmo</label>
+                <select class="form-control" id="bk-timezone">
+                  <option value="Europe/Bratislava">Europe/Bratislava (SK)</option>
+                  <option value="Europe/Prague">Europe/Prague (CZ)</option>
+                  <option value="Europe/Warsaw">Europe/Warsaw (PL)</option>
+                  <option value="Europe/Budapest">Europe/Budapest (HU)</option>
+                  <option value="Europe/Vienna">Europe/Vienna (AT)</option>
+                  <option value="Europe/Berlin">Europe/Berlin (DE)</option>
+                  <option value="Europe/London">Europe/London (GB)</option>
+                  <option value="Europe/Paris">Europe/Paris (FR)</option>
+                  <option value="UTC">UTC</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Dĺžka termínu (min)</label>
+                <input type="number" class="form-control" id="bk-duration" min="15" max="480" step="15" value="60">
+              </div>
+              <div class="form-group">
+                <label>Prestávka medzi termínmi (min)</label>
+                <input type="number" class="form-control" id="bk-buffer" min="0" max="120" step="5" value="0">
+              </div>
+              <div class="form-group">
+                <label>Minimálne dopredu rezervovať (min)</label>
+                <input type="number" class="form-control" id="bk-notice" min="0" max="10080" step="30" value="60">
+              </div>
+              <div class="form-group">
+                <label>Rezervovateľné maximálne X dní dopredu</label>
+                <input type="number" class="form-control" id="bk-advance" min="1" max="365" value="60">
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:0.5rem">
+              <label>Potvrdzovacia správa (po úspešnej rezervácii)</label>
+              <input type="text" class="form-control" id="bk-confirm-msg" placeholder="Rezervácia potvrdená! Tešíme sa na vás.">
+            </div>
+          </div>
+
+          <!-- Schedule panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Pracovné hodiny</div>
+                <div class="panel-subtitle">Nastavte dni a časy, kedy ste dostupní</div>
+              </div>
+              <button class="btn btn-primary" onclick="saveBookingSchedule()">Uložiť</button>
+            </div>
+            <div id="bk-schedule-grid" style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem"></div>
+          </div>
+
+          <!-- Overrides panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Výnimky</div>
+                <div class="panel-subtitle">Zatvorené dni alebo špeciálne hodiny pre konkrétne dátumy</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem">
+              <div class="form-group" style="margin:0;flex:0 0 auto">
+                <label>Dátum</label>
+                <input type="date" class="form-control" id="bk-exc-date">
+              </div>
+              <div class="form-group" style="margin:0;flex:0 0 auto">
+                <label>Typ</label>
+                <select class="form-control" id="bk-exc-type" onchange="toggleExcTime()">
+                  <option value="closed">Zatvorené celý deň</option>
+                  <option value="custom">Vlastné hodiny</option>
+                </select>
+              </div>
+              <div id="bk-exc-times" style="display:none;display:flex;gap:0.5rem;align-items:flex-end">
+                <div class="form-group" style="margin:0"><label>Od</label><input type="time" class="form-control" id="bk-exc-start" value="09:00"></div>
+                <div class="form-group" style="margin:0"><label>Do</label><input type="time" class="form-control" id="bk-exc-end" value="17:00"></div>
+              </div>
+              <button class="btn btn-primary" onclick="addBookingOverride()" style="flex-shrink:0">+ Pridať výnimku</button>
+            </div>
+            <div id="bk-overrides-list"></div>
+          </div>
+
+          <!-- Calendar / bookings panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Kalendár rezervácií</div>
+                <div class="panel-subtitle">Prehľad nadchádzajúcich a minulých termínov</div>
+              </div>
+            </div>
+            <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
+              <input type="date" class="form-control" id="bk-from" style="width:auto">
+              <input type="date" class="form-control" id="bk-to"   style="width:auto">
+              <select class="form-control" id="bk-status-filter" style="width:auto">
+                <option value="">Všetky stavy</option>
+                <option value="confirmed">Potvrdené</option>
+                <option value="cancelled">Zrušené</option>
+                <option value="no_show">Nedostavil sa</option>
+              </select>
+              <button class="btn btn-secondary" onclick="loadBookingsList()">Filtrovať</button>
+            </div>
+            <div id="bk-bookings-list"></div>
+          </div>
+
+          <!-- Google Calendar panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">📆 Google Calendar</div>
+                <div class="panel-subtitle">Synchronizujte rezervácie do svojho Google Kalendára</div>
+              </div>
+            </div>
+            <div id="bk-gcal-status">
+              <div style="color:#94a3b8;font-size:0.875rem">Načítavam stav...</div>
+            </div>
+          </div>
+
+          <!-- Embed code panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Embed kód rezervačného widgetu</div>
+                <div class="panel-subtitle">Vložte rezervačný formulár na akúkoľvek stránku</div>
+              </div>
+            </div>
+            <div style="margin-bottom:0.75rem">
+              <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem">Možnosť A – iframe (odporúčané)</div>
+              <div class="embed-code-box" id="bk-embed-iframe">Načítavam...</div>
+              <button class="btn btn-secondary btn-sm" style="margin-top:0.4rem" onclick="copyBookingEmbed('iframe')">Kopírovať</button>
+            </div>
+            <div>
+              <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem">Možnosť B – priamy odkaz</div>
+              <div class="embed-code-box" id="bk-embed-link">Načítavam...</div>
+              <button class="btn btn-secondary btn-sm" style="margin-top:0.4rem" onclick="copyBookingEmbed('link')">Kopírovať</button>
+            </div>
+          </div>
+        </div>
+
         </div>
 
       </div>

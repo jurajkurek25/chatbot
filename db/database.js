@@ -172,6 +172,66 @@ function initDatabase() {
       nonce TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+
+    /* ── Booking system ───────────────────────────────────────── */
+
+    CREATE TABLE IF NOT EXISTS booking_configs (
+      id TEXT PRIMARY KEY,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      timezone TEXT NOT NULL DEFAULT 'Europe/Bratislava',
+      slot_duration INTEGER NOT NULL DEFAULT 60,
+      buffer_between INTEGER NOT NULL DEFAULT 0,
+      min_notice INTEGER NOT NULL DEFAULT 60,
+      max_advance_days INTEGER NOT NULL DEFAULT 60,
+      confirmation_message TEXT NOT NULL DEFAULT '',
+      gcal_access_token TEXT,
+      gcal_refresh_token TEXT,
+      gcal_calendar_id TEXT NOT NULL DEFAULT 'primary',
+      gcal_token_expiry INTEGER,
+      gcal_email TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(widget_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS booking_schedules (
+      id TEXT PRIMARY KEY,
+      booking_config_id TEXT NOT NULL REFERENCES booking_configs(id) ON DELETE CASCADE,
+      day_of_week INTEGER NOT NULL CHECK(day_of_week BETWEEN 0 AND 6),
+      start_time TEXT NOT NULL DEFAULT '09:00',
+      end_time TEXT NOT NULL DEFAULT '17:00',
+      active INTEGER NOT NULL DEFAULT 1,
+      UNIQUE(booking_config_id, day_of_week)
+    );
+
+    CREATE TABLE IF NOT EXISTS booking_overrides (
+      id TEXT PRIMARY KEY,
+      booking_config_id TEXT NOT NULL REFERENCES booking_configs(id) ON DELETE CASCADE,
+      date TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'closed' CHECK(type IN ('closed','custom')),
+      start_time TEXT,
+      end_time TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(booking_config_id, date)
+    );
+
+    CREATE TABLE IF NOT EXISTS bookings (
+      id TEXT PRIMARY KEY,
+      booking_config_id TEXT NOT NULL REFERENCES booking_configs(id) ON DELETE CASCADE,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      customer_name TEXT NOT NULL,
+      customer_email TEXT NOT NULL,
+      customer_phone TEXT,
+      date TEXT NOT NULL,
+      start_time TEXT NOT NULL,
+      end_time TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'confirmed'
+        CHECK(status IN ('confirmed','cancelled','no_show')),
+      notes TEXT NOT NULL DEFAULT '',
+      internal_notes TEXT NOT NULL DEFAULT '',
+      gcal_event_id TEXT,
+      session_id TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
   `);
 
   // Migrations: add columns for existing DBs

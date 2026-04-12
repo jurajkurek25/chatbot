@@ -156,7 +156,7 @@ function showView(view) {
 function showTab(tab) {
   closeMobileSidebar();
   currentTab = tab;
-  ['settings','knowledge','questions','embed','products','instagram','gdpr'].forEach(t => {
+  ['settings','knowledge','questions','embed','products','instagram','gdpr','booking'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -166,6 +166,7 @@ function showTab(tab) {
   if (tab === 'instagram') loadInstagramStatus();
   if (tab === 'products') loadProducts();
   if (tab === 'gdpr') loadGdpr();
+  if (tab === 'booking') loadBookingTab();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -1658,3 +1659,290 @@ async function importProductsCSV(input) {
     showToast('CSV neobsahuje žiadne platné produkty.', 'error');
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   BOOKING TAB
+   ════════════════════════════════════════════════════════════════ */
+
+let _bookingCfg = null;
+let _bookingSchedule = [];
+let _bookingOverrides = [];
+
+const DAY_NAMES_BOOKING = ['Nedeľa','Pondelok','Utorok','Streda','Štvrtok','Piatok','Sobota'];
+const APP_ORIGIN = window.location.origin;
+
+async function loadBookingTab() {
+  if (!currentWidget) return;
+  await Promise.all([
+    loadBookingConfig(),
+    loadBookingSchedule(),
+    loadBookingOverrides(),
+    loadBookingsList(),
+    loadGCalStatus(),
+  ]);
+  renderBookingEmbed();
+}
+
+async function loadBookingConfig() {
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/config`);
+  if (!r || !r.ok) return;
+  const data = await r.json();
+  _bookingCfg = data;
+  _bookingSchedule = data.schedules || [];
+  document.getElementById('bk-timezone').value = data.timezone || 'Europe/Bratislava';
+  document.getElementById('bk-duration').value = data.slot_duration || 60;
+  document.getElementById('bk-buffer').value   = data.buffer_between || 0;
+  document.getElementById('bk-notice').value   = data.min_notice || 60;
+  document.getElementById('bk-advance').value  = data.max_advance_days || 60;
+  document.getElementById('bk-confirm-msg').value = data.confirmation_message || '';
+  renderScheduleGrid();
+}
+
+async function saveBookingConfig() {
+  if (!currentWidget) return;
+  const body = {
+    timezone:            document.getElementById('bk-timezone').value,
+    slotDuration:        parseInt(document.getElementById('bk-duration').value) || 60,
+    bufferBetween:       parseInt(document.getElementById('bk-buffer').value)   || 0,
+    minNotice:           parseInt(document.getElementById('bk-notice').value)   || 60,
+    maxAdvanceDays:      parseInt(document.getElementById('bk-advance').value)  || 60,
+    confirmationMessage: document.getElementById('bk-confirm-msg').value.trim(),
+  };
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/config`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (r && r.ok) showToast('Nastavenia uložené!', 'success');
+  else showToast('Chyba pri ukladaní.', 'error');
+}
+
+/* ── Schedule ─────────────────────────────────────────────────── */
+
+async function loadBookingSchedule() {
+  // loaded together with config
+}
+
+function renderScheduleGrid() {
+  const grid = document.getElementById('bk-schedule-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+  for (let d = 0; d <= 6; d++) {
+    const sched = _bookingSchedule.find(s => s.day_of_week === d) || { day_of_week: d, start_time: '09:00', end_time: '17:00', active: d >= 1 && d <= 5 ? 1 : 0 };
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:0.75rem;padding:0.4rem 0;border-bottom:1px solid #f1f5f9';
+    row.innerHTML = `
+      <label style="display:flex;align-items:center;gap:0.4rem;min-width:110px;cursor:pointer;font-size:0.875rem">
+        <input type="checkbox" data-day="${d}" class="bk-day-active" style="width:15px;height:15px" ${sched.active ? 'checked' : ''}>
+        <span>${DAY_NAMES_BOOKING[d]}</span>
+      </label>
+      <input type="time" data-day="${d}" class="bk-day-start form-control" value="${sched.start_time}" style="width:auto;padding:0.35rem 0.5rem;font-size:0.82rem">
+      <span style="color:#94a3b8;font-size:0.82rem">–</span>
+      <input type="time" data-day="${d}" class="bk-day-end form-control" value="${sched.end_time}" style="width:auto;padding:0.35rem 0.5rem;font-size:0.82rem">
+    `;
+    grid.appendChild(row);
+  }
+}
+
+async function saveBookingSchedule() {
+  if (!currentWidget) return;
+  const rows = [];
+  for (let d = 0; d <= 6; d++) {
+    const activeEl = document.querySelector(`.bk-day-active[data-day="${d}"]`);
+    const startEl  = document.querySelector(`.bk-day-start[data-day="${d}"]`);
+    const endEl    = document.querySelector(`.bk-day-end[data-day="${d}"]`);
+    rows.push({ day_of_week: d, start_time: startEl?.value || '09:00', end_time: endEl?.value || '17:00', active: activeEl?.checked ? 1 : 0 });
+  }
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/schedule`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(rows),
+  });
+  if (r && r.ok) showToast('Pracovné hodiny uložené!', 'success');
+  else showToast('Chyba pri ukladaní.', 'error');
+}
+
+/* ── Overrides ────────────────────────────────────────────────── */
+
+async function loadBookingOverrides() {
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/overrides`);
+  if (!r || !r.ok) return;
+  _bookingOverrides = await r.json();
+  renderOverridesList();
+}
+
+function renderOverridesList() {
+  const el = document.getElementById('bk-overrides-list');
+  if (!el) return;
+  if (!_bookingOverrides.length) { el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem">Žiadne výnimky</div>'; return; }
+  el.innerHTML = _bookingOverrides.map(o => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #f1f5f9;font-size:0.875rem">
+      <span><strong>${o.date}</strong> — ${o.type === 'closed' ? 'Zatvorené' : `${o.start_time} – ${o.end_time}`}</span>
+      <button class="btn btn-sm btn-danger" onclick="deleteBookingOverride('${o.id}')">Odstrániť</button>
+    </div>
+  `).join('');
+}
+
+function toggleExcTime() {
+  const type = document.getElementById('bk-exc-type')?.value;
+  const times = document.getElementById('bk-exc-times');
+  if (times) times.style.display = type === 'custom' ? 'flex' : 'none';
+}
+
+async function addBookingOverride() {
+  const date  = document.getElementById('bk-exc-date')?.value;
+  const type  = document.getElementById('bk-exc-type')?.value;
+  const start = document.getElementById('bk-exc-start')?.value;
+  const end   = document.getElementById('bk-exc-end')?.value;
+  if (!date) { showToast('Vyberte dátum.', 'error'); return; }
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/overrides`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date, type, startTime: start, endTime: end }),
+  });
+  if (r && r.ok) { showToast('Výnimka pridaná.', 'success'); loadBookingOverrides(); }
+  else showToast('Chyba.', 'error');
+}
+
+async function deleteBookingOverride(id) {
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/overrides/${id}`, { method: 'DELETE' });
+  if (r && r.ok) { showToast('Výnimka odstránená.', 'success'); loadBookingOverrides(); }
+}
+
+/* ── Bookings list ────────────────────────────────────────────── */
+
+async function loadBookingsList() {
+  const from   = document.getElementById('bk-from')?.value || '';
+  const to     = document.getElementById('bk-to')?.value   || '';
+  const status = document.getElementById('bk-status-filter')?.value || '';
+  let url = `/api/booking/${currentWidget.id}/bookings?`;
+  if (from) url += `from=${from}&`;
+  if (to)   url += `to=${to}&`;
+  if (status) url += `status=${status}&`;
+
+  const el = document.getElementById('bk-bookings-list');
+  if (!el) return;
+  el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem">Načítavam...</div>';
+
+  const r = await apiFetch(url);
+  if (!r || !r.ok) { el.innerHTML = '<div style="color:#dc2626;font-size:0.875rem">Chyba načítania.</div>'; return; }
+  const bookings = await r.json();
+
+  if (!bookings.length) { el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem">Žiadne rezervácie pre zvolené kritériá.</div>'; return; }
+
+  const STATUS_LABELS = { confirmed: '✅ Potvrdená', cancelled: '❌ Zrušená', no_show: '👻 Nedostavil sa' };
+  const STATUS_COLORS = { confirmed: '#16a34a', cancelled: '#dc2626', no_show: '#f59e0b' };
+
+  el.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+      <thead>
+        <tr style="border-bottom:2px solid #e2e8f0">
+          <th style="text-align:left;padding:0.5rem 0.25rem;color:#64748b;font-weight:600">Dátum & Čas</th>
+          <th style="text-align:left;padding:0.5rem 0.25rem;color:#64748b;font-weight:600">Zákazník</th>
+          <th style="text-align:left;padding:0.5rem 0.25rem;color:#64748b;font-weight:600">Stav</th>
+          <th style="padding:0.5rem 0.25rem"></th>
+        </tr>
+      </thead>
+      <tbody>
+        ${bookings.map(b => `
+          <tr style="border-bottom:1px solid #f1f5f9" id="bk-row-${b.id}">
+            <td style="padding:0.5rem 0.25rem;white-space:nowrap"><strong>${b.date}</strong><br>${b.start_time} – ${b.end_time}</td>
+            <td style="padding:0.5rem 0.25rem">${escHtml(b.customer_name)}<br><span style="color:#64748b">${escHtml(b.customer_email)}</span>${b.customer_phone?`<br><span style="color:#64748b">${escHtml(b.customer_phone)}</span>`:''}</td>
+            <td style="padding:0.5rem 0.25rem"><span style="color:${STATUS_COLORS[b.status]||'#374151'};font-weight:600">${STATUS_LABELS[b.status]||b.status}</span></td>
+            <td style="padding:0.5rem 0.25rem;white-space:nowrap">
+              ${b.status === 'confirmed' ? `
+                <button class="btn btn-sm btn-danger" onclick="changeBookingStatus('${b.id}','cancelled')">Zrušiť</button>
+                <button class="btn btn-sm btn-secondary" style="margin-left:4px" onclick="changeBookingStatus('${b.id}','no_show')">Neprišiel</button>
+              ` : ''}
+            </td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function changeBookingStatus(bookingId, status) {
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/bookings/${bookingId}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ status }),
+  });
+  if (r && r.ok) { showToast('Stav aktualizovaný.', 'success'); loadBookingsList(); }
+  else showToast('Chyba.', 'error');
+}
+
+/* ── Google Calendar ──────────────────────────────────────────── */
+
+async function loadGCalStatus() {
+  const el = document.getElementById('bk-gcal-status');
+  if (!el || !currentWidget) return;
+
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/gcal/status`);
+  if (!r || !r.ok) { el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem">Google Calendar nedostupný.</div>'; return; }
+  const data = await r.json();
+
+  if (data.connected) {
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+        <span style="color:#16a34a;font-weight:600">✅ Prepojený</span>
+        <span style="color:#64748b;font-size:0.875rem">${escHtml(data.email||'')}</span>
+        <button class="btn btn-sm btn-danger" onclick="disconnectGCal()">Odpojiť</button>
+      </div>
+      <div style="margin-top:0.5rem;font-size:0.8rem;color:#64748b">Nové rezervácie sa automaticky pridávajú do vášho Google Kalendára.</div>
+    `;
+  } else {
+    el.innerHTML = `
+      <div style="font-size:0.875rem;color:#64748b;margin-bottom:0.75rem">Prepojte Google Kalendár, aby sa rezervácie automaticky zobrazovali vo vašom kalendári.</div>
+      <button class="btn btn-primary" onclick="connectGCal()">🔗 Prepojiť Google Calendar</button>
+      <div style="margin-top:0.5rem;font-size:0.75rem;color:#94a3b8">Presmeruje vás na Google prihlasovaciu stránku.</div>
+    `;
+  }
+}
+
+async function connectGCal() {
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/gcal/auth-url`);
+  if (!r) return;
+  const data = await r.json();
+  if (data.url) { window.location.href = data.url; }
+  else showToast(data.error || 'Google Calendar nie je nakonfigurovaný.', 'error');
+}
+
+async function disconnectGCal() {
+  if (!confirm('Naozaj odpojiť Google Calendar?')) return;
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/gcal/disconnect`, { method: 'DELETE' });
+  if (r && r.ok) { showToast('Google Calendar odpojený.', 'success'); loadGCalStatus(); }
+  else showToast('Chyba.', 'error');
+}
+
+/* ── Embed code ───────────────────────────────────────────────── */
+
+function renderBookingEmbed() {
+  if (!currentWidget) return;
+  const bookUrl = `${APP_ORIGIN}/book/${currentWidget.id}`;
+  const iframe = `<iframe src="${bookUrl}"\n  width="100%" height="650" frameborder="0"\n  style="border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.1)">\n</iframe>`;
+  const iframeEl = document.getElementById('bk-embed-iframe');
+  const linkEl   = document.getElementById('bk-embed-link');
+  if (iframeEl) iframeEl.textContent = iframe;
+  if (linkEl)   linkEl.textContent = bookUrl;
+}
+
+function copyBookingEmbed(type) {
+  if (!currentWidget) return;
+  const bookUrl = `${APP_ORIGIN}/book/${currentWidget.id}`;
+  const text = type === 'iframe'
+    ? `<iframe src="${bookUrl}" width="100%" height="650" frameborder="0" style="border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,0.1)"></iframe>`
+    : bookUrl;
+  navigator.clipboard.writeText(text).then(() => showToast('Skopírované!', 'success')).catch(() => {});
+}
+
+// Handle GCal OAuth return
+(function () {
+  const p = new URLSearchParams(location.search);
+  if (p.get('gcal_ok') === '1') {
+    showToast('Google Calendar úspešne prepojený!', 'success');
+    window.history.replaceState({}, '', '/dashboard');
+  }
+  if (p.get('gcal_error') === '1') {
+    showToast('Chyba pri prepájaní Google Calendar.', 'error');
+    window.history.replaceState({}, '', '/dashboard');
+  }
+})();

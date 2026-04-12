@@ -138,10 +138,32 @@ function loadProducts(widgetId) {
   } catch { return []; }
 }
 
+function loadBookingConfig(widgetId) {
+  try {
+    const { getDb } = require('../db/database');
+    return getDb().prepare('SELECT * FROM booking_configs WHERE widget_id = ?').get(widgetId) || null;
+  } catch { return null; }
+}
+
+function buildBookingSection(widgetId, bookingCfg) {
+  if (!bookingCfg) return '';
+  const origin = (process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '');
+  const bookingUrl = `${origin}/book/${widgetId}`;
+  return `\n\n## ONLINE REZERVÁCIE
+Tento biznis prijíma online rezervácie termínov. Keď zákazník prejaví záujem o stretnutie, konzultáciu alebo rezerváciu, postupuj takto:
+1. Stručne potvrď, že je to možné online
+2. Vlož na koniec odpovede PRESNE tento token (nič iné nepridávaj za ním): __BOOKING__
+Systém automaticky zobrazí zákazníkovi interaktívny formulár na výber termínu.
+Booking URL (pre prípad, že zákazník chce priamy odkaz): ${bookingUrl}
+DÔLEŽITÉ: Token __BOOKING__ použi IBA raz za konverzáciu, keď zákazník JASNE vyjadrí záujem o rezerváciu.`;
+}
+
 /* ── Streaming chat response ───────────────────────────────────── */
 async function streamChatResponse(widget, knowledgeItems, history, userMessage, res, pageContext = null) {
-  const products = loadProducts(widget.id);
-  const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products, pageContext);
+  const products      = loadProducts(widget.id);
+  const bookingCfg    = loadBookingConfig(widget.id);
+  const bookingSection = buildBookingSection(widget.id, bookingCfg);
+  const systemPrompt  = buildSystemPrompt(widget, knowledgeItems, products, pageContext) + bookingSection;
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
@@ -151,7 +173,7 @@ async function streamChatResponse(widget, knowledgeItems, history, userMessage, 
 
   const stream = await client.messages.stream({
     model: 'claude-opus-4-6',
-    max_tokens: 1024,
+    max_tokens: 1200,
     system: systemPrompt,
     messages,
   });
