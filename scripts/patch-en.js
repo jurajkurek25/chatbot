@@ -105,6 +105,52 @@ const patch = {
   // The text walker finds the EXACT text node including leading punctuation.
   // Key must match orig.trim() — comma/period prefix stays, only whitespace is stripped.
 
+  // <strong>automaticky prekladá vlastnosti na benefity</strong>, ktoré zákazník...
+  ', ktoré zákazník pochopí a ocení. Nie \u201e8GB RAM\u201c ale \u201epobeží ti na tom video editovanie\u201c.':
+    ', that the customer understands and appreciates. Not \u201c8GB RAM\u201d but \u201cvideo editing will run on it\u201d.',
+
+  // <strong>upload vlastnej fotky ako avatara</strong>. Zákazník vidí...
+  '. Zákazník vidí vášho asistenta.':
+    '. The customer sees your assistant.',
+
+  // <strong>Žiadny konflikt so štýlmi vášho webu</strong>, žiadne spomalenie...
+  ', žiadne spomalenie, žiadny broken dizajn.':
+    ', no slowdown, no broken design.',
+
+  // <strong>automatickú analýzu</strong>: teplota zákazníka...
+  ': teplota zákazníka, problém, urgentnosť, námietky, odporúčaný ďalší krok.':
+    ': customer temperature, problem, urgency, objections, recommended next step.',
+
+  // <strong>vlastné poznámky</strong>, história konverzácií...
+  ', história konverzácií. Bez komplexnosti Salesforce.':
+    ', conversation history. Without Salesforce complexity.',
+
+  // <strong>Dáta sú vždy vaše</strong>, nie uväznené...
+  ', nie uväznené v platforme.':
+    ', not locked into a platform.',
+
+  // <strong>žiadne throttling ani výpadky</strong>. SQLite...
+  '. SQLite s WAL mode a FTS5 pre bleskové vyhľadávanie.':
+    '. SQLite with WAL mode and FTS5 for lightning-fast search.',
+
+  // <strong>checkbox GDPR súhlasu</strong>. Skutočný súhlas...
+  '. Skutočný súhlas podľa legislatívy EÚ.':
+    '. Real consent according to EU legislation.',
+
+  // <strong>+€15 kredit za odporúčanie</strong>, -15% zľava...
+  ', -15% zľava pre nového zákazníka.':
+    ', -15% discount for the new customer.',
+
+  // <strong>naplní automaticky za pár sekúnd</strong>. Bez nahrávania...
+  '. Bez nahrávania súborov, bez copy-paste.':
+    '. No file uploads, no copy-paste.',
+
+  // Checkbox labels in GDPR consent form
+  'Potvrdzujem, že som sa oboznámil/a s':
+    'I confirm that I have read',
+  'Súhlasím s':
+    'I agree with',
+
   // <strong>identifikuje jeho skutočný problém</strong>, ponúka riešenie...
   ', ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.':
     ', offers a solution through benefits and closes the sale. Not randomly – systematically.',

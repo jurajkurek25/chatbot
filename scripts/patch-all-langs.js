@@ -87,10 +87,22 @@ const PATCH_KEYS = {
   'Chatbot rieši „Aká je cena?" tisíckrát. Vy sa venujete práci s hodnotou.':
     'Chatbot rieši „Aká je cena?" tisíckrát. Vy sa venujete práci s hodnotou.',
   // Text nodes split around <strong> — key includes leading , or . punctuation
+  ', ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".':
+    ', ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".',
+  '. Zákazník vidí vášho asistenta.': '. Zákazník vidí vášho asistenta.',
+  ', žiadne spomalenie, žiadny broken dizajn.': ', žiadne spomalenie, žiadny broken dizajn.',
+  ': teplota zákazníka, problém, urgentnosť, námietky, odporúčaný ďalší krok.':
+    ': teplota zákazníka, problém, urgentnosť, námietky, odporúčaný ďalší krok.',
+  ', história konverzácií. Bez komplexnosti Salesforce.': ', história konverzácií. Bez komplexnosti Salesforce.',
+  ', nie uväznené v platforme.': ', nie uväznené v platforme.',
+  '. SQLite s WAL mode a FTS5 pre bleskové vyhľadávanie.': '. SQLite s WAL mode a FTS5 pre bleskové vyhľadávanie.',
+  '. Skutočný súhlas podľa legislatívy EÚ.': '. Skutočný súhlas podľa legislatívy EÚ.',
+  ', -15% zľava pre nového zákazníka.': ', -15% zľava pre nového zákazníka.',
+  '. Bez nahrávania súborov, bez copy-paste.': '. Bez nahrávania súborov, bez copy-paste.',
+  'Potvrdzujem, že som sa oboznámil/a s': 'Potvrdzujem, že som sa oboznámil/a s',
+  'Súhlasím s': 'Súhlasím s',
   ', ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.':
     ', ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.',
-  'ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".':
-    'ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".',
   '. Proaktívna bublina to zmení.': '. Proaktívna bublina to zmení.',
   '. AI sa riadi týmito pravidlami a zákazníkovi navrhne správny produkt v správnom momente.':
     '. AI sa riadi týmito pravidlami a zákazníkovi navrhne správny produkt v správnom momente.',
