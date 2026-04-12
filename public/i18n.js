@@ -170,6 +170,8 @@
 
   function init() {
     var lang = detectLang();
+    // Set html[lang] synchronously so widget.js (which reads it at parse time) gets the right value
+    document.documentElement.lang = lang;
     // Persist ?lang= param to localStorage then clean URL
     var urlParam = new URLSearchParams(window.location.search).get('lang');
     if (urlParam && SUPPORTED.indexOf(urlParam) !== -1) {
