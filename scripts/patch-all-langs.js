@@ -87,8 +87,9 @@ const PATCH_KEYS = {
   'Chatbot rieši „Aká je cena?" tisíckrát. Vy sa venujete práci s hodnotou.':
     'Chatbot rieši „Aká je cena?" tisíckrát. Vy sa venujete práci s hodnotou.',
   // Text nodes split around <strong> — key includes leading , or . punctuation
-  ', ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".':
-    ', ktoré zákazník pochopí a ocení. Nie „8GB RAM" ale „pobeží ti na tom video editovanie".',
+  // Note: HTML uses ASCII " (U+0022) as closing quote, not smart " (U+201C)
+  ', ktoré zákazník pochopí a ocení. Nie \u201e8GB RAM" ale \u201epobeží ti na tom video editovanie".':
+    ', ktoré zákazník pochopí a ocení. Nie \u201e8GB RAM" ale \u201epobeží ti na tom video editovanie".',
   '. Zákazník vidí vášho asistenta.': '. Zákazník vidí vášho asistenta.',
   ', žiadne spomalenie, žiadny broken dizajn.': ', žiadne spomalenie, žiadny broken dizajn.',
   ': teplota zákazníka, problém, urgentnosť, námietky, odporúčaný ďalší krok.':
@@ -109,6 +110,29 @@ const PATCH_KEYS = {
   ', vždy s priamym odkazom na nákup.': ', vždy s priamym odkazom na nákup.',
   'keď': 'keď',
   'AI obchodník robí svoju prácu': 'AI obchodník robí svoju prácu',
+
+  // ── 404 page ────────��─────────────────────────────────────────────────────
+  'Stránka nenájdená': 'Stránka nenájdená',
+  'Ahoj! Táto stránka neexistuje, ale ja som tu 24/7. Môžem vám pomôcť nájsť čo hľadáte alebo vás nasmerovať na správne miesto.':
+    'Ahoj! Táto stránka neexistuje, ale ja som tu 24/7. Môžem vám pomôcť nájsť čo hľadáte alebo vás nasmerovať na správne miesto.',
+
+  // ── Demo page ────���─────────────────────────��──────────────────────────────
+  'Uvidíte svojho AI\u00a0predajcu v\u00a0akcii': 'Uvidíte svojho AI\u00a0predajcu v\u00a0akcii',
+  'Pracuje 24/7 · odpovedá za sekundy · nikdy nezabudne na follow-up.':
+    'Pracuje 24/7 · odpovedá za sekundy · nikdy nezabudne na follow-up.',
+  'Nastavte ho pre váš biznis za pár minút.': 'Nastavte ho pre váš biznis za pár minút.',
+  'Aktivovať pre môj biznis \u2192': 'Aktivovať pre môj biznis \u2192',
+
+  // ── Onboarding install instructions ───────────────────────────────────────
+  'Appearance \u2192 Theme Editor \u2192 header.php \u2192 pred </head>':
+    'Appearance \u2192 Theme Editor \u2192 header.php \u2192 pred </head>',
+  'Online Store \u2192 Themes \u2192 Edit Code \u2192 theme.liquid \u2192 pred </head>':
+    'Online Store \u2192 Themes \u2192 Edit Code \u2192 theme.liquid \u2192 pred </head>',
+  'Priamo do HTML súboru pred </head>': 'Priamo do HTML súboru pred </head>',
+
+  // ── Onboarding pricing & invite ────────���──────────────────────────────────
+  '\uD83D\uDCB3 Zaplatiť kartou \u2013 \u20AC37/mesiac': '\uD83D\uDCB3 Zaplatiť kartou \u2013 \u20AC37/mesiac',
+  '\uD83C\uDF81 Ste pozvaný/á \u2013 platíte zvýhodnenú cenu!': '\uD83C\uDF81 Ste pozvaný/á \u2013 platíte zvýhodnenú cenu!',
   'Zadajte URL vášho webu – AI ho naskenuje automaticky. Alebo nahrajte PDF, texty, cenníky drag & drop. AI navrhne otázky ihneď po spracovaní.':
     'Zadajte URL vášho webu – AI ho naskenuje automaticky. Alebo nahrajte PDF, texty, cenníky drag & drop. AI navrhne otázky ihneď po spracovaní.',
   'Opíšete váš produkt, cieľovku, námietky – AI si':

@@ -106,8 +106,9 @@ const patch = {
   // Key must match orig.trim() — comma/period prefix stays, only whitespace is stripped.
 
   // <strong>automaticky prekladá vlastnosti na benefity</strong>, ktoré zákazník...
-  ', ktoré zákazník pochopí a ocení. Nie \u201e8GB RAM\u201c ale \u201epobeží ti na tom video editovanie\u201c.':
-    ', that the customer understands and appreciates. Not \u201c8GB RAM\u201d but \u201cvideo editing will run on it\u201d.',
+  // Note: HTML uses ASCII " (U+0022) as closing quote, not smart " (U+201C)
+  ', ktoré zákazník pochopí a ocení. Nie \u201e8GB RAM" ale \u201epobeží ti na tom video editovanie".':
+    ', that the customer understands and appreciates. Not \u201e8GB RAM\u201c but \u201evideo editing will run on it\u201c.',
 
   // <strong>upload vlastnej fotky ako avatara</strong>. Zákazník vidí...
   '. Zákazník vidí vášho asistenta.':
@@ -175,6 +176,37 @@ const patch = {
   // <span class="grad-text">AI obchodník robí svoju prácu</span>
   'AI obchodník robí svoju prácu':
     'AI salesman does its job',
+
+  // ── 404 page ──────────────────────────────────────────────────────────────
+  'Stránka nenájdená':
+    'Page not found',
+  'Ahoj! Táto stránka neexistuje, ale ja som tu 24/7. Môžem vám pomôcť nájsť čo hľadáte alebo vás nasmerovať na správne miesto.':
+    "Hi! This page doesn't exist, but I'm here 24/7. I can help you find what you're looking for or point you to the right place.",
+
+  // ── Demo page ─────────────────────────────────────────────────────────────
+  // Note: \u00a0 = non-breaking space (from &nbsp; in HTML)
+  'Uvidíte svojho AI\u00a0predajcu v\u00a0akcii':
+    'See your AI\u00a0salesman in\u00a0action',
+  'Pracuje 24/7 · odpovedá za sekundy · nikdy nezabudne na follow-up.':
+    'Works 24/7 · responds in seconds · never forgets a follow-up.',
+  'Nastavte ho pre váš biznis za pár minút.':
+    'Set it up for your business in just a few minutes.',
+  'Aktivovať pre môj biznis \u2192':
+    'Activate for my business \u2192',
+
+  // ── Onboarding install instructions ───────────────────────────────────────
+  'Appearance \u2192 Theme Editor \u2192 header.php \u2192 pred </head>':
+    'Appearance \u2192 Theme Editor \u2192 header.php \u2192 before </head>',
+  'Online Store \u2192 Themes \u2192 Edit Code \u2192 theme.liquid \u2192 pred </head>':
+    'Online Store \u2192 Themes \u2192 Edit Code \u2192 theme.liquid \u2192 before </head>',
+  'Priamo do HTML súboru pred </head>':
+    'Directly into your HTML file before </head>',
+
+  // ── Onboarding pricing & invite ───────────────────────────────────────────
+  '\uD83D\uDCB3 Zaplatiť kartou \u2013 \u20AC37/mesiac':
+    '\uD83D\uDCB3 Pay by card \u2013 \u20AC37/month',
+  '\uD83C\uDF81 Ste pozvaný/á \u2013 platíte zvýhodnenú cenu!':
+    '\uD83C\uDF81 You\'re invited \u2013 you pay the discounted price!',
 };
 
 let count = 0;
