@@ -144,8 +144,7 @@ router.get('/:widgetId/public/config', (req, res) => {
     .get(req.params.widgetId);
   if (!widget || !widget.active) return res.status(404).json({ error: 'Widget nenájdený.' });
 
-  let cfg = db.prepare('SELECT * FROM booking_configs WHERE widget_id = ?').get(req.params.widgetId);
-  if (!cfg) return res.status(404).json({ error: 'Booking nie je povolený pre tento widget.' });
+  const cfg = getOrCreateConfig(req.params.widgetId);
 
   const schedules = db.prepare(
     'SELECT day_of_week, start_time, end_time, active FROM booking_schedules WHERE booking_config_id = ? ORDER BY day_of_week'
