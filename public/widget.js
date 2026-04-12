@@ -635,7 +635,7 @@
     const primary = config.primary_color || '#2563eb';
     const bubble = elem('div', { id: 'nd-proactive-bubble' });
     bubble.innerHTML = `
-      <button id="nd-proactive-close" title="Zavrieť">✕</button>
+      <button id="nd-proactive-close" title="${wt('close')}">✕</button>
       <div style="padding-right:1rem">${esc(message)}</div>
       <div style="margin-top:0.4rem;font-size:0.78rem;font-weight:600;color:${primary}">${wt('write')}</div>
     `;
@@ -820,7 +820,7 @@
       });
 
       if (!response.ok) {
-        typingEl.textContent = 'Ospravedlňujem sa, nastala chyba. Skúste to prosím neskôr.';
+        typingEl.textContent = wt('error');
         typingEl.classList.remove('nd-typing');
         isTyping = false;
         setSendDisabled(false);

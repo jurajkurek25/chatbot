@@ -33,6 +33,12 @@ app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+// widget.js: short cache so customers always get fresh translations
+app.get('/widget.js', (req, res) => {
+  res.setHeader('Cache-Control', 'public, max-age=300, must-revalidate');
+  res.sendFile(path.join(__dirname, 'public', 'widget.js'));
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
