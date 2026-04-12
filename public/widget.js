@@ -17,6 +17,237 @@
   const WIDGET_ID = cfg.widgetId;
   if (!WIDGET_ID) { console.warn('[NeuraDeskApp] Chýba widgetId v NeuraDeskConfig.'); return; }
 
+  /* ── Widget i18n (zero API cost) ─────────────────────────────── */
+  function detectPageLang() {
+    const h = document.documentElement.lang;
+    if (h) return h.toLowerCase().split('-')[0];
+    const pm = location.pathname.match(/^\/([a-z]{2})\//);
+    if (pm) return pm[1];
+    const sm = location.hostname.match(/^([a-z]{2})\./);
+    if (sm && sm[1] !== 'ww') return sm[1];
+    return (navigator.language || 'sk').toLowerCase().split('-')[0];
+  }
+
+  const _SUPPORTED = ['sk','en','de','fr','es','pl','cs','hu','ro','hr'];
+  const _lang = (() => { const l = detectPageLang(); return _SUPPORTED.includes(l) ? l : 'sk'; })();
+
+  const WIDGET_I18N = {
+    sk: {
+      open:'Otvoriť chat', close:'Zavrieť', online:'Online',
+      quick_q:'Rýchle otázky', placeholder:'Napíšte správu...',
+      powered:'Toto je AI predajca\u00a0\u2014\u00a0', powered_link:'chceš ho tiež?',
+      write:'Napísať \u2192',
+      cta_call_text:'Chcete sa poradiť osobne?', cta_call_btn:'📞 Zavolať',
+      cta_cont_text:'Máte záujem? Ozveme sa vám!', cta_cont_label:'Zanechajte kontakt',
+      cta_more:'Zistiť viac',
+      gdpr_title:'📋 Podmienky spracovania osobných údajov',
+      form_title:'Zanechajte kontakt', form_sub:'Ozveme sa vám čo najskôr.',
+      name_label:'Meno *', name_ph:'Vaše meno',
+      email_label:'Email *', email_ph:'vas@email.sk',
+      phone_label:'Telefón', phone_ph:'+421 900 000 000',
+      gdpr_full:'Prečítal/a som si podmienky spracovania osobných údajov a súhlasím s nimi.*',
+      gdpr_simple:'Súhlasím so spracovaním osobných údajov za účelom spätného kontaktu.*',
+      cancel:'Zrušiť', send:'Odoslať',
+      gdpr_note:'Vaše osobné údaje spracúvame v súlade s GDPR.',
+      gdpr_show:'Zobraziť podrobnosti', gdpr_hide:'Skryť',
+      thanks:'Ďakujeme!', contact_ok:'Ozveme sa vám čo najskôr, ',
+      error:'Prepáčte, nie je možné sa spojiť so serverom.',
+    },
+    en: {
+      open:'Open chat', close:'Close', online:'Online',
+      quick_q:'Quick questions', placeholder:'Write a message...',
+      powered:'This is an AI salesman\u00a0\u2014\u00a0', powered_link:'want one too?',
+      write:'Write \u2192',
+      cta_call_text:'Want to consult in person?', cta_call_btn:'📞 Call',
+      cta_cont_text:"Interested? We'll get back to you!", cta_cont_label:'Leave your contact',
+      cta_more:'Learn more',
+      gdpr_title:'📋 Personal data processing terms',
+      form_title:'Leave your contact', form_sub:"We'll get back to you as soon as possible.",
+      name_label:'Name *', name_ph:'Your name',
+      email_label:'Email *', email_ph:'your@email.com',
+      phone_label:'Phone', phone_ph:'+1 000 000 0000',
+      gdpr_full:'I have read the personal data processing terms and I agree.*',
+      gdpr_simple:'I consent to the processing of my personal data for contact purposes.*',
+      cancel:'Cancel', send:'Send',
+      gdpr_note:'We process your personal data in accordance with GDPR.',
+      gdpr_show:'Show details', gdpr_hide:'Hide',
+      thanks:'Thank you!', contact_ok:"We'll get back to you shortly, ",
+      error:'Sorry, unable to connect to the server.',
+    },
+    de: {
+      open:'Chat öffnen', close:'Schließen', online:'Online',
+      quick_q:'Schnelle Fragen', placeholder:'Nachricht schreiben...',
+      powered:'Das ist ein KI-Verkäufer\u00a0\u2014\u00a0', powered_link:'auch einen haben?',
+      write:'Schreiben \u2192',
+      cta_call_text:'Möchten Sie sich persönlich beraten lassen?', cta_call_btn:'📞 Anrufen',
+      cta_cont_text:'Interessiert? Wir melden uns!', cta_cont_label:'Kontakt hinterlassen',
+      cta_more:'Mehr erfahren',
+      gdpr_title:'📋 Datenschutzbedingungen',
+      form_title:'Kontakt hinterlassen', form_sub:'Wir melden uns so schnell wie möglich.',
+      name_label:'Name *', name_ph:'Ihr Name',
+      email_label:'E-Mail *', email_ph:'ihre@email.de',
+      phone_label:'Telefon', phone_ph:'+49 000 0000000',
+      gdpr_full:'Ich habe die Datenschutzbedingungen gelesen und stimme zu.*',
+      gdpr_simple:'Ich stimme der Verarbeitung meiner Daten zum Zweck der Kontaktaufnahme zu.*',
+      cancel:'Abbrechen', send:'Senden',
+      gdpr_note:'Ihre Daten werden DSGVO-konform verarbeitet.',
+      gdpr_show:'Details anzeigen', gdpr_hide:'Verbergen',
+      thanks:'Danke!', contact_ok:'Wir melden uns bald, ',
+      error:'Entschuldigung, Verbindung zum Server nicht möglich.',
+    },
+    fr: {
+      open:'Ouvrir le chat', close:'Fermer', online:'En ligne',
+      quick_q:'Questions rapides', placeholder:'\u00c9crire un message...',
+      powered:"C'est un vendeur IA\u00a0\u2014\u00a0", powered_link:'en vouloir un aussi\u00a0?',
+      write:'\u00c9crire \u2192',
+      cta_call_text:'Vous souhaitez une consultation personnelle\u00a0?', cta_call_btn:'📞 Appeler',
+      cta_cont_text:'Int\u00e9ress\u00e9(e)\u00a0? Nous vous rappellerons\u00a0!', cta_cont_label:'Laisser ses coordonn\u00e9es',
+      cta_more:'En savoir plus',
+      gdpr_title:'📋 Conditions de traitement des donn\u00e9es',
+      form_title:'Laisser ses coordonn\u00e9es', form_sub:'Nous vous recontacterons d\u00e8s que possible.',
+      name_label:'Nom *', name_ph:'Votre nom',
+      email_label:'Email *', email_ph:'votre@email.fr',
+      phone_label:'T\u00e9l\u00e9phone', phone_ph:'+33 0 00 00 00 00',
+      gdpr_full:"J'ai lu les conditions de traitement des donn\u00e9es et j'accepte.*",
+      gdpr_simple:'Je consens au traitement de mes donn\u00e9es personnelles \u00e0 des fins de contact.*',
+      cancel:'Annuler', send:'Envoyer',
+      gdpr_note:'Vos donn\u00e9es personnelles sont trait\u00e9es conform\u00e9ment au RGPD.',
+      gdpr_show:'Afficher les d\u00e9tails', gdpr_hide:'Masquer',
+      thanks:'Merci\u00a0!', contact_ok:'Nous vous recontacterons bient\u00f4t, ',
+      error:'D\u00e9sol\u00e9, impossible de se connecter au serveur.',
+    },
+    es: {
+      open:'Abrir chat', close:'Cerrar', online:'En l\u00ednea',
+      quick_q:'Preguntas r\u00e1pidas', placeholder:'Escribe un mensaje...',
+      powered:'Este es un vendedor IA\u00a0\u2014\u00a0', powered_link:'\u00bfquieres uno tambi\u00e9n?',
+      write:'Escribir \u2192',
+      cta_call_text:'\u00bfQuiere consultar en persona?', cta_call_btn:'📞 Llamar',
+      cta_cont_text:'\u00bfInteresado/a? \u00a1Le contactaremos!', cta_cont_label:'Dejar contacto',
+      cta_more:'M\u00e1s informaci\u00f3n',
+      gdpr_title:'📋 Condiciones de tratamiento de datos',
+      form_title:'Dejar contacto', form_sub:'Nos pondremos en contacto lo antes posible.',
+      name_label:'Nombre *', name_ph:'Su nombre',
+      email_label:'Email *', email_ph:'su@email.es',
+      phone_label:'Tel\u00e9fono', phone_ph:'+34 000 000 000',
+      gdpr_full:'He le\u00eddo las condiciones de tratamiento de datos y acepto.*',
+      gdpr_simple:'Consiento el tratamiento de mis datos personales para fines de contacto.*',
+      cancel:'Cancelar', send:'Enviar',
+      gdpr_note:'Sus datos personales se procesan de acuerdo con el RGPD.',
+      gdpr_show:'Mostrar detalles', gdpr_hide:'Ocultar',
+      thanks:'\u00a1Gracias!', contact_ok:'Nos pondremos en contacto pronto, ',
+      error:'Lo sentimos, no es posible conectarse al servidor.',
+    },
+    pl: {
+      open:'Otwórz czat', close:'Zamknij', online:'Online',
+      quick_q:'Szybkie pytania', placeholder:'Napisz wiadomość...',
+      powered:'To jest sprzedawca AI\u00a0\u2014\u00a0', powered_link:'chcesz też?',
+      write:'Napisz \u2192',
+      cta_call_text:'Chcesz skonsultować się osobiście?', cta_call_btn:'📞 Zadzwoń',
+      cta_cont_text:'Zainteresowany/a? Odezwiemy się!', cta_cont_label:'Zostaw kontakt',
+      cta_more:'Dowiedz się więcej',
+      gdpr_title:'📋 Warunki przetwarzania danych osobowych',
+      form_title:'Zostaw kontakt', form_sub:'Odezwiemy się jak najszybciej.',
+      name_label:'Imię *', name_ph:'Twoje imię',
+      email_label:'Email *', email_ph:'twoj@email.pl',
+      phone_label:'Telefon', phone_ph:'+48 000 000 000',
+      gdpr_full:'Zapoznałem/łam się z warunkami przetwarzania danych i wyrażam zgodę.*',
+      gdpr_simple:'Wyrażam zgodę na przetwarzanie danych osobowych w celu kontaktu.*',
+      cancel:'Anuluj', send:'Wyślij',
+      gdpr_note:'Przetwarzamy dane osobowe zgodnie z RODO.',
+      gdpr_show:'Pokaż szczegóły', gdpr_hide:'Ukryj',
+      thanks:'Dziękujemy!', contact_ok:'Odezwiemy się wkrótce, ',
+      error:'Przepraszamy, nie można połączyć się z serwerem.',
+    },
+    cs: {
+      open:'Otevřít chat', close:'Zavřít', online:'Online',
+      quick_q:'Rychlé otázky', placeholder:'Napište zprávu...',
+      powered:'Toto je AI obchodník\u00a0\u2014\u00a0', powered_link:'chcete ho také?',
+      write:'Napsat \u2192',
+      cta_call_text:'Chcete se osobně poradit?', cta_call_btn:'📞 Zavolat',
+      cta_cont_text:'Máte zájem? Ozveme se vám!', cta_cont_label:'Zanechat kontakt',
+      cta_more:'Zjistit více',
+      gdpr_title:'📋 Podmínky zpracování osobních údajů',
+      form_title:'Zanechat kontakt', form_sub:'Ozveme se vám co nejdříve.',
+      name_label:'Jméno *', name_ph:'Vaše jméno',
+      email_label:'Email *', email_ph:'vas@email.cz',
+      phone_label:'Telefon', phone_ph:'+420 000 000 000',
+      gdpr_full:'Přečetl/a jsem podmínky zpracování osobních údajů a souhlasím.*',
+      gdpr_simple:'Souhlasím se zpracováním osobních údajů za účelem kontaktu.*',
+      cancel:'Zrušit', send:'Odeslat',
+      gdpr_note:'Vaše osobní údaje zpracováváme v souladu s GDPR.',
+      gdpr_show:'Zobrazit podrobnosti', gdpr_hide:'Skrýt',
+      thanks:'Děkujeme!', contact_ok:'Ozveme se vám co nejdříve, ',
+      error:'Omlouváme se, nelze se připojit k serveru.',
+    },
+    hu: {
+      open:'Chat megnyitása', close:'Bezárás', online:'Online',
+      quick_q:'Gyors kérdések', placeholder:'Írjon üzenetet...',
+      powered:'Ez egy AI értékesítő\u00a0\u2014\u00a0', powered_link:'szeretne egyet?',
+      write:'Írjon \u2192',
+      cta_call_text:'Személyesen szeretne tanácsot kérni?', cta_call_btn:'📞 Hívjon',
+      cta_cont_text:'Érdekli? Visszahívjuk!', cta_cont_label:'Hagyjon elérhetőséget',
+      cta_more:'Tudjon meg többet',
+      gdpr_title:'📋 Személyes adatok kezelési feltételei',
+      form_title:'Hagyjon elérhetőséget', form_sub:'A lehető leghamarabb felvesszük Önnel a kapcsolatot.',
+      name_label:'Név *', name_ph:'Az Ön neve',
+      email_label:'Email *', email_ph:'on@email.hu',
+      phone_label:'Telefon', phone_ph:'+36 00 000 0000',
+      gdpr_full:'Elolvastam az adatkezelési feltételeket és elfogadom azokat.*',
+      gdpr_simple:'Hozzájárulok személyes adataim kapcsolatfelvétel céljára történő kezeléséhez.*',
+      cancel:'Mégsem', send:'Küldés',
+      gdpr_note:'Személyes adatait a GDPR-nak megfelelően kezeljük.',
+      gdpr_show:'Részletek megjelenítése', gdpr_hide:'Elrejtés',
+      thanks:'Köszönjük!', contact_ok:'Hamarosan felvesszük Önnel a kapcsolatot, ',
+      error:'Sajnáljuk, nem sikerül csatlakozni a szerverhez.',
+    },
+    ro: {
+      open:'Deschide chat', close:'Închide', online:'Online',
+      quick_q:'Întrebări rapide', placeholder:'Scrieți un mesaj...',
+      powered:'Acesta este un vânzător AI\u00a0\u2014\u00a0', powered_link:'vreți și dvs.?',
+      write:'Scrieți \u2192',
+      cta_call_text:'Doriți să vă consultați personal?', cta_call_btn:'📞 Sunați',
+      cta_cont_text:'Interesat(ă)? Vă contactăm!', cta_cont_label:'Lăsați datele de contact',
+      cta_more:'Aflați mai mult',
+      gdpr_title:'📋 Condiții de prelucrare a datelor personale',
+      form_title:'Lăsați datele de contact', form_sub:'Vă vom contacta cât mai curând.',
+      name_label:'Nume *', name_ph:'Numele dvs.',
+      email_label:'Email *', email_ph:'dvs@email.ro',
+      phone_label:'Telefon', phone_ph:'+40 000 000 000',
+      gdpr_full:'Am citit condițiile de prelucrare a datelor și sunt de acord.*',
+      gdpr_simple:'Sunt de acord cu prelucrarea datelor personale în scopul contactului.*',
+      cancel:'Anulați', send:'Trimiteți',
+      gdpr_note:'Datele dvs. personale sunt prelucrate conform GDPR.',
+      gdpr_show:'Afișați detalii', gdpr_hide:'Ascundeți',
+      thanks:'Mulțumim!', contact_ok:'Vă vom contacta în curând, ',
+      error:'Ne pare rău, nu ne putem conecta la server.',
+    },
+    hr: {
+      open:'Otvori chat', close:'Zatvori', online:'Online',
+      quick_q:'Brza pitanja', placeholder:'Napišite poruku...',
+      powered:'Ovo je AI prodavač\u00a0\u2014\u00a0', powered_link:'želite li i vi?',
+      write:'Piši \u2192',
+      cta_call_text:'Želite se osobno posavjetovati?', cta_call_btn:'📞 Nazovite',
+      cta_cont_text:'Zainteresirani? Javit ćemo vam se!', cta_cont_label:'Ostavite kontakt',
+      cta_more:'Saznajte više',
+      gdpr_title:'📋 Uvjeti obrade osobnih podataka',
+      form_title:'Ostavite kontakt', form_sub:'Javit ćemo vam se što je prije moguće.',
+      name_label:'Ime *', name_ph:'Vaše ime',
+      email_label:'Email *', email_ph:'vas@email.hr',
+      phone_label:'Telefon', phone_ph:'+385 00 000 0000',
+      gdpr_full:'Pročitao/la sam uvjete obrade osobnih podataka i suglasan/na sam.*',
+      gdpr_simple:'Suglasan/na sam s obradom osobnih podataka u svrhu kontakta.*',
+      cancel:'Odustani', send:'Pošalji',
+      gdpr_note:'Vaše osobne podatke obrađujemo u skladu s GDPR-om.',
+      gdpr_show:'Prikaži detalje', gdpr_hide:'Sakrij',
+      thanks:'Hvala!', contact_ok:'Javit ćemo vam se uskoro, ',
+      error:'Žao nam je, nije moguće spojiti se na poslužitelj.',
+    },
+  };
+
+  function wt(key) {
+    return (WIDGET_I18N[_lang] || {})[key] || WIDGET_I18N.sk[key] || key;
+  }
+
   /* ── Styles ─────────────────────────────────────────────────── */
   const CSS = `
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -338,7 +569,7 @@
     shadow.appendChild(styleEl);
 
     // Launcher button
-    const launcher = elem('button', { id: 'nd-launcher', title: 'Otvoriť chat', style: `background:${primary}` },
+    const launcher = elem('button', { id: 'nd-launcher', title: wt('open'), style: `background:${primary}` },
       ICON_CHAT
     );
     launcher.addEventListener('click', toggleChat);
@@ -350,24 +581,24 @@
         <div id="nd-avatar">${config.avatar_url ? `<img src="${config.avatar_url}" alt="">` : '🤖'}</div>
         <div id="nd-header-info">
           <div id="nd-bot-name">${esc(config.bot_name)}</div>
-          <div id="nd-status"><span id="nd-status-dot"></span> Online</div>
+          <div id="nd-status"><span id="nd-status-dot"></span> ${wt('online')}</div>
         </div>
-        <button id="nd-close" title="Zavrieť">${ICON_CLOSE}</button>
+        <button id="nd-close" title="${wt('close')}">${ICON_CLOSE}</button>
       </div>
       <div id="nd-messages"></div>
       <div id="nd-suggestions" style="display:none">
-        <div id="nd-suggestions-label">Rýchle otázky</div>
+        <div id="nd-suggestions-label">${wt('quick_q')}</div>
       </div>
       <div id="nd-cta" style="background:#f0fdf4;border:1px solid #bbf7d0;display:none">
         <span id="nd-cta-text"></span>
         <button id="nd-cta-btn" style="background:${primary}"></button>
       </div>
       <div id="nd-input-area">
-        <textarea id="nd-input" rows="1" placeholder="Napíšte správu..."></textarea>
+        <textarea id="nd-input" rows="1" placeholder="${wt('placeholder')}"></textarea>
         <button id="nd-send" style="background:${primary}">${ICON_SEND}</button>
       </div>
       <div id="nd-powered" style="text-align:center;padding:0.35rem 0.5rem;font-size:0.7rem;color:#94a3b8;background:white;border-top:1px solid #f1f5f9;flex-shrink:0;">
-        Toto je AI predajca — <a href="https://NeuraDesk.online" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:underline;">chceš ho tiež?</a>
+        ${wt('powered')}<a href="https://NeuraDesk.online" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:underline;">${wt('powered_link')}</a>
       </div>
       <div id="nd-contact-overlay"></div>
     `);
@@ -406,7 +637,7 @@
     bubble.innerHTML = `
       <button id="nd-proactive-close" title="Zavrieť">✕</button>
       <div style="padding-right:1rem">${esc(message)}</div>
-      <div style="margin-top:0.4rem;font-size:0.78rem;font-weight:600;color:${primary}">Napísať →</div>
+      <div style="margin-top:0.4rem;font-size:0.78rem;font-weight:600;color:${primary}">${wt('write')}</div>
     `;
 
     shadow.appendChild(bubble);
@@ -641,7 +872,7 @@
         }
       }
     } catch (err) {
-      typingEl.textContent = 'Prepáčte, nie je možné sa spojiť so serverom.';
+      typingEl.textContent = wt('error');
       typingEl.classList.remove('nd-typing');
     }
 
@@ -664,15 +895,15 @@
     switch (config.cta_type) {
       case 'call': {
         const phone = (config.cta_config || {}).phone || '';
-        textEl.textContent = 'Chcete sa poradiť osobne?';
-        btnEl.textContent = '📞 Zavolať';
+        textEl.textContent = wt('cta_call_text');
+        btnEl.textContent = wt('cta_call_btn');
         btnEl.addEventListener('click', () => { window.open(`tel:${phone}`, '_self'); });
         ctaEl.style.display = 'flex';
         break;
       }
       case 'contact': {
-        const label = (config.cta_config || {}).label || 'Zanechajte kontakt';
-        textEl.textContent = 'Máte záujem? Ozveme sa vám!';
+        const label = (config.cta_config || {}).label || wt('cta_cont_label');
+        textEl.textContent = wt('cta_cont_text');
         btnEl.textContent = '✉️ ' + label;
         btnEl.addEventListener('click', showContactForm);
         ctaEl.style.display = 'flex';
@@ -684,7 +915,7 @@
         if (!customText) return;
         textEl.textContent = customText;
         const customLink  = cfg2.customLink || '';
-        const customLabel = cfg2.customBtnLabel || 'Zistiť viac';
+        const customLabel = cfg2.customBtnLabel || wt('cta_more');
         if (customLink) {
           btnEl.textContent = '→ ' + customLabel;
           btnEl.addEventListener('click', () => { window.open(customLink, '_blank', 'noopener'); });
@@ -705,25 +936,25 @@
     const gdprText = config.gdpr_text || '';
     const gdprBlock = gdprText ? `
       <details class="nd-gdpr-details">
-        <summary>📋 Podmienky spracovania osobných údajov</summary>
+        <summary>${wt('gdpr_title')}</summary>
         <div class="nd-gdpr-content">${esc(gdprText)}</div>
       </details>` : '';
     overlay.innerHTML = `
-      <h3>Zanechajte kontakt</h3>
-      <p>Ozveme sa vám čo najskôr.</p>
-      <div class="nd-field"><label>Meno *</label><input type="text" id="nd-cf-name" placeholder="Vaše meno" required></div>
-      <div class="nd-field"><label>Email *</label><input type="email" id="nd-cf-email" placeholder="vas@email.sk" required></div>
-      <div class="nd-field"><label>Telefón</label><input type="tel" id="nd-cf-phone" placeholder="+421 900 000 000"></div>
+      <h3>${wt('form_title')}</h3>
+      <p>${wt('form_sub')}</p>
+      <div class="nd-field"><label>${wt('name_label')}</label><input type="text" id="nd-cf-name" placeholder="${wt('name_ph')}" required></div>
+      <div class="nd-field"><label>${wt('email_label')}</label><input type="email" id="nd-cf-email" placeholder="${wt('email_ph')}" required></div>
+      <div class="nd-field"><label>${wt('phone_label')}</label><input type="tel" id="nd-cf-phone" placeholder="${wt('phone_ph')}"></div>
       ${gdprBlock}
       <div class="nd-field nd-gdpr-row">
         <label style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem;font-weight:400;color:#374151;cursor:pointer">
           <input type="checkbox" id="nd-cf-gdpr" style="margin-top:2px;width:14px;height:14px;flex-shrink:0" required>
-          <span>${gdprText ? 'Prečítal/a som si podmienky spracovania osobných údajov a súhlasím s nimi.*' : 'Súhlasím so spracovaním osobných údajov za účelom spätného kontaktu.*'}</span>
+          <span>${gdprText ? wt('gdpr_full') : wt('gdpr_simple')}</span>
         </label>
       </div>
       <div class="nd-contact-actions">
-        <button class="nd-btn-full nd-btn-cancel" id="nd-cf-cancel">Zrušiť</button>
-        <button class="nd-btn-full nd-btn-submit" id="nd-cf-submit" style="background:${primary}">Odoslať</button>
+        <button class="nd-btn-full nd-btn-cancel" id="nd-cf-cancel">${wt('cancel')}</button>
+        <button class="nd-btn-full nd-btn-submit" id="nd-cf-submit" style="background:${primary}">${wt('send')}</button>
       </div>
     `;
     overlay.style.display = 'flex';
@@ -754,14 +985,14 @@
 
     const overlay = shadow.getElementById('nd-contact-overlay');
     const gdprNote = config.gdpr_text
-      ? `<p class="nd-gdpr-note">Vaše osobné údaje spracúvame v súlade s GDPR. <span id="nd-gdpr-toggle" style="color:var(--nd-primary);cursor:pointer;text-decoration:underline">Zobraziť podrobnosti</span></p>
+      ? `<p class="nd-gdpr-note">${wt('gdpr_note')} <span id="nd-gdpr-toggle" style="color:var(--nd-primary);cursor:pointer;text-decoration:underline">${wt('gdpr_show')}</span></p>
          <div id="nd-gdpr-after" style="display:none;font-size:0.75rem;color:#64748b;line-height:1.6;max-height:120px;overflow-y:auto;white-space:pre-wrap;margin-top:0.5rem;padding:0.5rem;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">${esc(config.gdpr_text)}</div>`
       : '';
     overlay.innerHTML = `
       <div class="nd-success-msg">
         <div class="nd-check">✅</div>
-        <h3>Ďakujeme!</h3>
-        <p>Ozveme sa vám čo najskôr, ${esc(name)}.</p>
+        <h3>${wt('thanks')}</h3>
+        <p>${wt('contact_ok')}${esc(name)}.</p>
         ${gdprNote}
       </div>
     `;
@@ -771,7 +1002,7 @@
       if (toggle && detail) {
         toggle.addEventListener('click', () => {
           detail.style.display = detail.style.display === 'none' ? 'block' : 'none';
-          toggle.textContent = detail.style.display === 'none' ? 'Zobraziť podrobnosti' : 'Skryť';
+          toggle.textContent = detail.style.display === 'none' ? wt('gdpr_show') : wt('gdpr_hide');
         });
       }
     }
@@ -785,28 +1016,13 @@
     }).catch(() => { /* ignore network errors */ });
   }
 
-  /* ── Language detection (zero API cost) ─────────────────────── */
-  function detectPageLang() {
-    // 1. HTML lang attribute – set by WordPress/WPML/Polylang/Shopify automatically
-    const htmlLang = document.documentElement.lang;
-    if (htmlLang) return htmlLang.toLowerCase().split('-')[0];
-    // 2. URL path prefix: /en/, /de/, ...
-    const pathMatch = location.pathname.match(/^\/([a-z]{2})\//);
-    if (pathMatch) return pathMatch[1];
-    // 3. Subdomain: en.example.com (skip www)
-    const subMatch = location.hostname.match(/^([a-z]{2})\./);
-    if (subMatch && subMatch[1] !== 'ww') return subMatch[1];
-    // 4. Browser language as last resort
-    return (navigator.language || 'sk').toLowerCase().split('-')[0];
-  }
-
+  /* ── Welcome message (multilingual JSON or plain text) ──────── */
   function getWelcomeMessage(raw) {
     const fallback = raw || 'Ahoj! Ako vám môžem pomôcť?';
     if (!raw || !raw.startsWith('{')) return fallback;
     try {
       const obj = JSON.parse(raw);
-      const lang = detectPageLang();
-      return obj[lang] || obj['default'] || fallback;
+      return obj[_lang] || obj['default'] || fallback;
     } catch { return fallback; }
   }
 
