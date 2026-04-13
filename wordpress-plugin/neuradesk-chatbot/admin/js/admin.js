@@ -2,7 +2,18 @@
 (function ($) {
   'use strict';
 
-  const { ajax_url, nonce, api_base, token, widget_id, site_name } = window.NeuraDesk || {};
+  const { ajax_url, nonce, api_base, token, widget_id, site_name, t } = window.NeuraDesk || {};
+
+  /* ── i18n helper ──────────────────────────────────────────── */
+  function __(key, vars) {
+    let str = (t && t[key]) ? t[key] : key;
+    if (vars) {
+      for (const [k, v] of Object.entries(vars)) {
+        str = str.replace('{' + k + '}', v);
+      }
+    }
+    return str;
+  }
 
   /* ── Helpers ──────────────────────────────────────────────── */
   function setLoading($btn, loading) {
@@ -28,7 +39,7 @@
     const password = $('#nd-password').val();
 
     if (!email || !password) {
-      showError($err, 'Prosím vyplňte email a heslo.');
+      showError($err, __('js_err_fill_email_password'));
       return;
     }
 
@@ -39,12 +50,12 @@
         if (res.success) {
           location.reload();
         } else {
-          showError($err, res.data?.message || 'Prihlásenie zlyhalo.');
+          showError($err, res.data?.message || __('js_err_login_failed'));
           setLoading($btn, false);
         }
       })
       .fail(function () {
-        showError($err, 'Chyba siete. Skontrolujte URL a skúste znova.');
+        showError($err, __('js_err_network_url'));
         setLoading($btn, false);
       });
   });
@@ -67,19 +78,19 @@
         if (res.success) {
           location.reload();
         } else {
-          showError($err, res.data?.message || 'Chyba.');
+          showError($err, res.data?.message || __('js_err_generic'));
           setLoading($btn, false);
         }
       })
       .fail(function () {
-        showError($err, 'Chyba siete.');
+        showError($err, __('js_err_network'));
         setLoading($btn, false);
       });
   });
 
   /* ── Disconnect ───────────────────────────────────────────── */
   $(document).on('click', '.nd-btn-disconnect', function () {
-    if (!confirm('Naozaj sa chcete odhlásiť? Widget zostane na webe, ale skenovanie bude treba zopakovať.')) return;
+    if (!confirm(__('js_confirm_logout'))) return;
     ajax('neuradesk_disconnect').done(function () { location.reload(); });
   });
 
@@ -88,12 +99,12 @@
     const enabled = $(this).is(':checked') ? 1 : 0;
     ajax('neuradesk_save_settings', { embed_enabled: enabled });
     $('.nd-status-dot').toggleClass('nd-dot-green', !!enabled).toggleClass('nd-dot-gray', !enabled);
-    $('.nd-status-row span').html('Chatbot je ' + (enabled ? '<strong>aktívny</strong> na webe' : '<strong>vypnutý</strong>'));
+    $('.nd-status-row span').html(enabled ? __('chatbot_active') : __('chatbot_inactive'));
   });
 
   /* ── Re-scan ──────────────────────────────────────────────── */
   $(document).on('click', '#nd-btn-rescan', function () {
-    if (!confirm('Skenovanie pridá obsah znova do znalostnej bázy. Pokračovať?')) return;
+    if (!confirm(__('js_confirm_rescan'))) return;
     $.post(ajax_url, { action: 'neuradesk_reset_scan', nonce })
       .done(function () { location.reload(); });
   });
@@ -102,8 +113,8 @@
   $(document).on('click', '#nd-btn-copy-embed', function () {
     const code = $('#nd-embed-code').text();
     navigator.clipboard?.writeText(code).then(() => {
-      $(this).text('✅ Skopírované!');
-      setTimeout(() => $(this).text('📋 Kopírovať'), 2000);
+      $(this).text(__('js_btn_copied'));
+      setTimeout(() => $(this).text(__('btn_copy_embed')), 2000);
     });
   });
 
@@ -127,7 +138,7 @@
 
     for (const type of types) {
       setStepStatus(type, 'running');
-      setSubLabel(type, 'Skenujem...');
+      setSubLabel(type, __('js_scan_scanning'));
 
       let offset  = 0;
       let hasMore = true;
@@ -139,7 +150,7 @@
 
           if (!res.success) {
             setStepStatus(type, 'error');
-            setSubLabel(type, res.data?.message || 'Chyba');
+            setSubLabel(type, res.data?.message || __('js_scan_error'));
             hasMore = false;
             break;
           }
@@ -148,22 +159,22 @@
           hasMore   = res.data.has_more || false;
           offset   += 10;
 
-          setSubLabel(type, `Importovaných: ${imported}...`);
+          setSubLabel(type, __('js_scan_importing', { count: imported }));
         } catch (e) {
           setStepStatus(type, 'error');
-          setSubLabel(type, 'Chyba siete');
+          setSubLabel(type, __('js_scan_network_error'));
           hasMore = false;
         }
       }
 
       scanImported[type] = imported;
       setStepStatus(type, 'done');
-      setSubLabel(type, `Hotovo – ${imported} položiek`);
+      setSubLabel(type, __('js_scan_done_count', { count: imported }));
 
       typesDone++;
       const pct = Math.round((typesDone / totalTypes) * 100);
       $('#nd-progress-bar').css('width', pct + '%');
-      $('#nd-progress-label').text(`${typesDone} / ${totalTypes} krokov dokončených`);
+      $('#nd-progress-label').text(__('js_scan_progress', { done: typesDone, total: totalTypes }));
     }
 
     // Mark scan done on server

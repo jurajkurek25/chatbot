@@ -26,31 +26,31 @@ $has_woo      = class_exists( 'WooCommerce' );
   <?php if ( ! $token ) : ?>
   <!-- ── STEP 1: Login ──────────────────────────────────────── -->
   <div class="nd-card" id="nd-step-login">
-    <h2>Prihlásenie do NeuraDeskApp</h2>
-    <p class="nd-subtitle">Prihláste sa vaším účtom na <a href="https://neuradesk.online" target="_blank">neuradesk.online</a>. Plugin automaticky naskenuje váš web a nasadí chatbot.</p>
+    <h2><?php echo esc_html( nd_t( 'login_title' ) ); ?></h2>
+    <p class="nd-subtitle"><?php echo esc_html( nd_t( 'login_subtitle' ) ); ?> <a href="https://neuradesk.online" target="_blank"><?php echo esc_html( nd_t( 'login_subtitle_link' ) ); ?></a>.</p>
 
     <div class="nd-form-group">
-      <label>NeuraDeskApp URL</label>
+      <label><?php echo esc_html( nd_t( 'label_api_url' ) ); ?></label>
       <input type="url" id="nd-api-base" value="https://neuradesk.online" class="nd-input">
-      <span class="nd-hint">Zmeňte iba ak používate self-hosted verziu.</span>
+      <span class="nd-hint"><?php echo esc_html( nd_t( 'hint_self_hosted' ) ); ?></span>
     </div>
     <div class="nd-form-group">
-      <label>Email</label>
+      <label><?php echo esc_html( nd_t( 'label_email' ) ); ?></label>
       <input type="email" id="nd-email" class="nd-input" placeholder="vas@email.sk" autocomplete="email">
     </div>
     <div class="nd-form-group">
-      <label>Heslo</label>
+      <label><?php echo esc_html( nd_t( 'label_password' ) ); ?></label>
       <input type="password" id="nd-password" class="nd-input" placeholder="••••••••" autocomplete="current-password">
     </div>
 
     <div id="nd-login-error" class="nd-error" style="display:none"></div>
 
     <button class="nd-btn nd-btn-primary" id="nd-btn-login">
-      <span class="nd-btn-text">Prihlásiť sa</span>
+      <span class="nd-btn-text"><?php echo esc_html( nd_t( 'btn_login' ) ); ?></span>
       <span class="nd-spinner" style="display:none"></span>
     </button>
 
-    <p class="nd-signup-hint">Nemáte účet? <a href="https://neuradesk.online" target="_blank">Zaregistrujte sa zadarmo →</a></p>
+    <p class="nd-signup-hint"><?php echo esc_html( nd_t( 'no_account' ) ); ?> <a href="https://neuradesk.online" target="_blank"><?php echo esc_html( nd_t( 'register_free' ) ); ?></a></p>
   </div>
 
   <?php elseif ( ! $widget_id ) : ?>
@@ -62,16 +62,16 @@ $has_woo      = class_exists( 'WooCommerce' );
         <strong><?php echo esc_html( $user_name ); ?></strong>
         <span><?php echo esc_html( $api_base ); ?></span>
       </div>
-      <button class="nd-btn-link nd-btn-disconnect" id="nd-btn-disconnect">Odhlásiť</button>
+      <button class="nd-btn-link nd-btn-disconnect" id="nd-btn-disconnect"><?php echo esc_html( nd_t( 'btn_logout' ) ); ?></button>
     </div>
 
-    <h2>Vybrať alebo vytvoriť widget</h2>
-    <p class="nd-subtitle">Vyberte existujúci widget z vášho účtu, alebo vytvorte nový pre tento WordPress web.</p>
+    <h2><?php echo esc_html( nd_t( 'widget_title' ) ); ?></h2>
+    <p class="nd-subtitle"><?php echo esc_html( nd_t( 'widget_subtitle' ) ); ?></p>
 
     <div class="nd-form-group">
-      <label>Widget</label>
+      <label><?php echo esc_html( nd_t( 'label_widget' ) ); ?></label>
       <select id="nd-widget-select" class="nd-input">
-        <option value="__new__">➕ Vytvoriť nový widget pre "<?php echo esc_html( get_bloginfo('name') ); ?>"</option>
+        <option value="__new__"><?php echo esc_html( sprintf( nd_t( 'create_new_widget' ), get_bloginfo( 'name' ) ) ); ?></option>
         <?php
         $api     = new NeuraDeskAPI( $api_base, $token );
         $widgets = $api->get_widgets();
@@ -87,7 +87,7 @@ $has_woo      = class_exists( 'WooCommerce' );
     <div id="nd-widget-error" class="nd-error" style="display:none"></div>
 
     <button class="nd-btn nd-btn-primary" id="nd-btn-set-widget">
-      <span class="nd-btn-text">Pokračovať →</span>
+      <span class="nd-btn-text"><?php echo esc_html( nd_t( 'btn_continue' ) ); ?></span>
       <span class="nd-spinner" style="display:none"></span>
     </button>
   </div>
@@ -104,73 +104,73 @@ $has_woo      = class_exists( 'WooCommerce' );
           <strong><?php echo esc_html( $user_name ); ?></strong>
           <span><?php echo esc_html( $api_base ); ?></span>
         </div>
-        <button class="nd-btn-link nd-btn-disconnect" id="nd-btn-disconnect">Odhlásiť</button>
+        <button class="nd-btn-link nd-btn-disconnect" id="nd-btn-disconnect"><?php echo esc_html( nd_t( 'btn_logout' ) ); ?></button>
       </div>
 
       <div class="nd-status-row">
         <div class="nd-status-dot <?php echo $embed_on ? 'nd-dot-green' : 'nd-dot-gray'; ?>"></div>
-        <span>Chatbot je <?php echo $embed_on ? '<strong>aktívny</strong> na webe' : '<strong>vypnutý</strong>'; ?></span>
-        <label class="nd-toggle" title="Zapnúť/vypnúť embed na webe">
+        <span><?php echo wp_kses_post( $embed_on ? nd_t( 'chatbot_active' ) : nd_t( 'chatbot_inactive' ) ); ?></span>
+        <label class="nd-toggle" title="<?php echo esc_attr( nd_t( 'toggle_title' ) ); ?>">
           <input type="checkbox" id="nd-embed-toggle" <?php checked( $embed_on ); ?>>
           <span class="nd-toggle-slider"></span>
         </label>
       </div>
 
       <div class="nd-widget-info">
-        <div class="nd-info-label">Widget ID</div>
+        <div class="nd-info-label"><?php echo esc_html( nd_t( 'label_widget_id' ) ); ?></div>
         <div class="nd-info-value nd-mono"><?php echo esc_html( $widget_id ); ?></div>
-        <a href="<?php echo esc_url( $api_base . '/dashboard' ); ?>" target="_blank" class="nd-btn-link">Otvoriť dashboard →</a>
+        <a href="<?php echo esc_url( $api_base . '/dashboard' ); ?>" target="_blank" class="nd-btn-link"><?php echo esc_html( nd_t( 'btn_open_dashboard' ) ); ?></a>
       </div>
 
       <?php if ( ! $scan_done ) : ?>
       <div class="nd-scan-box" id="nd-scan-box">
-        <h3>Skenovanie obsahu webu</h3>
-        <p>Plugin naskenuje váš web a automaticky naplní znalostnou bázou chatbota.</p>
+        <h3><?php echo esc_html( nd_t( 'scan_box_title' ) ); ?></h3>
+        <p><?php echo esc_html( nd_t( 'scan_box_desc' ) ); ?></p>
 
         <div class="nd-count-row">
           <div class="nd-count-item">
             <span class="nd-count-num"><?php echo $count_pages; ?></span>
-            <span class="nd-count-label">Stránok</span>
+            <span class="nd-count-label"><?php echo esc_html( nd_t( 'count_pages' ) ); ?></span>
           </div>
           <div class="nd-count-item">
             <span class="nd-count-num"><?php echo $count_posts; ?></span>
-            <span class="nd-count-label">Príspevkov</span>
+            <span class="nd-count-label"><?php echo esc_html( nd_t( 'count_posts' ) ); ?></span>
           </div>
           <?php if ( $has_woo ) : ?>
           <div class="nd-count-item">
             <span class="nd-count-num"><?php echo $count_prods; ?></span>
-            <span class="nd-count-label">Produktov</span>
+            <span class="nd-count-label"><?php echo esc_html( nd_t( 'count_products' ) ); ?></span>
           </div>
           <?php endif; ?>
         </div>
 
         <?php if ( ! $has_woo ) : ?>
-        <div class="nd-notice nd-notice-info">WooCommerce nie je aktívny – skenujú sa iba stránky a príspevky.</div>
+        <div class="nd-notice nd-notice-info"><?php echo esc_html( nd_t( 'notice_no_woo' ) ); ?></div>
         <?php endif; ?>
 
         <button class="nd-btn nd-btn-primary nd-btn-full" id="nd-btn-scan">
-          <span class="nd-btn-text">🔍 Spustiť skenovanie</span>
+          <span class="nd-btn-text"><?php echo esc_html( nd_t( 'btn_scan' ) ); ?></span>
           <span class="nd-spinner" style="display:none"></span>
         </button>
       </div>
 
       <!-- Progress (hidden until scan starts) -->
       <div id="nd-scan-progress" style="display:none">
-        <h3>Skenuje sa...</h3>
+        <h3><?php echo esc_html( nd_t( 'scan_in_progress_title' ) ); ?></h3>
         <div class="nd-steps">
           <div class="nd-step" id="step-pages">
             <div class="nd-step-icon">📄</div>
             <div class="nd-step-body">
-              <div class="nd-step-label">Stránky</div>
-              <div class="nd-step-sub" id="step-pages-sub">čaká...</div>
+              <div class="nd-step-label"><?php echo esc_html( nd_t( 'step_pages' ) ); ?></div>
+              <div class="nd-step-sub" id="step-pages-sub"><?php echo esc_html( nd_t( 'step_waiting' ) ); ?></div>
             </div>
             <div class="nd-step-status" id="step-pages-status"></div>
           </div>
           <div class="nd-step" id="step-posts">
             <div class="nd-step-icon">📝</div>
             <div class="nd-step-body">
-              <div class="nd-step-label">Príspevky (blog)</div>
-              <div class="nd-step-sub" id="step-posts-sub">čaká...</div>
+              <div class="nd-step-label"><?php echo esc_html( nd_t( 'step_posts' ) ); ?></div>
+              <div class="nd-step-sub" id="step-posts-sub"><?php echo esc_html( nd_t( 'step_waiting' ) ); ?></div>
             </div>
             <div class="nd-step-status" id="step-posts-status"></div>
           </div>
@@ -178,8 +178,8 @@ $has_woo      = class_exists( 'WooCommerce' );
           <div class="nd-step" id="step-products">
             <div class="nd-step-icon">🛍️</div>
             <div class="nd-step-body">
-              <div class="nd-step-label">WooCommerce produkty</div>
-              <div class="nd-step-sub" id="step-products-sub">čaká...</div>
+              <div class="nd-step-label"><?php echo esc_html( nd_t( 'step_products' ) ); ?></div>
+              <div class="nd-step-sub" id="step-products-sub"><?php echo esc_html( nd_t( 'step_waiting' ) ); ?></div>
             </div>
             <div class="nd-step-status" id="step-products-status"></div>
           </div>
@@ -188,7 +188,7 @@ $has_woo      = class_exists( 'WooCommerce' );
         <div class="nd-progress-bar-wrap">
           <div class="nd-progress-bar" id="nd-progress-bar" style="width:0%"></div>
         </div>
-        <div class="nd-progress-label" id="nd-progress-label">Pripravujem...</div>
+        <div class="nd-progress-label" id="nd-progress-label"><?php echo esc_html( nd_t( 'progress_preparing' ) ); ?></div>
       </div>
 
       <?php else : ?>
@@ -196,43 +196,43 @@ $has_woo      = class_exists( 'WooCommerce' );
       <div class="nd-success-box">
         <div class="nd-success-icon">✅</div>
         <div>
-          <strong>Skenovanie dokončené</strong>
-          <p>Znalostná báza chatbota je naplnená obsahom vášho webu.</p>
+          <strong><?php echo esc_html( nd_t( 'scan_complete_title' ) ); ?></strong>
+          <p><?php echo esc_html( nd_t( 'scan_complete_desc' ) ); ?></p>
         </div>
-        <button class="nd-btn nd-btn-secondary nd-btn-sm" id="nd-btn-rescan">Skenovať znova</button>
+        <button class="nd-btn nd-btn-secondary nd-btn-sm" id="nd-btn-rescan"><?php echo esc_html( nd_t( 'btn_rescan' ) ); ?></button>
       </div>
       <?php endif; ?>
     </div>
 
     <!-- Right: Embed code -->
     <div class="nd-card nd-card-secondary">
-      <h3>Embed kód (manuálne)</h3>
-      <p class="nd-subtitle">Plugin vkladá kód automaticky. Pre manuálne použitie:</p>
+      <h3><?php echo esc_html( nd_t( 'embed_title' ) ); ?></h3>
+      <p class="nd-subtitle"><?php echo esc_html( nd_t( 'embed_subtitle' ) ); ?></p>
       <div class="nd-code-block">
         <code id="nd-embed-code">&lt;script&gt;window.NeuraDeskConfig={widgetId:"<?php echo esc_js( $widget_id ); ?>"};&lt;/script&gt;
 &lt;script src="<?php echo esc_url( $api_base ); ?>/widget.js" async&gt;&lt;/script&gt;</code>
       </div>
-      <button class="nd-btn nd-btn-secondary nd-btn-sm" id="nd-btn-copy-embed">📋 Kopírovať</button>
+      <button class="nd-btn nd-btn-secondary nd-btn-sm" id="nd-btn-copy-embed"><?php echo esc_html( nd_t( 'btn_copy_embed' ) ); ?></button>
 
       <div style="margin-top:1.5rem">
-        <h3>Čo bol naskenovaný</h3>
+        <h3><?php echo esc_html( nd_t( 'scanned_title' ) ); ?></h3>
         <ul class="nd-feature-list">
-          <li>✅ Všetky publikované <strong>stránky</strong> (<?php echo $count_pages; ?>)</li>
-          <li>✅ Najnovšie <strong>príspevky</strong> (<?php echo $count_posts; ?>)</li>
+          <li>✅ <?php echo wp_kses_post( nd_t( 'scanned_pages' ) ); ?> (<?php echo $count_pages; ?>)</li>
+          <li>✅ <?php echo wp_kses_post( nd_t( 'scanned_posts' ) ); ?> (<?php echo $count_posts; ?>)</li>
           <?php if ( $has_woo ) : ?>
-          <li>✅ <strong>WooCommerce produkty</strong> (<?php echo $count_prods; ?>) – aj ako produktové karty</li>
+          <li>✅ <?php echo wp_kses_post( nd_t( 'scanned_products' ) ); ?> (<?php echo $count_prods; ?>)</li>
           <?php else : ?>
-          <li>⚪ WooCommerce nie je aktívny</li>
+          <li>⚪ <?php echo esc_html( nd_t( 'woo_inactive' ) ); ?></li>
           <?php endif; ?>
         </ul>
       </div>
 
       <div style="margin-top:1.5rem">
-        <h3>Ďalšie kroky</h3>
+        <h3><?php echo esc_html( nd_t( 'next_steps_title' ) ); ?></h3>
         <ul class="nd-feature-list">
-          <li>🎨 <a href="<?php echo esc_url( $api_base . '/dashboard' ); ?>" target="_blank">Prispôsobiť vzhľad chatbota →</a></li>
-          <li>💬 Pridať vlastné otázky a CTA</li>
-          <li>📊 Sledovať kontakty zo chatu</li>
+          <li><?php echo esc_html( nd_t( 'next_customize' ) ); ?> <a href="<?php echo esc_url( $api_base . '/dashboard' ); ?>" target="_blank" style="text-decoration:none"></a></li>
+          <li><?php echo esc_html( nd_t( 'next_faq' ) ); ?></li>
+          <li><?php echo esc_html( nd_t( 'next_contacts' ) ); ?></li>
         </ul>
       </div>
     </div>
@@ -243,10 +243,10 @@ $has_woo      = class_exists( 'WooCommerce' );
   <div id="nd-scan-done-overlay" style="display:none">
     <div class="nd-scan-done-card">
       <div style="font-size:3rem;margin-bottom:0.5rem">🎉</div>
-      <h2>Chatbot je pripravený!</h2>
-      <p>Znalostná báza je naplnená. Chatbot sa zobrazuje na vašom webe.</p>
-      <a href="<?php echo esc_url( get_home_url() ); ?>" target="_blank" class="nd-btn nd-btn-primary">Pozrieť web →</a>
-      <a href="<?php echo esc_url( $api_base . '/dashboard' ); ?>" target="_blank" class="nd-btn nd-btn-secondary">NeuraDeskApp dashboard →</a>
+      <h2><?php echo esc_html( nd_t( 'overlay_title' ) ); ?></h2>
+      <p><?php echo esc_html( nd_t( 'overlay_desc' ) ); ?></p>
+      <a href="<?php echo esc_url( get_home_url() ); ?>" target="_blank" class="nd-btn nd-btn-primary"><?php echo esc_html( nd_t( 'btn_view_site' ) ); ?></a>
+      <a href="<?php echo esc_url( $api_base . '/dashboard' ); ?>" target="_blank" class="nd-btn nd-btn-secondary"><?php echo esc_html( nd_t( 'btn_nd_dashboard' ) ); ?></a>
     </div>
   </div>
 

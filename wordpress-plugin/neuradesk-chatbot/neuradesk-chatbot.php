@@ -15,6 +15,52 @@ define( 'NEURADESK_VERSION', '1.0.3' );
 define( 'NEURADESK_DIR',     plugin_dir_path( __FILE__ ) );
 define( 'NEURADESK_URL',     plugin_dir_url( __FILE__ ) );
 
+/* ── i18n helpers ────────────────────────────────────────────────────────── */
+
+/**
+ * Load translation strings for the current WordPress locale.
+ * Falls back to sk.json if no matching language file exists.
+ */
+function neuradesk_load_translations(): array {
+    $lang_dir = NEURADESK_DIR . 'languages/';
+    $locale   = get_locale(); // e.g. "de_DE", "fr_FR", "sk_SK"
+
+    // Extract 2-letter language code
+    $lang  = strtolower( substr( $locale, 0, 2 ) );
+    $file  = $lang_dir . $lang . '.json';
+
+    // Try exact match first, then fallback to Slovak master
+    if ( $lang !== 'sk' && file_exists( $file ) ) {
+        $data = json_decode( file_get_contents( $file ), true );
+        if ( is_array( $data ) ) return $data;
+    }
+
+    $sk_file = $lang_dir . 'sk.json';
+    if ( file_exists( $sk_file ) ) {
+        $data = json_decode( file_get_contents( $sk_file ), true );
+        if ( is_array( $data ) ) return $data;
+    }
+
+    return [];
+}
+
+/**
+ * Return a translated plugin string by key.
+ * Supports {placeholder} substitution: nd_t('key', ['placeholder' => 'value'])
+ */
+function nd_t( string $key, array $args = [] ): string {
+    static $strings = null;
+    if ( $strings === null ) $strings = neuradesk_load_translations();
+
+    $val = $strings[ $key ] ?? $key;
+
+    foreach ( $args as $placeholder => $replacement ) {
+        $val = str_replace( '{' . $placeholder . '}', $replacement, $val );
+    }
+
+    return $val;
+}
+
 require_once NEURADESK_DIR . 'includes/class-neuradesk-api.php';
 require_once NEURADESK_DIR . 'includes/class-neuradesk-scanner.php';
 
@@ -43,6 +89,7 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
         'widget_id'=> get_option( 'neuradesk_widget_id', '' ),
         'user_name'=> get_option( 'neuradesk_user_name', '' ),
         'site_name'=> get_bloginfo( 'name' ),
+        't'        => neuradesk_load_translations(),
     ] );
 } );
 
@@ -60,7 +107,7 @@ add_action( 'wp_ajax_neuradesk_login', function () {
     $password = $_POST['password'] ?? '';
 
     if ( ! $email || ! $password ) {
-        wp_send_json_error( [ 'message' => 'Email a heslo sú povinné.' ] );
+        wp_send_json_error( [ 'message' => nd_t( 'err_email_password_required' ) ] );
     }
 
     $api  = new NeuraDeskAPI( $api_base, '' );
@@ -94,7 +141,7 @@ add_action( 'wp_ajax_neuradesk_set_widget', function () {
     $site_name = sanitize_text_field( $_POST['site_name'] ?? get_bloginfo( 'name' ) );
 
     if ( ! $token ) {
-        wp_send_json_error( [ 'message' => 'Nie ste prihlásený.' ] );
+        wp_send_json_error( [ 'message' => nd_t( 'err_not_logged_in' ) ] );
     }
 
     $api = new NeuraDeskAPI( $api_base, $token );
@@ -122,7 +169,7 @@ add_action( 'wp_ajax_neuradesk_scan_batch', function () {
     $widget_id = get_option( 'neuradesk_widget_id', '' );
 
     if ( ! $token || ! $widget_id ) {
-        wp_send_json_error( [ 'message' => 'Nie ste prihlásený alebo nie je vybraný widget.' ] );
+        wp_send_json_error( [ 'message' => nd_t( 'err_not_logged_in_or_no_widget' ) ] );
     }
 
     $type   = sanitize_text_field( $_POST['type'] ?? 'pages' );

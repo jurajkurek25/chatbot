@@ -28,8 +28,8 @@ class NeuraDeskAPI {
         return $this->post( '/api/widgets', [
             'name'            => $site_name . ' – WordPress',
             'bot_name'        => 'Asistent',
-            'welcome_message' => 'Ahoj! Ako vám môžem pomôcť?',
-            'goals'           => 'Chatbot pre WordPress web ' . $site_name . '. Odpovedaj na otázky zákazníkov na základe obsahu stránky.',
+            'welcome_message' => nd_t( 'api_welcome_message' ),
+            'goals'           => nd_t( 'api_widget_goals', [ 'site' => $site_name ] ),
             'cta_type'        => 'contact',
         ] );
     }
@@ -58,7 +58,7 @@ class NeuraDeskAPI {
             'price'       => $item['price'] ?? null,
             'currency'    => $item['currency'] ?? 'EUR',
             'landing_url' => $item['url'] ?? null,
-            'cta_text'    => 'Zobraziť produkt',
+            'cta_text'    => nd_t( 'api_view_product' ),
             'tags'        => $item['categories'] ?? '',
             'priority'    => 0,
             'active'      => 1,
