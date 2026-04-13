@@ -291,10 +291,10 @@
     if (!el) return;
     el.innerHTML = `<div class="card-title">Vyberte službu</div>
       <div class="services-grid">
-        ${cfg.services.map(s => {
+        ${cfg.services.map((s, i) => {
           const price = s.price != null ? `${s.price} ${s.currency}` : 'Zadarmo';
           const sel   = selService?.id === s.id ? ' selected' : '';
-          return `<div class="svc-card${sel}" onclick="selectService(${JSON.stringify(JSON.stringify(s))})">
+          return `<div class="svc-card${sel}" onclick="selectService(${i})">
             <div class="svc-name">${esc(s.name)}</div>
             ${s.description ? `<div class="svc-desc">${esc(s.description)}</div>` : ''}
             <div class="svc-meta">
@@ -311,11 +311,13 @@
       </div>`;
   }
 
-  window.selectService = function(jsonStr) {
-    try { selService = JSON.parse(jsonStr); } catch { return; }
+  window.selectService = function(idx) {
+    selService = cfg.services[idx];
+    if (!selService) return;
     selDate = null; selSlot = null; slotsCache = {};
-    document.querySelectorAll('.svc-card').forEach(c => c.classList.remove('selected'));
-    event.currentTarget?.classList.add('selected');
+    document.querySelectorAll('.svc-card').forEach((c, i) => {
+      c.classList.toggle('selected', i === idx);
+    });
     const btn = document.getElementById('btn-svc-next');
     if (btn) btn.disabled = false;
   };
