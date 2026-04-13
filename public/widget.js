@@ -1268,7 +1268,7 @@
         const r = await fetch(`${BASE_URL}/api/lead-magnets/${WIDGET_ID}/leads/capture`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lmId, email, name: '', sessionId: sessionId }),
+          body: JSON.stringify({ lmId, email, name: '', sessionId, lang: getLang() }),
         });
         const data = await r.json();
         if (r.ok && data.fileUrl) {

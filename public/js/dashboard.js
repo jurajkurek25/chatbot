@@ -2453,6 +2453,12 @@ async function loadLeadMagnets() {
   }
 }
 
+const LM_LANG_LABELS = {
+  default:'🌐 Predvolený', sk:'🇸🇰 SK', en:'🇬🇧 EN', de:'🇩🇪 DE',
+  fr:'🇫🇷 FR', es:'🇪🇸 ES', pl:'🇵🇱 PL', cs:'🇨🇿 CS',
+  hu:'🇭🇺 HU', ro:'🇷🇴 RO', hr:'🇭🇷 HR',
+};
+
 function renderLmCards() {
   const cards = document.getElementById('lm-cards');
   const empty = document.getElementById('lm-empty');
@@ -2465,27 +2471,42 @@ function renderLmCards() {
   }
   empty.style.display = 'none';
 
-  cards.innerHTML = _lmItems.map(lm => `
+  cards.innerHTML = _lmItems.map(lm => {
+    const filesHtml = (lm.files && lm.files.length)
+      ? lm.files.map(f => `
+          <span style="display:inline-flex;align-items:center;gap:4px;background:#ede9fe;border-radius:6px;padding:2px 8px;font-size:0.76rem;font-weight:600;color:#5b4fff">
+            <a href="${escHtml(f.file_url)}" target="_blank" rel="noopener" style="color:#5b4fff;text-decoration:none">${escHtml(LM_LANG_LABELS[f.lang] || f.lang)}</a>
+            <button onclick="deleteLmFile('${escHtml(lm.id)}','${escHtml(f.id)}')" style="background:none;border:none;cursor:pointer;color:#7c3aed;font-size:0.75rem;line-height:1;padding:0;margin-left:2px" title="Odstrániť">✕</button>
+          </span>`).join(' ')
+      : '<span style="font-size:0.76rem;color:#94a3b8">Žiadne jazykové súbory</span>';
+
+    return `
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1rem 1.1rem">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;flex-wrap:wrap">
             <span style="font-weight:700;font-size:0.95rem;color:#1e293b">${escHtml(lm.name)}</span>
             <span style="font-size:0.72rem;padding:1px 7px;border-radius:99px;font-weight:600;background:${lm.active ? '#dcfce7' : '#f1f5f9'};color:${lm.active ? '#16a34a' : '#94a3b8'}">${lm.active ? 'Aktívny' : 'Neaktívny'}</span>
           </div>
           ${lm.description ? `<div style="font-size:0.82rem;color:#64748b;margin-bottom:0.4rem">${escHtml(lm.description)}</div>` : ''}
           ${lm.when_to_recommend ? `<div style="font-size:0.78rem;color:#374151;margin-bottom:0.2rem"><b>Odporúčaj keď:</b> ${escHtml(lm.when_to_recommend)}</div>` : ''}
           ${lm.target_audience ? `<div style="font-size:0.78rem;color:#374151;margin-bottom:0.2rem"><b>Pre koho:</b> ${escHtml(lm.target_audience)}</div>` : ''}
-          ${lm.ai_content ? `<div style="font-size:0.78rem;color:#374151;"><b>AI zhrnutie:</b> ${escHtml(lm.ai_content)}</div>` : ''}
+          ${lm.ai_content ? `<div style="font-size:0.78rem;color:#374151;margin-bottom:0.5rem"><b>AI zhrnutie:</b> ${escHtml(lm.ai_content)}</div>` : ''}
+          <!-- Language files row -->
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.4rem">
+            <span style="font-size:0.73rem;font-weight:700;color:#64748b;white-space:nowrap">🌍 Jazyky:</span>
+            ${filesHtml}
+            <button class="btn btn-sm btn-secondary" style="font-size:0.73rem;padding:2px 8px" onclick="openLmFileModal('${escHtml(lm.id)}')">+ Pridať jazyk</button>
+          </div>
         </div>
-        <div style="display:flex;gap:0.4rem;flex-shrink:0;flex-wrap:wrap">
-          ${lm.file_url ? `<a href="${escHtml(lm.file_url)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">⬇ Súbor</a>` : ''}
+        <div style="display:flex;gap:0.4rem;flex-shrink:0;flex-wrap:wrap;align-self:flex-start">
+          ${lm.file_url ? `<a href="${escHtml(lm.file_url)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm" title="Predvolený súbor">⬇</a>` : ''}
           <button class="btn btn-sm ${lm.active ? 'btn-secondary' : 'btn-primary'}" onclick="toggleLmActive('${lm.id}',${lm.active ? 0 : 1})">${lm.active ? 'Deaktivovať' : 'Aktivovať'}</button>
           <button class="btn btn-sm btn-danger" onclick="deleteLm('${lm.id}')">Zmazať</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function populateLmFilter() {
@@ -2526,6 +2547,78 @@ async function deleteLm(lmId) {
     showToast('Lead magnet zmazaný.', 'success');
   } else {
     showToast('Chyba pri mazaní.', 'error');
+  }
+}
+
+/* ── Language file modal ──────────────────────────────────────── */
+function openLmFileModal(lmId) {
+  document.getElementById('lm-file-lmid').value = lmId;
+  document.getElementById('lm-file-lang').value = 'default';
+  document.getElementById('lm-file-input').value = '';
+  document.getElementById('lm-file-progress').style.display = 'none';
+  document.getElementById('lm-file-btn').disabled = false;
+  document.getElementById('modal-lm-file').style.display = 'flex';
+}
+
+function closeLmFileModal(e) {
+  if (e && e.currentTarget !== e.target) return;
+  document.getElementById('modal-lm-file').style.display = 'none';
+}
+
+async function uploadLmFile() {
+  if (!currentWidget) return;
+  const lmId = document.getElementById('lm-file-lmid').value;
+  const lang = document.getElementById('lm-file-lang').value;
+  const fileInput = document.getElementById('lm-file-input');
+  if (!fileInput.files[0]) { showToast('Vyberte súbor.', 'error'); return; }
+
+  const btn = document.getElementById('lm-file-btn');
+  const progress = document.getElementById('lm-file-progress');
+  btn.disabled = true;
+  progress.style.display = '';
+
+  const formData = new FormData();
+  formData.append('lang', lang);
+  formData.append('file', fileInput.files[0]);
+
+  try {
+    const token = localStorage.getItem('nd_token');
+    const r = await fetch(`/api/lead-magnets/${currentWidget.id}/${lmId}/files`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      showToast(data.error || 'Chyba.', 'error');
+      btn.disabled = false;
+      progress.style.display = 'none';
+      return;
+    }
+    // Update local cache
+    const idx = _lmItems.findIndex(x => x.id === lmId);
+    if (idx !== -1) _lmItems[idx].files = data.files;
+    renderLmCards();
+    document.getElementById('modal-lm-file').style.display = 'none';
+    showToast('Jazyková verzia pridaná!', 'success');
+  } catch {
+    showToast('Chyba pri nahrávaní.', 'error');
+    btn.disabled = false;
+    progress.style.display = 'none';
+  }
+}
+
+async function deleteLmFile(lmId, fileId) {
+  if (!currentWidget) return;
+  if (!confirm('Odstrániť túto jazykovú verziu?')) return;
+  const r = await apiFetch(`/api/lead-magnets/${currentWidget.id}/${lmId}/files/${fileId}`, { method: 'DELETE' });
+  if (r && r.ok) {
+    const idx = _lmItems.findIndex(x => x.id === lmId);
+    if (idx !== -1) _lmItems[idx].files = _lmItems[idx].files.filter(f => f.id !== fileId);
+    renderLmCards();
+    showToast('Súbor odstránený.', 'success');
+  } else {
+    showToast('Chyba.', 'error');
   }
 }
 

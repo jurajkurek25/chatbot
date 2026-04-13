@@ -1184,6 +1184,39 @@
   </div>
 </div>
 
+<!-- Lead Magnet — Add Language File Modal -->
+<div id="modal-lm-file" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;padding:0.75rem" onclick="closeLmFileModal(event)">
+  <div class="modal-box" style="max-width:440px;width:100%" onclick="event.stopPropagation()">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:1.1rem">🌍 Pridať jazykovú verziu</h2>
+    <input type="hidden" id="lm-file-lmid">
+    <div class="form-group">
+      <label>Jazyk</label>
+      <select id="lm-file-lang" style="width:100%;padding:0.45rem 0.65rem;border:1px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:0.875rem;background:#fff;color:#374151">
+        <option value="default">🌐 Predvolený (fallback)</option>
+        <option value="sk">🇸🇰 Slovenčina (sk)</option>
+        <option value="en">🇬🇧 English (en)</option>
+        <option value="de">🇩🇪 Deutsch (de)</option>
+        <option value="fr">🇫🇷 Français (fr)</option>
+        <option value="es">🇪🇸 Español (es)</option>
+        <option value="pl">🇵🇱 Polski (pl)</option>
+        <option value="cs">🇨🇿 Čeština (cs)</option>
+        <option value="hu">🇭🇺 Magyar (hu)</option>
+        <option value="ro">🇷🇴 Română (ro)</option>
+        <option value="hr">🇭🇷 Hrvatski (hr)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Súbor PDF / TXT / MD</label>
+      <input type="file" id="lm-file-input" accept=".pdf,.txt,.md" style="width:100%">
+    </div>
+    <div id="lm-file-progress" style="display:none;font-size:0.82rem;color:#5b4fff;margin-bottom:0.5rem">⏳ Nahráva sa...</div>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
+      <button class="btn btn-secondary" onclick="closeLmFileModal()">Zrušiť</button>
+      <button class="btn btn-primary" id="lm-file-btn" onclick="uploadLmFile()">Nahrať</button>
+    </div>
+  </div>
+</div>
+
 <!-- Create Widget Modal -->
 <div id="modal-create" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;display:flex;align-items:center;justify-content:center;padding:0.75rem;" onclick="closeModal(event)">
   <div class="modal-box" onclick="event.stopPropagation()">

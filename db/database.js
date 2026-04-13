@@ -271,6 +271,16 @@ function initDatabase() {
       session_id TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+
+    CREATE TABLE IF NOT EXISTS lead_magnet_files (
+      id TEXT PRIMARY KEY,
+      lead_magnet_id TEXT NOT NULL REFERENCES lead_magnets(id) ON DELETE CASCADE,
+      lang TEXT NOT NULL,
+      file_path TEXT,
+      file_url TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(lead_magnet_id, lang)
+    );
   `);
 
   // Migrations: add columns for existing DBs
