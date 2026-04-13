@@ -1869,11 +1869,11 @@ async function uploadBookingLogo(input) {
   input.value = '';
 
   try {
-    const r = await fetch(`/api/booking/${currentWidget.id}/logo`, {
+    const r = await apiFetch(`/api/booking/${currentWidget.id}/logo`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${getToken()}` },
       body: fd,
     });
+    if (!r) return;
     const data = await r.json();
     if (!r.ok) throw new Error(data.error || 'Chyba');
     _bkDesign.calendarLogo = data.logo_url;
