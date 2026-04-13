@@ -376,6 +376,64 @@ Vráť VÝHRADNE tento formát (žiadny iný text pred ani po):
   }
 }
 
+/* ── Anonymous conversation trend analysis ─────────────────── */
+async function analyzeConversationTrends(messages, msgCount) {
+  if (!messages || messages.length < 4) return null;
+
+  // Only include user messages for anonymity analysis — no assistant content needed
+  const transcript = messages
+    .filter(m => m.role === 'user')
+    .map(m => `– ${m.content.slice(0, 300)}`)
+    .join('\n');
+
+  try {
+    const response = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 250,
+      messages: [{
+        role: 'user',
+        content: `Analyzuj správy zákazníka a extrahuj anonymné behaviorálne trendy. BEZ osobných údajov.
+
+Správy zákazníka:
+${transcript}
+
+Vráť VÝHRADNE JSON (žiadny iný text):
+{
+  "topics": ["kľúčové témy (max 3, každá 1-2 slová, slovensky)"],
+  "intent": "buying|researching|support|comparing|just_browsing",
+  "objection": "price|timing|wrong_product|trust|more_info|just_browsing|none",
+  "urgency": "immediate|within_month|planning|just_browsing"
+}
+
+Definície:
+intent – buying=chce kúpiť, researching=zisťuje info, support=rieši problém, comparing=porovnáva, just_browsing=bez záujmu
+objection – dôvod prečo zákazník nekonal; none=ak zanechal kontakt/rezervoval
+urgency – immediate=teraz, within_month=čoskoro, planning=dlhodobé, just_browsing=nezistené`,
+      }],
+    });
+
+    const text = response.content.find(b => b.type === 'text')?.text || '{}';
+    const match = text.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    const data = JSON.parse(match[0]);
+
+    // Validate and sanitize
+    const INTENTS   = new Set(['buying','researching','support','comparing','just_browsing']);
+    const OBJECTIONS = new Set(['price','timing','wrong_product','trust','more_info','just_browsing','none']);
+    const URGENCIES  = new Set(['immediate','within_month','planning','just_browsing']);
+
+    return {
+      topics:    Array.isArray(data.topics) ? data.topics.slice(0,3).map(t => String(t).slice(0,40).toLowerCase()) : [],
+      intent:    INTENTS.has(data.intent)     ? data.intent    : 'just_browsing',
+      objection: OBJECTIONS.has(data.objection) ? data.objection : 'just_browsing',
+      urgency:   URGENCIES.has(data.urgency)   ? data.urgency   : 'just_browsing',
+    };
+  } catch (err) {
+    console.error('analyzeConversationTrends error:', err.message);
+    return null;
+  }
+}
+
 function safeParseJSON(str, fallback) {
   try { return JSON.parse(str); } catch { return fallback; }
 }
@@ -411,4 +469,4 @@ Text musí byť zrozumiteľný pre bežného človeka, nie príliš dlhý (max 3
   return response.content[0]?.text?.trim() || '';
 }
 
-module.exports = { streamChatResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets };
+module.exports = { streamChatResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };

@@ -3,7 +3,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb, searchKnowledge } = require('../db/database');
-const { streamChatResponse, summarizeConversation } = require('../services/claude');
+const { streamChatResponse, summarizeConversation, analyzeConversationTrends } = require('../services/claude');
 const { sendLeadNotification, sendUsageNotification } = require('../services/email');
 const { BASE_RESPONSES, nextMonthReset, maybeResetUsage } = require('./credits');
 
@@ -164,6 +164,25 @@ router.post('/:widgetId/chat', async (req, res) => {
             sendUsageNotification({ toEmail: owner.email, ownerName: owner.name, pct: 80, extra: currentExtra }).catch(() => {});
           }
         } catch { /* ignore */ }
+      });
+
+      // Anonymous trend insight — trigger once per conversation after 3 full exchanges (6 msgs)
+      setImmediate(async () => {
+        try {
+          const msgCount = db.prepare('SELECT COUNT(*) AS cnt FROM messages WHERE conversation_id = ?').get(conversation.id).cnt;
+          if (msgCount >= 6) {
+            const conv = db.prepare('SELECT insight_done FROM conversations WHERE id = ?').get(conversation.id);
+            if (conv && !conv.insight_done) {
+              db.prepare('UPDATE conversations SET insight_done = 1 WHERE id = ?').run(conversation.id);
+              const allMsgs = db.prepare('SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at ASC').all(conversation.id);
+              const insight = await analyzeConversationTrends(allMsgs, msgCount);
+              if (insight) {
+                db.prepare(`INSERT INTO conversation_insights (id, widget_id, topics, intent, objection, urgency, msg_count) VALUES (?,?,?,?,?,?,?)`)
+                  .run(uuidv4(), widget.id, JSON.stringify(insight.topics), insight.intent, insight.objection, insight.urgency, msgCount);
+              }
+            }
+          }
+        } catch (err) { console.error('Insight error:', err.message); }
       });
     } else if (fullText) {
       db.prepare('INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)').run(

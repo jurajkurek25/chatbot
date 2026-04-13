@@ -156,7 +156,7 @@ function showView(view) {
 function showTab(tab) {
   closeMobileSidebar();
   currentTab = tab;
-  ['settings','knowledge','questions','embed','products','instagram','gdpr','booking','leadmagnets'].forEach(t => {
+  ['settings','knowledge','questions','embed','products','instagram','gdpr','booking','leadmagnets','insights'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -168,6 +168,7 @@ function showTab(tab) {
   if (tab === 'gdpr') loadGdpr();
   if (tab === 'booking') loadBookingTab();
   if (tab === 'leadmagnets') loadLeadMagnets();
+  if (tab === 'insights') loadInsights();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -2738,4 +2739,130 @@ async function exportLmLeads() {
   } catch {
     showToast('Chyba pri exporte.', 'error');
   }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TRENDY / INSIGHTS
+══════════════════════════════════════════════════════════════ */
+
+let _insightPeriod = 30;
+
+const INS_INTENT_LABELS = {
+  buying: '🛒 Chce kúpiť',
+  researching: '🔍 Zisťuje informácie',
+  support: '🛠️ Rieši problém',
+  comparing: '⚖️ Porovnáva možnosti',
+  just_browsing: '👁️ Len prehliada',
+};
+const INS_OBJ_LABELS = {
+  price: '💸 Cena je vysoká',
+  timing: '⏳ Nechce teraz',
+  wrong_product: '❌ Nevhodný produkt',
+  trust: '🤔 Nedôvera',
+  more_info: '📚 Chce viac info',
+  just_browsing: '🌀 Bez konkrétneho záujmu',
+  none: '✅ Zanechal kontakt',
+};
+const INS_URG_LABELS = {
+  immediate: '🔥 Okamžite',
+  within_month: '📅 Do mesiaca',
+  planning: '🗓️ Plánuje dlhodobo',
+  just_browsing: '🌀 Len zisťuje',
+};
+const INS_COLORS = {
+  buying: '#16a34a', researching: '#2563eb', support: '#d97706',
+  comparing: '#7c3aed', just_browsing: '#94a3b8',
+  price: '#dc2626', timing: '#d97706', wrong_product: '#7c3aed',
+  trust: '#ea580c', more_info: '#0284c7', none: '#16a34a',
+  immediate: '#dc2626', within_month: '#d97706', planning: '#2563eb',
+};
+
+function setInsightPeriod(days) {
+  _insightPeriod = days;
+  ['7','30','90','0'].forEach(d => {
+    const btn = document.getElementById('ins-btn-' + d);
+    if (!btn) return;
+    btn.className = 'btn btn-sm ' + (String(days) === d ? 'btn-primary' : 'btn-secondary');
+  });
+  loadInsights();
+}
+
+async function loadInsights() {
+  if (!currentWidget) return;
+  const days = _insightPeriod;
+  const url = '/api/insights/' + currentWidget.id + (days > 0 ? '?days=' + days : '?days=0');
+  try {
+    const r = await apiFetch(url);
+    if (!r) return;
+    const data = await r.json();
+    renderInsights(data);
+  } catch {
+    showToast('Chyba pri načítaní trendov.', 'error');
+  }
+}
+
+function renderInsights(data) {
+  const empty   = document.getElementById('ins-empty');
+  const charts  = document.getElementById('ins-charts');
+  const summary = document.getElementById('ins-summary');
+
+  summary.innerHTML = [
+    { label: 'Analyzovaných relácií', value: data.total, sub: 'konverzácií s 3+ výmenami' },
+    { label: 'Konverzný kurz', value: data.total > 0 ? data.conversion_rate + '%' : '—', sub: data.leads_count + ' leadov' },
+    { label: 'Priem. dĺžka', value: data.avg_msg_count > 0 ? data.avg_msg_count + ' správ' : '—', sub: 'na konverzáciu' },
+    { label: 'Unikátne témy', value: data.topics.length, sub: 'zachytených tém' },
+  ].map(function(c) {
+    return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1rem;text-align:center">' +
+      '<div style="font-size:1.5rem;font-weight:800;color:#1e293b">' + escHtml(String(c.value)) + '</div>' +
+      '<div style="font-size:0.78rem;font-weight:700;color:#374151;margin:0.2rem 0">' + escHtml(c.label) + '</div>' +
+      '<div style="font-size:0.72rem;color:#94a3b8">' + escHtml(c.sub) + '</div>' +
+      '</div>';
+  }).join('');
+
+  if (!data.total) {
+    empty.style.display = '';
+    charts.style.display = 'none';
+    return;
+  }
+  empty.style.display = 'none';
+  charts.style.display = 'grid';
+
+  // Topics tag cloud
+  var maxT = (data.topics[0] && data.topics[0].count) || 1;
+  var topicsEl = document.getElementById('ins-topics');
+  if (topicsEl) {
+    topicsEl.innerHTML = data.topics.length
+      ? '<div style="display:flex;flex-wrap:wrap;gap:0.5rem">' + data.topics.map(function(t) {
+          var size = (0.75 + (t.count / maxT) * 0.55).toFixed(2);
+          var opacity = (0.4 + (t.count / maxT) * 0.6).toFixed(2);
+          return '<span style="background:rgba(91,79,255,' + opacity + ');color:white;border-radius:99px;padding:4px 12px;font-size:' + size + 'rem;font-weight:600" title="' + t.count + '×">' + escHtml(t.topic) + ' <span style="opacity:0.7;font-size:0.75em">' + t.count + '</span></span>';
+        }).join('') + '</div>'
+      : '<div style="color:#94a3b8;font-size:0.85rem">Žiadne témy</div>';
+  }
+
+  function renderBars(containerId, rows, labelMap, colorMap) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    if (!rows || !rows.length) { el.innerHTML = '<div style="color:#94a3b8;font-size:0.85rem">Žiadne dáta</div>'; return; }
+    var maxVal = rows[0].count;
+    el.innerHTML = rows.map(function(r) {
+      var key = Object.keys(r).find(function(k) { return k !== 'count'; });
+      var val = r[key];
+      var pct = Math.round((r.count / maxVal) * 100);
+      var label = labelMap[val] || val;
+      var color = colorMap[val] || '#5b4fff';
+      return '<div style="margin-bottom:0.65rem">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.2rem">' +
+        '<span style="font-size:0.82rem;font-weight:600;color:#374151">' + escHtml(label) + '</span>' +
+        '<span style="font-size:0.78rem;color:#64748b;font-weight:700">' + r.count + '</span>' +
+        '</div>' +
+        '<div style="height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden">' +
+        '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:99px;transition:width 0.4s"></div>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  renderBars('ins-intents',    data.intents,    INS_INTENT_LABELS, INS_COLORS);
+  renderBars('ins-objections', data.objections, INS_OBJ_LABELS,    INS_COLORS);
+  renderBars('ins-urgency',    data.urgency,    INS_URG_LABELS,    INS_COLORS);
 }

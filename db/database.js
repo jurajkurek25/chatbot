@@ -281,6 +281,18 @@ function initDatabase() {
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       UNIQUE(lead_magnet_id, lang)
     );
+
+    /* ── Anonymous conversation trend insights ───────────────── */
+    CREATE TABLE IF NOT EXISTS conversation_insights (
+      id TEXT PRIMARY KEY,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      topics TEXT NOT NULL DEFAULT '[]',
+      intent TEXT NOT NULL DEFAULT '',
+      objection TEXT NOT NULL DEFAULT '',
+      urgency TEXT NOT NULL DEFAULT '',
+      msg_count INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
   `);
 
   // Migrations: add columns for existing DBs
@@ -312,6 +324,7 @@ function initDatabase() {
     `ALTER TABLE bookings ADD COLUMN service_name TEXT`,
     `ALTER TABLE bookings ADD COLUMN ai_summary TEXT`,
     `ALTER TABLE booking_configs ADD COLUMN design_config TEXT NOT NULL DEFAULT '{}'`,
+    `ALTER TABLE conversations ADD COLUMN insight_done INTEGER NOT NULL DEFAULT 0`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists */ }

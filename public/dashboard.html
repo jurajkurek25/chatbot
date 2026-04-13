@@ -60,6 +60,9 @@
       <button class="nav-item" onclick="showTab('leadmagnets')" id="nav-leadmagnets">
         <span class="nav-icon">🧲</span> Lead Magnety
       </button>
+      <button class="nav-item" onclick="showTab('insights')" id="nav-insights">
+        <span class="nav-icon">📊</span> Trendy
+      </button>
     </div>
 
     <div class="sidebar-footer" id="sidebar-footer">
@@ -1149,6 +1152,60 @@
                 </thead>
                 <tbody id="lm-leads-body"></tbody>
               </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Trendy tab                                             -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div id="tab-insights" class="tab-panel">
+          <div class="tab-header" style="flex-wrap:wrap;gap:0.75rem">
+            <h2 class="tab-title">📊 Trendy návštevníkov</h2>
+            <div style="display:flex;gap:0.4rem;flex-wrap:wrap" id="ins-period-btns">
+              <button class="btn btn-sm btn-secondary" id="ins-btn-7"  onclick="setInsightPeriod(7)">7 dní</button>
+              <button class="btn btn-sm btn-primary"   id="ins-btn-30" onclick="setInsightPeriod(30)">30 dní</button>
+              <button class="btn btn-sm btn-secondary" id="ins-btn-90" onclick="setInsightPeriod(90)">90 dní</button>
+              <button class="btn btn-sm btn-secondary" id="ins-btn-0"  onclick="setInsightPeriod(0)">Všetko</button>
+            </div>
+          </div>
+
+          <!-- GDPR note -->
+          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:0.8rem;color:#166534">
+            🔒 <b>GDPR-safe:</b> Zbierajú sa iba anonymné behaviorálne kategórie — žiadne osobné údaje ani texty konverzácií. Analýza sa spustí po 3 výmenách správ v rámci jednej relácie.
+          </div>
+
+          <!-- Summary cards -->
+          <div id="ins-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:2rem"></div>
+
+          <!-- Empty state -->
+          <div id="ins-empty" style="display:none;text-align:center;padding:3rem 1rem;color:#94a3b8">
+            <div style="font-size:2.5rem;margin-bottom:0.75rem">📊</div>
+            <div style="font-weight:700;color:#475569;margin-bottom:0.5rem">Zatiaľ žiadne dáta</div>
+            <div style="font-size:0.875rem">Trendy sa začnú zobrazovať po prvých konverzáciách s 3+ výmenami správ.</div>
+          </div>
+
+          <!-- Charts -->
+          <div id="ins-charts" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+            <!-- Topics -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem;grid-column:1/-1">
+              <div style="font-size:0.8rem;font-weight:700;color:#475569;letter-spacing:0.06em;margin-bottom:1rem">🏷️ TÉMY ZÁUJMU</div>
+              <div id="ins-topics"></div>
+            </div>
+            <!-- Intent -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem">
+              <div style="font-size:0.8rem;font-weight:700;color:#475569;letter-spacing:0.06em;margin-bottom:1rem">🎯 ZÁMER NÁVŠTEVNÍKA</div>
+              <div id="ins-intents"></div>
+            </div>
+            <!-- Objections -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem">
+              <div style="font-size:0.8rem;font-weight:700;color:#475569;letter-spacing:0.06em;margin-bottom:1rem">🚧 PREČO NEKONAL</div>
+              <div id="ins-objections"></div>
+            </div>
+            <!-- Urgency -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem">
+              <div style="font-size:0.8rem;font-weight:700;color:#475569;letter-spacing:0.06em;margin-bottom:1rem">⏰ NALIEHAVOSŤ</div>
+              <div id="ins-urgency"></div>
             </div>
           </div>
         </div>
