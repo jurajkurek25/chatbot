@@ -62,6 +62,7 @@
       write:'Napísať \u2192',
       cta_call_text:'Chcete sa poradiť osobne?', cta_call_btn:'📞 Zavolať',
       cta_cont_text:'Máte záujem? Ozveme sa vám!', cta_cont_label:'Zanechajte kontakt',
+      cta_book_text:'Rezervujte si termín online!', cta_book_btn:'Rezervovať termín',
       cta_more:'Zistiť viac',
       gdpr_title:'📋 Podmienky spracovania osobných údajov',
       form_title:'Zanechajte kontakt', form_sub:'Ozveme sa vám čo najskôr.',
@@ -91,6 +92,7 @@
       write:'Write \u2192',
       cta_call_text:'Want to consult in person?', cta_call_btn:'📞 Call',
       cta_cont_text:"Interested? We'll get back to you!", cta_cont_label:'Leave your contact',
+      cta_book_text:'Book an appointment online!', cta_book_btn:'Book appointment',
       cta_more:'Learn more',
       gdpr_title:'📋 Personal data processing terms',
       form_title:'Leave your contact', form_sub:"We'll get back to you as soon as possible.",
@@ -120,6 +122,7 @@
       write:'Schreiben \u2192',
       cta_call_text:'Möchten Sie sich persönlich beraten lassen?', cta_call_btn:'📞 Anrufen',
       cta_cont_text:'Interessiert? Wir melden uns!', cta_cont_label:'Kontakt hinterlassen',
+      cta_book_text:'Termin online buchen!', cta_book_btn:'Termin buchen',
       cta_more:'Mehr erfahren',
       gdpr_title:'📋 Datenschutzbedingungen',
       form_title:'Kontakt hinterlassen', form_sub:'Wir melden uns so schnell wie möglich.',
@@ -149,6 +152,7 @@
       write:'\u00c9crire \u2192',
       cta_call_text:'Vous souhaitez une consultation personnelle\u00a0?', cta_call_btn:'📞 Appeler',
       cta_cont_text:'Int\u00e9ress\u00e9(e)\u00a0? Nous vous rappellerons\u00a0!', cta_cont_label:'Laisser ses coordonn\u00e9es',
+      cta_book_text:'Réservez votre rendez-vous en ligne\u00a0!', cta_book_btn:'Réserver un rendez-vous',
       cta_more:'En savoir plus',
       gdpr_title:'📋 Conditions de traitement des donn\u00e9es',
       form_title:'Laisser ses coordonn\u00e9es', form_sub:'Nous vous recontacterons d\u00e8s que possible.',
@@ -178,6 +182,7 @@
       write:'Escribir \u2192',
       cta_call_text:'\u00bfQuiere consultar en persona?', cta_call_btn:'📞 Llamar',
       cta_cont_text:'\u00bfInteresado/a? \u00a1Le contactaremos!', cta_cont_label:'Dejar contacto',
+      cta_book_text:'\u00a1Reserve su cita en l\u00ednea!', cta_book_btn:'Reservar cita',
       cta_more:'M\u00e1s informaci\u00f3n',
       gdpr_title:'📋 Condiciones de tratamiento de datos',
       form_title:'Dejar contacto', form_sub:'Nos pondremos en contacto lo antes posible.',
@@ -207,6 +212,7 @@
       write:'Napisz \u2192',
       cta_call_text:'Chcesz skonsultować się osobiście?', cta_call_btn:'📞 Zadzwoń',
       cta_cont_text:'Zainteresowany/a? Odezwiemy się!', cta_cont_label:'Zostaw kontakt',
+      cta_book_text:'Zarezerwuj wizytę online!', cta_book_btn:'Zarezerwuj wizytę',
       cta_more:'Dowiedz się więcej',
       gdpr_title:'📋 Warunki przetwarzania danych osobowych',
       form_title:'Zostaw kontakt', form_sub:'Odezwiemy się jak najszybciej.',
@@ -236,6 +242,7 @@
       write:'Napsat \u2192',
       cta_call_text:'Chcete se osobně poradit?', cta_call_btn:'📞 Zavolat',
       cta_cont_text:'Máte zájem? Ozveme se vám!', cta_cont_label:'Zanechat kontakt',
+      cta_book_text:'Rezervujte si termín online!', cta_book_btn:'Rezervovat termín',
       cta_more:'Zjistit více',
       gdpr_title:'📋 Podmínky zpracování osobních údajů',
       form_title:'Zanechat kontakt', form_sub:'Ozveme se vám co nejdříve.',
@@ -265,6 +272,7 @@
       write:'Írjon \u2192',
       cta_call_text:'Személyesen szeretne tanácsot kérni?', cta_call_btn:'📞 Hívjon',
       cta_cont_text:'Érdekli? Visszahívjuk!', cta_cont_label:'Hagyjon elérhetőséget',
+      cta_book_text:'Foglaljon időpontot online!', cta_book_btn:'Időpont foglalása',
       cta_more:'Tudjon meg többet',
       gdpr_title:'📋 Személyes adatok kezelési feltételei',
       form_title:'Hagyjon elérhetőséget', form_sub:'A lehető leghamarabb felvesszük Önnel a kapcsolatot.',
@@ -294,6 +302,7 @@
       write:'Scrieți \u2192',
       cta_call_text:'Doriți să vă consultați personal?', cta_call_btn:'📞 Sunați',
       cta_cont_text:'Interesat(ă)? Vă contactăm!', cta_cont_label:'Lăsați datele de contact',
+      cta_book_text:'Rezervați o programare online!', cta_book_btn:'Rezervați programare',
       cta_more:'Aflați mai mult',
       gdpr_title:'📋 Condiții de prelucrare a datelor personale',
       form_title:'Lăsați datele de contact', form_sub:'Vă vom contacta cât mai curând.',
@@ -323,6 +332,7 @@
       write:'Piši \u2192',
       cta_call_text:'Želite se osobno posavjetovati?', cta_call_btn:'📞 Nazovite',
       cta_cont_text:'Zainteresirani? Javit ćemo vam se!', cta_cont_label:'Ostavite kontakt',
+      cta_book_text:'Rezervirajte termin online!', cta_book_btn:'Rezerviraj termin',
       cta_more:'Saznajte više',
       gdpr_title:'📋 Uvjeti obrade osobnih podataka',
       form_title:'Ostavite kontakt', form_sub:'Javit ćemo vam se što je prije moguće.',
@@ -1019,6 +1029,17 @@
         textEl.textContent = wt('cta_cont_text');
         btnEl.textContent = '✉️ ' + label;
         btnEl.addEventListener('click', showContactForm);
+        ctaEl.style.display = 'flex';
+        break;
+      }
+      case 'booking': {
+        const bLabel = (config.cta_config || {}).label || wt('cta_book_btn');
+        textEl.textContent = wt('cta_book_text');
+        btnEl.textContent = '📅 ' + bLabel;
+        btnEl.addEventListener('click', () => {
+          if (_bookingShownInSession) return;
+          showInlineBooking();
+        });
         ctaEl.style.display = 'flex';
         break;
       }

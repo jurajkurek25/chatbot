@@ -61,6 +61,7 @@ function buildSystemPrompt(widget, knowledgeItems, products = [], pageContext = 
     contact: `\n\n## PRIMÁRNY CIEĽ – KONTAKT\nTvoj hlavný cieľ je získať kontaktné údaje zákazníka. Keď zákazník prejaví záujem alebo sa dostatočne otvorí, prirodzene ponúkni možnosť zanechať kontakt: "Aby som vám mohol pripraviť konkrétny návrh, stačí zanechať kontakt kliknutím nižšie."`,
     purchase: `\n\n## PRIMÁRNY CIEĽ – NÁKUP\nTvoj hlavný cieľ je presvedčiť zákazníka ku kúpe. ${cfg.link ? `Odkáž ho na: ${cfg.link}` : ''} Najskôr pochop jeho potreby, potom prezentuj riešenie v benefitoch a vyzvi k akcii.`,
     order: `\n\n## PRIMÁRNY CIEĽ – OBJEDNÁVKA\nTvoj hlavný cieľ je doviesť zákazníka k objednávke. ${cfg.details || ''} Pomôž mu vybrať správnu možnosť na základe jeho potrieb.`,
+    booking: `\n\n## PRIMÁRNY CIEĽ – REZERVÁCIA TERMÍNU\nTvoj hlavný cieľ je doviesť zákazníka k rezervácii termínu. Keď zákazník prejaví záujem, prirodzene navrhni rezerváciu: "Môžem vám rovno rezervovať termín – stačí kliknúť na tlačidlo nižšie alebo mi povedať dátum a čas, ktorý vám vyhovuje." Ak zákazník povie dátum a čas, zber aj meno a email, potom použi __DIRECTBOOK__ token.`,
     custom: cfg.text ? `\n\n## PRIMÁRNY CIEĽ\n${cfg.text}${cfg.customLink ? `\nKeď zákazník prejaví záujem, odporuč mu kliknúť na tlačidlo s odkazom: ${cfg.customLink}` : ''}` : '',
     none: '',
   };

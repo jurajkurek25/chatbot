@@ -499,6 +499,7 @@
                 <option value="none">Žiadne CTA</option>
                 <option value="call">Telefonický hovor</option>
                 <option value="contact">Kontaktný formulár</option>
+                <option value="booking">📅 Rezervácia termínu</option>
                 <option value="custom">Vlastný text</option>
               </select>
             </div>
@@ -525,6 +526,17 @@
               <div class="form-group">
                 <label>Link tlačidla <span style="color:var(--muted);font-weight:400">(voliteľné)</span></label>
                 <input type="url" class="form-control" id="cta-custom-link" placeholder="https://...">
+              </div>
+            </div>
+
+            <!-- CTA: Booking -->
+            <div id="cta-booking-fields" style="display:none">
+              <div class="form-group">
+                <label>Text tlačidla <span style="color:var(--muted);font-weight:400">(voliteľné)</span></label>
+                <input type="text" class="form-control" id="cta-book-btn-label" placeholder="Rezervovať termín">
+              </div>
+              <div style="font-size:0.78rem;color:#64748b;margin-top:-0.25rem">
+                Po kliknutí sa zákazníkovi otvorí rezervačný kalendár priamo v chate.
               </div>
             </div>
 
@@ -1301,7 +1313,7 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=6"></script>
+<script src="/js/dashboard.js?v=7"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

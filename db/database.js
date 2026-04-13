@@ -44,8 +44,7 @@ function initDatabase() {
       welcome_message TEXT NOT NULL DEFAULT 'Ahoj! Ako vám môžem pomôcť?',
       primary_color TEXT NOT NULL DEFAULT '#2563eb',
       goals TEXT NOT NULL DEFAULT '',
-      cta_type TEXT NOT NULL DEFAULT 'contact'
-        CHECK(cta_type IN ('call','contact','purchase','order','custom','none')),
+      cta_type TEXT NOT NULL DEFAULT 'contact',
       cta_config TEXT NOT NULL DEFAULT '{}',
       suggested_questions TEXT NOT NULL DEFAULT '[]',
       active INTEGER NOT NULL DEFAULT 1,
@@ -281,6 +280,39 @@ function initDatabase() {
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists */ }
   }
+
+  // Remove CHECK constraint from widgets.cta_type so 'booking' and future types work
+  try {
+    const schema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='widgets'").get();
+    if (schema && schema.sql.includes('CHECK')) {
+      db.exec(`
+        PRAGMA foreign_keys = OFF;
+        CREATE TABLE widgets_new (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          name TEXT NOT NULL,
+          bot_name TEXT NOT NULL DEFAULT 'Asistent',
+          welcome_message TEXT NOT NULL DEFAULT 'Ahoj! Ako vám môžem pomôcť?',
+          primary_color TEXT NOT NULL DEFAULT '#2563eb',
+          goals TEXT NOT NULL DEFAULT '',
+          cta_type TEXT NOT NULL DEFAULT 'contact',
+          cta_config TEXT NOT NULL DEFAULT '{}',
+          suggested_questions TEXT NOT NULL DEFAULT '[]',
+          active INTEGER NOT NULL DEFAULT 1,
+          created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+          avatar_url TEXT,
+          proactive_enabled INTEGER NOT NULL DEFAULT 0,
+          proactive_delay INTEGER NOT NULL DEFAULT 4,
+          proactive_message TEXT NOT NULL DEFAULT '',
+          gdpr_text TEXT NOT NULL DEFAULT ''
+        );
+        INSERT INTO widgets_new SELECT id,user_id,name,bot_name,welcome_message,primary_color,goals,cta_type,cta_config,suggested_questions,active,created_at,avatar_url,proactive_enabled,proactive_delay,proactive_message,gdpr_text FROM widgets;
+        DROP TABLE widgets;
+        ALTER TABLE widgets_new RENAME TO widgets;
+        PRAGMA foreign_keys = ON;
+      `);
+    }
+  } catch { /* already migrated or fresh install */ }
 
   console.log('Database initialized.');
 }

@@ -307,7 +307,7 @@ function getOwnedWidget(widgetId, userId) {
 }
 
 function validateCtaType(type) {
-  const allowed = ['call', 'contact', 'custom', 'none'];
+  const allowed = ['call', 'contact', 'booking', 'custom', 'none'];
   return allowed.includes(type) ? type : 'contact';
 }
 

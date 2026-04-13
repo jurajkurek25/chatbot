@@ -272,6 +272,7 @@ async function openWidget(widgetId) {
   document.getElementById('cta-custom-btn-label').value = cc.customBtnLabel || '';
   document.getElementById('cta-custom-link').value = cc.customLink || '';
   document.getElementById('cta-btn-label').value = cc.label || 'Zanechajte kontakt';
+  document.getElementById('cta-book-btn-label').value = cc.label || '';
   updateCtaFields();
 
   // Render suggested questions
@@ -713,9 +714,10 @@ function removeQuestion(index) {
 
 function updateCtaFields() {
   const type = document.getElementById('cta-type').value;
-  document.getElementById('cta-call-fields').style.display = type === 'call' ? '' : 'none';
-  document.getElementById('cta-custom-fields').style.display = type === 'custom' ? '' : 'none';
+  document.getElementById('cta-call-fields').style.display    = type === 'call'    ? '' : 'none';
+  document.getElementById('cta-custom-fields').style.display  = type === 'custom'  ? '' : 'none';
   document.getElementById('cta-contact-fields').style.display = type === 'contact' ? '' : 'none';
+  document.getElementById('cta-booking-fields').style.display = type === 'booking' ? '' : 'none';
 }
 
 async function saveQuestionsAndCta() {
@@ -729,6 +731,7 @@ async function saveQuestionsAndCta() {
     ctaConfig.customLink    = document.getElementById('cta-custom-link').value.trim();
   }
   if (ctaType === 'contact') ctaConfig.label = document.getElementById('cta-btn-label').value.trim() || 'Zanechajte kontakt';
+  if (ctaType === 'booking') ctaConfig.label = document.getElementById('cta-book-btn-label').value.trim();
 
   const res = await apiFetch(`/api/widgets/${currentWidget.id}`, {
     method: 'PUT',
