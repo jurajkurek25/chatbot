@@ -3261,7 +3261,7 @@ async function saveIntegrations() {
     if (data.error === 'white_label_required') {
       // Revert toggle visually
       document.getElementById('int-hide-branding').checked = false;
-      showToast('⬆️ White-label je dostupný iba v pláne White Label (€97/mes). Upgradujte v Stripe portáli.', 'error');
+      showToast('⬆️ White-label je dostupný iba v pláne White Label (€997/mes). Upgradujte v Stripe portáli.', 'error');
     } else {
       showToast('Chyba pri ukladaní', 'error');
     }

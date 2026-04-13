@@ -97,7 +97,7 @@ function selectPlan(plan) {
 async function startCheckout(plan) {
   const btnId = plan === 'white_label' ? 'btn-checkout-wl' : 'btn-checkout-pro';
   const btn = document.getElementById(btnId);
-  const label = plan === 'white_label' ? '💳 Vybrať White Label – €97/mesiac' : '💳 Vybrať Pro – €37/mesiac';
+  const label = plan === 'white_label' ? '💳 Vybrať White Label – €997/mesiac' : '💳 Vybrať Pro – €37/mesiac';
   btn.disabled = true;
   btn.textContent = 'Presmerovávam...';
   try {
