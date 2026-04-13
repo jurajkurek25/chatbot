@@ -61,7 +61,7 @@ function buildSystemPrompt(widget, knowledgeItems, products = [], pageContext = 
     contact: `\n\n## PRIMÁRNY CIEĽ – KONTAKT\nTvoj hlavný cieľ je získať kontaktné údaje zákazníka. Keď zákazník prejaví záujem alebo sa dostatočne otvorí, prirodzene ponúkni možnosť zanechať kontakt: "Aby som vám mohol pripraviť konkrétny návrh, stačí zanechať kontakt kliknutím nižšie."`,
     purchase: `\n\n## PRIMÁRNY CIEĽ – NÁKUP\nTvoj hlavný cieľ je presvedčiť zákazníka ku kúpe. ${cfg.link ? `Odkáž ho na: ${cfg.link}` : ''} Najskôr pochop jeho potreby, potom prezentuj riešenie v benefitoch a vyzvi k akcii.`,
     order: `\n\n## PRIMÁRNY CIEĽ – OBJEDNÁVKA\nTvoj hlavný cieľ je doviesť zákazníka k objednávke. ${cfg.details || ''} Pomôž mu vybrať správnu možnosť na základe jeho potrieb.`,
-    booking: `\n\n## PRIMÁRNY CIEĽ – REZERVÁCIA TERMÍNU\nTvoj hlavný cieľ je doviesť zákazníka k rezervácii termínu. Keď zákazník prejaví záujem, prirodzene navrhni rezerváciu: "Môžem vám rovno rezervovať termín – stačí kliknúť na tlačidlo nižšie alebo mi povedať dátum a čas, ktorý vám vyhovuje." Ak zákazník povie dátum a čas, zber aj meno a email, potom použi __DIRECTBOOK__ token.`,
+    booking: `\n\n## PRIMÁRNY CIEĽ – REZERVÁCIA TERMÍNU\nTvoj hlavný cieľ je zarezervovať termín PRIAMO CEZ CHAT bez toho, aby zákazník musel čokoľvek klikať. Keď zákazník prejaví záujem, spýtaj sa postupne: (1) aký dátum a čas mu vyhovuje, (2) jeho meno, (3) email. Keď máš všetky 4 údaje (meno, email, dátum, čas), použi __DIRECTBOOK__ token na okamžitú rezerváciu. NEZOBRAZUJ formulár ani kalendár – zákazník nesmie musieť nič vyplňovať sám.`,
     custom: cfg.text ? `\n\n## PRIMÁRNY CIEĽ\n${cfg.text}${cfg.customLink ? `\nKeď zákazník prejaví záujem, odporuč mu kliknúť na tlačidlo s odkazom: ${cfg.customLink}` : ''}` : '',
     none: '',
   };
@@ -172,27 +172,24 @@ function buildBookingSection(widgetId, bookingCfg) {
 Aktuálny dátum a čas: ${todayStr}, ${timeStr}
 Tento biznis prijíma online rezervácie.${servicesList ? `\n\nDostupné služby:\n${servicesList}` : ''}
 
-### Ako postupovať pri záujme o rezerváciu:
+### POVINNÝ POSTUP pri záujme o rezerváciu:
 
-**Možnosť A – Priame zarezervovanie cez chat** (preferované, bez widgetu):
-Keď zákazník napíše konkrétnu požiadavku (napr. "objednaj ma na strihanie zajtra o 17:00") a ty máš:
-- jeho meno
-- jeho email
-- konkrétnu službu${hasServices ? ' zo zoznamu vyššie' : ''}
-- konkrétny dátum (preveď "zajtra", "v pondelok" na skutočný dátum YYYY-MM-DD)
-- konkrétny čas (HH:MM)
+**ŠTANDARDNÝ POSTUP – rezervácia cez chat (VŽDY použi toto):**
+Zber údaje konverzačne, jednu otázku naraz:
+1. Preferovaný dátum a čas (preveď "zajtra"/"v pondelok" na skutočný dátum YYYY-MM-DD)${hasServices ? '\n2. Typ služby zo zoznamu vyššie' : ''}
+${hasServices ? '3' : '2'}. Meno zákazníka
+${hasServices ? '4' : '3'}. Email zákazníka
 
-→ Potvrď rezerváciu v texte A vlož na koniec presne tento token (JSON musí byť na jednom riadku):
+Keď máš VŠETKY údaje → potvrď rezerváciu v texte A OKAMŽITE vlož na koniec (JSON na jednom riadku):
 __DIRECTBOOK__:{"name":"MENO","email":"EMAIL","service":"NAZOV_SLUZBY","serviceId":"ID_SLUZBY_alebo_null","date":"YYYY-MM-DD","time":"HH:MM"}
 
-Systém sa pokúsi zarezervovať termín. Ak nie je voľný, automaticky ti to oznámi.
-Ak nemáš niektorý z potrebných údajov, najprv sa opýtaj zákazníka.
+Systém zarezervuje termín automaticky. Ak termín nie je voľný, navrhni iný čas.
 
-**Možnosť B – Interaktívny formulár** (ak zákazník chce sám vybrať):
+**Interaktívny formulár – POUŽI IBA AK zákazník VÝSLOVNE povie "chcem si vybrať sám" alebo "ukáž mi kalendár":**
 → Vlož na koniec odpovede: __BOOKING__
 
 Booking URL (priamy odkaz): ${bookingUrl}
-DÔLEŽITÉ: Použi JEDEN token (__DIRECTBOOK__ ALEBO __BOOKING__) IBA raz za konverzáciu.`;
+KRITICKÉ: Použi JEDEN token (__DIRECTBOOK__ ALEBO __BOOKING__) IBA raz za konverzáciu. NIKDY nezobrazuj formulár automaticky.`;
 }
 
 /* ── Streaming chat response ───────────────────────────────────── */
