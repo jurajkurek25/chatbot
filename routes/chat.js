@@ -51,6 +51,12 @@ router.get('/:widgetId/config', (req, res) => {
     proactive_delay: widget.proactive_delay || 4,
     proactive_message: widget.proactive_message || '',
     gdpr_text: widget.gdpr_text || '',
+    hide_branding: Boolean(widget.hide_branding),
+    business_hours: widget.business_hours ? JSON.parse(widget.business_hours || '{}') : {},
+    offline_message: widget.offline_message || '',
+    csat_enabled: Boolean(widget.csat_enabled),
+    ab_variant: Math.random() < 0.5 ? 'a' : 'b',
+    welcome_message_b: widget.welcome_message_b || '',
   });
 });
 
@@ -63,6 +69,33 @@ router.post('/:widgetId/chat', async (req, res) => {
 
   const db = getDb();
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ? AND active = 1').get(req.params.widgetId);
+
+  // If live agent has taken over this session, skip Claude
+  if (widget) {
+    const liveConv = db.prepare('SELECT live_agent FROM conversations WHERE session_id = ? AND widget_id = ?').get(
+      (req.body.sessionId || '').slice(0, 64), widget.id
+    );
+    if (liveConv && liveConv.live_agent) {
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+      res.flushHeaders();
+      // Save the user message but don't respond — agent will reply from dashboard
+      if (req.body.message?.trim()) {
+        const sid = (req.body.sessionId || '').slice(0, 64);
+        let conv = db.prepare('SELECT id FROM conversations WHERE session_id = ? AND widget_id = ?').get(sid, widget.id);
+        if (conv) {
+          db.prepare('INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)').run(
+            require('uuid').v4(), conv.id, 'user', req.body.message.trim()
+          );
+        }
+      }
+      res.write(`data: ${JSON.stringify({ done: true, fullText: '' })}\n\n`);
+      res.end();
+      return;
+    }
+  }
+
   if (!widget) {
     return res.status(404).json({ error: 'Widget nenájdený.' });
   }
@@ -228,6 +261,7 @@ router.post('/:widgetId/leads', async (req, res) => {
 
   // Async: generate AI summary, then send email notification
   setImmediate(async () => {
+    const widget = db.prepare('SELECT * FROM widgets WHERE id = ?').get(widgetRow.id);
     let summary = null;
 
     if (sessionId) {
@@ -250,6 +284,51 @@ router.post('/:widgetId/leads', async (req, res) => {
       }
     }
 
+    // Auto-reply to lead
+    if (widget.auto_reply_enabled && widget.auto_reply_message) {
+      try {
+        const { sendLeadAutoReply } = require('../services/email');
+        await sendLeadAutoReply({
+          toEmail: email.trim(),
+          leadName: name.trim(),
+          widgetName: widgetRow.name || widgetRow.bot_name,
+          botName: widgetRow.bot_name,
+          customMessage: widget.auto_reply_message,
+        });
+      } catch(e) { console.error('Auto-reply error:', e.message); }
+    }
+
+    // Webhook (Zapier/n8n/Make)
+    if (widget.webhook_url) {
+      try {
+        const https = require('https');
+        const http = require('http');
+        const wUrl = new URL(widget.webhook_url);
+        const payload = JSON.stringify({ event: 'new_lead', widget_id: widgetRow.id, name: name.trim(), email: email.trim(), phone: phone?.trim()||null, created_at: new Date().toISOString() });
+        const mod = wUrl.protocol === 'https:' ? https : http;
+        const hReq = mod.request({ hostname: wUrl.hostname, path: wUrl.pathname + wUrl.search, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
+        hReq.on('error', () => {});
+        hReq.write(payload);
+        hReq.end();
+      } catch(e) { console.error('Webhook error:', e.message); }
+    }
+
+    // Slack notification
+    if (widget.slack_webhook_url) {
+      try {
+        const https = require('https');
+        const http = require('http');
+        const sUrl = new URL(widget.slack_webhook_url);
+        const text = `🔔 Nový lead: *${name.trim()}* (${email.trim()})${phone ? ` | ${phone.trim()}` : ''} – widget *${widgetRow.name || widgetRow.bot_name}*`;
+        const payload = JSON.stringify({ text });
+        const mod = sUrl.protocol === 'https:' ? https : http;
+        const hReq = mod.request({ hostname: sUrl.hostname, path: sUrl.pathname + sUrl.search, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
+        hReq.on('error', () => {});
+        hReq.write(payload);
+        hReq.end();
+      } catch(e) { console.error('Slack webhook error:', e.message); }
+    }
+
     // Send email notification to widget owner
     try {
       await sendLeadNotification({
@@ -267,6 +346,23 @@ router.post('/:widgetId/leads', async (req, res) => {
       console.error('Lead email error:', err.message);
     }
   });
+});
+
+// POST /api/widget/:widgetId/csat — save CSAT rating (1-5)
+router.post('/:widgetId/csat', (req, res) => {
+  const db = getDb();
+  const { sessionId, rating } = req.body;
+  const r = parseInt(rating);
+  if (!sessionId || !r || r < 1 || r > 5) {
+    return res.status(400).json({ error: 'Invalid.' });
+  }
+  const sid = String(sessionId).slice(0, 64);
+  const conv = db.prepare('SELECT id FROM conversations WHERE session_id = ? AND widget_id = ?').get(sid, req.params.widgetId);
+  if (!conv) return res.status(404).json({ error: 'Not found.' });
+  db.prepare('UPDATE conversations SET csat_rating = ? WHERE id = ?').run(r, conv.id);
+  // Also update lead for this session if exists
+  db.prepare('UPDATE leads SET csat_rating = ? WHERE session_id = ? AND widget_id = ?').run(r, sid, req.params.widgetId);
+  res.json({ ok: true });
 });
 
 function safeParseJSON(str, fallback) {

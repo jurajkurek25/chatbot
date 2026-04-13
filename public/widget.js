@@ -654,6 +654,8 @@
   let history = [];          // [{role, content}, ...]
   let ctaShown = false;
   let msgCount = 0;
+  let botMsgCount = 0;
+  let csatShown = false;
   let proactiveDismissed = false;
 
   /* ── Shadow DOM setup ───────────────────────────────────────── */
@@ -718,8 +720,9 @@
     });
     shadow.getElementById('nd-input').addEventListener('input', autoResize);
 
-    // Add welcome message (multilingual if configured)
-    const _welcomeMsg = getWelcomeMessage(config.welcome_message);
+    // Add welcome message — A/B variant or default (multilingual JSON or plain text)
+    const _welcomeRaw = (config.ab_variant === 'b' && config.welcome_message_b) ? config.welcome_message_b : config.welcome_message;
+    const _welcomeMsg = getWelcomeMessage(_welcomeRaw);
     if (_welcomeMsg) addBotMessage(_welcomeMsg);
 
     // Render suggested questions
@@ -732,6 +735,26 @@
         if (isOpen || proactiveDismissed) return;
         showProactiveBubble(config.proactive_message);
       }, delay);
+    }
+
+    // White-label: remove branding footer
+    if (config.hide_branding) {
+      const powered = shadow.getElementById('nd-powered');
+      if (powered) powered.remove();
+    }
+
+    // Business hours: show offline state if outside configured hours
+    if (config.business_hours && config.business_hours.enabled && !isWithinBusinessHours()) {
+      const statusEl = shadow.getElementById('nd-status');
+      if (statusEl) statusEl.innerHTML = `<span id="nd-status-dot" style="background:#94a3b8;width:8px;height:8px;border-radius:50%;display:inline-block"></span> Offline`;
+      const inputEl = shadow.getElementById('nd-input');
+      const sendBtn = shadow.getElementById('nd-send');
+      if (inputEl) {
+        inputEl.disabled = true;
+        inputEl.placeholder = config.offline_message || 'Momentálne sme offline.';
+      }
+      if (sendBtn) sendBtn.disabled = true;
+      if (config.offline_message) addBotMessage(config.offline_message);
     }
   }
 
@@ -1009,6 +1032,52 @@
     isTyping = false;
     setSendDisabled(false);
     shadow.getElementById('nd-input').focus();
+
+    // CSAT: show star rating after 4 bot responses
+    botMsgCount++;
+    if (config.csat_enabled && !csatShown && botMsgCount >= 4) {
+      csatShown = true;
+      setTimeout(showCsatCard, 600);
+    }
+  }
+
+  /* ── CSAT star rating ───────────────────────────────────────── */
+  function showCsatCard() {
+    const msgs = shadow.getElementById('nd-messages');
+    if (!msgs || shadow.getElementById('nd-csat-card')) return;
+    const primary = config.primary_color || '#2563eb';
+    const card = elem('div', { id: 'nd-csat-card', class: 'nd-msg nd-msg-bot', style: 'padding:0.85rem 0.75rem;max-width:100%' });
+    card.innerHTML = `
+      <div style="font-size:0.78rem;color:#64748b;margin-bottom:0.45rem;text-align:center">Ako hodnotíte tento chat?</div>
+      <div id="nd-csat-stars" style="display:flex;gap:0.2rem;justify-content:center">
+        ${[1,2,3,4,5].map(n => `<button data-rating="${n}" style="background:none;border:none;cursor:pointer;font-size:1.7rem;padding:0.05rem;line-height:1;color:#d1d5db;transition:color 0.1s">★</button>`).join('')}
+      </div>
+      <div id="nd-csat-thanks" style="display:none;font-size:0.82rem;color:#16a34a;text-align:center;margin-top:0.4rem;font-weight:600">Ďakujeme za hodnotenie! ✨</div>
+    `;
+    msgs.appendChild(card);
+    scrollToBottom();
+
+    const starBtns = Array.from(card.querySelectorAll('#nd-csat-stars button'));
+    function paint(upTo) {
+      starBtns.forEach((s, i) => { s.style.color = i < upTo ? primary : '#d1d5db'; });
+    }
+    starBtns.forEach(btn => {
+      btn.addEventListener('mouseover', () => paint(parseInt(btn.dataset.rating)));
+      btn.addEventListener('mouseout', () => paint(0));
+      btn.addEventListener('click', async () => {
+        const rating = parseInt(btn.dataset.rating);
+        paint(rating);
+        starBtns.forEach(s => { s.disabled = true; });
+        card.querySelector('#nd-csat-thanks').style.display = 'block';
+        try {
+          await fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/csat`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId, rating }),
+          });
+        } catch { /* ignore */ }
+      });
+    });
   }
 
   /* ── CTA ────────────────────────────────────────────────────── */
@@ -1478,6 +1547,20 @@
     }
 
     renderOverlay();
+  }
+
+  /* ── Business hours check ───────────────────────────────────── */
+  function isWithinBusinessHours() {
+    const bh = config.business_hours;
+    if (!bh || !bh.enabled) return true;
+    const now = new Date();
+    const dow = String(now.getDay()); // 0=Sun … 6=Sat
+    const dayConfig = (bh.days || {})[dow];
+    if (!dayConfig || !dayConfig.enabled) return false;
+    const [sh, sm] = (dayConfig.start || '00:00').split(':').map(Number);
+    const [eh, em] = (dayConfig.end   || '23:59').split(':').map(Number);
+    const nowMins   = now.getHours() * 60 + now.getMinutes();
+    return nowMins >= sh * 60 + sm && nowMins < eh * 60 + em;
   }
 
   /* ── Welcome message (multilingual JSON or plain text) ──────── */

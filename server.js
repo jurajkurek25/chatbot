@@ -20,6 +20,8 @@ const demoRoutes     = require('./routes/demo');
 const coachRoutes    = require('./routes/coach');
 const scraperRoutes  = require('./routes/scraper');
 const bookingRoutes  = require('./routes/booking');
+const teamRoutes        = require('./routes/team');
+const woocommerceRoutes = require('./routes/woocommerce');
 const leadMagnetsRoutes = require('./routes/lead-magnets');
 const insightsRoutes    = require('./routes/insights');
 
@@ -61,6 +63,10 @@ app.use('/api/scraper', scraperRoutes);
 app.use('/api/booking', bookingRoutes);
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
+app.use('/api/team',        teamRoutes);
+app.use('/api/woocommerce', woocommerceRoutes);
+// Team invite accept (public, no auth needed on GET)
+app.get('/team/accept/:token', (req, res) => res.redirect(`/api/team/accept/${req.params.token}`));
 
 // Shopify integration (OAuth + setup + scan)
 // IMPORTANT: webhook uninstall must receive raw body — mount before express.json() would affect it,

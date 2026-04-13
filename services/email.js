@@ -154,4 +154,85 @@ async function sendUsageNotification({ toEmail, ownerName, pct, extra }) {
   }
 }
 
-module.exports = { sendLeadNotification, sendUsageNotification };
+/**
+ * Auto-reply email to lead after they submit contact form.
+ */
+async function sendLeadAutoReply({ toEmail, leadName, widgetName, botName, customMessage }) {
+  const transport = createTransport();
+  if (!transport) return;
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const msg = customMessage || `Ďakujeme za váš záujem! Ozveme sa vám čo najskôr.`;
+  const html = `<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:24px 32px">
+      <div style="font-size:20px;font-weight:800;color:white">${widgetName}</div>
+      <div style="color:rgba(255,255,255,0.8);font-size:14px;margin-top:4px">Potvrdenie prijatia správy</div>
+    </div>
+    <div style="padding:28px 32px">
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${leadName}</strong>,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;white-space:pre-line">${msg.replace(/\n/g,'<br>')}</p>
+      <p style="color:#94a3b8;font-size:13px;margin:0">— Tím ${widgetName}</p>
+    </div>
+  </div>
+</body></html>`;
+  try {
+    await transport.sendMail({ from: `"${botName || widgetName}" <${from}>`, to: toEmail, subject: `Ďakujeme, ${leadName}! Správa prijatá.`, html, text: msg });
+    console.log(`[email] Auto-reply sent to ${toEmail}`);
+  } catch (err) { console.error('[email] Auto-reply failed:', err.message); }
+}
+
+/**
+ * Manual follow-up email to a lead.
+ */
+async function sendFollowUp({ toEmail, leadName, ownerName, widgetName, message }) {
+  const transport = createTransport();
+  if (!transport) return;
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const html = `<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:linear-gradient(135deg,#0f172a,#1e293b);padding:24px 32px">
+      <div style="font-size:20px;font-weight:800;color:white">${widgetName}</div>
+    </div>
+    <div style="padding:28px 32px">
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${leadName}</strong>,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;white-space:pre-line">${message.replace(/\n/g,'<br>')}</p>
+      <p style="color:#64748b;font-size:13px;margin:0">S pozdravom,<br><strong>${ownerName}</strong></p>
+    </div>
+  </div>
+</body></html>`;
+  try {
+    await transport.sendMail({ from: `"${ownerName}" <${from}>`, to: toEmail, subject: `Správa od ${ownerName} – ${widgetName}`, html, text: message });
+    console.log(`[email] Follow-up sent to ${toEmail}`);
+  } catch (err) { console.error('[email] Follow-up failed:', err.message); }
+}
+
+/**
+ * Team member invite email.
+ */
+async function sendTeamInvite({ toEmail, ownerName, inviteUrl }) {
+  const transport = createTransport();
+  if (!transport) return;
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const html = `<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:24px 32px">
+      <div style="font-size:20px;font-weight:800;color:white">NeuraDeskApp</div>
+      <div style="color:rgba(255,255,255,0.8);font-size:14px;margin-top:4px">Pozvánka do tímu</div>
+    </div>
+    <div style="padding:28px 32px">
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Dobrý deň,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px"><strong>${ownerName}</strong> vás pozýva do tímu na platforme NeuraDeskApp.</p>
+      <a href="${inviteUrl}" style="display:inline-block;background:#2563eb;color:white;font-weight:700;font-size:15px;padding:13px 28px;border-radius:10px;text-decoration:none">Prijať pozvánku →</a>
+    </div>
+  </div>
+</body></html>`;
+  try {
+    await transport.sendMail({ from: `"NeuraDeskApp" <${from}>`, to: toEmail, subject: `${ownerName} vás pozýva do NeuraDeskApp`, html });
+    console.log(`[email] Team invite sent to ${toEmail}`);
+  } catch (err) { console.error('[email] Team invite failed:', err.message); }
+}
+
+module.exports = { sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite };

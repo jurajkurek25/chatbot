@@ -293,6 +293,44 @@ function initDatabase() {
       msg_count INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+
+    /* ── Facebook Messenger ──────────────────────────────────── */
+    CREATE TABLE IF NOT EXISTS facebook_connections (
+      id TEXT PRIMARY KEY,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      page_id TEXT NOT NULL,
+      page_name TEXT,
+      page_access_token TEXT NOT NULL,
+      keyword_triggers TEXT NOT NULL DEFAULT '[]',
+      welcome_msg TEXT NOT NULL DEFAULT '',
+      connected_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(widget_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS facebook_dm_sessions (
+      id TEXT PRIMARY KEY,
+      connection_id TEXT NOT NULL REFERENCES facebook_connections(id) ON DELETE CASCADE,
+      sender_id TEXT NOT NULL,
+      sender_name TEXT,
+      history TEXT NOT NULL DEFAULT '[]',
+      live_agent INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(connection_id, sender_id)
+    );
+
+    /* ── Team members ────────────────────────────────────────── */
+    CREATE TABLE IF NOT EXISTS team_members (
+      id TEXT PRIMARY KEY,
+      owner_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'readonly' CHECK(role IN ('readonly','editor')),
+      invite_token TEXT,
+      accepted INTEGER NOT NULL DEFAULT 0,
+      member_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(owner_user_id, email)
+    );
   `);
 
   // Migrations: add columns for existing DBs
@@ -325,6 +363,21 @@ function initDatabase() {
     `ALTER TABLE bookings ADD COLUMN ai_summary TEXT`,
     `ALTER TABLE booking_configs ADD COLUMN design_config TEXT NOT NULL DEFAULT '{}'`,
     `ALTER TABLE conversations ADD COLUMN insight_done INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE widgets ADD COLUMN webhook_url TEXT`,
+    `ALTER TABLE widgets ADD COLUMN slack_webhook_url TEXT`,
+    `ALTER TABLE widgets ADD COLUMN business_hours TEXT NOT NULL DEFAULT '{}'`,
+    `ALTER TABLE widgets ADD COLUMN offline_message TEXT NOT NULL DEFAULT 'Momentálne sme offline. Ozveme sa vám čoskoro.'`,
+    `ALTER TABLE widgets ADD COLUMN hide_branding INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE widgets ADD COLUMN welcome_message_b TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE widgets ADD COLUMN ab_test_enabled INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE widgets ADD COLUMN auto_reply_enabled INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE widgets ADD COLUMN auto_reply_message TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE widgets ADD COLUMN csat_enabled INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE leads ADD COLUMN csat_rating INTEGER`,
+    `ALTER TABLE leads ADD COLUMN follow_up_sent_at INTEGER`,
+    `ALTER TABLE leads ADD COLUMN ab_variant TEXT NOT NULL DEFAULT 'a'`,
+    `ALTER TABLE conversations ADD COLUMN live_agent INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE conversations ADD COLUMN csat_rating INTEGER`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists */ }

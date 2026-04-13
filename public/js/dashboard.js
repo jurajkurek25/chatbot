@@ -156,7 +156,7 @@ function showView(view) {
 function showTab(tab) {
   closeMobileSidebar();
   currentTab = tab;
-  ['settings','knowledge','questions','embed','products','instagram','gdpr','booking','leadmagnets','insights'].forEach(t => {
+  ['settings','knowledge','questions','embed','products','instagram','gdpr','booking','leadmagnets','insights','inbox','integrations'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -169,6 +169,8 @@ function showTab(tab) {
   if (tab === 'booking') loadBookingTab();
   if (tab === 'leadmagnets') loadLeadMagnets();
   if (tab === 'insights') loadInsights();
+  if (tab === 'inbox') loadInbox();
+  if (tab === 'integrations') loadIntegrations();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -2865,4 +2867,344 @@ function renderInsights(data) {
   renderBars('ins-intents',    data.intents,    INS_INTENT_LABELS, INS_COLORS);
   renderBars('ins-objections', data.objections, INS_OBJ_LABELS,    INS_COLORS);
   renderBars('ins-urgency',    data.urgency,    INS_URG_LABELS,    INS_COLORS);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INBOX — conversation list + live takeover
+   ══════════════════════════════════════════════════════════════ */
+
+let _inboxConvs = [];
+let _activeConvId = null;
+let _activeConvIsLive = false;
+
+async function loadInbox() {
+  if (!currentWidget) return;
+  const res = await apiFetch(`/api/widgets/${currentWidget.id}/conversations`);
+  if (!res || !res.ok) return;
+  _inboxConvs = await res.json();
+  renderInboxList();
+}
+
+function renderInboxList() {
+  const list = document.getElementById('inbox-list');
+  const empty = document.getElementById('inbox-empty');
+  if (!list) return;
+  if (!_inboxConvs.length) {
+    empty.style.display = '';
+    list.innerHTML = '';
+    list.appendChild(empty);
+    return;
+  }
+  empty.style.display = 'none';
+  list.innerHTML = _inboxConvs.map(c => {
+    const lastMsg = c.last_msg ? c.last_msg.slice(0, 60) + (c.last_msg.length > 60 ? '…' : '') : '—';
+    const dt = c.last_msg_at ? new Date(c.last_msg_at * 1000).toLocaleDateString('sk-SK', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
+    const live = c.live_agent ? '<span style="background:#dcfce7;color:#16a34a;font-size:0.65rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:99px;margin-left:0.35rem">LIVE</span>' : '';
+    const active = c.id === _activeConvId ? 'background:#eff6ff;border-left:3px solid #2563eb;' : '';
+    return `<div onclick="openConversation('${escHtml(c.id)}')"
+      style="padding:0.7rem 1rem;cursor:pointer;border-bottom:1px solid #f1f5f9;${active}transition:background 0.1s"
+      onmouseover="if(this.style.background!='rgb(239,246,255)')this.style.background='#f8fafc'" onmouseout="if('${c.id}'!=='${_activeConvId||''}')this.style.background=''">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.2rem">
+        <span style="font-size:0.8rem;font-weight:700;color:#1e293b">${escHtml(c.lead_name || c.session_id.slice(0,12)+'…')}${live}</span>
+        <span style="font-size:0.7rem;color:#94a3b8;white-space:nowrap">${dt}</span>
+      </div>
+      <div style="font-size:0.75rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(lastMsg)}</div>
+      <div style="font-size:0.7rem;color:#94a3b8;margin-top:0.15rem">${c.msg_count} správ</div>
+    </div>`;
+  }).join('');
+}
+
+async function openConversation(convId) {
+  _activeConvId = convId;
+  renderInboxList(); // re-render to highlight active
+
+  const res = await apiFetch(`/api/widgets/${currentWidget.id}/conversations/${convId}/messages`);
+  if (!res || !res.ok) return;
+  const msgs = await res.json();
+
+  const conv = _inboxConvs.find(c => c.id === convId);
+  _activeConvIsLive = !!(conv && conv.live_agent);
+
+  const panel = document.getElementById('inbox-transcript-panel');
+  const hint  = document.getElementById('inbox-select-hint');
+  panel.style.display = '';
+  hint.style.display  = 'none';
+
+  document.getElementById('inbox-conv-title').textContent = conv?.lead_name || 'Anonymný návštevník';
+  document.getElementById('inbox-conv-meta').textContent = conv ? `Session: ${conv.session_id.slice(0,16)}… · ${conv.msg_count} správ` : '';
+
+  const liveBadge = document.getElementById('inbox-live-badge');
+  const takeoverBtn = document.getElementById('inbox-takeover-btn');
+  const replyBox = document.getElementById('inbox-agent-reply');
+  liveBadge.style.display = _activeConvIsLive ? '' : 'none';
+  takeoverBtn.textContent = _activeConvIsLive ? 'Odovzdať AI' : 'Prevziať chat';
+  if (replyBox) replyBox.style.display = _activeConvIsLive ? '' : 'none';
+
+  const msgsEl = document.getElementById('inbox-messages');
+  msgsEl.innerHTML = msgs.map(m => {
+    const isUser = m.role === 'user';
+    return `<div style="display:flex;${isUser ? 'justify-content:flex-end' : ''}">
+      <div style="max-width:75%;padding:0.55rem 0.8rem;border-radius:${isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
+        background:${isUser ? '#2563eb' : '#e2e8f0'};color:${isUser ? '#fff' : '#1e293b'};font-size:0.84rem;line-height:1.45;word-break:break-word">
+        ${escHtml(m.content)}
+      </div>
+    </div>`;
+  }).join('');
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+}
+
+async function toggleLiveTakeover() {
+  if (!_activeConvId || !currentWidget) return;
+  const res = await apiFetch(`/api/widgets/${currentWidget.id}/conversations/${_activeConvId}/takeover`, {
+    method: 'PATCH',
+    body: JSON.stringify({ live: !_activeConvIsLive }),
+  });
+  if (!res || !res.ok) return;
+  _activeConvIsLive = !_activeConvIsLive;
+  if (_inboxConvs) {
+    const conv = _inboxConvs.find(c => c.id === _activeConvId);
+    if (conv) conv.live_agent = _activeConvIsLive ? 1 : 0;
+  }
+  const liveBadge = document.getElementById('inbox-live-badge');
+  const takeoverBtn = document.getElementById('inbox-takeover-btn');
+  const replyBox = document.getElementById('inbox-agent-reply');
+  liveBadge.style.display = _activeConvIsLive ? '' : 'none';
+  takeoverBtn.textContent = _activeConvIsLive ? 'Odovzdať AI' : 'Prevziať chat';
+  if (replyBox) replyBox.style.display = _activeConvIsLive ? '' : 'none';
+  showToast(_activeConvIsLive ? 'Chat prebraný – odpovedáte vy' : 'Chat vrátený AI asistentovi');
+}
+
+async function sendAgentMessage() {
+  if (!_activeConvId || !currentWidget) return;
+  const input = document.getElementById('inbox-agent-input');
+  const text = input?.value.trim();
+  if (!text) return;
+  const res = await apiFetch(`/api/widgets/${currentWidget.id}/conversations/${_activeConvId}/agent-message`, {
+    method: 'POST',
+    body: JSON.stringify({ message: text }),
+  });
+  if (!res || !res.ok) return;
+  input.value = '';
+  // Append message to transcript
+  const msgsEl = document.getElementById('inbox-messages');
+  if (msgsEl) {
+    msgsEl.insertAdjacentHTML('beforeend', `
+      <div style="display:flex;justify-content:flex-end">
+        <div style="max-width:75%;padding:0.55rem 0.8rem;border-radius:14px 14px 4px 14px;background:#2563eb;color:#fff;font-size:0.84rem;line-height:1.45;word-break:break-word">${escHtml(text)}</div>
+      </div>`);
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   INTEGRATIONS — webhooks, branding, hours, CSAT, A/B, WooCommerce, team
+   ══════════════════════════════════════════════════════════════ */
+
+const BH_DAYS = [
+  { key: '1', label: 'Pondelok' },
+  { key: '2', label: 'Utorok' },
+  { key: '3', label: 'Streda' },
+  { key: '4', label: 'Štvrtok' },
+  { key: '5', label: 'Piatok' },
+  { key: '6', label: 'Sobota' },
+  { key: '0', label: 'Nedeľa' },
+];
+
+function loadIntegrations() {
+  if (!currentWidget) return;
+  const w = currentWidget;
+
+  document.getElementById('int-webhook-url').value   = w.webhook_url        || '';
+  document.getElementById('int-slack-url').value     = w.slack_webhook_url  || '';
+  document.getElementById('int-hide-branding').checked = Boolean(w.hide_branding);
+  document.getElementById('int-csat-enabled').checked  = Boolean(w.csat_enabled);
+  document.getElementById('int-ab-enabled').checked    = Boolean(w.ab_test_enabled);
+  document.getElementById('int-welcome-b').value      = w.welcome_message_b || '';
+  document.getElementById('int-auto-reply-enabled').checked = Boolean(w.auto_reply_enabled);
+  document.getElementById('int-auto-reply-msg').value  = w.auto_reply_message || '';
+  document.getElementById('int-offline-msg').value     = w.offline_message   || '';
+  toggleAutoReplyFields();
+
+  // Business hours
+  const bh = w.business_hours || {};
+  document.getElementById('int-bh-enabled').checked = Boolean(bh.enabled);
+  renderBhDays(bh);
+  toggleBhFields();
+
+  // WooCommerce status
+  loadWooStatus();
+
+  // Team
+  loadTeam();
+}
+
+function renderBhDays(bh) {
+  const container = document.getElementById('int-bh-days');
+  if (!container) return;
+  const days = bh.days || {};
+  container.innerHTML = BH_DAYS.map(d => {
+    const cfg = days[d.key] || { enabled: d.key !== '0' && d.key !== '6', start: '09:00', end: '17:00' };
+    return `<div style="display:grid;grid-template-columns:120px 1fr 1fr;gap:0.5rem;align-items:center">
+      <label style="display:flex;align-items:center;gap:0.4rem;font-size:0.875rem;cursor:pointer">
+        <input type="checkbox" class="bh-day-chk" data-day="${d.key}" ${cfg.enabled ? 'checked' : ''} style="width:14px;height:14px">
+        ${d.label}
+      </label>
+      <input type="time" class="form-control bh-start" data-day="${d.key}" value="${cfg.start || '09:00'}" style="font-size:0.8rem;padding:0.3rem 0.5rem">
+      <input type="time" class="form-control bh-end" data-day="${d.key}" value="${cfg.end || '17:00'}" style="font-size:0.8rem;padding:0.3rem 0.5rem">
+    </div>`;
+  }).join('');
+}
+
+function toggleBhFields() {
+  const enabled = document.getElementById('int-bh-enabled')?.checked;
+  const fields = document.getElementById('int-bh-fields');
+  if (fields) fields.style.display = enabled ? '' : 'none';
+}
+
+function toggleAutoReplyFields() {
+  const enabled = document.getElementById('int-auto-reply-enabled')?.checked;
+  const fields = document.getElementById('int-auto-reply-fields');
+  if (fields) fields.style.display = enabled ? '' : 'none';
+}
+
+function readBhValue() {
+  const enabled = document.getElementById('int-bh-enabled')?.checked;
+  if (!enabled) return { enabled: false };
+  const days = {};
+  BH_DAYS.forEach(d => {
+    const chk   = document.querySelector(`.bh-day-chk[data-day="${d.key}"]`);
+    const start = document.querySelector(`.bh-start[data-day="${d.key}"]`);
+    const end   = document.querySelector(`.bh-end[data-day="${d.key}"]`);
+    days[d.key] = { enabled: chk?.checked || false, start: start?.value || '09:00', end: end?.value || '17:00' };
+  });
+  return { enabled: true, days };
+}
+
+async function saveIntegrations() {
+  if (!currentWidget) return;
+  const body = {
+    webhook_url:        document.getElementById('int-webhook-url').value.trim() || null,
+    slack_webhook_url:  document.getElementById('int-slack-url').value.trim()   || null,
+    hide_branding:      document.getElementById('int-hide-branding').checked ? 1 : 0,
+    csat_enabled:       document.getElementById('int-csat-enabled').checked   ? 1 : 0,
+    ab_test_enabled:    document.getElementById('int-ab-enabled').checked     ? 1 : 0,
+    welcome_message_b:  document.getElementById('int-welcome-b').value.trim(),
+    auto_reply_enabled: document.getElementById('int-auto-reply-enabled').checked ? 1 : 0,
+    auto_reply_message: document.getElementById('int-auto-reply-msg').value.trim(),
+    offline_message:    document.getElementById('int-offline-msg').value.trim(),
+    business_hours:     JSON.stringify(readBhValue()),
+  };
+  const res = await apiFetch(`/api/widgets/${currentWidget.id}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...currentWidget, ...body }),
+  });
+  if (res && res.ok) {
+    Object.assign(currentWidget, body);
+    showToast('Integrácie uložené');
+  } else {
+    showToast('Chyba pri ukladaní', 'error');
+  }
+}
+
+/* ── WooCommerce ──────────────────────────────────────────────── */
+async function loadWooStatus() {
+  if (!currentWidget) return;
+  const res = await apiFetch(`/api/woocommerce/${currentWidget.id}/status`);
+  if (!res || !res.ok) return;
+  const data = await res.json();
+  const connected = document.getElementById('woo-connected-status');
+  const form      = document.getElementById('woo-form');
+  if (data.connected) {
+    connected.style.display = 'flex';
+    document.getElementById('woo-status-text').textContent = `✅ Pripojené: ${data.shop_url || ''}`;
+    if (form) form.style.display = 'none';
+  } else {
+    connected.style.display = 'none';
+    if (form) form.style.display = '';
+  }
+}
+
+async function connectWooCommerce() {
+  if (!currentWidget) return;
+  const storeUrl = document.getElementById('woo-url')?.value.trim();
+  const ck       = document.getElementById('woo-key')?.value.trim();
+  const cs       = document.getElementById('woo-secret')?.value.trim();
+  if (!storeUrl || !ck || !cs) { showToast('Vyplňte všetky polia', 'error'); return; }
+  const res = await apiFetch(`/api/woocommerce/${currentWidget.id}/connect`, {
+    method: 'POST',
+    body: JSON.stringify({ storeUrl, consumerKey: ck, consumerSecret: cs }),
+  });
+  if (res && res.ok) {
+    const d = await res.json();
+    showToast(`Importovaných ${d.imported} produktov`);
+    loadWooStatus();
+  } else {
+    showToast('Nepodarilo sa pripojiť', 'error');
+  }
+}
+
+async function disconnectWooCommerce() {
+  if (!currentWidget) return;
+  const res = await apiFetch(`/api/woocommerce/${currentWidget.id}/disconnect`, { method: 'DELETE' });
+  if (res && res.ok) { showToast('WooCommerce odpojený'); loadWooStatus(); }
+}
+
+/* ── Team Management ──────────────────────────────────────────── */
+async function loadTeam() {
+  const res = await apiFetch('/api/team');
+  if (!res || !res.ok) return;
+  const members = await res.json();
+  const list  = document.getElementById('team-list');
+  const empty = document.getElementById('team-empty');
+  if (!list) return;
+  if (!members.length) {
+    empty.style.display = '';
+    list.innerHTML = '';
+    list.appendChild(empty);
+    return;
+  }
+  empty.style.display = 'none';
+  const ROLE_LABELS = { readonly: 'Čítanie', editor: 'Editor' };
+  list.innerHTML = members.map(m => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.75rem;background:#f8fafc;border-radius:8px;gap:0.5rem">
+      <div>
+        <div style="font-size:0.875rem;font-weight:600;color:#1e293b">${escHtml(m.email)}</div>
+        <div style="font-size:0.75rem;color:#64748b">${ROLE_LABELS[m.role] || m.role} · ${m.accepted ? '✅ Prijatý' : '⏳ Čakajúci'}</div>
+      </div>
+      <button class="btn btn-sm btn-secondary" onclick="deleteTeamMember('${escHtml(m.id)}')">Odstraniť</button>
+    </div>`).join('');
+}
+
+function openInviteModal() {
+  const el = document.getElementById('modal-invite');
+  if (el) { el.style.display = 'flex'; document.getElementById('invite-email')?.focus(); }
+}
+
+function closeInviteModal(e) {
+  if (e && e.target !== document.getElementById('modal-invite')) return;
+  document.getElementById('modal-invite').style.display = 'none';
+}
+
+async function inviteTeamMember() {
+  const email = document.getElementById('invite-email')?.value.trim();
+  const role  = document.getElementById('invite-role')?.value;
+  if (!email) { showToast('Zadajte email', 'error'); return; }
+  const res = await apiFetch('/api/team/invite', {
+    method: 'POST',
+    body: JSON.stringify({ email, role }),
+  });
+  if (res && res.ok) {
+    showToast('Pozvánka odoslaná');
+    document.getElementById('modal-invite').style.display = 'none';
+    document.getElementById('invite-email').value = '';
+    loadTeam();
+  } else {
+    showToast('Chyba pri pozvaní', 'error');
+  }
+}
+
+async function deleteTeamMember(memberId) {
+  if (!confirm('Odstrániť člena tímu?')) return;
+  const res = await apiFetch(`/api/team/${memberId}`, { method: 'DELETE' });
+  if (res && res.ok) { showToast('Člen odstránený'); loadTeam(); }
 }

@@ -63,6 +63,13 @@
       <button class="nav-item" onclick="showTab('insights')" id="nav-insights">
         <span class="nav-icon">📊</span> Trendy
       </button>
+      <button class="nav-item" onclick="showTab('inbox')" id="nav-inbox">
+        <span class="nav-icon">📥</span> Inbox
+        <span id="inbox-badge" class="nav-badge" style="display:none"></span>
+      </button>
+      <button class="nav-item" onclick="showTab('integrations')" id="nav-integrations">
+        <span class="nav-icon">🔗</span> Integrácie
+      </button>
     </div>
 
     <div class="sidebar-footer" id="sidebar-footer">
@@ -1210,6 +1217,214 @@
           </div>
         </div>
 
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Inbox tab                                              -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div id="tab-inbox" class="tab-panel">
+          <div class="tab-header">
+            <h2 class="tab-title">📥 Inbox konverzácií</h2>
+            <button class="btn btn-secondary" onclick="loadInbox()">↺ Obnoviť</button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:300px 1fr;gap:1.25rem;align-items:start" id="inbox-layout">
+            <!-- Conversation list -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+              <div style="padding:0.75rem 1rem;border-bottom:1px solid #e2e8f0;font-size:0.78rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.05em">Konverzácie</div>
+              <div id="inbox-list" style="max-height:65vh;overflow-y:auto">
+                <div id="inbox-empty" style="padding:2rem 1rem;text-align:center;color:#94a3b8;font-size:0.875rem">Žiadne konverzácie</div>
+              </div>
+            </div>
+
+            <!-- Transcript panel -->
+            <div id="inbox-transcript-panel" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;display:none">
+              <div style="padding:0.75rem 1rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap">
+                <div>
+                  <div id="inbox-conv-title" style="font-weight:700;color:#1e293b;font-size:0.92rem"></div>
+                  <div id="inbox-conv-meta" style="font-size:0.75rem;color:#64748b;margin-top:0.1rem"></div>
+                </div>
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+                  <span id="inbox-live-badge" style="display:none;background:#dcfce7;color:#16a34a;font-size:0.72rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:99px">● LIVE</span>
+                  <button id="inbox-takeover-btn" class="btn btn-sm btn-secondary" onclick="toggleLiveTakeover()">Prevziať chat</button>
+                </div>
+              </div>
+              <div id="inbox-messages" style="padding:1rem;max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:0.6rem"></div>
+              <!-- Agent reply input (visible only during live takeover) -->
+              <div id="inbox-agent-reply" style="display:none;padding:0.75rem 1rem;border-top:1px solid #e2e8f0;display:flex;gap:0.5rem">
+                <input type="text" id="inbox-agent-input" class="form-control" placeholder="Napíšte správu zákazníkovi..." style="flex:1;font-size:0.875rem" onkeydown="if(event.key==='Enter')sendAgentMessage()">
+                <button class="btn btn-primary btn-sm" onclick="sendAgentMessage()">Odoslať</button>
+              </div>
+            </div>
+
+            <!-- Empty state when no conversation selected -->
+            <div id="inbox-select-hint" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:3rem 1rem;text-align:center;color:#94a3b8">
+              <div style="font-size:2rem;margin-bottom:0.75rem">💬</div>
+              <div style="font-size:0.875rem">Vyberte konverzáciu zo zoznamu</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Integrations tab                                       -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div id="tab-integrations" class="tab-panel">
+          <div class="tab-header">
+            <h2 class="tab-title">🔗 Integrácie</h2>
+            <button class="btn btn-primary" onclick="saveIntegrations()">Uložiť</button>
+          </div>
+
+          <!-- Webhooks -->
+          <div class="panel" style="margin-bottom:1.5rem">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Webhooks</div>
+                <div class="panel-subtitle">Odosielajte nové leady do Zapier, Make, n8n alebo vlastného systému</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Webhook URL (POST pri novom leade)</label>
+              <input type="url" class="form-control" id="int-webhook-url" placeholder="https://hooks.zapier.com/...">
+              <div class="hint">Pri každom novom leade odošleme POST s JSON: event, widget_id, name, email, phone, created_at</div>
+            </div>
+            <div class="form-group">
+              <label>Slack Webhook URL</label>
+              <input type="url" class="form-control" id="int-slack-url" placeholder="https://hooks.slack.com/services/...">
+              <div class="hint">Dostanete Slack notifikáciu pri každom novom leade</div>
+            </div>
+          </div>
+
+          <!-- White-label & advanced -->
+          <div class="panel" style="margin-bottom:1.5rem">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">White-label & vzhľad</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                <input type="checkbox" id="int-hide-branding" style="width:16px;height:16px">
+                Skryť <em>„Powered by NeuraDesk"</em> pätičku
+              </label>
+              <div class="hint">Dostupné v platených plánoch. Chatbot bude bez akejkoľvek zmienky o NeuraDesk.</div>
+            </div>
+          </div>
+
+          <!-- Business hours -->
+          <div class="panel" style="margin-bottom:1.5rem">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Pracovné hodiny</div>
+                <div class="panel-subtitle">Chatbot mimo pracovnej doby zobrazí offline správu a zablokuje odosielanie</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                <input type="checkbox" id="int-bh-enabled" style="width:16px;height:16px" onchange="toggleBhFields()">
+                Zapnúť obmedzenie pracovných hodín
+              </label>
+            </div>
+            <div id="int-bh-fields" style="display:none">
+              <div id="int-bh-days" style="display:grid;gap:0.5rem;margin-bottom:1rem"></div>
+              <div class="form-group">
+                <label>Správa keď je chatbot offline</label>
+                <input type="text" class="form-control" id="int-offline-msg" placeholder="Momentálne sme offline. Ozveme sa vám čoskoro.">
+              </div>
+            </div>
+          </div>
+
+          <!-- Auto-reply & CSAT -->
+          <div class="panel" style="margin-bottom:1.5rem">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Automatická odpoveď & CSAT</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                <input type="checkbox" id="int-auto-reply-enabled" style="width:16px;height:16px" onchange="toggleAutoReplyFields()">
+                Posielať automatickú odpoveď leadom (email po odoslaní formulára)
+              </label>
+            </div>
+            <div id="int-auto-reply-fields" style="display:none">
+              <div class="form-group">
+                <label>Správa v emaili (personalizovaná – môžete použiť {name})</label>
+                <textarea class="form-control" id="int-auto-reply-msg" rows="3" placeholder="Ahoj {name}, ďakujeme za kontakt! Ozveme sa vám do 24 hodín."></textarea>
+              </div>
+            </div>
+            <div class="form-group" style="margin-top:0.75rem">
+              <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                <input type="checkbox" id="int-csat-enabled" style="width:16px;height:16px">
+                Zobraziť hodnotenie chatu (CSAT ★★★★★) po 4 odpovediach
+              </label>
+            </div>
+          </div>
+
+          <!-- A/B Testing -->
+          <div class="panel" style="margin-bottom:1.5rem">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">A/B test uvítacej správy</div>
+                <div class="panel-subtitle">Testujte dve verzie uvítacej správy – widget ich striedavo zobrazuje</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                <input type="checkbox" id="int-ab-enabled" style="width:16px;height:16px">
+                Zapnúť A/B test
+              </label>
+            </div>
+            <div class="form-group">
+              <label>Variant B – uvítacia správa</label>
+              <input type="text" class="form-control" id="int-welcome-b" placeholder="Alternatívna uvítacia správa pre variant B">
+              <div class="hint">Variant A = hlavná uvítacia správa (nastavenia). 50 % návštevníkov uvidí variant B.</div>
+            </div>
+          </div>
+
+          <!-- WooCommerce -->
+          <div class="panel" style="margin-bottom:1.5rem">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">WooCommerce</div>
+                <div class="panel-subtitle">Importujte produkty z WooCommerce do znalostnej bázy chatbota</div>
+              </div>
+            </div>
+            <div id="woo-connected-status" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:#166534;display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
+              <span id="woo-status-text">✅ Pripojené</span>
+              <button class="btn btn-sm btn-secondary" onclick="disconnectWooCommerce()">Odpojiť</button>
+            </div>
+            <div id="woo-form">
+              <div class="form-group">
+                <label>URL obchodu (napr. https://moj-obchod.sk)</label>
+                <input type="url" class="form-control" id="woo-url" placeholder="https://moj-obchod.sk">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Consumer Key</label>
+                  <input type="text" class="form-control" id="woo-key" placeholder="ck_...">
+                </div>
+                <div class="form-group">
+                  <label>Consumer Secret</label>
+                  <input type="password" class="form-control" id="woo-secret" placeholder="cs_...">
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="connectWooCommerce()">Importovať produkty</button>
+            </div>
+          </div>
+
+          <!-- Team management -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Tím</div>
+                <div class="panel-subtitle">Pozvite členov tímu na správu chatbota</div>
+              </div>
+              <button class="btn btn-secondary btn-sm" onclick="openInviteModal()">+ Pozvať</button>
+            </div>
+            <div id="team-list" style="display:flex;flex-direction:column;gap:0.5rem">
+              <div id="team-empty" style="font-size:0.875rem;color:#94a3b8;padding:0.5rem 0">Zatiaľ žiadni členovia tímu.</div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </main>
@@ -1270,6 +1485,28 @@
     <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
       <button class="btn btn-secondary" onclick="closeLmFileModal()">Zrušiť</button>
       <button class="btn btn-primary" id="lm-file-btn" onclick="uploadLmFile()">Nahrať</button>
+    </div>
+  </div>
+</div>
+
+<!-- Team Invite Modal -->
+<div id="modal-invite" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;padding:0.75rem" onclick="closeInviteModal(event)">
+  <div class="modal-box" style="max-width:440px;width:100%" onclick="event.stopPropagation()">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:1.1rem">👥 Pozvať člena tímu</h2>
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" id="invite-email" placeholder="kolega@firma.sk" style="width:100%">
+    </div>
+    <div class="form-group">
+      <label>Rola</label>
+      <select id="invite-role" style="width:100%;padding:0.45rem 0.65rem;border:1px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:0.875rem;background:#fff;color:#374151">
+        <option value="readonly">Čítanie (readonly)</option>
+        <option value="editor">Editor</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
+      <button class="btn btn-secondary" onclick="closeInviteModal()">Zrušiť</button>
+      <button class="btn btn-primary" onclick="inviteTeamMember()">Pozvať</button>
     </div>
   </div>
 </div>

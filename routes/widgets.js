@@ -107,7 +107,10 @@ router.put('/:id', (req, res) => {
   if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
 
   const { name, bot_name, welcome_message, primary_color, goals, cta_type, cta_config, suggested_questions, active,
-          proactive_enabled, proactive_delay, proactive_message, gdpr_text } = req.body;
+          proactive_enabled, proactive_delay, proactive_message, gdpr_text,
+          webhook_url, slack_webhook_url, hide_branding, csat_enabled,
+          ab_test_enabled, welcome_message_b, auto_reply_enabled, auto_reply_message,
+          offline_message, business_hours } = req.body;
 
   const db = getDb();
   db.prepare(`
@@ -124,7 +127,17 @@ router.put('/:id', (req, res) => {
       proactive_enabled = ?,
       proactive_delay = ?,
       proactive_message = ?,
-      gdpr_text = ?
+      gdpr_text = ?,
+      webhook_url = ?,
+      slack_webhook_url = ?,
+      hide_branding = ?,
+      csat_enabled = ?,
+      ab_test_enabled = ?,
+      welcome_message_b = ?,
+      auto_reply_enabled = ?,
+      auto_reply_message = ?,
+      offline_message = ?,
+      business_hours = ?
     WHERE id = ?
   `).run(
     name !== undefined ? name.trim() : widget.name,
@@ -140,6 +153,16 @@ router.put('/:id', (req, res) => {
     proactive_delay !== undefined ? Math.max(1, Math.min(60, parseInt(proactive_delay) || 4)) : (widget.proactive_delay || 4),
     proactive_message !== undefined ? String(proactive_message).slice(0, 500) : (widget.proactive_message || ''),
     gdpr_text !== undefined ? String(gdpr_text).slice(0, 5000) : (widget.gdpr_text || ''),
+    webhook_url !== undefined ? (webhook_url ? String(webhook_url).slice(0, 512) : null) : (widget.webhook_url || null),
+    slack_webhook_url !== undefined ? (slack_webhook_url ? String(slack_webhook_url).slice(0, 512) : null) : (widget.slack_webhook_url || null),
+    hide_branding !== undefined ? (hide_branding ? 1 : 0) : (widget.hide_branding || 0),
+    csat_enabled !== undefined ? (csat_enabled ? 1 : 0) : (widget.csat_enabled || 0),
+    ab_test_enabled !== undefined ? (ab_test_enabled ? 1 : 0) : (widget.ab_test_enabled || 0),
+    welcome_message_b !== undefined ? String(welcome_message_b || '').slice(0, 500) : (widget.welcome_message_b || ''),
+    auto_reply_enabled !== undefined ? (auto_reply_enabled ? 1 : 0) : (widget.auto_reply_enabled || 0),
+    auto_reply_message !== undefined ? String(auto_reply_message || '').slice(0, 2000) : (widget.auto_reply_message || ''),
+    offline_message !== undefined ? String(offline_message || '').slice(0, 500) : (widget.offline_message || ''),
+    business_hours !== undefined ? (typeof business_hours === 'string' ? business_hours : JSON.stringify(business_hours)) : (widget.business_hours || '{}'),
     widget.id
   );
 
@@ -321,6 +344,16 @@ function parseWidget(w) {
     proactive_delay: w.proactive_delay || 4,
     proactive_message: w.proactive_message || '',
     gdpr_text: w.gdpr_text || '',
+    hide_branding: Boolean(w.hide_branding),
+    csat_enabled: Boolean(w.csat_enabled),
+    ab_test_enabled: Boolean(w.ab_test_enabled),
+    welcome_message_b: w.welcome_message_b || '',
+    auto_reply_enabled: Boolean(w.auto_reply_enabled),
+    auto_reply_message: w.auto_reply_message || '',
+    offline_message: w.offline_message || '',
+    webhook_url: w.webhook_url || null,
+    slack_webhook_url: w.slack_webhook_url || null,
+    business_hours: safeParseJSON(w.business_hours, {}),
   };
 }
 
@@ -385,6 +418,67 @@ No markdown, no explanation — only the JSON object.`;
     console.error('[translate]', err.message);
     res.status(500).json({ error: 'Preklad zlyhal: ' + err.message });
   }
+});
+
+/* ── Inbox / Conversations ─────────────────────────────────────── */
+
+// GET /api/widgets/:id/conversations — list conversations with last message + lead info
+router.get('/:id/conversations', (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+  const db = getDb();
+  const convs = db.prepare(`
+    SELECT c.id, c.session_id, c.live_agent, c.csat_rating,
+           (SELECT COUNT(*) FROM messages m WHERE m.conversation_id = c.id) AS msg_count,
+           (SELECT m2.content FROM messages m2 WHERE m2.conversation_id = c.id ORDER BY m2.created_at DESC LIMIT 1) AS last_msg,
+           (SELECT m3.created_at FROM messages m3 WHERE m3.conversation_id = c.id ORDER BY m3.created_at DESC LIMIT 1) AS last_msg_at,
+           l.name AS lead_name, l.email AS lead_email
+    FROM conversations c
+    LEFT JOIN leads l ON l.session_id = c.session_id AND l.widget_id = c.widget_id
+    WHERE c.widget_id = ?
+    ORDER BY last_msg_at DESC NULLS LAST
+    LIMIT 100
+  `).all(widget.id);
+  res.json(convs);
+});
+
+// GET /api/widgets/:id/conversations/:convId/messages
+router.get('/:id/conversations/:convId/messages', (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+  const db = getDb();
+  const conv = db.prepare('SELECT id FROM conversations WHERE id = ? AND widget_id = ?').get(req.params.convId, widget.id);
+  if (!conv) return res.status(404).json({ error: 'Konverzácia nenájdená.' });
+  const msgs = db.prepare('SELECT role, content, created_at FROM messages WHERE conversation_id = ? ORDER BY created_at ASC').all(conv.id);
+  res.json(msgs);
+});
+
+// PATCH /api/widgets/:id/conversations/:convId/takeover — toggle live_agent
+router.patch('/:id/conversations/:convId/takeover', (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+  const db = getDb();
+  const conv = db.prepare('SELECT id, live_agent FROM conversations WHERE id = ? AND widget_id = ?').get(req.params.convId, widget.id);
+  if (!conv) return res.status(404).json({ error: 'Konverzácia nenájdená.' });
+  const newVal = req.body.live !== undefined ? (req.body.live ? 1 : 0) : (conv.live_agent ? 0 : 1);
+  db.prepare('UPDATE conversations SET live_agent = ? WHERE id = ?').run(newVal, conv.id);
+  res.json({ ok: true, live_agent: Boolean(newVal) });
+});
+
+// POST /api/widgets/:id/conversations/:convId/agent-message — inject agent message
+router.post('/:id/conversations/:convId/agent-message', (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+  const { message } = req.body;
+  if (!message?.trim()) return res.status(400).json({ error: 'Správa je povinná.' });
+  const db = getDb();
+  const conv = db.prepare('SELECT id FROM conversations WHERE id = ? AND widget_id = ?').get(req.params.convId, widget.id);
+  if (!conv) return res.status(404).json({ error: 'Konverzácia nenájdená.' });
+  const { v4: uuidv4 } = require('uuid');
+  db.prepare('INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)').run(
+    uuidv4(), conv.id, 'assistant', message.trim().slice(0, 4000)
+  );
+  res.json({ ok: true });
 });
 
 module.exports = router;
