@@ -381,6 +381,7 @@ function initDatabase() {
     `ALTER TABLE widgets ADD COLUMN ecomail_api_key TEXT`,
     `ALTER TABLE widgets ADD COLUMN ecomail_list_id TEXT`,
     `ALTER TABLE widgets ADD COLUMN ecomail_list_name TEXT`,
+    `ALTER TABLE users ADD COLUMN subscription_plan TEXT NOT NULL DEFAULT 'pro'`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists */ }

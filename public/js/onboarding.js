@@ -89,14 +89,22 @@ async function checkSubscription() {
   }
 }
 
-async function startCheckout() {
-  const btn = document.getElementById('btn-checkout');
+function selectPlan(plan) {
+  document.getElementById('plan-pro').style.borderColor = plan === 'pro' ? 'var(--primary)' : 'rgba(255,255,255,0.1)';
+  document.getElementById('plan-white-label').style.borderColor = plan === 'white_label' ? '#7c3aed' : 'rgba(255,255,255,0.1)';
+}
+
+async function startCheckout(plan) {
+  const btnId = plan === 'white_label' ? 'btn-checkout-wl' : 'btn-checkout-pro';
+  const btn = document.getElementById(btnId);
+  const label = plan === 'white_label' ? '💳 Vybrať White Label – €97/mesiac' : '💳 Vybrať Pro – €37/mesiac';
   btn.disabled = true;
   btn.textContent = 'Presmerovávam...';
   try {
     const r = await fetch(`${API}/api/stripe/checkout`, {
       method: 'POST',
-      headers: authHeaders()
+      headers: authHeaders(),
+      body: JSON.stringify({ plan: plan || 'pro' })
     });
     const data = await r.json();
     if (data.url) {
@@ -104,12 +112,12 @@ async function startCheckout() {
     } else {
       showToast('Chyba pri vytváraní platby.', 'error');
       btn.disabled = false;
-      btn.textContent = '💳 Zaplatiť kartou – €29/mesiac';
+      btn.textContent = label;
     }
   } catch {
     showToast('Sieťová chyba. Skúste znovu.', 'error');
     btn.disabled = false;
-    btn.textContent = '💳 Zaplatiť kartou – €29/mesiac';
+    btn.textContent = label;
   }
 }
 

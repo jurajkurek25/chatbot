@@ -74,25 +74,48 @@
         <p>Jeden plán. Všetko čo potrebujete pre inteligentný AI chatbot.</p>
       </div>
 
-      <div class="pricing-box">
-        <div class="pricing-box-badge">Pro plán</div>
-        <div class="pricing-box-price">€37<span>/mesiac</span></div>
-        <ul class="pricing-box-features">
-          <li>✓ Neobmedzené konverzácie</li>
-          <li>✓ Až 10 widgetov</li>
-          <li>✓ PDF, text, CSV znalostná báza</li>
-          <li>✓ AI navrhované otázky</li>
-          <li>✓ Všetky typy CTA (hovor, formulár, nákup...)</li>
-          <li>✓ Claude Opus AI – najlepší model</li>
-          <li>✓ Zrušenie kedykoľvek</li>
-        </ul>
-        <button class="btn-ob-primary" id="btn-checkout" onclick="startCheckout()">
-          💳 Zaplatiť kartou – €37/mesiac
-        </button>
-        <div id="referral-discount-notice" style="display:none;margin:0.5rem 0;padding:0.5rem 0.75rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:0.875rem;color:#166534;text-align:center">
-          🎁 Ste pozvaný/á – platíte zvýhodnenú cenu!
+      <div style="display:grid;grid-template-columns:1fr;gap:1rem;max-width:640px;margin:0 auto" id="plan-grid">
+
+        <!-- PRO -->
+        <div class="pricing-box" id="plan-pro" onclick="selectPlan('pro')" style="cursor:pointer;border:2px solid var(--primary);position:relative">
+          <div style="position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--primary);color:white;font-size:0.7rem;font-weight:700;padding:0.15rem 0.7rem;border-radius:99px;white-space:nowrap">Najobľúbenejší</div>
+          <div class="pricing-box-badge">Pro plán</div>
+          <div class="pricing-box-price">€37<span>/mesiac</span></div>
+          <ul class="pricing-box-features">
+            <li>✓ Neobmedzené konverzácie</li>
+            <li>✓ Až 10 widgetov</li>
+            <li>✓ PDF, text, CSV znalostná báza</li>
+            <li>✓ Instagram &amp; Facebook Messenger bot</li>
+            <li>✓ Online rezervácie + Google Calendar</li>
+            <li>✓ Ecomail, Lead Magnety, Webhooks, Tím</li>
+            <li>✓ Analytika, CSAT, A/B test, Kanban</li>
+            <li>✓ Zrušenie kedykoľvek</li>
+          </ul>
+          <button class="btn-ob-primary" id="btn-checkout-pro" onclick="event.stopPropagation();startCheckout('pro')">
+            💳 Vybrať Pro – €37/mesiac
+          </button>
+          <div id="referral-discount-notice" style="display:none;margin:0.5rem 0;padding:0.5rem 0.75rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;font-size:0.875rem;color:#166534;text-align:center">
+            🎁 Ste pozvaný/á – platíte zvýhodnenú cenu!
+          </div>
+          <p class="pricing-box-note">Bezpečná platba cez Stripe · Zrušenie kedykoľvek</p>
         </div>
-        <p class="pricing-box-note">Bezpečná platba cez Stripe · Zrušenie kedykoľvek</p>
+
+        <!-- WHITE LABEL -->
+        <div class="pricing-box" id="plan-white-label" onclick="selectPlan('white_label')" style="cursor:pointer;border:2px solid #7c3aed;background:linear-gradient(135deg,rgba(124,58,237,0.04),transparent)">
+          <div class="pricing-box-badge" style="background:linear-gradient(90deg,#7c3aed,#a855f7)">White Label plán</div>
+          <div class="pricing-box-price" style="color:#a855f7">€97<span>/mesiac</span></div>
+          <ul class="pricing-box-features">
+            <li>✓ <strong>Všetko z Pro plánu</strong></li>
+            <li>✓ <strong>White-label</strong> – skryjete „Powered by NeuraDesk"</li>
+            <li style="color:#94a3b8;font-size:0.82rem;padding-left:0.5rem">Chatbot vystupuje výhradne pod vašou značkou. Zákazník nevidí platformu.</li>
+            <li style="color:#94a3b8;font-size:0.82rem;padding-left:0.5rem">Ideálne pre agentúry dodávajúce chatboty klientom.</li>
+          </ul>
+          <button class="btn-ob-primary" id="btn-checkout-wl" onclick="event.stopPropagation();startCheckout('white_label')" style="background:linear-gradient(90deg,#7c3aed,#a855f7)">
+            💳 Vybrať White Label – €97/mesiac
+          </button>
+          <p class="pricing-box-note">Bezpečná platba cez Stripe · Zrušenie kedykoľvek</p>
+        </div>
+
       </div>
 
       <div id="subscription-active-msg" style="display:none" class="success-box">

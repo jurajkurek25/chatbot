@@ -311,7 +311,8 @@
 
     /* ── PRICING ── */
     .pricing-section { padding: 72px var(--px); }
-    .pricing-card { background: var(--bg3); border: 1px solid rgba(91,79,255,0.32); border-radius: 24px; padding: 2rem 1.5rem; box-shadow: 0 0 60px rgba(91,79,255,0.12); position: relative; overflow: hidden; margin-top: 2rem; }
+    .pricing-card { background: var(--bg3); border: 1px solid rgba(91,79,255,0.32); border-radius: 24px; padding: 2rem 1.5rem; box-shadow: 0 0 60px rgba(91,79,255,0.12); position: relative; overflow: hidden; }
+    @media(min-width:700px) { #pricing > div > div[style*="grid"] { grid-template-columns: 1fr 1fr !important; } }
     .pricing-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--grad); }
     .pricing-badge { display: inline-block; background: var(--grad); color: white; font-size: .68rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; padding: .25rem .8rem; border-radius: 100px; margin-bottom: 1.1rem; }
     .pricing-name { font-size: 1.05rem; font-weight: 700; margin-bottom: .4rem; }
@@ -1057,53 +1058,66 @@
 
 <!-- PRICING -->
 <section class="pricing-section" id="pricing">
-  <div class="inner-xs">
+  <div class="inner" style="max-width:900px">
     <span class="section-label">Cena</span>
     <h2 class="section-h2">Menej ako jeden stratený<br>zákazník za mesiac.</h2>
-    <div class="pricing-card">
-      <div class="pricing-badge">Všetko v jednom pláne</div>
-      <div class="pricing-name">Pro plán</div>
-      <div class="pricing-price"><span class="price-amount">€37</span><span class="price-period">/mesiac</span></div>
-      <p class="pricing-note-small">1 500 AI odpovedí mesačne · Ďalšie dokúpite kedykoľvek</p>
-      <div class="pricing-credits">
-        <h4>Doplnkové kredity</h4>
-        <div class="credit-row"><span>€5</span><span>500 odpovedí</span></div>
-        <div class="credit-row"><span>€10</span><span>1 200 odpovedí</span></div>
-        <div class="credit-row"><span>Ľubovoľná suma</span><span>1€ = 100 odpovedí</span></div>
+
+    <div style="display:grid;grid-template-columns:1fr;gap:1.5rem;margin-top:2rem">
+
+      <!-- PRO -->
+      <div class="pricing-card" style="position:relative">
+        <div style="position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--grad);color:white;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.25rem .9rem;border-radius:100px;white-space:nowrap">Najobľúbenejší</div>
+        <div class="pricing-badge">Pro plán</div>
+        <div class="pricing-name">Pre väčšinu biznis typov</div>
+        <div class="pricing-price"><span class="price-amount">€37</span><span class="price-period">/mesiac</span></div>
+        <p class="pricing-note-small">1 500 AI odpovedí mesačne · Ďalšie dokúpite kedykoľvek</p>
+        <div class="pricing-credits">
+          <h4>Doplnkové kredity</h4>
+          <div class="credit-row"><span>€5</span><span>500 odpovedí</span></div>
+          <div class="credit-row"><span>€10</span><span>1 200 odpovedí</span></div>
+          <div class="credit-row"><span>Ľubovoľná suma</span><span>1€ = 100 odpovedí</span></div>
+        </div>
+        <ul class="pricing-features">
+          <li><strong>Predajný AI framework</strong> (Discovery → Close)</li>
+          <li>Proaktívna bublina – chatbot osloví zákazníka sám</li>
+          <li>Sledovanie stránky – AI vie čo zákazník prezerá</li>
+          <li>Produktový katalóg s AI odporúčaním</li>
+          <li>Až 10 chatbotov / widgetov na rôznych weboch</li>
+          <li>Instagram DM Bot (náhrada ManyChat)</li>
+          <li><strong>Facebook Messenger Bot</strong> – automatické odpovede cez Messenger</li>
+          <li><strong>Online rezervácie</strong> – booking stránka + embed + Google Calendar</li>
+          <li>Znalostná báza: PDF, TXT, CSV, MD + URL scraping</li>
+          <li><strong>AI Coach</strong> – zákaznícka podpora</li>
+          <li><strong>CRM</strong> – tabuľka + kanban + CSV export</li>
+          <li><strong>Live Inbox</strong> – prevezmete chat od AI kedykoľvek</li>
+          <li><strong>Ecomail</strong> – automatický email marketing s AI tagmi</li>
+          <li><strong>Lead Magnety</strong> – PDF výmenou za email</li>
+          <li>Analytika, CSAT, A/B test, Webhooks, Tím, WooCommerce</li>
+          <li>Pracovné hodiny + offline správa</li>
+          <li>GDPR súhlas · Affiliate systém · Stripe billing portál</li>
+        </ul>
+        <p class="pricing-urgency">⚡ Každý deň bez AI obchodníka = ďalší zákazník, čo odišiel</p>
+        <button class="btn-pricing" onclick="showAuth('register')">Začať teraz – prvý mesiac bez rizika</button>
+        <p class="pricing-fine">Zrušenie kedykoľvek · Žiadne skryté poplatky · Platba kartou cez Stripe</p>
       </div>
-      <ul class="pricing-features">
-        <li><strong>Predajný AI framework</strong> (Discovery → Close)</li>
-        <li>Proaktívna bublina – chatbot osloví zákazníka sám</li>
-        <li>Sledovanie stránky – AI vie čo zákazník prezerá</li>
-        <li>Produktový katalóg s AI odporúčaním</li>
-        <li>Až 10 chatbotov / widgetov na rôznych weboch</li>
-        <li>Instagram DM Bot (náhrada ManyChat)</li>
-        <li><strong>Facebook Messenger Bot</strong> – automatické odpovede cez Messenger</li>
-        <li><strong>Online rezervácie</strong> – booking stránka + embed iframe + Google Calendar sync</li>
-        <li>Znalostná báza z PDF, TXT, CSV, MD + priamy text</li>
-        <li><strong>URL scraping</strong> – AI naskenuje váš web automaticky</li>
-        <li><strong>AI Coach</strong> – zákaznícka podpora s aktívnym radením</li>
-        <li>AI predajné karty pre každý lead</li>
-        <li><strong>CRM</strong> – tabuľka + kanban board + CSV export</li>
-        <li><strong>Live Inbox</strong> – prezeráte konverzácie, prevezmete chat od AI</li>
-        <li>Email notifikácie + follow-up email priamo z dashboardu</li>
-        <li><strong>Ecomail integrácia</strong> – automatický email marketing s AI tagmi</li>
-        <li><strong>Lead Magnety</strong> – PDF výmenou za email zákazníka</li>
-        <li><strong>Analytika trendov</strong> – intent, urgency, sentiment, A/B test</li>
-        <li>CSAT hodnotenie konverzácií (5 hviezdičiek)</li>
-        <li>A/B test uvítacej správy – optimalizujte konverzie</li>
-        <li>Pracovné hodiny + offline správa</li>
-        <li>White-label – skryjete NeuraDesk branding</li>
-        <li>Webhooks (Make, Zapier, Slack, vlastný server)</li>
-        <li>Správa tímu – pozvite členov bez zdieľania hesla</li>
-        <li>WooCommerce import produktov do znalostnej bázy</li>
-        <li>Shadow DOM – žiadny konflikt so štýlmi webu</li>
-        <li>Affiliate systém + Stripe billing portál</li>
-        <li>GDPR súhlas v kontaktnom formulári</li>
-      </ul>
-      <p class="pricing-urgency">⚡ Každý deň bez AI obchodníka = ďalší zákazník, čo odišiel</p>
-      <button class="btn-pricing" onclick="showAuth('register')">Začať teraz – prvý mesiac bez rizika</button>
-      <p class="pricing-fine">Zrušenie kedykoľvek · Žiadne skryté poplatky · Platba kartou cez Stripe</p>
+
+      <!-- WHITE LABEL -->
+      <div class="pricing-card" style="border-color:rgba(124,58,237,0.45);box-shadow:0 0 60px rgba(124,58,237,0.12)">
+        <div class="pricing-badge" style="background:linear-gradient(90deg,#7c3aed,#a855f7)">White Label plán</div>
+        <div class="pricing-name">Pre agentúry a resellery</div>
+        <div class="pricing-price"><span class="price-amount" style="background:linear-gradient(90deg,#a855f7,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent">€97</span><span class="price-period">/mesiac</span></div>
+        <p class="pricing-note-small">Všetko z Pro plánu · Plus white-label branding</p>
+        <ul class="pricing-features" style="margin-top:1rem">
+          <li style="color:var(--text)"><strong>Všetko z Pro plánu</strong> – bez výnimky</li>
+          <li style="color:var(--text)"><strong>White-label</strong> – skryjete „Powered by NeuraDesk"</li>
+          <li style="color:var(--muted2)">Chatbot vystupuje <strong>výhradne pod vašou značkou</strong>. Zákazník nikdy neuvidí platformu na ktorej beží.</li>
+          <li style="color:var(--muted2)">Dodávate chatboty klientom <strong>pod vlastným menom</strong> – oni netuší, že je to NeuraDesk.</li>
+          <li style="color:var(--muted2)">Ideálne pre digitálne agentúry, freelancerov a resellery.</li>
+        </ul>
+        <button class="btn-pricing" style="background:linear-gradient(90deg,#7c3aed,#a855f7);box-shadow:0 0 30px rgba(124,58,237,0.3)" onclick="showAuth('register')">Začať s White Label – €97/mesiac</button>
+        <p class="pricing-fine">Zrušenie kedykoľvek · Žiadne skryté poplatky · Platba kartou cez Stripe</p>
+      </div>
+
     </div>
   </div>
 </section>

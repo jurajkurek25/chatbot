@@ -114,6 +114,14 @@ router.put('/:id', (req, res) => {
           offline_message, business_hours } = req.body;
 
   const db = getDb();
+
+  // White-label is only available on the White Label plan
+  if (hide_branding) {
+    const user = db.prepare('SELECT subscription_plan FROM users WHERE id = ?').get(req.userId);
+    if (user?.subscription_plan !== 'white_label') {
+      return res.status(403).json({ error: 'white_label_required' });
+    }
+  }
   db.prepare(`
     UPDATE widgets SET
       name = ?,

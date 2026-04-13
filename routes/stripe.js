@@ -24,10 +24,15 @@ router.post('/checkout', requireAuth, async (req, res) => {
   const stripe = getStripe();
   const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
-  // Use discounted price if user was referred
-  const priceId = user.referred_by && process.env.STRIPE_PRICE_ID_DISCOUNTED
-    ? process.env.STRIPE_PRICE_ID_DISCOUNTED
-    : process.env.STRIPE_PRICE_ID;
+  const { plan } = req.body; // 'pro' (default) or 'white_label'
+  const isWhiteLabel = plan === 'white_label' && process.env.STRIPE_PRICE_ID_WHITE_LABEL;
+
+  // White label plan takes precedence; otherwise use discounted price for referrals
+  const priceId = isWhiteLabel
+    ? process.env.STRIPE_PRICE_ID_WHITE_LABEL
+    : (user.referred_by && process.env.STRIPE_PRICE_ID_DISCOUNTED
+        ? process.env.STRIPE_PRICE_ID_DISCOUNTED
+        : process.env.STRIPE_PRICE_ID);
 
   try {
     // Get or create Stripe customer
@@ -52,6 +57,7 @@ router.post('/checkout', requireAuth, async (req, res) => {
       allow_promotion_codes: true,
       billing_address_collection: 'auto',
       locale: 'sk',
+      metadata: { plan: isWhiteLabel ? 'white_label' : 'pro' },
     });
 
     res.json({ url: session.url });
@@ -119,8 +125,9 @@ router.post('/webhook', async (req, res) => {
         const user = await resolveUser(session.customer);
 
         if (user) {
-          db.prepare(`UPDATE users SET subscription_status = 'active', subscription_id = ? WHERE id = ?`)
-            .run(session.subscription, user.id);
+          const plan = session.metadata?.plan || 'pro';
+          db.prepare(`UPDATE users SET subscription_status = 'active', subscription_id = ?, subscription_plan = ? WHERE id = ?`)
+            .run(session.subscription, plan, user.id);
           db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(user.id);
           console.log(`[stripe] Subscription activated for user ${user.id}`);
 
@@ -142,11 +149,13 @@ router.post('/webhook', async (req, res) => {
       const sub = event.data.object;
       const isActive = sub.status === 'active' || sub.status === 'trialing';
       const status = isActive ? 'active' : 'inactive';
+      const subPriceId = sub.items?.data?.[0]?.price?.id;
+      const plan = subPriceId === process.env.STRIPE_PRICE_ID_WHITE_LABEL ? 'white_label' : 'pro';
 
       const user = await resolveUser(sub.customer);
       if (user) {
-        db.prepare('UPDATE users SET subscription_status = ?, subscription_id = ? WHERE id = ?')
-          .run(status, sub.id, user.id);
+        db.prepare('UPDATE users SET subscription_status = ?, subscription_id = ?, subscription_plan = ? WHERE id = ?')
+          .run(status, sub.id, plan, user.id);
         db.prepare('UPDATE widgets SET active = ? WHERE user_id = ?').run(isActive ? 1 : 0, user.id);
       }
       break;
@@ -197,7 +206,7 @@ router.post('/portal', requireAuth, async (req, res) => {
 // If user has no stripe_customer_id yet, searches Stripe by email to auto-link
 router.get('/status', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT email, subscription_status, stripe_customer_id, onboarding_done, free_until FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until FROM users WHERE id = ?').get(req.userId);
   const now = Math.floor(Date.now() / 1000);
   const inFreePeriod = user?.free_until && user.free_until > now;
 
@@ -226,6 +235,7 @@ router.get('/status', requireAuth, async (req, res) => {
   res.json({
     active: user?.subscription_status === 'active' || !!inFreePeriod,
     status: user?.subscription_status || 'inactive',
+    plan: user?.subscription_plan || 'pro',
     onboarding_done: Boolean(user?.onboarding_done),
     free_until: user?.free_until || null,
     in_free_period: !!inFreePeriod,

@@ -39,6 +39,10 @@ router.get('/:widgetId/config', (req, res) => {
     return res.status(404).json({ error: 'Widget nenájdený.' });
   }
 
+  // hide_branding is only active on the White Label plan
+  const owner = db.prepare('SELECT subscription_plan FROM users WHERE id = ?').get(widget.user_id);
+  const isWhiteLabel = owner?.subscription_plan === 'white_label';
+
   res.json({
     id: widget.id,
     bot_name: widget.bot_name,
@@ -52,7 +56,7 @@ router.get('/:widgetId/config', (req, res) => {
     proactive_delay: widget.proactive_delay || 4,
     proactive_message: widget.proactive_message || '',
     gdpr_text: widget.gdpr_text || '',
-    hide_branding: Boolean(widget.hide_branding),
+    hide_branding: Boolean(widget.hide_branding) && isWhiteLabel,
     business_hours: widget.business_hours ? JSON.parse(widget.business_hours || '{}') : {},
     offline_message: widget.offline_message || '',
     csat_enabled: Boolean(widget.csat_enabled),
