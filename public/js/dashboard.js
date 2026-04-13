@@ -1667,8 +1667,13 @@ async function importProductsCSV(input) {
 let _bookingCfg = null;
 let _bookingSchedule = [];
 let _bookingOverrides = [];
+let _bookingServices = [];
+let _bkCalYear = new Date().getFullYear();
+let _bkCalMonth = new Date().getMonth();
+let _bkAllBookings = []; // flat list loaded for current month
 
 const DAY_NAMES_BOOKING = ['Nedeľa','Pondelok','Utorok','Streda','Štvrtok','Piatok','Sobota'];
+const BK_MONTHS = ['Január','Február','Marec','Apríl','Máj','Jún','Júl','August','September','Október','November','December'];
 const APP_ORIGIN = window.location.origin;
 
 async function loadBookingTab() {
@@ -1677,10 +1682,11 @@ async function loadBookingTab() {
     loadBookingConfig(),
     loadBookingSchedule(),
     loadBookingOverrides(),
-    loadBookingsList(),
+    loadBookingServices(),
     loadGCalStatus(),
   ]);
   renderBookingEmbed();
+  renderBookingCalendar();
 }
 
 async function loadBookingConfig() {
@@ -1714,6 +1720,92 @@ async function saveBookingConfig() {
   });
   if (r && r.ok) showToast('Nastavenia uložené!', 'success');
   else showToast('Chyba pri ukladaní.', 'error');
+}
+
+/* ── Services ─────────────────────────────────────────────────── */
+
+async function loadBookingServices() {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/services`);
+  if (!r || !r.ok) return;
+  _bookingServices = await r.json();
+  renderServicesList();
+}
+
+function renderServicesList() {
+  const el = document.getElementById('bk-services-list');
+  if (!el) return;
+  if (!_bookingServices.length) {
+    el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem;padding:0.5rem 0">Žiadne služby — zákazník uvidí iba výber dátumu a času.</div>';
+    return;
+  }
+  el.innerHTML = _bookingServices.map(s => {
+    const price = s.price != null ? `${s.price} ${s.currency}` : 'Zadarmo';
+    const activeLabel = s.active ? '' : '<span style="font-size:0.7rem;color:#94a3b8;margin-left:0.5rem">(neaktívna)</span>';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid #f1f5f9;gap:0.5rem">
+      <div>
+        <strong style="font-size:0.875rem">${escHtml(s.name)}</strong>${activeLabel}
+        ${s.description ? `<div style="font-size:0.78rem;color:#64748b">${escHtml(s.description)}</div>` : ''}
+        <div style="font-size:0.75rem;color:#94a3b8;margin-top:2px">⏱ ${s.duration_mins} min &nbsp;·&nbsp; 💶 ${esc(price)}</div>
+      </div>
+      <div style="display:flex;gap:0.4rem;flex-shrink:0">
+        <button class="btn btn-sm btn-secondary" onclick="openServiceModal(${JSON.stringify(JSON.stringify(s))})">✏️</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteService('${s.id}')">🗑</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openServiceModal(jsonStr) {
+  const modal = document.getElementById('modal-service');
+  if (!modal) return;
+  if (jsonStr) {
+    const s = JSON.parse(jsonStr);
+    document.getElementById('svc-modal-title').textContent = 'Upraviť službu';
+    document.getElementById('svc-id').value = s.id;
+    document.getElementById('svc-name').value = s.name;
+    document.getElementById('svc-desc').value = s.description || '';
+    document.getElementById('svc-duration').value = s.duration_mins;
+    document.getElementById('svc-price').value = s.price ?? '';
+    document.getElementById('svc-currency').value = s.currency || 'EUR';
+  } else {
+    document.getElementById('svc-modal-title').textContent = 'Nová služba';
+    document.getElementById('svc-id').value = '';
+    document.getElementById('svc-name').value = '';
+    document.getElementById('svc-desc').value = '';
+    document.getElementById('svc-duration').value = '60';
+    document.getElementById('svc-price').value = '';
+    document.getElementById('svc-currency').value = 'EUR';
+  }
+  modal.style.display = 'flex';
+}
+
+function closeServiceModal() {
+  const modal = document.getElementById('modal-service');
+  if (modal) modal.style.display = 'none';
+}
+
+async function saveService() {
+  const id       = document.getElementById('svc-id')?.value;
+  const name     = document.getElementById('svc-name')?.value.trim();
+  const desc     = document.getElementById('svc-desc')?.value.trim();
+  const duration = parseInt(document.getElementById('svc-duration')?.value) || 60;
+  const priceVal = document.getElementById('svc-price')?.value.trim();
+  const currency = document.getElementById('svc-currency')?.value || 'EUR';
+  if (!name) { showToast('Zadajte názov služby.', 'error'); return; }
+  const body = { name, description: desc, durationMins: duration,
+                 price: priceVal !== '' ? parseFloat(priceVal) : null, currency };
+  const url    = id ? `/api/booking/${currentWidget.id}/services/${id}` : `/api/booking/${currentWidget.id}/services`;
+  const method = id ? 'PUT' : 'POST';
+  const r = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  if (r && r.ok) { showToast('Uložené!', 'success'); closeServiceModal(); loadBookingServices(); }
+  else showToast('Chyba pri ukladaní.', 'error');
+}
+
+async function deleteService(id) {
+  if (!confirm('Zmazať túto službu?')) return;
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/services/${id}`, { method: 'DELETE' });
+  if (r && r.ok) { showToast('Služba zmazaná.', 'success'); loadBookingServices(); }
 }
 
 /* ── Schedule ─────────────────────────────────────────────────── */
@@ -1806,57 +1898,157 @@ async function deleteBookingOverride(id) {
   if (r && r.ok) { showToast('Výnimka odstránená.', 'success'); loadBookingOverrides(); }
 }
 
-/* ── Bookings list ────────────────────────────────────────────── */
+/* ── Bookings Calendar ─────────────────────────────────────────── */
+
+function bkCalNav(dir) {
+  _bkCalMonth += dir;
+  if (_bkCalMonth > 11) { _bkCalMonth = 0; _bkCalYear++; }
+  if (_bkCalMonth < 0)  { _bkCalMonth = 11; _bkCalYear--; }
+  renderBookingCalendar();
+}
+
+async function renderBookingCalendar() {
+  if (!currentWidget) return;
+  const monthEl = document.getElementById('bk-cal-month');
+  if (monthEl) monthEl.textContent = `${BK_MONTHS[_bkCalMonth]} ${_bkCalYear}`;
+
+  // Load bookings for this month
+  const from = `${_bkCalYear}-${String(_bkCalMonth+1).padStart(2,'0')}-01`;
+  const lastDay = new Date(_bkCalYear, _bkCalMonth+1, 0).getDate();
+  const to = `${_bkCalYear}-${String(_bkCalMonth+1).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/bookings?from=${from}&to=${to}`);
+  _bkAllBookings = (r && r.ok) ? await r.json() : [];
+
+  const grid = document.getElementById('bk-calendar-grid');
+  if (!grid) return;
+
+  const today = new Date().toLocaleDateString('sv-SE');
+  const bookingsByDay = {};
+  _bkAllBookings.forEach(b => {
+    if (!bookingsByDay[b.date]) bookingsByDay[b.date] = [];
+    bookingsByDay[b.date].push(b);
+  });
+
+  const firstDow = new Date(_bkCalYear, _bkCalMonth, 1).getDay();
+  const daysInMonth = new Date(_bkCalYear, _bkCalMonth+1, 0).getDate();
+  const DOW_LABELS = ['Ne','Po','Ut','St','Št','Pi','So'];
+
+  let html = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">`;
+  DOW_LABELS.forEach(d => {
+    html += `<div style="text-align:center;font-size:0.68rem;font-weight:700;color:#94a3b8;padding:0.4rem 0">${d}</div>`;
+  });
+  for (let i = 0; i < firstDow; i++) html += `<div></div>`;
+
+  for (let d = 1; d <= daysInMonth; d++) {
+    const ds = `${_bkCalYear}-${String(_bkCalMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const bks = bookingsByDay[ds] || [];
+    const isToday = ds === today;
+    const confirmed = bks.filter(b => b.status === 'confirmed').length;
+    const cancelled = bks.filter(b => b.status === 'cancelled').length;
+
+    html += `<div onclick="showDayBookings('${ds}')" style="min-height:52px;border-radius:8px;padding:4px;cursor:pointer;
+      background:${isToday ? '#f0f0ff' : '#f8fafc'};border:1.5px solid ${isToday ? '#5b4fff' : '#e2e8f0'};
+      transition:background 0.15s" onmouseover="this.style.background='#e0e7ff'" onmouseout="this.style.background='${isToday ? '#f0f0ff' : '#f8fafc'}'">
+      <div style="font-size:0.78rem;font-weight:${isToday?'800':'600'};color:${isToday?'#5b4fff':'#374151'};text-align:right;padding:2px 4px">${d}</div>
+      ${confirmed ? `<div style="font-size:0.65rem;background:#dcfce7;color:#16a34a;border-radius:4px;padding:1px 4px;margin-top:2px;font-weight:600">✓ ${confirmed}</div>` : ''}
+      ${cancelled ? `<div style="font-size:0.65rem;background:#fee2e2;color:#dc2626;border-radius:4px;padding:1px 4px;margin-top:2px;font-weight:600">✗ ${cancelled}</div>` : ''}
+    </div>`;
+  }
+  html += `</div>`;
+  grid.innerHTML = html;
+
+  // Clear day detail on month change
+  const dayEl = document.getElementById('bk-day-bookings');
+  if (dayEl) dayEl.innerHTML = '';
+}
+
+function showDayBookings(ds) {
+  const el = document.getElementById('bk-day-bookings');
+  if (!el) return;
+  const bks = _bkAllBookings.filter(b => b.date === ds);
+  const [y,mo,d] = ds.split('-').map(Number);
+  const dateLabel = `${d}. ${BK_MONTHS[mo-1]} ${y}`;
+
+  if (!bks.length) {
+    el.innerHTML = `<div style="color:#94a3b8;font-size:0.875rem;padding:0.75rem 0">Žiadne rezervácie — ${dateLabel}</div>`;
+    return;
+  }
+
+  const STATUS_LABEL = { confirmed: '✅', cancelled: '❌', no_show: '👻' };
+  const STATUS_COLOR = { confirmed: '#16a34a', cancelled: '#dc2626', no_show: '#f59e0b' };
+
+  el.innerHTML = `<div style="font-weight:700;font-size:0.875rem;margin-bottom:0.75rem;color:#374151">📅 ${dateLabel}</div>` +
+    bks.map(b => `
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;cursor:pointer"
+           onclick="showBookingDetail('${b.id}')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <span style="font-weight:700;font-size:0.875rem">${b.start_time} – ${b.end_time}</span>
+            ${b.service_name ? `<span style="font-size:0.78rem;background:#ede9fe;color:#5b4fff;border-radius:4px;padding:1px 6px;margin-left:6px">${escHtml(b.service_name)}</span>` : ''}
+          </div>
+          <span style="font-size:0.8rem;color:${STATUS_COLOR[b.status]||'#374151'}">${STATUS_LABEL[b.status]||''}</span>
+        </div>
+        <div style="font-size:0.82rem;color:#374151;margin-top:4px">${escHtml(b.customer_name)}</div>
+        <div style="font-size:0.75rem;color:#94a3b8">${escHtml(b.customer_email)}</div>
+        ${b.ai_summary ? `<div style="font-size:0.72rem;color:#64748b;margin-top:6px;padding:6px;background:white;border-radius:6px;border:1px solid #e2e8f0;line-height:1.5">${escHtml(b.ai_summary.slice(0,120))}${b.ai_summary.length>120?'…':''}</div>` : ''}
+      </div>
+    `).join('');
+}
 
 async function loadBookingsList() {
-  const from   = document.getElementById('bk-from')?.value || '';
-  const to     = document.getElementById('bk-to')?.value   || '';
-  const status = document.getElementById('bk-status-filter')?.value || '';
-  let url = `/api/booking/${currentWidget.id}/bookings?`;
-  if (from) url += `from=${from}&`;
-  if (to)   url += `to=${to}&`;
-  if (status) url += `status=${status}&`;
+  // Kept as alias — refresh calendar
+  await renderBookingCalendar();
+}
 
-  const el = document.getElementById('bk-bookings-list');
-  if (!el) return;
-  el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem">Načítavam...</div>';
+function showBookingDetail(id) {
+  const b = _bkAllBookings.find(x => x.id === id);
+  if (!b) return;
+  const modal = document.getElementById('bk-detail-modal');
+  const content = document.getElementById('bk-detail-content');
+  if (!modal || !content) return;
 
-  const r = await apiFetch(url);
-  if (!r || !r.ok) { el.innerHTML = '<div style="color:#dc2626;font-size:0.875rem">Chyba načítania.</div>'; return; }
-  const bookings = await r.json();
+  const [y,mo,d] = b.date.split('-').map(Number);
+  const dateLabel = `${d}. ${BK_MONTHS[mo-1]} ${y}`;
+  const STATUS_LABEL = { confirmed: '✅ Potvrdená', cancelled: '❌ Zrušená', no_show: '👻 Nedostavil sa' };
+  const STATUS_COLOR = { confirmed: '#16a34a', cancelled: '#dc2626', no_show: '#f59e0b' };
 
-  if (!bookings.length) { el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem">Žiadne rezervácie pre zvolené kritériá.</div>'; return; }
-
-  const STATUS_LABELS = { confirmed: '✅ Potvrdená', cancelled: '❌ Zrušená', no_show: '👻 Nedostavil sa' };
-  const STATUS_COLORS = { confirmed: '#16a34a', cancelled: '#dc2626', no_show: '#f59e0b' };
-
-  el.innerHTML = `
-    <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
-      <thead>
-        <tr style="border-bottom:2px solid #e2e8f0">
-          <th style="text-align:left;padding:0.5rem 0.25rem;color:#64748b;font-weight:600">Dátum & Čas</th>
-          <th style="text-align:left;padding:0.5rem 0.25rem;color:#64748b;font-weight:600">Zákazník</th>
-          <th style="text-align:left;padding:0.5rem 0.25rem;color:#64748b;font-weight:600">Stav</th>
-          <th style="padding:0.5rem 0.25rem"></th>
-        </tr>
-      </thead>
-      <tbody>
-        ${bookings.map(b => `
-          <tr style="border-bottom:1px solid #f1f5f9" id="bk-row-${b.id}">
-            <td style="padding:0.5rem 0.25rem;white-space:nowrap"><strong>${b.date}</strong><br>${b.start_time} – ${b.end_time}</td>
-            <td style="padding:0.5rem 0.25rem">${escHtml(b.customer_name)}<br><span style="color:#64748b">${escHtml(b.customer_email)}</span>${b.customer_phone?`<br><span style="color:#64748b">${escHtml(b.customer_phone)}</span>`:''}</td>
-            <td style="padding:0.5rem 0.25rem"><span style="color:${STATUS_COLORS[b.status]||'#374151'};font-weight:600">${STATUS_LABELS[b.status]||b.status}</span></td>
-            <td style="padding:0.5rem 0.25rem;white-space:nowrap">
-              ${b.status === 'confirmed' ? `
-                <button class="btn btn-sm btn-danger" onclick="changeBookingStatus('${b.id}','cancelled')">Zrušiť</button>
-                <button class="btn btn-sm btn-secondary" style="margin-left:4px" onclick="changeBookingStatus('${b.id}','no_show')">Neprišiel</button>
-              ` : ''}
-            </td>
-          </tr>
-        `).join('')}
-      </tbody>
-    </table>
+  content.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:1rem">
+      <div style="background:#f8fafc;border-radius:8px;padding:0.6rem">
+        <div style="font-size:0.7rem;color:#94a3b8;font-weight:600">DÁTUM & ČAS</div>
+        <div style="font-size:0.875rem;font-weight:700;margin-top:2px">${dateLabel} ${b.start_time}–${b.end_time}</div>
+      </div>
+      ${b.service_name ? `<div style="background:#ede9fe;border-radius:8px;padding:0.6rem">
+        <div style="font-size:0.7rem;color:#5b4fff;font-weight:600">SLUŽBA</div>
+        <div style="font-size:0.875rem;font-weight:700;margin-top:2px;color:#5b4fff">${escHtml(b.service_name)}</div>
+      </div>` : '<div></div>'}
+    </div>
+    <div style="background:#f8fafc;border-radius:8px;padding:0.75rem;margin-bottom:1rem">
+      <div style="font-size:0.7rem;color:#94a3b8;font-weight:600;margin-bottom:4px">ZÁKAZNÍK</div>
+      <div style="font-weight:700">${escHtml(b.customer_name)}</div>
+      <div style="font-size:0.82rem;color:#64748b">${escHtml(b.customer_email)}</div>
+      ${b.customer_phone ? `<div style="font-size:0.82rem;color:#64748b">${escHtml(b.customer_phone)}</div>` : ''}
+    </div>
+    ${b.ai_summary ? `
+      <div style="background:#fafafa;border:1px solid #e2e8f0;border-radius:10px;padding:0.875rem;margin-bottom:1rem">
+        <div style="font-size:0.72rem;font-weight:700;color:#5b4fff;margin-bottom:0.5rem">🤖 AI KARTA KLIENTA</div>
+        <div style="font-size:0.82rem;color:#374151;white-space:pre-line;line-height:1.65">${escHtml(b.ai_summary)}</div>
+      </div>` : ''}
+    <div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center">
+      <span style="font-size:0.82rem;font-weight:700;color:${STATUS_COLOR[b.status]||'#374151'}">${STATUS_LABEL[b.status]||b.status}</span>
+    </div>
+    ${b.status === 'confirmed' ? `<div style="display:flex;gap:0.5rem">
+      <button class="btn btn-sm btn-danger" onclick="changeBookingStatus('${b.id}','cancelled');closeBkDetail()">Zrušiť rezerváciu</button>
+      <button class="btn btn-sm btn-secondary" onclick="changeBookingStatus('${b.id}','no_show');closeBkDetail()">Neprišiel</button>
+    </div>` : ''}
   `;
+  modal.style.display = 'flex';
+}
+
+function closeBkDetail(e) {
+  const modal = document.getElementById('bk-detail-modal');
+  if (!modal) return;
+  if (!e || e.target === modal) modal.style.display = 'none';
 }
 
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -1866,7 +2058,7 @@ async function changeBookingStatus(bookingId, status) {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ status }),
   });
-  if (r && r.ok) { showToast('Stav aktualizovaný.', 'success'); loadBookingsList(); }
+  if (r && r.ok) { showToast('Stav aktualizovaný.', 'success'); renderBookingCalendar(); }
   else showToast('Chyba.', 'error');
 }
 

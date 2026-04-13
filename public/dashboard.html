@@ -834,6 +834,18 @@
             </div>
           </div>
 
+          <!-- Services panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">✂️ Služby</div>
+                <div class="panel-subtitle">Pridajte služby, ktoré zákazníci uvidia pri rezervácii (napr. Strihanie, Farbenie)</div>
+              </div>
+              <button class="btn btn-primary btn-sm" onclick="openServiceModal()">+ Pridať</button>
+            </div>
+            <div id="bk-services-list" style="margin-top:0.5rem"></div>
+          </div>
+
           <!-- Schedule panel -->
           <div class="panel">
             <div class="panel-header">
@@ -879,22 +891,28 @@
           <div class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Kalendár rezervácií</div>
-                <div class="panel-subtitle">Prehľad nadchádzajúcich a minulých termínov</div>
+                <div class="panel-title">📅 Kalendár rezervácií</div>
+                <div class="panel-subtitle">Prehľad termínov — kliknite na deň pre detaily a AI kartu</div>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center">
+                <button class="btn btn-secondary btn-sm" id="bk-cal-prev" onclick="bkCalNav(-1)">‹</button>
+                <span id="bk-cal-month" style="font-size:0.875rem;font-weight:600;min-width:120px;text-align:center"></span>
+                <button class="btn btn-secondary btn-sm" id="bk-cal-next" onclick="bkCalNav(1)">›</button>
               </div>
             </div>
-            <div style="display:flex;gap:0.5rem;margin-bottom:1rem;flex-wrap:wrap">
-              <input type="date" class="form-control" id="bk-from" style="width:auto">
-              <input type="date" class="form-control" id="bk-to"   style="width:auto">
-              <select class="form-control" id="bk-status-filter" style="width:auto">
-                <option value="">Všetky stavy</option>
-                <option value="confirmed">Potvrdené</option>
-                <option value="cancelled">Zrušené</option>
-                <option value="no_show">Nedostavil sa</option>
-              </select>
-              <button class="btn btn-secondary" onclick="loadBookingsList()">Filtrovať</button>
+            <div id="bk-calendar-grid" style="margin-top:0.5rem"></div>
+            <div id="bk-day-bookings" style="margin-top:1rem"></div>
+          </div>
+
+          <!-- Booking detail modal (hidden) -->
+          <div id="bk-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2000;align-items:center;justify-content:center;padding:1rem" onclick="closeBkDetail(event)">
+            <div style="background:white;border-radius:16px;max-width:520px;width:100%;padding:1.5rem;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+                <div style="font-weight:700;font-size:1rem">Detail rezervácie</div>
+                <button onclick="closeBkDetail()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;color:#94a3b8">✕</button>
+              </div>
+              <div id="bk-detail-content"></div>
             </div>
-            <div id="bk-bookings-list"></div>
           </div>
 
           <!-- Google Calendar panel -->
@@ -1104,7 +1122,46 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=2"></script>
+<!-- Service Modal -->
+<div id="modal-service" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:center;justify-content:center;padding:0.75rem" onclick="if(event.target===this)closeServiceModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <h2 id="svc-modal-title" style="font-size:1.15rem;font-weight:700;margin-bottom:1.25rem">Nová služba</h2>
+    <input type="hidden" id="svc-id">
+    <div class="form-group">
+      <label>Názov služby *</label>
+      <input type="text" class="form-control" id="svc-name" placeholder="napr. Strihanie vlasov">
+    </div>
+    <div class="form-group">
+      <label>Popis (nepovinné)</label>
+      <input type="text" class="form-control" id="svc-desc" placeholder="Krátky popis pre zákazníka">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+      <div class="form-group">
+        <label>Trvanie (min) *</label>
+        <input type="number" class="form-control" id="svc-duration" min="5" step="5" value="60">
+      </div>
+      <div class="form-group">
+        <label>Cena (prázdne = zadarmo)</label>
+        <input type="number" class="form-control" id="svc-price" min="0" step="0.5" placeholder="napr. 25">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Mena</label>
+      <select class="form-control" id="svc-currency">
+        <option value="EUR">EUR €</option>
+        <option value="CZK">CZK Kč</option>
+        <option value="USD">USD $</option>
+        <option value="GBP">GBP £</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:0.75rem;margin-top:1.25rem">
+      <button class="btn btn-secondary" style="flex:1" onclick="closeServiceModal()">Zrušiť</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveService()">Uložiť</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/dashboard.js?v=3"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

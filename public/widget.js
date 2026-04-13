@@ -950,14 +950,25 @@
               typingEl.textContent = parsed.error;
               typingEl.classList.remove('nd-typing');
             } else if (parsed.done) {
-              // Stream finished — detect booking trigger, then render markdown
+              // Stream finished — detect booking tokens, then render markdown
               let final = parsed.fullText || fullText;
-              const bookingTrigger = final.includes('__BOOKING__');
-              if (bookingTrigger) final = final.replace(/__BOOKING__/g, '').trim();
-              typingEl.innerHTML = renderMarkdown(final);
-              history.push({ role: 'assistant', content: final });
-              maybeShowCta();
-              if (bookingTrigger) showInlineBookingCard();
+
+              // __DIRECTBOOK__:JSON — AI collected all info, try to book directly
+              const directBookMatch = final.match(/__DIRECTBOOK__:(\{[^}]+\})/);
+              if (directBookMatch) {
+                final = final.replace(/__DIRECTBOOK__:[^\s]*/g, '').trim();
+                typingEl.innerHTML = renderMarkdown(final);
+                history.push({ role: 'assistant', content: final });
+                maybeShowCta();
+                try { handleDirectBooking(JSON.parse(directBookMatch[1])); } catch {}
+              } else {
+                const bookingTrigger = final.includes('__BOOKING__');
+                if (bookingTrigger) final = final.replace(/__BOOKING__/g, '').trim();
+                typingEl.innerHTML = renderMarkdown(final);
+                history.push({ role: 'assistant', content: final });
+                maybeShowCta();
+                if (bookingTrigger) showInlineBookingCard();
+              }
             } else if (parsed.text) {
               if (first) {
                 typingEl.textContent = '';
@@ -1118,6 +1129,48 @@
 
   /* ── Inline Booking UI ──────────────────────────────────────── */
   let _bookingShownInSession = false;
+
+  /* ── Direct booking from chat (no widget UI) ──────────────────── */
+  async function handleDirectBooking(data) {
+    const { name, email, service, serviceId, date, time } = data;
+    if (!name || !email || !date || !time) {
+      addBotMessage('❌ Niektoré údaje chýbajú. Skúste to znova alebo otvorte rezervačný formulár.');
+      return;
+    }
+    const loadingEl = shadow.querySelector('#nd-messages')?.lastElementChild;
+    try {
+      const r = await fetch(`${BASE_URL}/api/booking/${WIDGET_ID}/public/book`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerName:  name,
+          customerEmail: email,
+          date,
+          startTime:     time,
+          serviceId:     serviceId || undefined,
+          serviceName:   service  || undefined,
+          sessionId:     _sessionId,
+        }),
+      });
+      const d = await r.json();
+      if (r.ok) {
+        const [y, mo, day] = date.split('-').map(Number);
+        const MONTHS = ['jan','feb','mar','apr','máj','jún','júl','aug','sep','okt','nov','dec'];
+        const dateLabel = `${day}. ${MONTHS[mo-1]} ${y}`;
+        addBotMessage(
+          `✅ **Rezervácia potvrdená!**\n\n📅 ${dateLabel} o **${time}**${service ? `\n✂️ ${service}` : ''}\n\n` +
+          `${esc(d.confirmationMessage || 'Tešíme sa na vás!')}\n\nPotvrdzovací email sme odoslali na **${esc(email)}**.`
+        );
+        _bookingShownInSession = true;
+      } else {
+        // Slot taken — offer to open booking widget
+        addBotMessage(`❌ ${d.error || 'Termín je obsadený.'} Chcete vybrať iný čas?`);
+        showInlineBookingCard();
+      }
+    } catch {
+      addBotMessage('❌ Chyba pri rezervácii. Skúste znova alebo otvorte formulár.');
+    }
+  }
 
   function showInlineBookingCard() {
     if (_bookingShownInSession) return;

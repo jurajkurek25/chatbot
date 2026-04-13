@@ -8,6 +8,55 @@ const gcal = require('../services/gcal');
 
 const router = express.Router();
 
+/* ── Async AI booking summary ─────────────────────────────────────
+   Loaded lazily to avoid circular require at startup              */
+function generateBookingSummary(bookingId, sessionId, widgetId, serviceInfo) {
+  setImmediate(async () => {
+    try {
+      const db = getDb();
+      let messages = [];
+      if (sessionId) {
+        const conv = db.prepare('SELECT id FROM conversations WHERE session_id = ? AND widget_id = ?')
+          .get(sessionId, widgetId);
+        if (conv) {
+          messages = db.prepare(
+            'SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at ASC'
+          ).all(conv.id);
+        }
+      }
+      if (!messages.length) return;
+      const Anthropic = require('@anthropic-ai/sdk');
+      const client = new Anthropic();
+      const transcript = messages.map(m =>
+        `${m.role === 'user' ? 'Zákazník' : 'Asistent'}: ${m.content}`
+      ).join('\n');
+      const resp = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 400,
+        messages: [{
+          role: 'user',
+          content: `Zákazník si práve zarezervoval termín${serviceInfo ? ': ' + serviceInfo : ''}.
+Analyzuj konverzáciu a vytvor stručnú rezervačnú kartu pre majiteľa biznisu.
+
+Konverzácia:
+${transcript}
+
+Vráť VÝHRADNE tento formát (žiadny iný text):
+
+📋 PREČO SA OBJEDNAL: [1–2 vety – hlavný dôvod rezervácie]
+💭 ČO CHCE: [konkrétne požiadavky, preferencie]
+⚡ NALIEHAVOSŤ: [okamžitá / bežná / plánuje]
+📝 POZNÁMKY: [ďalšie relevantné info z konverzácie, alebo "Žiadne"]`,
+        }],
+      });
+      const summary = resp.content[0]?.text?.trim();
+      if (summary) db.prepare('UPDATE bookings SET ai_summary = ? WHERE id = ?').run(summary, bookingId);
+    } catch (err) {
+      console.error('[booking summary]', err.message);
+    }
+  });
+}
+
 /* ── Helpers ──────────────────────────────────────────────────── */
 
 /** Parse "HH:MM" → minutes from midnight */
@@ -150,6 +199,10 @@ router.get('/:widgetId/public/config', (req, res) => {
     'SELECT day_of_week, start_time, end_time, active FROM booking_schedules WHERE booking_config_id = ? ORDER BY day_of_week'
   ).all(cfg.id);
 
+  const services = db.prepare(
+    'SELECT id, name, description, duration_mins, price, currency FROM booking_services WHERE booking_config_id = ? AND active = 1 ORDER BY display_order, name'
+  ).all(cfg.id);
+
   res.json({
     widgetId:           widget.id,
     botName:            widget.bot_name,
@@ -160,6 +213,7 @@ router.get('/:widgetId/public/config', (req, res) => {
     maxAdvanceDays:     cfg.max_advance_days,
     confirmationMessage: cfg.confirmation_message,
     schedules,
+    services,
   });
 });
 
@@ -172,10 +226,18 @@ router.get('/:widgetId/public/slots', (req, res) => {
   const cfg = db.prepare('SELECT * FROM booking_configs WHERE widget_id = ?').get(req.params.widgetId);
   if (!cfg) return res.status(404).json({ error: 'Booking nie je povolený.' });
 
-  const { date } = req.query;
+  const { date, serviceId } = req.query;
   if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'Neplatný dátum.' });
 
-  res.json(generateSlots(cfg, date));
+  // Override slot_duration with service duration if serviceId provided
+  let effectiveCfg = cfg;
+  if (serviceId) {
+    const svc = getDb().prepare('SELECT duration_mins FROM booking_services WHERE id = ? AND booking_config_id = ?')
+      .get(serviceId, cfg.id);
+    if (svc) effectiveCfg = { ...cfg, slot_duration: svc.duration_mins };
+  }
+
+  res.json(generateSlots(effectiveCfg, date));
 });
 
 /** POST /api/booking/:widgetId/public/book */
@@ -187,35 +249,49 @@ router.post('/:widgetId/public/book', (req, res) => {
   const cfg = db.prepare('SELECT * FROM booking_configs WHERE widget_id = ?').get(req.params.widgetId);
   if (!cfg) return res.status(404).json({ error: 'Booking nie je povolený.' });
 
-  const { customerName, customerEmail, customerPhone, date, startTime, sessionId } = req.body;
+  const { customerName, customerEmail, customerPhone, date, startTime, sessionId, serviceId, serviceName } = req.body;
   if (!customerName || !customerEmail || !date || !startTime)
     return res.status(400).json({ error: 'Vyplňte meno, email, dátum a čas.' });
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'Neplatný dátum.' });
   if (!/^\d{2}:\d{2}$/.test(startTime)) return res.status(400).json({ error: 'Neplatný čas.' });
 
+  // Resolve service & use its duration for slot verification
+  let resolvedService = null;
+  let effectiveCfg = cfg;
+  if (serviceId) {
+    resolvedService = db.prepare('SELECT * FROM booking_services WHERE id = ? AND booking_config_id = ?')
+      .get(serviceId, cfg.id);
+    if (resolvedService) effectiveCfg = { ...cfg, slot_duration: resolvedService.duration_mins };
+  }
+
   // Verify the slot is still available
-  const available = generateSlots(cfg, date);
+  const available = generateSlots(effectiveCfg, date);
   const slot = available.find(s => s.start_time === startTime);
-  if (!slot) return res.status(409).json({ error: 'Termín nie je dostupný. Vyberte iný.' });
+  if (!slot) return res.status(409).json({ error: 'Termín nie je dostupný. Vyberte iný čas.' });
+
+  const resolvedServiceName = resolvedService?.name || serviceName || null;
 
   const id = uuidv4();
   db.prepare(`
     INSERT INTO bookings (id, booking_config_id, widget_id, customer_name, customer_email, customer_phone,
-      date, start_time, end_time, status, session_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?)
+      date, start_time, end_time, status, session_id, service_id, service_name)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?)
   `).run(id, cfg.id, widget.id, customerName.trim(), customerEmail.trim(),
          customerPhone ? customerPhone.trim() : null,
-         date, slot.start_time, slot.end_time, sessionId || null);
+         date, slot.start_time, slot.end_time,
+         sessionId || null, resolvedService?.id || null, resolvedServiceName);
 
-  // Async: sync to Google Calendar
+  // Async: GCal sync + AI summary
   const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
   setImmediate(() => gcal.createEvent(cfg, booking).catch(() => {}));
+  if (sessionId) generateBookingSummary(id, sessionId, widget.id, resolvedServiceName);
 
   res.json({
     id,
     date,
-    startTime: slot.start_time,
-    endTime:   slot.end_time,
+    startTime:  slot.start_time,
+    endTime:    slot.end_time,
+    serviceName: resolvedServiceName,
     confirmationMessage: cfg.confirmation_message || 'Rezervácia potvrdená! Tešíme sa na vás.',
   });
 });
@@ -223,6 +299,70 @@ router.post('/:widgetId/public/book', (req, res) => {
 /* ════════════════════════════════════════════════════════════════
    PROTECTED ENDPOINTS (requireAuth)
    ════════════════════════════════════════════════════════════════ */
+
+/* ── Services ──────────────────────────────────────────────────── */
+
+/** GET /api/booking/:widgetId/services */
+router.get('/:widgetId/services', requireAuth, (req, res) => {
+  if (!getOwnedWidget(req.params.widgetId, req.userId))
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  const cfg = getOrCreateConfig(req.params.widgetId);
+  res.json(getDb().prepare(
+    'SELECT * FROM booking_services WHERE booking_config_id = ? ORDER BY display_order, name'
+  ).all(cfg.id));
+});
+
+/** POST /api/booking/:widgetId/services */
+router.post('/:widgetId/services', requireAuth, (req, res) => {
+  if (!getOwnedWidget(req.params.widgetId, req.userId))
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  const cfg = getOrCreateConfig(req.params.widgetId);
+  const { name, description, durationMins, price, currency, displayOrder } = req.body;
+  if (!name?.trim()) return res.status(400).json({ error: 'Názov služby je povinný.' });
+  const id = uuidv4();
+  getDb().prepare(`
+    INSERT INTO booking_services (id, booking_config_id, name, description, duration_mins, price, currency, display_order)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(id, cfg.id, name.trim().slice(0,100), (description||'').trim().slice(0,500),
+    parseInt(durationMins)||60, price != null && price !== '' ? parseFloat(price) : null,
+    (currency||'EUR').slice(0,5), parseInt(displayOrder)||0);
+  res.json({ ok: true, id });
+});
+
+/** PUT /api/booking/:widgetId/services/:serviceId */
+router.put('/:widgetId/services/:serviceId', requireAuth, (req, res) => {
+  if (!getOwnedWidget(req.params.widgetId, req.userId))
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  const cfg = getOrCreateConfig(req.params.widgetId);
+  const db = getDb();
+  const svc = db.prepare('SELECT * FROM booking_services WHERE id = ? AND booking_config_id = ?')
+    .get(req.params.serviceId, cfg.id);
+  if (!svc) return res.status(404).json({ error: 'Služba nenájdená.' });
+  const { name, description, durationMins, price, currency, active, displayOrder } = req.body;
+  db.prepare(`
+    UPDATE booking_services SET name=?, description=?, duration_mins=?, price=?, currency=?, active=?, display_order=? WHERE id=?
+  `).run(
+    (name||svc.name).trim().slice(0,100),
+    description != null ? description.trim().slice(0,500) : svc.description,
+    parseInt(durationMins) > 0 ? parseInt(durationMins) : svc.duration_mins,
+    price != null && price !== '' ? parseFloat(price) : svc.price,
+    (currency||svc.currency).slice(0,5),
+    active != null ? (active ? 1 : 0) : svc.active,
+    parseInt(displayOrder) >= 0 ? parseInt(displayOrder) : svc.display_order,
+    svc.id
+  );
+  res.json({ ok: true });
+});
+
+/** DELETE /api/booking/:widgetId/services/:serviceId */
+router.delete('/:widgetId/services/:serviceId', requireAuth, (req, res) => {
+  if (!getOwnedWidget(req.params.widgetId, req.userId))
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  const cfg = getOrCreateConfig(req.params.widgetId);
+  getDb().prepare('DELETE FROM booking_services WHERE id = ? AND booking_config_id = ?')
+    .run(req.params.serviceId, cfg.id);
+  res.json({ ok: true });
+});
 
 /** GET /api/booking/:widgetId/config */
 router.get('/:widgetId/config', requireAuth, (req, res) => {

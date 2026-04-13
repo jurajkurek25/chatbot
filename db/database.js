@@ -214,6 +214,19 @@ function initDatabase() {
       UNIQUE(booking_config_id, date)
     );
 
+    CREATE TABLE IF NOT EXISTS booking_services (
+      id TEXT PRIMARY KEY,
+      booking_config_id TEXT NOT NULL REFERENCES booking_configs(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      duration_mins INTEGER NOT NULL DEFAULT 60,
+      price REAL,
+      currency TEXT NOT NULL DEFAULT 'EUR',
+      active INTEGER NOT NULL DEFAULT 1,
+      display_order INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
     CREATE TABLE IF NOT EXISTS bookings (
       id TEXT PRIMARY KEY,
       booking_config_id TEXT NOT NULL REFERENCES booking_configs(id) ON DELETE CASCADE,
@@ -259,6 +272,9 @@ function initDatabase() {
     `ALTER TABLE leads ADD COLUMN notes TEXT`,
     `ALTER TABLE leads ADD COLUMN gdpr_consent INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE widgets ADD COLUMN gdpr_text TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE bookings ADD COLUMN service_id TEXT`,
+    `ALTER TABLE bookings ADD COLUMN service_name TEXT`,
+    `ALTER TABLE bookings ADD COLUMN ai_summary TEXT`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists */ }

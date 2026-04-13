@@ -141,7 +141,12 @@ function loadProducts(widgetId) {
 function loadBookingConfig(widgetId) {
   try {
     const { getDb } = require('../db/database');
-    return getDb().prepare('SELECT * FROM booking_configs WHERE widget_id = ?').get(widgetId) || null;
+    const cfg = getDb().prepare('SELECT * FROM booking_configs WHERE widget_id = ?').get(widgetId) || null;
+    if (!cfg) return null;
+    cfg.services = getDb().prepare(
+      'SELECT id, name, description, duration_mins, price, currency FROM booking_services WHERE booking_config_id = ? AND active = 1 ORDER BY display_order, name'
+    ).all(cfg.id);
+    return cfg;
   } catch { return null; }
 }
 
@@ -149,13 +154,44 @@ function buildBookingSection(widgetId, bookingCfg) {
   if (!bookingCfg) return '';
   const origin = (process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '');
   const bookingUrl = `${origin}/book/${widgetId}`;
+  const now = new Date();
+  const todayStr = now.toLocaleDateString('sk-SK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const timeStr  = now.toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
+
+  const hasServices = bookingCfg.services && bookingCfg.services.length > 0;
+  const servicesList = hasServices
+    ? bookingCfg.services.map(s => {
+        const dur = `${s.duration_mins} min`;
+        const price = s.price != null ? ` | ${s.price} ${s.currency}` : '';
+        return `  • ${s.name} (${dur}${price})${s.description ? ' – ' + s.description : ''}`;
+      }).join('\n')
+    : null;
+
   return `\n\n## ONLINE REZERVÁCIE
-Tento biznis prijíma online rezervácie termínov. Keď zákazník prejaví záujem o stretnutie, konzultáciu alebo rezerváciu, postupuj takto:
-1. Stručne potvrď, že je to možné online
-2. Vlož na koniec odpovede PRESNE tento token (nič iné nepridávaj za ním): __BOOKING__
-Systém automaticky zobrazí zákazníkovi interaktívny formulár na výber termínu.
-Booking URL (pre prípad, že zákazník chce priamy odkaz): ${bookingUrl}
-DÔLEŽITÉ: Token __BOOKING__ použi IBA raz za konverzáciu, keď zákazník JASNE vyjadrí záujem o rezerváciu.`;
+Aktuálny dátum a čas: ${todayStr}, ${timeStr}
+Tento biznis prijíma online rezervácie.${servicesList ? `\n\nDostupné služby:\n${servicesList}` : ''}
+
+### Ako postupovať pri záujme o rezerváciu:
+
+**Možnosť A – Priame zarezervovanie cez chat** (preferované, bez widgetu):
+Keď zákazník napíše konkrétnu požiadavku (napr. "objednaj ma na strihanie zajtra o 17:00") a ty máš:
+- jeho meno
+- jeho email
+- konkrétnu službu${hasServices ? ' zo zoznamu vyššie' : ''}
+- konkrétny dátum (preveď "zajtra", "v pondelok" na skutočný dátum YYYY-MM-DD)
+- konkrétny čas (HH:MM)
+
+→ Potvrď rezerváciu v texte A vlož na koniec presne tento token (JSON musí byť na jednom riadku):
+__DIRECTBOOK__:{"name":"MENO","email":"EMAIL","service":"NAZOV_SLUZBY","serviceId":"ID_SLUZBY_alebo_null","date":"YYYY-MM-DD","time":"HH:MM"}
+
+Systém sa pokúsi zarezervovať termín. Ak nie je voľný, automaticky ti to oznámi.
+Ak nemáš niektorý z potrebných údajov, najprv sa opýtaj zákazníka.
+
+**Možnosť B – Interaktívny formulár** (ak zákazník chce sám vybrať):
+→ Vlož na koniec odpovede: __BOOKING__
+
+Booking URL (priamy odkaz): ${bookingUrl}
+DÔLEŽITÉ: Použi JEDEN token (__DIRECTBOOK__ ALEBO __BOOKING__) IBA raz za konverzáciu.`;
 }
 
 /* ── Streaming chat response ───────────────────────────────────── */
