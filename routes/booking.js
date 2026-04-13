@@ -298,14 +298,27 @@ router.post('/:widgetId/public/book', (req, res) => {
   const resolvedServiceName = resolvedService?.name || serviceName || null;
 
   const id = uuidv4();
-  db.prepare(`
-    INSERT INTO bookings (id, booking_config_id, widget_id, customer_name, customer_email, customer_phone,
-      date, start_time, end_time, status, session_id, service_id, service_name)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?)
-  `).run(id, cfg.id, widget.id, customerName.trim(), customerEmail.trim(),
-         customerPhone ? customerPhone.trim() : null,
-         date, slot.start_time, slot.end_time,
-         sessionId || null, resolvedService?.id || null, resolvedServiceName);
+  // Try full INSERT first (with service columns); fall back to base INSERT if columns missing
+  try {
+    db.prepare(`
+      INSERT INTO bookings (id, booking_config_id, widget_id, customer_name, customer_email, customer_phone,
+        date, start_time, end_time, status, session_id, service_id, service_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?)
+    `).run(id, cfg.id, widget.id, customerName.trim(), customerEmail.trim(),
+           customerPhone ? customerPhone.trim() : null,
+           date, slot.start_time, slot.end_time,
+           sessionId || null, resolvedService?.id || null, resolvedServiceName);
+  } catch {
+    // Fallback: service_id / service_name columns may not exist yet (pending migration)
+    db.prepare(`
+      INSERT INTO bookings (id, booking_config_id, widget_id, customer_name, customer_email, customer_phone,
+        date, start_time, end_time, status, session_id)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?)
+    `).run(id, cfg.id, widget.id, customerName.trim(), customerEmail.trim(),
+           customerPhone ? customerPhone.trim() : null,
+           date, slot.start_time, slot.end_time,
+           sessionId || null);
+  }
 
   // Async: GCal sync + AI summary
   const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);

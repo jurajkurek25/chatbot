@@ -954,13 +954,15 @@
               let final = parsed.fullText || fullText;
 
               // __DIRECTBOOK__:JSON — AI collected all info, try to book directly
-              const directBookMatch = final.match(/__DIRECTBOOK__:(\{[^}]+\})/);
+              const directBookMatch = final.match(/__DIRECTBOOK__:(\{[\s\S]*?\})/);
               if (directBookMatch) {
-                final = final.replace(/__DIRECTBOOK__:[^\s]*/g, '').trim();
+                final = final.replace(/__DIRECTBOOK__:\{[\s\S]*?\}/g, '').trim();
                 typingEl.innerHTML = renderMarkdown(final);
                 history.push({ role: 'assistant', content: final });
                 maybeShowCta();
-                try { handleDirectBooking(JSON.parse(directBookMatch[1])); } catch {}
+                try { handleDirectBooking(JSON.parse(directBookMatch[1])); } catch (e) {
+                  addBotMessage('❌ Rezerváciu sa nepodarilo spracovať. Skúste to znova.');
+                }
               } else {
                 const bookingTrigger = final.includes('__BOOKING__');
                 if (bookingTrigger) final = final.replace(/__BOOKING__/g, '').trim();
@@ -1152,7 +1154,8 @@
           sessionId:     _sessionId,
         }),
       });
-      const d = await r.json();
+      let d = {};
+      try { d = await r.json(); } catch { /* non-JSON response */ }
       if (r.ok) {
         const [y, mo, day] = date.split('-').map(Number);
         const MONTHS = ['jan','feb','mar','apr','máj','jún','júl','aug','sep','okt','nov','dec'];
@@ -1163,8 +1166,7 @@
         );
         _bookingShownInSession = true;
       } else {
-        // Slot taken — offer to open booking widget
-        addBotMessage(`❌ ${d.error || 'Termín je obsadený.'} Chcete vybrať iný čas?`);
+        addBotMessage(`❌ ${d.error || 'Termín nie je dostupný.'} Chcete vybrať iný čas?`);
         showInlineBookingCard();
       }
     } catch {
