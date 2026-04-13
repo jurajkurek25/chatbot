@@ -203,6 +203,9 @@ router.get('/:widgetId/public/config', (req, res) => {
     'SELECT id, name, description, duration_mins, price, currency FROM booking_services WHERE booking_config_id = ? AND active = 1 ORDER BY display_order, name'
   ).all(cfg.id);
 
+  let designConfig = {};
+  try { designConfig = JSON.parse(cfg.design_config || '{}'); } catch {}
+
   res.json({
     widgetId:           widget.id,
     botName:            widget.bot_name,
@@ -214,6 +217,7 @@ router.get('/:widgetId/public/config', (req, res) => {
     confirmationMessage: cfg.confirmation_message,
     schedules,
     services,
+    designConfig,
   });
 });
 
@@ -380,12 +384,13 @@ router.put('/:widgetId/config', requireAuth, (req, res) => {
   if (!getOwnedWidget(req.params.widgetId, req.userId))
     return res.status(404).json({ error: 'Widget nenájdený.' });
   const cfg = getOrCreateConfig(req.params.widgetId);
-  const { timezone, slotDuration, bufferBetween, minNotice, maxAdvanceDays, confirmationMessage } = req.body;
+  const { timezone, slotDuration, bufferBetween, minNotice, maxAdvanceDays, confirmationMessage, designConfig } = req.body;
 
   getDb().prepare(`
     UPDATE booking_configs SET
       timezone = ?, slot_duration = ?, buffer_between = ?,
-      min_notice = ?, max_advance_days = ?, confirmation_message = ?
+      min_notice = ?, max_advance_days = ?, confirmation_message = ?,
+      design_config = ?
     WHERE id = ?
   `).run(
     timezone || cfg.timezone,
@@ -394,6 +399,7 @@ router.put('/:widgetId/config', requireAuth, (req, res) => {
     parseInt(minNotice) >= 0 ? parseInt(minNotice) : cfg.min_notice,
     parseInt(maxAdvanceDays) || cfg.max_advance_days,
     confirmationMessage !== undefined ? String(confirmationMessage).slice(0, 500) : cfg.confirmation_message,
+    designConfig !== undefined ? JSON.stringify(designConfig) : (cfg.design_config || '{}'),
     cfg.id
   );
   res.json({ ok: true });

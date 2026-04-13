@@ -8,11 +8,13 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
       --p: #5b4fff; --p-light: rgba(91,79,255,0.09); --p-dark: #4338e0;
+      --grad2: #9b8cff;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
-      --bg: #f1f5f9; --card: #ffffff; --radius: 16px;
+      --bg: #f1f5f9; --card: #ffffff; --radius: 16px; --btn-radius: 10px;
     }
     html { scroll-behavior: smooth; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    body { font-family: var(--font);
            background: var(--bg); color: var(--text); min-height: 100vh; }
 
     /* ── Layout ── */
@@ -20,8 +22,7 @@
 
     /* ── Header ── */
     .bk-header {
-      background: var(--p);
-      background: linear-gradient(135deg, var(--p) 0%, #9b8cff 100%);
+      background: linear-gradient(135deg, var(--p) 0%, var(--grad2, #9b8cff) 100%);
       color: white; text-align: center; padding: 2rem 1.5rem 3.5rem;
       border-radius: 0 0 28px 28px; margin-bottom: -1.5rem; position: relative;
     }
@@ -118,7 +119,7 @@
     .date-label { font-size: 0.8rem; font-weight: 600; color: var(--muted); margin-bottom: 0.75rem; }
     .slots-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 8px; }
     .slot-btn {
-      padding: 0.55rem 0.25rem; border: 1.5px solid var(--border); border-radius: 9px;
+      padding: 0.55rem 0.25rem; border: 1.5px solid var(--border); border-radius: var(--btn-radius, 9px);
       background: white; font-size: 0.84rem; font-weight: 600; cursor: pointer;
       font-family: inherit; color: var(--text); transition: all 0.15s; text-align: center;
     }
@@ -151,7 +152,7 @@
     /* ── Buttons ── */
     .btn-row { display: flex; gap: 0.75rem; margin-top: 1.25rem; }
     .btn {
-      padding: 0.75rem 1.25rem; border-radius: 10px; border: none; font-size: 0.9rem;
+      padding: 0.75rem 1.25rem; border-radius: var(--btn-radius, 10px); border: none; font-size: 0.9rem;
       font-weight: 700; cursor: pointer; font-family: inherit; transition: all 0.2s;
     }
     .btn-back { background: var(--bg); color: var(--muted); flex-shrink: 0; }
@@ -208,10 +209,35 @@
       cfg = await r.json();
       document.title = `Rezervácia – ${cfg.botName}`;
       applyColors(cfg.primaryColor || '#5b4fff');
+      if (cfg.designConfig) applyDesign(cfg.designConfig);
       const now = new Date();
       calY = now.getFullYear(); calM = now.getMonth();
       renderApp();
     } catch { showError('Chyba pri načítaní. Skúste obnoviť stránku.'); }
+  }
+
+  function applyDesign(d) {
+    if (!d) return;
+    if (d.primaryColor) applyColors(d.primaryColor);
+    if (d.bgColor) document.documentElement.style.setProperty('--bg', d.bgColor);
+    if (d.headerGradientColor) document.documentElement.style.setProperty('--grad2', d.headerGradientColor);
+    if (d.borderRadius != null) {
+      document.documentElement.style.setProperty('--radius', d.borderRadius + 'px');
+      document.documentElement.style.setProperty('--btn-radius', Math.max(4, d.borderRadius - 4) + 'px');
+    }
+    if (d.avatarEmoji) window._bkAvatarEmoji = d.avatarEmoji;
+    if (d.fontFamily && d.fontFamily !== 'system') {
+      const fontMap = { inter: 'Inter', poppins: 'Poppins', lato: 'Lato',
+                        roboto: 'Roboto', montserrat: 'Montserrat', merriweather: 'Merriweather' };
+      const fn = fontMap[d.fontFamily];
+      if (fn) {
+        const link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fn)}:wght@400;600;700;800&display=swap`;
+        document.head.appendChild(link);
+        document.documentElement.style.setProperty('--font', `'${fn}', sans-serif`);
+      }
+    }
   }
 
   function applyColors(hex) {
@@ -238,7 +264,7 @@
 
     document.getElementById('app').innerHTML = `
       <div class="bk-header">
-        <div class="bk-avatar">📅</div>
+        <div class="bk-avatar">${window._bkAvatarEmoji || '📅'}</div>
         <h1>${esc(cfg.botName)}</h1>
         <p>Vyberte si termín online</p>
         <div class="steps-bar" id="steps-bar"></div>

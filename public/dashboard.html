@@ -846,6 +846,93 @@
             <div id="bk-services-list" style="margin-top:0.5rem"></div>
           </div>
 
+          <!-- Design panel -->
+          <div class="panel">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">🎨 Dizajn rezervačnej stránky</div>
+                <div class="panel-subtitle">Prispôsobte farby, písmo a tvar prvkov vašej stránky</div>
+              </div>
+              <div style="display:flex;gap:0.5rem">
+                <button class="btn btn-secondary btn-sm" onclick="previewBookingPage()">👁 Náhľad</button>
+                <button class="btn btn-primary btn-sm" onclick="saveBookingDesign()">Uložiť dizajn</button>
+              </div>
+            </div>
+
+            <!-- Colors -->
+            <div style="margin-bottom:1.5rem">
+              <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Farby</div>
+              <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
+                <div class="form-group" style="margin:0">
+                  <label>Hlavná farba</label>
+                  <div style="display:flex;gap:0.4rem;align-items:center">
+                    <input type="color" id="bk-d-primary" value="#5b4fff" oninput="syncHex('bk-d-primary')" style="width:38px;height:36px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
+                    <input type="text" id="bk-d-primary-hex" class="form-control" value="#5b4fff" maxlength="7" oninput="syncPicker('bk-d-primary')" style="font-family:monospace;font-size:0.85rem">
+                  </div>
+                </div>
+                <div class="form-group" style="margin:0">
+                  <label>Farba pozadia</label>
+                  <div style="display:flex;gap:0.4rem;align-items:center">
+                    <input type="color" id="bk-d-bg" value="#f1f5f9" oninput="syncHex('bk-d-bg')" style="width:38px;height:36px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
+                    <input type="text" id="bk-d-bg-hex" class="form-control" value="#f1f5f9" maxlength="7" oninput="syncPicker('bk-d-bg')" style="font-family:monospace;font-size:0.85rem">
+                  </div>
+                </div>
+                <div class="form-group" style="margin:0">
+                  <label>2. farba hlavičky</label>
+                  <div style="display:flex;gap:0.4rem;align-items:center">
+                    <input type="color" id="bk-d-grad" value="#9b8cff" oninput="syncHex('bk-d-grad')" style="width:38px;height:36px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
+                    <input type="text" id="bk-d-grad-hex" class="form-control" value="#9b8cff" maxlength="7" oninput="syncPicker('bk-d-grad')" style="font-family:monospace;font-size:0.85rem">
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Typography -->
+            <div style="margin-bottom:1.5rem">
+              <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Písmo</div>
+              <div class="form-group" style="margin:0;max-width:280px">
+                <label>Rodina písma</label>
+                <select class="form-control" id="bk-d-font">
+                  <option value="system">Systémové (predvolené)</option>
+                  <option value="inter">Inter</option>
+                  <option value="poppins">Poppins</option>
+                  <option value="lato">Lato</option>
+                  <option value="roboto">Roboto</option>
+                  <option value="montserrat">Montserrat</option>
+                  <option value="merriweather">Merriweather (serif)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Shapes -->
+            <div style="margin-bottom:1.5rem">
+              <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Tvar prvkov</div>
+              <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
+                <button class="bk-shape-opt" id="bk-shape-sharp" data-radius="4" onclick="selectBkShape(this)" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;padding:0.75rem 1.25rem;border:2px solid #e2e8f0;border-radius:10px;background:white;cursor:pointer">
+                  <div style="width:44px;height:44px;background:#e2e8f0;border-radius:4px"></div>
+                  <span style="font-size:0.75rem;font-weight:600;color:#64748b">Hranaté</span>
+                </button>
+                <button class="bk-shape-opt" id="bk-shape-rounded" data-radius="16" onclick="selectBkShape(this)" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;padding:0.75rem 1.25rem;border:2px solid #e2e8f0;border-radius:10px;background:white;cursor:pointer">
+                  <div style="width:44px;height:44px;background:#e2e8f0;border-radius:14px"></div>
+                  <span style="font-size:0.75rem;font-weight:600;color:#64748b">Zaoblené</span>
+                </button>
+                <button class="bk-shape-opt" id="bk-shape-pill" data-radius="28" onclick="selectBkShape(this)" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;padding:0.75rem 1.25rem;border:2px solid #e2e8f0;border-radius:10px;background:white;cursor:pointer">
+                  <div style="width:44px;height:44px;background:#e2e8f0;border-radius:50%"></div>
+                  <span style="font-size:0.75rem;font-weight:600;color:#64748b">Okrúhle</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Header -->
+            <div>
+              <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Hlavička</div>
+              <div class="form-group" style="margin:0;max-width:140px">
+                <label>Emoji ikona</label>
+                <input type="text" class="form-control" id="bk-d-avatar" value="📅" maxlength="4" style="font-size:1.4rem;text-align:center;letter-spacing:0.1em">
+              </div>
+            </div>
+          </div>
+
           <!-- Schedule panel -->
           <div class="panel">
             <div class="panel-header">

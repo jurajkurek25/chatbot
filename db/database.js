@@ -275,6 +275,7 @@ function initDatabase() {
     `ALTER TABLE bookings ADD COLUMN service_id TEXT`,
     `ALTER TABLE bookings ADD COLUMN service_name TEXT`,
     `ALTER TABLE bookings ADD COLUMN ai_summary TEXT`,
+    `ALTER TABLE booking_configs ADD COLUMN design_config TEXT NOT NULL DEFAULT '{}'`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists */ }

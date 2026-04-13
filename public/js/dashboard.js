@@ -1702,6 +1702,84 @@ async function loadBookingConfig() {
   document.getElementById('bk-advance').value  = data.max_advance_days || 60;
   document.getElementById('bk-confirm-msg').value = data.confirmation_message || '';
   renderScheduleGrid();
+  try { loadBookingDesign(JSON.parse(data.design_config || '{}')); } catch {}
+}
+
+/* ── Booking design editor ──────────────────────────────────────── */
+
+let _bkDesign = {};
+
+function loadBookingDesign(d) {
+  _bkDesign = d || {};
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  set('bk-d-primary',     d.primaryColor         || '#5b4fff');
+  set('bk-d-primary-hex', d.primaryColor         || '#5b4fff');
+  set('bk-d-bg',          d.bgColor              || '#f1f5f9');
+  set('bk-d-bg-hex',      d.bgColor              || '#f1f5f9');
+  set('bk-d-grad',        d.headerGradientColor  || '#9b8cff');
+  set('bk-d-grad-hex',    d.headerGradientColor  || '#9b8cff');
+  set('bk-d-font',        d.fontFamily           || 'system');
+  set('bk-d-avatar',      d.avatarEmoji          || '📅');
+
+  // Highlight active shape preset
+  document.querySelectorAll('.bk-shape-opt').forEach(btn => {
+    btn.style.borderColor = '#e2e8f0';
+    btn.querySelector('span').style.color = '#64748b';
+  });
+  const r = d.borderRadius;
+  const shapeId = r <= 6 ? 'bk-shape-sharp' : r >= 24 ? 'bk-shape-pill' : 'bk-shape-rounded';
+  const activeShape = document.getElementById(shapeId);
+  if (activeShape) {
+    activeShape.style.borderColor = '#5b4fff';
+    activeShape.querySelector('span').style.color = '#5b4fff';
+  }
+}
+
+function syncHex(baseId) {
+  const picker = document.getElementById(baseId);
+  const hex    = document.getElementById(baseId + '-hex');
+  if (picker && hex) hex.value = picker.value;
+}
+
+function syncPicker(baseId) {
+  const hex    = document.getElementById(baseId + '-hex');
+  const picker = document.getElementById(baseId);
+  if (!hex || !picker) return;
+  if (/^#[0-9a-fA-F]{6}$/.test(hex.value)) picker.value = hex.value;
+}
+
+function selectBkShape(el) {
+  document.querySelectorAll('.bk-shape-opt').forEach(btn => {
+    btn.style.borderColor = '#e2e8f0';
+    btn.querySelector('span').style.color = '#64748b';
+  });
+  el.style.borderColor = '#5b4fff';
+  el.querySelector('span').style.color = '#5b4fff';
+  _bkDesign.borderRadius = parseInt(el.dataset.radius);
+}
+
+async function saveBookingDesign() {
+  if (!currentWidget) return;
+  const getVal = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+  const design = {
+    primaryColor:        getVal('bk-d-primary-hex') || getVal('bk-d-primary') || '#5b4fff',
+    bgColor:             getVal('bk-d-bg-hex')      || getVal('bk-d-bg')      || '#f1f5f9',
+    headerGradientColor: getVal('bk-d-grad-hex')    || getVal('bk-d-grad')    || '#9b8cff',
+    fontFamily:          getVal('bk-d-font')        || 'system',
+    borderRadius:        _bkDesign.borderRadius     ?? 16,
+    avatarEmoji:         getVal('bk-d-avatar')      || '📅',
+  };
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/config`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ designConfig: design }),
+  });
+  if (r && r.ok) showToast('Dizajn uložený! Zmeny sa prejavia na rezervačnej stránke.', 'success');
+  else showToast('Chyba pri ukladaní dizajnu.', 'error');
+}
+
+function previewBookingPage() {
+  if (!currentWidget) return;
+  window.open(`/book/${currentWidget.id}`, '_blank');
 }
 
 async function saveBookingConfig() {
@@ -1739,7 +1817,7 @@ function renderServicesList() {
     el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem;padding:0.5rem 0">Žiadne služby — zákazník uvidí iba výber dátumu a času.</div>';
     return;
   }
-  el.innerHTML = _bookingServices.map(s => {
+  el.innerHTML = _bookingServices.map((s, i) => {
     const price = s.price != null ? `${s.price} ${s.currency}` : 'Zadarmo';
     const activeLabel = s.active ? '' : '<span style="font-size:0.7rem;color:#94a3b8;margin-left:0.5rem">(neaktívna)</span>';
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid #f1f5f9;gap:0.5rem">
@@ -1749,18 +1827,19 @@ function renderServicesList() {
         <div style="font-size:0.75rem;color:#94a3b8;margin-top:2px">⏱ ${s.duration_mins} min &nbsp;·&nbsp; 💶 ${esc(price)}</div>
       </div>
       <div style="display:flex;gap:0.4rem;flex-shrink:0">
-        <button class="btn btn-sm btn-secondary" onclick="openServiceModal(${JSON.stringify(JSON.stringify(s))})">✏️</button>
+        <button class="btn btn-sm btn-secondary" onclick="openServiceModal(${i})">✏️</button>
         <button class="btn btn-sm btn-danger" onclick="deleteService('${s.id}')">🗑</button>
       </div>
     </div>`;
   }).join('');
 }
 
-function openServiceModal(jsonStr) {
+function openServiceModal(idx) {
   const modal = document.getElementById('modal-service');
   if (!modal) return;
-  if (jsonStr) {
-    const s = JSON.parse(jsonStr);
+  if (idx !== undefined && idx !== null && idx !== '') {
+    const s = _bookingServices[idx];
+    if (!s) return;
     document.getElementById('svc-modal-title').textContent = 'Upraviť službu';
     document.getElementById('svc-id').value = s.id;
     document.getElementById('svc-name').value = s.name;
