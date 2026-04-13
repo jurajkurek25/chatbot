@@ -30,6 +30,10 @@
                  background: rgba(255,255,255,0.25); border: 3px solid rgba(255,255,255,0.6);
                  display: flex; align-items: center; justify-content: center;
                  font-size: 1.8rem; margin: 0 auto 0.75rem; }
+    .bk-logo   { width: 72px; height: 72px; border-radius: 14px; object-fit: contain;
+                 background: rgba(255,255,255,0.92); padding: 6px;
+                 margin: 0 auto 0.75rem; display: block;
+                 box-shadow: 0 2px 12px rgba(0,0,0,0.12); }
     .bk-header h1 { font-size: 1.3rem; font-weight: 800; margin-bottom: 0.25rem; }
     .bk-header p  { font-size: 0.85rem; opacity: 0.85; }
 
@@ -207,7 +211,7 @@
       const r = await fetch(`${BASE}/api/booking/${widgetId}/public/config`);
       if (!r.ok) { showError('Rezervácie nie sú pre túto stránku k dispozícii.'); return; }
       cfg = await r.json();
-      document.title = `Rezervácia – ${cfg.botName}`;
+      document.title = `Rezervácia – ${cfg.designConfig?.calendarName || cfg.botName}`;
       applyColors(cfg.primaryColor || '#5b4fff');
       if (cfg.designConfig) applyDesign(cfg.designConfig);
       const now = new Date();
@@ -225,7 +229,9 @@
       document.documentElement.style.setProperty('--radius', d.borderRadius + 'px');
       document.documentElement.style.setProperty('--btn-radius', Math.max(4, d.borderRadius - 4) + 'px');
     }
-    if (d.avatarEmoji) window._bkAvatarEmoji = d.avatarEmoji;
+    if (d.avatarEmoji)   window._bkAvatarEmoji    = d.avatarEmoji;
+    if (d.calendarLogo)  window._bkCalendarLogo   = d.calendarLogo;
+    if (d.calendarName)  window._bkCalendarName   = d.calendarName;
     if (d.fontFamily && d.fontFamily !== 'system') {
       const fontMap = { inter: 'Inter', poppins: 'Poppins', lato: 'Lato',
                         roboto: 'Roboto', montserrat: 'Montserrat', merriweather: 'Merriweather' };
@@ -291,8 +297,10 @@
 
     document.getElementById('app').innerHTML = `
       <div class="bk-header">
-        <div class="bk-avatar">${window._bkAvatarEmoji || '📅'}</div>
-        <h1>${esc(cfg.botName)}</h1>
+        ${window._bkCalendarLogo
+          ? `<img src="${esc(window._bkCalendarLogo)}" class="bk-logo" alt="logo">`
+          : `<div class="bk-avatar">${window._bkAvatarEmoji || '📅'}</div>`}
+        <h1>${esc(window._bkCalendarName || cfg.botName)}</h1>
         <p>${t('bookingSubtitle')}</p>
         <div class="steps-bar" id="steps-bar"></div>
       </div>

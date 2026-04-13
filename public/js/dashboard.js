@@ -1818,6 +1818,10 @@ function loadBookingDesign(d) {
   set('bk-d-grad-hex',    d.headerGradientColor  || '#9b8cff');
   set('bk-d-font',        d.fontFamily           || 'system');
   set('bk-d-avatar',      d.avatarEmoji          || '📅');
+  set('bk-d-calname',     d.calendarName         || '');
+
+  // Logo preview
+  _setLogoPreview(d.calendarLogo || '');
 
   // Load saved SK texts into inputs
   const skTxts = d.texts?.sk || {};
@@ -1838,6 +1842,52 @@ function loadBookingDesign(d) {
     activeShape.style.borderColor = '#5b4fff';
     activeShape.querySelector('span').style.color = '#5b4fff';
   }
+}
+
+function _setLogoPreview(url) {
+  const img = document.getElementById('bk-logo-preview');
+  const removeBtn = document.getElementById('bk-logo-remove-btn');
+  if (!img) return;
+  if (url) {
+    img.src = url;
+    img.style.display = 'block';
+    if (removeBtn) removeBtn.style.display = '';
+  } else {
+    img.src = '';
+    img.style.display = 'none';
+    if (removeBtn) removeBtn.style.display = 'none';
+  }
+}
+
+async function uploadBookingLogo(input) {
+  if (!currentWidget || !input.files[0]) return;
+  const statusEl = document.getElementById('bk-logo-status');
+  if (statusEl) statusEl.textContent = 'Nahrávam…';
+
+  const fd = new FormData();
+  fd.append('logo', input.files[0]);
+  input.value = '';
+
+  try {
+    const r = await fetch(`/api/booking/${currentWidget.id}/logo`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      body: fd,
+    });
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error || 'Chyba');
+    _bkDesign.calendarLogo = data.logo_url;
+    _setLogoPreview(data.logo_url);
+    if (statusEl) statusEl.textContent = 'Logo nahrané!';
+    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2500);
+  } catch (err) {
+    if (statusEl) statusEl.textContent = 'Chyba: ' + err.message;
+  }
+}
+
+function removeBookingLogo() {
+  _bkDesign.calendarLogo = '';
+  _setLogoPreview('');
 }
 
 function syncHex(baseId) {
@@ -1873,6 +1923,8 @@ async function saveBookingDesign() {
     fontFamily:          getVal('bk-d-font')        || 'system',
     borderRadius:        _bkDesign.borderRadius     ?? 16,
     avatarEmoji:         getVal('bk-d-avatar')      || '📅',
+    calendarName:        getVal('bk-d-calname')     || '',
+    calendarLogo:        _bkDesign.calendarLogo     || '',
   };
 
   // Collect SK texts and merge with existing translations

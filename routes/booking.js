@@ -2,9 +2,31 @@
 
 const express  = require('express');
 const { v4: uuidv4 } = require('uuid');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
 const gcal = require('../services/gcal');
+
+const logoStorage = multer.diskStorage({
+  destination(req, file, cb) {
+    const dir = path.join(__dirname, '..', 'uploads', 'booking-logos');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename(req, file, cb) {
+    const ext = path.extname(file.originalname).toLowerCase() || '.png';
+    cb(null, `logo-${req.params.widgetId}${ext}`);
+  },
+});
+const uploadLogo = multer({
+  storage: logoStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter(req, file, cb) {
+    cb(null, /^image\/(jpeg|png|webp|gif|svg\+xml)$/.test(file.mimetype));
+  },
+});
 
 const router = express.Router();
 
@@ -403,6 +425,26 @@ router.put('/:widgetId/config', requireAuth, (req, res) => {
     cfg.id
   );
   res.json({ ok: true });
+});
+
+/** POST /api/booking/:widgetId/logo — upload calendar logo */
+router.post('/:widgetId/logo', requireAuth, uploadLogo.single('logo'), (req, res) => {
+  if (!getOwnedWidget(req.params.widgetId, req.userId))
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  if (!req.file) return res.status(400).json({ error: 'Neplatný súbor.' });
+
+  const logoUrl = `/uploads/booking-logos/${req.file.filename}`;
+  const cfg = getOrCreateConfig(req.params.widgetId);
+
+  // Merge logoUrl into existing design_config
+  let design = {};
+  try { design = JSON.parse(cfg.design_config || '{}'); } catch {}
+  design.calendarLogo = logoUrl;
+
+  getDb().prepare('UPDATE booking_configs SET design_config = ? WHERE id = ?')
+    .run(JSON.stringify(design), cfg.id);
+
+  res.json({ logo_url: logoUrl });
 });
 
 /** PUT /api/booking/:widgetId/schedule  (replaces all 7 rows) */

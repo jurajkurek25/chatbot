@@ -929,9 +929,26 @@
             <!-- Header -->
             <div style="margin-bottom:1.5rem">
               <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Hlavička</div>
-              <div class="form-group" style="margin:0;max-width:140px">
-                <label>Emoji ikona</label>
-                <input type="text" class="form-control" id="bk-d-avatar" value="📅" maxlength="4" style="font-size:1.4rem;text-align:center;letter-spacing:0.1em">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">
+                <div class="form-group" style="margin:0">
+                  <label>Názov kalendára</label>
+                  <input type="text" class="form-control" id="bk-d-calname" placeholder="Predvolene: názov asistenta" maxlength="80">
+                  <small style="color:#94a3b8;font-size:0.72rem">Nezávislý od mena chatbota</small>
+                </div>
+                <div class="form-group" style="margin:0">
+                  <label>Emoji ikona (keď nie je logo)</label>
+                  <input type="text" class="form-control" id="bk-d-avatar" value="📅" maxlength="4" style="font-size:1.4rem;text-align:center;letter-spacing:0.1em">
+                </div>
+              </div>
+              <div style="margin-top:0.875rem">
+                <label style="font-size:0.8rem;font-weight:600;color:#374151;display:block;margin-bottom:0.4rem">Logo (nahrať obrázok)</label>
+                <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+                  <img id="bk-logo-preview" src="" alt="logo" style="display:none;width:52px;height:52px;border-radius:10px;object-fit:contain;border:1.5px solid #e2e8f0;background:#f8fafc;padding:3px">
+                  <label for="bk-logo-file" class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0">📁 Nahrať logo</label>
+                  <input type="file" id="bk-logo-file" accept="image/*" style="display:none" onchange="uploadBookingLogo(this)">
+                  <button class="btn btn-secondary btn-sm" id="bk-logo-remove-btn" onclick="removeBookingLogo()" style="display:none">✕ Odstrániť</button>
+                  <span id="bk-logo-status" style="font-size:0.78rem;color:#64748b"></span>
+                </div>
               </div>
             </div>
 
@@ -1284,7 +1301,7 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=4"></script>
+<script src="/js/dashboard.js?v=5"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>
