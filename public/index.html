@@ -161,6 +161,43 @@
     .feature-tag { display: inline-block; background: rgba(91,79,255,0.15); color: var(--accent2); font-size: .65rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; padding: .18rem .5rem; border-radius: 5px; margin-bottom: .6rem; }
     .feature-tag.sales { background: rgba(245,158,11,0.15); color: #fbbf24; }
     .feature-tag.lead { background: rgba(31,216,154,0.15); color: var(--success); }
+    .feature-tag.analytics { background: rgba(6,182,212,0.15); color: #67e8f9; }
+    .feature-tag.marketing { background: rgba(251,146,60,0.15); color: #fb923c; }
+
+    /* Facebook Messenger section */
+    .fb-section { padding: 72px var(--px); }
+    .fb-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; gap: 3rem; }
+    .fb-content .section-label { text-align: left; color: #60a5fa; }
+    .fb-content .section-h2 { text-align: left; }
+    .fb-list { display: flex; flex-direction: column; gap: .75rem; margin-top: 1.25rem; }
+    .fb-list-item { display: flex; align-items: flex-start; gap: .75rem; }
+    .fb-list-icon { font-size: 1.2rem; flex-shrink: 0; margin-top: .05rem; }
+    .fb-visual { background: var(--bg3); border: 1px solid rgba(29,161,242,0.18); border-radius: 20px; overflow: hidden; max-width: 340px; width: 100%; margin: 0 auto; flex-shrink: 0; }
+    .fb-phone-bar { background: #1877f2; padding: .85rem 1rem; display: flex; align-items: center; gap: .75rem; }
+    .fb-phone-avatar { width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 1rem; color: white; flex-shrink: 0; }
+    .fb-phone-name { font-weight: 700; font-size: .88rem; color: white; }
+    .fb-phone-status { font-size: .72rem; color: rgba(255,255,255,0.75); margin-top: .1rem; }
+    .fb-messages { padding: 1rem; display: flex; flex-direction: column; gap: .6rem; }
+    .fb-msg { padding: .55rem .85rem; border-radius: 18px; font-size: .82rem; max-width: 82%; line-height: 1.5; }
+    .fb-msg.them { background: rgba(255,255,255,0.06); color: var(--muted2); align-self: flex-start; border-bottom-left-radius: 4px; }
+    .fb-msg.us { background: #1877f2; color: white; align-self: flex-end; border-bottom-right-radius: 4px; }
+    .fb-msg-label { font-size: .68rem; color: var(--muted); margin-bottom: .3rem; }
+    .fb-input-bar { padding: .75rem 1rem; border-top: 1px solid var(--border); display: flex; gap: .5rem; align-items: center; }
+    .fb-input { flex: 1; background: rgba(255,255,255,0.06); border: 1px solid var(--border); border-radius: 20px; padding: .4rem .85rem; font-size: .8rem; color: var(--muted); }
+    .fb-send { background: #1877f2; color: white; border: none; border-radius: 50%; width: 30px; height: 30px; cursor: pointer; font-size: .8rem; flex-shrink: 0; }
+
+    /* Email marketing / Lead Magnety section */
+    .mkt-section { padding: 72px var(--px); background: var(--bg2); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .mkt-inner { max-width: 1100px; margin: 0 auto; }
+    .mkt-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-top: 2rem; }
+    .mkt-card { background: var(--bg3); border: 1px solid var(--border); border-radius: 18px; padding: 1.5rem; }
+    .mkt-card-icon { font-size: 1.6rem; margin-bottom: .75rem; }
+    .mkt-card h3 { font-weight: 700; font-size: .94rem; margin-bottom: .45rem; }
+    .mkt-card p { color: var(--muted); font-size: .86rem; line-height: 1.62; }
+    .mkt-card p strong { color: var(--muted2); }
+
+    @media(min-width:640px) { .mkt-grid { grid-template-columns: repeat(2,1fr); } }
+    @media(min-width:900px) { .fb-inner { flex-direction: row; align-items: center; } .mkt-grid { grid-template-columns: repeat(4,1fr); } }
 
     /* ── PROACTIVE BUBBLE SECTION ── */
     .bubble-section { padding: 72px var(--px); }
@@ -446,6 +483,7 @@
       <a href="#features">Funkcie</a>
       <a href="#booking">📅 Rezervácie</a>
       <a href="#instagram">Instagram</a>
+      <a href="#facebook">Facebook</a>
       <a href="/wordpress">WordPress</a>
       <a href="#pricing">Cena</a>
     </div>
@@ -463,6 +501,7 @@
     <a href="#features" onclick="closeMobileNav()">Funkcie</a>
     <a href="#booking" onclick="closeMobileNav()">📅 Rezervácie</a>
     <a href="#instagram" onclick="closeMobileNav()">Instagram</a>
+    <a href="#facebook" onclick="closeMobileNav()">Facebook</a>
     <a href="/wordpress" onclick="closeMobileNav()">WordPress</a>
     <a href="#pricing" onclick="closeMobileNav()">Cena</a>
     <div class="nav-mobile-cta">
@@ -561,6 +600,8 @@
       <button class="feat-tab" data-panel="leads">📋 Leady</button>
       <button class="feat-tab" data-panel="tech">🔧 Technické</button>
       <button class="feat-tab" data-panel="booking">📅 Rezervácie</button>
+      <button class="feat-tab" data-panel="analytics">📊 Analytika & CRM</button>
+      <button class="feat-tab" data-panel="marketing">📬 Marketing</button>
     </div>
     <div class="feat-panel active" id="panel-sales">
       <div class="feature-card"><div class="feature-tag sales">Predajný AI</div><div class="feature-icon">🎯</div><h3>Discovery → Close framework</h3><p>AI prechádza overenými predajnými krokmi: zisťuje situáciu zákazníka, <strong>identifikuje jeho skutočný problém</strong>, ponúka riešenie cez benefity a uzatvára predaj. Nie náhodne – systematicky.</p></div>
@@ -577,6 +618,9 @@
       <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">✨</div><h3>Navrhované otázky na start</h3><p>Zákazník vidí <strong>klikateľné otázky</strong> hneď po otvorení – manuálne alebo AI generované z vašich dokumentov.</p></div>
       <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">⌨️</div><h3>Streaming + Markdown formátovanie</h3><p>Text sa píše v reálnom čase. Odpovede podporujú <strong>tučné písmo, zoznamy, štruktúru</strong> – čitateľné, nie stena textu.</p></div>
       <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">📱</div><h3>Až 10 widgetov na 1 účet</h3><p>Každý widget má vlastnú bázu a nastavenia. <strong>Ideálne pre agentúry alebo viac produktov</strong> za jeden paušál.</p></div>
+      <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">🕐</div><h3>Pracovné hodiny & offline správa</h3><p>Nastavíte dni a hodiny prevádzky. <strong>Mimo pracovného času chatbot zobrazí offline správu</strong> namiesto AI odpovedí – zákazník vždy vie kedy ste k dispozícii.</p></div>
+      <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">🏷️</div><h3>White-label – žiadne „Powered by"</h3><p>Skryjete NeuraDesk branding jedným prepínačom. <strong>Zákazník vidí len vašu značku</strong>, nie platformu na ktorej beží. Vaše logo, vaše meno, vaša farba.</p></div>
+      <div class="feature-card"><div class="feature-tag">Widget</div><div class="feature-icon">👤</div><h3>Live agent takeover (Inbox)</h3><p>V záložke Inbox vidíte všetky prebiehajúce konverzácie. <strong>Kliknete „Prevziať chat" a vy prevezmete zákazníka</strong> – AI sa odmlčí, píšete vy. Zákazník to ani nezbadá.</p></div>
     </div>
     <div class="feat-panel" id="panel-knowledge">
       <div class="feature-card"><div class="feature-tag">Báza</div><div class="feature-icon">📁</div><h3>PDF, TXT, CSV, MD – jednoduché nahranie</h3><p>Nahráte súbory jedným kliknutím. AI ich spracuje a <strong>začne odpovedať z vašich informácií</strong> okamžite.</p></div>
@@ -592,6 +636,9 @@
       <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">📧</div><h3>Email notifikácia pri novom leade</h3><p>Zákazník zanechá kontakt – <strong>vy dostanete email okamžite</strong> s AI kartou. Viete zavolať pripravení, nie naslep.</p></div>
       <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">⬇️</div><h3>Export do CSV jedným kliknutím</h3><p>Všetky leady do Excelu, Google Sheets, vášho CRM. <strong>Dáta sú vždy vaše</strong>, nie uväznené v platforme.</p></div>
       <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">🎯</div><h3>CTA typy: hovor, formulár, nákup, vlastný</h3><p>AI <strong>aktívne smeruje zákazníka k akcii</strong> – nie náhodne, ale v správnom momente konverzácie.</p></div>
+      <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">⭐</div><h3>CSAT – hodnotenie konverzácie</h3><p>Po 4 odpovediach chatbota sa zákazníkovi zobrazí <strong>5-hviezdičkové hodnotenie</strong>. Vidíte skóre pri každom leade – okamžitá spätná väzba bez dotazníka.</p></div>
+      <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">⊞</div><h3>Kanban CRM – drag &amp; drop</h3><p>Prepnite leady z tabuľky na <strong>kanban board</strong>: Nový → Kontaktovaný → Uzavretý. Presuňte kartu a stav sa zmení. Vizuálny prehľad celého pipeline.</p></div>
+      <div class="feature-card"><div class="feature-tag lead">Leady</div><div class="feature-icon">📧</div><h3>Follow-up email priamo z dashboardu</h3><p>Pri každom leade kliknete 📧 a napíšete správu – <strong>odošle sa priamo na zákazníkov email</strong>. Žiadny externý mailklient, žiadne kopírovanie adries.</p></div>
     </div>
     <div class="feat-panel" id="panel-tech">
       <div class="feature-card"><div class="feature-tag">Bezpečnosť</div><div class="feature-icon">🔐</div><h3>JWT autentifikácia + rate limiting</h3><p>Každý request overený JWT tokenmi. <strong>Rate limiting 30 správ / 10 min / IP</strong> – ochrana pred zneužitím.</p></div>
@@ -602,6 +649,9 @@
       <div class="feature-card"><div class="feature-tag">Affiliate</div><div class="feature-icon">🤝</div><h3>Affiliate systém v cene</h3><p>Unikátny kód pre každého. <strong>+€15 kredit za odporúčanie</strong>, -15% zľava pre nového zákazníka.</p></div>
       <div class="feature-card"><div class="feature-tag">Onboarding</div><div class="feature-icon">🌐</div><h3>Skenovanie webu (URL scraping)</h3><p>Zadáte URL – AI naskenuje celý web: stránky, blog, produkty. Znalostná báza sa <strong>naplní automaticky za pár sekúnd</strong>. Bez nahrávania súborov, bez copy-paste.</p></div>
       <div class="feature-card"><div class="feature-tag" style="background:rgba(31,216,154,0.12);color:#6ee7b7">AI Coach</div><div class="feature-icon">🎓</div><h3>AI Coach – zákaznícka podpora</h3><p>Uvítajte zákazníka, odpovedzte na otázky, ale <strong>AI Coach tiež aktívne radí</strong> ako z produktu vyťažiť maximum. Zákazník dostane viac hodnoty – a vy menej support ticketov.</p></div>
+      <div class="feature-card"><div class="feature-tag">WooCommerce</div><div class="feature-icon">🏪</div><h3>WooCommerce import produktov</h3><p>Prepojíte WooCommerce obchod a <strong>všetky produkty sa naimportujú do znalostnej bázy</strong> automaticky. Chatbot potom odporúča produkty so správnymi cenami a popismi.</p></div>
+      <div class="feature-card"><div class="feature-tag">Tím</div><div class="feature-icon">👥</div><h3>Správa tímu</h3><p>Pozvite zamestnancov, asistentov alebo agentúru. <strong>Každý člen tímu dostane vlastný prístup</strong> do dashboardu – bez zdieľania hesiel. Spravujete cez Integrácie → Tím.</p></div>
+      <div class="feature-card"><div class="feature-tag">Integrácie</div><div class="feature-icon">🔗</div><h3>Webhooks – Make, Zapier, vlastný server</h3><p>Pri každom novom leade systém <strong>pošle POST request na vašu URL</strong>. Napojte Make.com, Zapier, Slack alebo vlastný backend. Automatizujte čokoľvek.</p></div>
     </div>
     <div class="feat-panel" id="panel-booking">
       <div class="feature-card"><div class="feature-tag" style="background:rgba(91,79,255,0.15);color:#a78bfa">Rezervácie</div><div class="feature-icon">💬</div><h3>Rezervácia priamo v chate</h3><p>Zákazník napíše, že chce termín – chatbot <strong>otvorí rezervačný formulár priamo v bubline</strong>. Dátum, čas, kontaktné údaje – celý proces bez opustenia konverzácie.</p></div>
@@ -610,6 +660,22 @@
       <div class="feature-card"><div class="feature-tag" style="background:rgba(91,79,255,0.15);color:#a78bfa">Rezervácie</div><div class="feature-icon">🗓️</div><h3>Google Calendar synchronizácia</h3><p>Napojíte Google Calendar jedným kliknutím. Nová rezervácia = nový event. Zákazník dostane <strong>email-pozvánku do kalendára</strong>. Zrušenie rezervácie vymaže event automaticky.</p></div>
       <div class="feature-card"><div class="feature-tag" style="background:rgba(91,79,255,0.15);color:#a78bfa">Rezervácie</div><div class="feature-icon">⏰</div><h3>Flexibilný rozvrh + výnimky</h3><p>Nastavíte pracovné dni a hodiny. Pridáte <strong>výnimky pre sviatky</strong> alebo iné hodiny pre konkrétny deň. Systém automaticky vygeneruje dostupné sloty.</p></div>
       <div class="feature-card"><div class="feature-tag" style="background:rgba(91,79,255,0.15);color:#a78bfa">Rezervácie</div><div class="feature-icon">⚙️</div><h3>Plná kontrola nad slotmi</h3><p>Dĺžka stretnutia, prestávka medzi slotmi, minimálna notifikácia, maximálny horizont – <strong>každý parameter nastavíte podľa vášho biznisu</strong>. Pre koučov, lekárov, salóny aj obchodné tímy.</p></div>
+    </div>
+    <div class="feat-panel" id="panel-analytics">
+      <div class="feature-card"><div class="feature-tag analytics">Analytika</div><div class="feature-icon">🎯</div><h3>Zámer návštevníka (Intent)</h3><p>AI automaticky kategorizuje každého návštevníka: <strong>chce kúpiť / skúma / hľadá podporu / len prehliada</strong>. V záložke Trendy vidíte rozloženie a viete, akých zákazníkov priťahujete.</p></div>
+      <div class="feature-card"><div class="feature-tag analytics">Analytika</div><div class="feature-icon">⏱️</div><h3>Naliehavosť a nálada zákazníka</h3><p>Systém sleduje urgentnosť (<strong>kúpi hneď / plánuje / len skúma</strong>) aj sentiment (pozitívny / neutrálny / negatívny). Viete kde ste v procese predaja a ako zákazníci reagujú.</p></div>
+      <div class="feature-card"><div class="feature-tag analytics">Analytika</div><div class="feature-icon">🧪</div><h3>A/B test uvítacej správy</h3><p>Zadáte 2 verzie uvítania – systém <strong>automaticky rozdelí návštevníkov 50/50</strong>. V Analytike vidíte ktorá verzia zbiera viac leadov. Optimalizujete bez hádania.</p></div>
+      <div class="feature-card"><div class="feature-tag analytics">Analytika</div><div class="feature-icon">⭐</div><h3>CSAT – spokojnosť zákazníkov</h3><p>Po konverzácii sa zákazníkovi automaticky zobrazí <strong>5-hviezdičkové hodnotenie</strong>. Výsledky vidíte pri každom leade aj v súhrne. Okamžitá spätná väzba.</p></div>
+      <div class="feature-card"><div class="feature-tag analytics">Analytika</div><div class="feature-icon">👤</div><h3>Live Inbox – prezeráte reálne konverzácie</h3><p>Záložka Inbox zobrazuje všetky prebiehajúce konverzácie. <strong>Kliknete, vidíte celý prepis a prevziať chat</strong> od AI – píšete zákazníkovi vy, v reálnom čase.</p></div>
+      <div class="feature-card"><div class="feature-tag analytics">Analytika</div><div class="feature-icon">⊞</div><h3>Kanban pipeline leadov</h3><p>Prepnite CRM z tabuľky na kanban board. <strong>Drag &amp; drop kartičky</strong> medzi stĺpcami Nový / Kontaktovaný / Uzavretý. Vizuálny prehľad celého obchodného pipeline.</p></div>
+    </div>
+    <div class="feat-panel" id="panel-marketing">
+      <div class="feature-card"><div class="feature-tag marketing">Email marketing</div><div class="feature-icon">📩</div><h3>Ecomail – automatický email marketing</h3><p>Každý nový lead sa <strong>automaticky pridá do vášho Ecomail zoznamu</strong>. AI navyše pridá tagy podľa zámeru zákazníka (intent-buying, urgency-immediate…) – perfektná segmentácia bez práce.</p></div>
+      <div class="feature-card"><div class="feature-tag marketing">Lead magnet</div><div class="feature-icon">🧲</div><h3>Lead Magnety – PDF výmenou za email</h3><p>Nahráte PDF, e-book alebo iný súbor. Chatbot ho <strong>ponúkne zákazníkovi výmenou za email</strong>. Kontakt sa uloží, súbor sa odošle. Budujete zoznam automaticky.</p></div>
+      <div class="feature-card"><div class="feature-tag marketing">Email</div><div class="feature-icon">📧</div><h3>Follow-up email z dashboardu</h3><p>Pri každom leade kliknete jedno tlačidlo a napíšete správu – <strong>odošle sa priamo na zákazníkov email</strong>. Žiadny externý mail klient, žiadne kopírovanie. Rýchlo, jednoducho.</p></div>
+      <div class="feature-card"><div class="feature-tag marketing">Integrácie</div><div class="feature-icon">🔗</div><h3>Webhooks – Make, Zapier, Slack</h3><p>Každý nový lead spustí <strong>POST request na vašu URL</strong>. Napojte Make.com, Zapier alebo Slack. Automaticky pridajte lead do Google Sheets, CRM alebo pošlite Slack notifikáciu.</p></div>
+      <div class="feature-card"><div class="feature-tag marketing">Tím</div><div class="feature-icon">👥</div><h3>Pozvite tím – viacero prístupov</h3><p>Pozvite zamestnancov alebo agentúru emailom. <strong>Každý člen dostane vlastný prístup</strong> bez zdieľania hesla. Spravujete v Integrácie → Tím. Odovzdanie správy bez rizika.</p></div>
+      <div class="feature-card"><div class="feature-tag marketing">Branding</div><div class="feature-icon">🏷️</div><h3>White-label – čistý branding</h3><p>Skryjete „Powered by NeuraDesk" jedným prepínačom. <strong>Zákazník vidí len vašu značku.</strong> Ideálne pre agentúry, ktoré chatbota dodávajú klientom pod vlastným menom.</p></div>
     </div>
   </div>
 </section>
@@ -746,6 +812,72 @@
   </div>
 </section>
   
+<!-- FACEBOOK MESSENGER -->
+<section class="fb-section" id="facebook">
+  <div class="fb-inner">
+    <div class="fb-content">
+      <span class="section-label" style="text-align:left;color:#60a5fa">Facebook Messenger Bot</span>
+      <h2 class="section-h2" style="text-align:left">Messenger správa →<br><span class="grad-text">automatická odpoveď z vašej znalostnej bázy</span></h2>
+      <p>Zákazník napíše cez Messenger vašej Facebook Stránky. <strong>AI odpovie okamžite</strong>, vedie konverzáciu a zbiera leady – rovnako ako web chatbot, len na Messengeri.</p>
+      <p>Nastavíte kľúčové slová a uvítaciu správu. Všetko ostatné <strong>rieši AI automaticky</strong> z vašej znalostnej bázy. Bez ManyChat, bez ďalšieho predplatného.</p>
+      <div class="fb-list">
+        <div class="fb-list-item"><div class="fb-list-icon">💬</div><p><strong>Automatické odpovede na Messenger správy</strong> – AI vedie konverzáciu z vašej znalostnej bázy</p></div>
+        <div class="fb-list-item"><div class="fb-list-icon">🔑</div><p><strong>Kľúčové slová</strong> – nastavíte čo spustí bota a uvítaciu správu</p></div>
+        <div class="fb-list-item"><div class="fb-list-icon">👤</div><p><strong>Live Takeover</strong> – v Inboxe prevezmiete konverzáciu od AI kedy chcete</p></div>
+        <div class="fb-list-item"><div class="fb-list-icon">💰</div><p><strong>V cene €37/mes</strong> spolu s web chatbotom a Instagram botom – bez extra poplatkov</p></div>
+      </div>
+    </div>
+    <div class="fb-visual">
+      <div class="fb-phone-bar">
+        <div class="fb-phone-avatar">💬</div>
+        <div><div class="fb-phone-name">VášBiznis AI 🤖</div><div class="fb-phone-status">● Práve píše...</div></div>
+      </div>
+      <div class="fb-messages">
+        <div><div class="fb-msg-label">Zákazník napísal cez Messenger</div><div class="fb-msg them">Dobrý deň, koľko stojí vaša služba?</div></div>
+        <div class="fb-msg us">Ahoj! Naša cena závisí od rozsahu. Môžem sa opýtať – pre koľko ľudí by ste to potrebovali? 🙂</div>
+        <div class="fb-msg them">Pre tím 5 ľudí</div>
+        <div class="fb-msg us">Pre 5-členný tím odporúčam balík Pro – €49/mes, zahŕňa všetko čo potrebujete. Chcete mi zanechať email a pošlem vám podrobnosti? ✉️</div>
+        <div class="fb-msg them">Jasné, mám záujem</div>
+      </div>
+      <div class="fb-input-bar">
+        <div class="fb-input">Napíšte správu...</div>
+        <button class="fb-send">▶</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EMAIL MARKETING & LEAD MAGNETY -->
+<section class="mkt-section" id="marketing">
+  <div class="mkt-inner">
+    <span class="section-label" style="color:#fb923c">Email marketing & Lead Magnety</span>
+    <h2 class="section-h2">Každý lead ide <span class="grad-text">automaticky do vášho emailového zoznamu.</span></h2>
+    <p class="section-sub">NeuraDesk sa napojí na Ecomail, ponúkne zákazníkom lead magnet a pošle follow-up – všetko bez manuálnej práce. Váš email marketing beží na autopilote.</p>
+    <div class="mkt-grid">
+      <div class="mkt-card">
+        <div class="mkt-card-icon">📩</div>
+        <h3>Ecomail integrácia</h3>
+        <p>Každý nový lead sa <strong>automaticky pridá do vášho Ecomail zoznamu</strong>. AI navyše pridá tagy – <em>intent-buying</em>, <em>urgency-immediate</em>… Máte segmentovaný zoznam od prvého dňa.</p>
+      </div>
+      <div class="mkt-card">
+        <div class="mkt-card-icon">🧲</div>
+        <h3>Lead Magnety</h3>
+        <p>Nahráte PDF alebo e-book. Chatbot ho <strong>ponúkne zákazníkovi výmenou za email</strong>. Kontakt sa uloží, súbor odošle. Budujete zoznam bez formulárov na webe.</p>
+      </div>
+      <div class="mkt-card">
+        <div class="mkt-card-icon">📧</div>
+        <h3>Follow-up email</h3>
+        <p>Kliknete pri leade, napíšete správu – <strong>odošle sa priamo zákazníkovi</strong>. Žiadny externý mail klient. Rýchla odpoveď kým je záujem čerstvý.</p>
+      </div>
+      <div class="mkt-card">
+        <div class="mkt-card-icon">🔗</div>
+        <h3>Webhooks &amp; Zapier</h3>
+        <p>Každý lead spustí <strong>POST request</strong> na vašu URL. Napojte Make.com, Zapier, Slack alebo vlastný backend. Automatizujte celý predajný proces.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- BOOKING PROMO -->
 <section class="bk-promo" id="booking">
   <div class="bk-promo-inner">
@@ -946,13 +1078,25 @@
         <li>Produktový katalóg s AI odporúčaním</li>
         <li>Až 10 chatbotov / widgetov na rôznych weboch</li>
         <li>Instagram DM Bot (náhrada ManyChat)</li>
+        <li><strong>Facebook Messenger Bot</strong> – automatické odpovede cez Messenger</li>
         <li><strong>Online rezervácie</strong> – booking stránka + embed iframe + Google Calendar sync</li>
         <li>Znalostná báza z PDF, TXT, CSV, MD + priamy text</li>
         <li><strong>URL scraping</strong> – AI naskenuje váš web automaticky</li>
         <li><strong>AI Coach</strong> – zákaznícka podpora s aktívnym radením</li>
         <li>AI predajné karty pre každý lead</li>
-        <li>CRM správa leadov + CSV export</li>
-        <li>Email notifikácie pri nových leadoch</li>
+        <li><strong>CRM</strong> – tabuľka + kanban board + CSV export</li>
+        <li><strong>Live Inbox</strong> – prezeráte konverzácie, prevezmete chat od AI</li>
+        <li>Email notifikácie + follow-up email priamo z dashboardu</li>
+        <li><strong>Ecomail integrácia</strong> – automatický email marketing s AI tagmi</li>
+        <li><strong>Lead Magnety</strong> – PDF výmenou za email zákazníka</li>
+        <li><strong>Analytika trendov</strong> – intent, urgency, sentiment, A/B test</li>
+        <li>CSAT hodnotenie konverzácií (5 hviezdičiek)</li>
+        <li>A/B test uvítacej správy – optimalizujte konverzie</li>
+        <li>Pracovné hodiny + offline správa</li>
+        <li>White-label – skryjete NeuraDesk branding</li>
+        <li>Webhooks (Make, Zapier, Slack, vlastný server)</li>
+        <li>Správa tímu – pozvite členov bez zdieľania hesla</li>
+        <li>WooCommerce import produktov do znalostnej bázy</li>
         <li>Shadow DOM – žiadny konflikt so štýlmi webu</li>
         <li>Affiliate systém + Stripe billing portál</li>
         <li>GDPR súhlas v kontaktnom formulári</li>
@@ -978,6 +1122,9 @@
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo sa stane s mojimi dátami? <span>+</span></button><div class="faq-a">Vaše dokumenty sú izolované – iný zákazník k nim nemá prístup, nie sú použité na tréning AI modelov. GDPR súhlas je zabudovaný. Zmažete kedykoľvek – skutočne zmizne.</div></div>
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Ako funguje skenovanie webu (URL scraping)? <span>+</span></button><div class="faq-a">V dashboarde zadáte URL vašej webstránky a kliknete „Skenovať". Systém automaticky prejde stránky, blog a produkty a pridá ich obsah do znalostnej bázy chatbota. Funguje na akomkoľvek verejnom webe – WordPress, Shopify, vlastný HTML. Skenovanie trvá zvyčajne 30–120 sekúnd podľa veľkosti webu. Môžete ho kedykoľvek opakovať keď aktualizujete obsah.</div></div>
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo je AI Coach a čím sa líši od bežnej podpory? <span>+</span></button><div class="faq-a">AI Coach je špeciálny mód, kde chatbot nielen odpovedá na otázky zákazníkov, ale aktívne im radí ako z vášho produktu alebo služby dostať maximum. Namiesto pasívneho helpdesku dostanete proaktívnu podporu, ktorá zvyšuje spokojnosť zákazníkov a znižuje počet opakujúcich sa support ticketov. Nastavíte ho rovnako ako predajného AI – cez znalostná bázu a systémový prompt.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Funguje aj Facebook Messenger Bot? <span>+</span></button><div class="faq-a">Áno. Prepojíte Facebook Stránku cez Page Access Token (z Facebook Developers). Bot potom automaticky odpovedá na Messenger správy z vašej znalostnej bázy – rovnako ako web chatbot. Nastavíte kľúčové slová a uvítaciu správu. Live Takeover cez Inbox funguje aj na Messenger konverzáciách. Všetko v cene €37/mes.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo je Ecomail integrácia a na čo slúži? <span>+</span></button><div class="faq-a">Ecomail je slovenský email marketing nástroj. Po prepojení sa každý nový lead zo chatbota automaticky pridá do vášho Ecomail zoznamu. AI navyše pridá tagy podľa zámeru zákazníka (napr. intent-buying, urgency-immediate) – máte segmentovaný zoznam bez manuálnej práce. Nastavenie: Integrácie → Ecomail → vložte API kľúč → vyberte zoznam.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo sú Lead Magnety a ako fungujú? <span>+</span></button><div class="faq-a">Lead magnet je PDF alebo iný súbor, ktorý chatbot ponúkne zákazníkovi výmenou za jeho email. Nahráte súbor v záložke Lead Magnety. Chatbot ho automaticky ponúkne vhodným zákazníkom – zákazník zadá email, súbor sa mu odošle a kontakt sa uloží. Ideálne pre e-booky, cenníky, príručky alebo zľavové kupóny.</div></div>
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Môžem zrušiť kedykoľvek? <span>+</span></button><div class="faq-a">Áno. Kliknutím v Stripe portáli – bez telefonátov, formulárov, vysvetľovania. Chatbot ostane aktívny do konca zaplateného mesiaca. Dáta si exportujete pred odchodom.</div></div>
     </div>
   </div>
