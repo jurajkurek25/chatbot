@@ -2230,18 +2230,36 @@ function showDayBookings(ds) {
 
   el.innerHTML = `<div style="font-weight:700;font-size:0.875rem;margin-bottom:0.75rem;color:#374151">📅 ${dateLabel}</div>` +
     bks.map(b => `
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;cursor:pointer"
-           onclick="showBookingDetail('${b.id}')">
-        <div style="display:flex;justify-content:space-between;align-items:center">
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.875rem;margin-bottom:0.75rem">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem">
           <div>
-            <span style="font-weight:700;font-size:0.875rem">${b.start_time} – ${b.end_time}</span>
+            <span style="font-weight:700;font-size:0.9rem">${b.start_time} – ${b.end_time}</span>
             ${b.service_name ? `<span style="font-size:0.78rem;background:#ede9fe;color:#5b4fff;border-radius:4px;padding:1px 6px;margin-left:6px">${escHtml(b.service_name)}</span>` : ''}
           </div>
-          <span style="font-size:0.8rem;color:${STATUS_COLOR[b.status]||'#374151'}">${STATUS_LABEL[b.status]||''}</span>
+          <span style="font-size:0.8rem;font-weight:600;color:${STATUS_COLOR[b.status]||'#374151'}">${STATUS_LABEL[b.status]||''}</span>
         </div>
-        <div style="font-size:0.82rem;color:#374151;margin-top:4px">${escHtml(b.customer_name)}</div>
-        <div style="font-size:0.75rem;color:#94a3b8">${escHtml(b.customer_email)}</div>
-        ${b.ai_summary ? `<div style="font-size:0.72rem;color:#64748b;margin-top:6px;padding:6px;background:white;border-radius:6px;border:1px solid #e2e8f0;line-height:1.5">${escHtml(b.ai_summary.slice(0,120))}${b.ai_summary.length>120?'…':''}</div>` : ''}
+        <div style="font-weight:700;font-size:0.875rem;color:#1e293b">${escHtml(b.customer_name)}</div>
+        <div style="font-size:0.8rem;color:#64748b;margin-bottom:0.5rem">
+          <a href="mailto:${escHtml(b.customer_email)}" style="color:#5b4fff">${escHtml(b.customer_email)}</a>
+          ${b.customer_phone ? ` · <a href="tel:${escHtml(b.customer_phone)}" style="color:#5b4fff">${escHtml(b.customer_phone)}</a>` : ''}
+        </div>
+        ${b.ai_summary ? `
+          <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem;margin-bottom:0.5rem">
+            <div style="font-size:0.68rem;font-weight:700;color:#5b4fff;letter-spacing:0.05em;margin-bottom:0.4rem">🤖 SITUÁCIA KLIENTA</div>
+            <div style="font-size:0.81rem;color:#374151;white-space:pre-line;line-height:1.65">${escHtml(b.ai_summary)}</div>
+          </div>` : `<div style="font-size:0.78rem;color:#94a3b8;padding:0.25rem 0;margin-bottom:0.5rem">💬 Rezervácia bez konverzačného kontextu</div>`}
+        ${b.internal_notes ? `
+          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.6rem;margin-bottom:0.5rem">
+            <div style="font-size:0.68rem;font-weight:700;color:#92400e;letter-spacing:0.05em;margin-bottom:0.3rem">📝 POZNÁMKY</div>
+            <div style="font-size:0.81rem;color:#78350f;white-space:pre-line;line-height:1.5">${escHtml(b.internal_notes)}</div>
+          </div>` : ''}
+        <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.25rem">
+          <button class="btn btn-sm btn-secondary" onclick="showBookingDetail('${b.id}')">✏️ Detail / Poznámky</button>
+          ${b.status === 'confirmed' ? `
+            <button class="btn btn-sm btn-danger" onclick="changeBookingStatus('${b.id}','cancelled');showDayBookings('${b.date}')">Zrušiť</button>
+            <button class="btn btn-sm btn-secondary" onclick="changeBookingStatus('${b.id}','no_show');showDayBookings('${b.date}')">Neprišiel</button>
+          ` : ''}
+        </div>
       </div>
     `).join('');
 }
@@ -2288,6 +2306,12 @@ function showBookingDetail(id) {
     <div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center">
       <span style="font-size:0.82rem;font-weight:700;color:${STATUS_COLOR[b.status]||'#374151'}">${STATUS_LABEL[b.status]||b.status}</span>
     </div>
+    <div style="margin-bottom:1rem">
+      <div style="font-size:0.72rem;font-weight:700;color:#64748b;letter-spacing:0.05em;margin-bottom:0.4rem">📝 POZNÁMKY</div>
+      <textarea id="bk-detail-notes" rows="3" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:0.6rem;font-size:0.82rem;font-family:inherit;resize:vertical;color:#374151;line-height:1.5"
+        placeholder="Pridajte poznámky ku stretnutiu...">${escHtml(b.internal_notes || '')}</textarea>
+      <button class="btn btn-sm btn-secondary" style="margin-top:0.4rem" onclick="saveBkNotes('${b.id}','${currentWidget?.id}')">Uložiť poznámky</button>
+    </div>
     ${b.status === 'confirmed' ? `<div style="display:flex;gap:0.5rem">
       <button class="btn btn-sm btn-danger" onclick="changeBookingStatus('${b.id}','cancelled');closeBkDetail()">Zrušiť rezerváciu</button>
       <button class="btn btn-sm btn-secondary" onclick="changeBookingStatus('${b.id}','no_show');closeBkDetail()">Neprišiel</button>
@@ -2311,6 +2335,24 @@ async function changeBookingStatus(bookingId, status) {
   });
   if (r && r.ok) { showToast('Stav aktualizovaný.', 'success'); renderBookingCalendar(); }
   else showToast('Chyba.', 'error');
+}
+
+async function saveBkNotes(bookingId, widgetId) {
+  const notes = document.getElementById('bk-detail-notes')?.value || '';
+  const wid = widgetId || currentWidget?.id;
+  if (!wid) return;
+  const r = await apiFetch(`/api/booking/${wid}/bookings/${bookingId}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ internalNotes: notes }),
+  });
+  if (r && r.ok) {
+    // Update local cache so day panel refreshes with new notes
+    const b = _bkAllBookings.find(x => x.id === bookingId);
+    if (b) b.internal_notes = notes;
+    showToast('Poznámky uložené.', 'success');
+  } else {
+    showToast('Chyba pri ukladaní.', 'error');
+  }
 }
 
 /* ── Google Calendar ──────────────────────────────────────────── */
