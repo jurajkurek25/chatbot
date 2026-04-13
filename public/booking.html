@@ -148,9 +148,16 @@
                         outline: none; color: var(--text); transition: border-color 0.2s; }
     .form-group input:focus { border-color: var(--p); }
     .form-group input.err { border-color: #dc2626; }
-    .gdpr-row { display: flex; gap: 0.6rem; align-items: flex-start; margin-top: 0.5rem; }
-    .gdpr-row input[type=checkbox] { margin-top: 3px; width: 16px; height: 16px;
-                                      flex-shrink: 0; accent-color: var(--p); }
+    .gdpr-row { display: flex; gap: 0.75rem; align-items: flex-start;
+                margin-top: 1rem; padding: 0.875rem 1rem;
+                background: #f8fafc; border: 1.5px solid #e2e8f0;
+                border-radius: var(--radius, 12px); }
+    .gdpr-row.err { border-color: #dc2626; background: #fff5f5; }
+    .gdpr-row input[type=checkbox] { margin-top: 2px; width: 18px; height: 18px;
+                                      flex-shrink: 0; accent-color: var(--p); cursor: pointer; }
+    .gdpr-row label { font-size: 0.82rem; color: #374151; font-weight: 500; line-height: 1.5; cursor: pointer; }
+    .gdpr-err-msg { font-size: 0.78rem; color: #dc2626; margin-top: 0.35rem; display: none; }
+    .gdpr-err-msg.show { display: block; }
     .gdpr-row label { font-size: 0.76rem; color: var(--muted); font-weight: 400; }
 
     /* ── Buttons ── */
@@ -525,9 +532,12 @@
         <input type="email" id="f-email" placeholder="jan@email.sk" autocomplete="email"></div>
       <div class="form-group"><label>${t('phoneLabel')}</label>
         <input type="tel" id="f-phone" placeholder="+421 900 000 000" autocomplete="tel"></div>
-      <div class="gdpr-row">
-        <input type="checkbox" id="f-gdpr">
-        <label for="f-gdpr">${t('gdprText')}*</label>
+      <div class="gdpr-row" id="gdpr-row">
+        <input type="checkbox" id="f-gdpr" onchange="document.getElementById('gdpr-row').classList.remove('err'); document.getElementById('gdpr-err').classList.remove('show')">
+        <div>
+          <label for="f-gdpr">${t('gdprText')}</label>
+          <div class="gdpr-err-msg" id="gdpr-err">${t('gdprError')}</div>
+        </div>
       </div>
       <div class="btn-row">
         <button class="btn btn-back" onclick="showStep(2)">${t('backBtn')}</button>
@@ -547,7 +557,12 @@
     else          document.getElementById('f-name')?.classList.remove('err');
     if (!email) { document.getElementById('f-email')?.classList.add('err'); valid = false; }
     else          document.getElementById('f-email')?.classList.remove('err');
-    if (!gdpr) { alert(t('gdprError')); return; }
+    if (!gdpr) {
+      document.getElementById('gdpr-row')?.classList.add('err');
+      document.getElementById('gdpr-err')?.classList.add('show');
+      document.getElementById('gdpr-row')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     if (!valid) return;
 
     const btn = document.getElementById('btn-submit');
