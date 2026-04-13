@@ -1871,7 +1871,7 @@ async function uploadBookingLogo(input) {
   try {
     const r = await fetch(`/api/booking/${currentWidget.id}/logo`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` },
+      headers: { 'Authorization': `Bearer ${getToken()}` },
       body: fd,
     });
     const data = await r.json();
