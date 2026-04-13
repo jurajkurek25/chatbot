@@ -52,7 +52,8 @@ router.get('/leads/all', (req, res) => {
   const db = getDb();
   const leads = db.prepare(`
     SELECT l.id, l.name, l.email, l.phone, l.status, l.notes, l.chat_summary,
-           l.gdpr_consent, l.created_at, l.widget_id,
+           l.gdpr_consent, l.created_at, l.widget_id, l.csat_rating,
+           l.follow_up_sent_at, l.ab_variant,
            w.name AS widget_name, w.bot_name
     FROM leads l
     JOIN widgets w ON w.id = l.widget_id
@@ -279,6 +280,35 @@ router.patch('/:id/leads/:leadId', (req, res) => {
   vals.push(req.params.leadId);
   db.prepare(`UPDATE leads SET ${fields.join(', ')} WHERE id = ?`).run(...vals);
   res.json({ ok: true });
+});
+
+// POST /api/widgets/:id/leads/:leadId/followup — send manual follow-up email
+router.post('/:id/leads/:leadId/followup', async (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const db = getDb();
+  const lead = db.prepare('SELECT * FROM leads WHERE id = ? AND widget_id = ?').get(req.params.leadId, widget.id);
+  if (!lead) return res.status(404).json({ error: 'Lead nenájdený.' });
+
+  const { message } = req.body;
+  if (!message?.trim()) return res.status(400).json({ error: 'Správa je povinná.' });
+
+  const owner = db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId);
+  try {
+    const { sendFollowUp } = require('../services/email');
+    await sendFollowUp({
+      toEmail: lead.email,
+      leadName: lead.name,
+      ownerName: owner?.name || '',
+      widgetName: widget.name || widget.bot_name,
+      message: message.trim(),
+    });
+    db.prepare('UPDATE leads SET follow_up_sent_at = ? WHERE id = ?').run(Math.floor(Date.now() / 1000), lead.id);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Odoslanie zlyhalo: ' + err.message });
+  }
 });
 
 // DELETE /api/widgets/:id/leads/:leadId — delete a lead

@@ -98,6 +98,15 @@ router.get('/:widgetId', (req, res) => {
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([date, count]) => ({ date, count }));
 
+  // A/B test: count leads by ab_variant in same period
+  const abRows = db.prepare(
+    `SELECT ab_variant, COUNT(*) AS cnt FROM leads
+     WHERE widget_id = ? AND created_at >= ? AND ab_variant IS NOT NULL
+     GROUP BY ab_variant`
+  ).all(wid, since);
+  const abStats = {};
+  for (const r of abRows) abStats[r.ab_variant || 'a'] = r.cnt;
+
   res.json({
     total,
     leads_count: leadsCount,
@@ -108,6 +117,7 @@ router.get('/:widgetId', (req, res) => {
     objections,
     urgency,
     trend,
+    ab_stats: abStats,
   });
 });
 

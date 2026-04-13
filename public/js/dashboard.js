@@ -871,6 +871,7 @@ const STATUS_LABELS = {
 
 function filterLeadsByStatus() {
   renderLeads();
+  if (_leadsView === 'kanban') renderKanban();
 }
 
 function renderLeads() {
@@ -902,6 +903,13 @@ function renderLeads() {
 
     const notesVal = esc(lead.notes || '');
 
+    const csatHtml = lead.csat_rating
+      ? `<span style="font-size:0.8rem;color:#f59e0b;margin-left:0.35rem" title="CSAT hodnotenie">${'★'.repeat(lead.csat_rating)}${'☆'.repeat(5 - lead.csat_rating)}</span>`
+      : '';
+    const followUpHtml = lead.follow_up_sent_at
+      ? `<span style="font-size:0.72rem;color:#16a34a;white-space:nowrap">✅ Follow-up odoslaný</span>`
+      : `<button class="btn btn-sm btn-secondary" style="font-size:0.75rem;white-space:nowrap" onclick="openFollowupModal('${lead.widgetId}','${lead.id}','${esc(lead.name)}','${esc(lead.email)}')">📧 Follow-up</button>`;
+
     return `
       <div class="lead-card" id="lead-${lead.id}">
         <div class="lead-card-header">
@@ -911,6 +919,7 @@ function renderLeads() {
               <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
                 <span class="lead-name">${esc(lead.name)}</span>
                 <span class="lead-status-badge ${statusInfo.cls}">${statusInfo.label}</span>
+                ${csatHtml}
               </div>
               <div class="lead-meta">
                 <a class="lead-meta-item" href="mailto:${esc(lead.email)}">✉️ ${esc(lead.email)}</a>
@@ -936,6 +945,7 @@ function renderLeads() {
               <option value="contacted" ${status === 'contacted' ? 'selected' : ''}>🟡 Kontaktovaný</option>
               <option value="closed" ${status === 'closed' ? 'selected' : ''}>🟢 Uzavretý</option>
             </select>
+            ${followUpHtml}
           </div>
           <div class="lead-notes-row">
             <textarea class="lead-notes-input" id="notes-${lead.id}" rows="2"
@@ -946,6 +956,114 @@ function renderLeads() {
       </div>
     `;
   }).join('');
+}
+
+/* ── Follow-up Modal ──────────────────────────────────────────── */
+function openFollowupModal(widgetId, leadId, name, email) {
+  document.getElementById('followup-widget-id').value = widgetId;
+  document.getElementById('followup-lead-id').value   = leadId;
+  document.getElementById('followup-recipient').textContent = `Príjemca: ${name} <${email}>`;
+  document.getElementById('followup-message').value   = '';
+  const modal = document.getElementById('modal-followup');
+  modal.style.display = 'flex';
+  document.getElementById('followup-message').focus();
+}
+
+function closeFollowupModal(e) {
+  if (e && e.target !== document.getElementById('modal-followup')) return;
+  document.getElementById('modal-followup').style.display = 'none';
+}
+
+async function sendFollowupEmail() {
+  const widgetId = document.getElementById('followup-widget-id').value;
+  const leadId   = document.getElementById('followup-lead-id').value;
+  const message  = document.getElementById('followup-message').value.trim();
+  if (!message) { showToast('Napíšte správu', 'error'); return; }
+  const btn = document.getElementById('followup-send-btn');
+  btn.disabled = true; btn.textContent = 'Odosiela...';
+  const res = await apiFetch(`/api/widgets/${widgetId}/leads/${leadId}/followup`, {
+    method: 'POST',
+    body: JSON.stringify({ message }),
+  });
+  btn.disabled = false; btn.textContent = 'Odoslať';
+  if (res && res.ok) {
+    showToast('Follow-up email odoslaný');
+    document.getElementById('modal-followup').style.display = 'none';
+    // Update lead in memory
+    const lead = allLeads.find(l => l.id === leadId);
+    if (lead) lead.follow_up_sent_at = Math.floor(Date.now() / 1000);
+    renderLeads();
+  } else {
+    showToast('Odoslanie zlyhalo', 'error');
+  }
+}
+
+/* ── Kanban view ──────────────────────────────────────────────── */
+let _leadsView = 'list'; // 'list' | 'kanban'
+
+function setLeadsView(view) {
+  _leadsView = view;
+  document.getElementById('leads-view-list-btn').style.background   = view === 'list'   ? '#2563eb' : 'white';
+  document.getElementById('leads-view-list-btn').style.color        = view === 'list'   ? 'white'   : '#64748b';
+  document.getElementById('leads-view-kanban-btn').style.background = view === 'kanban' ? '#2563eb' : 'white';
+  document.getElementById('leads-view-kanban-btn').style.color      = view === 'kanban' ? 'white'   : '#64748b';
+  document.getElementById('leads-list').style.display   = view === 'list'   ? '' : 'none';
+  document.getElementById('leads-kanban').style.display = view === 'kanban' ? '' : 'none';
+  if (view === 'kanban') renderKanban();
+}
+
+function renderKanban() {
+  const container = document.getElementById('leads-kanban');
+  if (!container) return;
+  const statusFilter = document.getElementById('leads-status-filter')?.value || '';
+  const leads = statusFilter ? allLeads.filter(l => l.status === statusFilter) : allLeads;
+
+  const columns = [
+    { key: 'new',       label: '🔵 Nový',         color: '#3b82f6', bg: '#eff6ff' },
+    { key: 'contacted', label: '🟡 Kontaktovaný', color: '#f59e0b', bg: '#fffbeb' },
+    { key: 'closed',    label: '🟢 Uzavretý',     color: '#22c55e', bg: '#f0fdf4' },
+  ];
+
+  container.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;align-items:start">` +
+    columns.map(col => {
+      const colLeads = leads.filter(l => (l.status || 'new') === col.key);
+      const cards = colLeads.map(lead => {
+        const initials = (lead.name || '?').split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase();
+        const csatStars = lead.csat_rating ? '★'.repeat(lead.csat_rating) + '☆'.repeat(5 - lead.csat_rating) : '';
+        const date = new Date(lead.created_at * 1000).toLocaleDateString('sk-SK', {day:'2-digit',month:'2-digit'});
+        return `<div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;cursor:pointer"
+          draggable="true" ondragstart="kanbanDragStart(event,'${lead.id}')" ondragover="event.preventDefault()" ondrop="kanbanDrop(event,'${col.key}')">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem">
+            <div style="width:28px;height:28px;border-radius:50%;background:${col.color};color:white;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0">${esc(initials)}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:0.83rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(lead.name)}</div>
+              <div style="font-size:0.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(lead.email)}</div>
+            </div>
+          </div>
+          ${csatStars ? `<div style="font-size:0.72rem;color:#f59e0b">${csatStars}</div>` : ''}
+          <div style="font-size:0.7rem;color:#94a3b8;margin-top:0.25rem">${date}${lead.widgetName ? ' · ' + esc(lead.widgetName) : ''}</div>
+        </div>`;
+      }).join('') || `<div style="font-size:0.8rem;color:#94a3b8;padding:0.5rem 0;text-align:center">Žiadne</div>`;
+
+      return `<div style="background:${col.bg};border:1px solid #e2e8f0;border-radius:12px;padding:0.75rem"
+        ondragover="event.preventDefault()" ondrop="kanbanDrop(event,'${col.key}')">
+        <div style="font-size:0.78rem;font-weight:700;color:${col.color};margin-bottom:0.65rem;display:flex;align-items:center;justify-content:space-between">
+          <span>${col.label}</span>
+          <span style="background:${col.color};color:white;border-radius:99px;padding:0.1rem 0.5rem;font-size:0.7rem">${colLeads.length}</span>
+        </div>
+        ${cards}
+      </div>`;
+    }).join('') + `</div>`;
+}
+
+let _kanbanDragLeadId = null;
+function kanbanDragStart(event, leadId) { _kanbanDragLeadId = leadId; }
+async function kanbanDrop(event, newStatus) {
+  if (!_kanbanDragLeadId) return;
+  const lead = allLeads.find(l => l.id === _kanbanDragLeadId);
+  if (!lead || lead.status === newStatus) return;
+  await updateLeadStatus(lead.widgetId, lead.id, newStatus);
+  renderKanban();
 }
 
 async function updateLeadStatus(widgetId, leadId, status) {
@@ -2820,6 +2938,42 @@ function renderInsights(data) {
       '<div style="font-size:0.72rem;color:#94a3b8">' + escHtml(c.sub) + '</div>' +
       '</div>';
   }).join('');
+
+  // A/B test stats
+  const abEl = document.getElementById('ins-ab');
+  const abContent = document.getElementById('ins-ab-content');
+  const abStats = data.ab_stats || {};
+  const abA = abStats['a'] || 0;
+  const abB = abStats['b'] || 0;
+  if (abEl && abContent && (abA > 0 || abB > 0)) {
+    abEl.style.display = '';
+    const total = abA + abB;
+    const pctA = total ? Math.round((abA / total) * 100) : 0;
+    const pctB = total ? Math.round((abB / total) * 100) : 0;
+    abContent.innerHTML =
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem">' +
+        '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.75rem;text-align:center">' +
+          '<div style="font-size:1.3rem;font-weight:800;color:#2563eb">' + abA + '</div>' +
+          '<div style="font-size:0.78rem;font-weight:700;color:#1e40af;margin-top:0.1rem">Variant A</div>' +
+          '<div style="font-size:0.72rem;color:#64748b">Originálna správa</div>' +
+        '</div>' +
+        '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem;text-align:center">' +
+          '<div style="font-size:1.3rem;font-weight:800;color:#16a34a">' + abB + '</div>' +
+          '<div style="font-size:0.78rem;font-weight:700;color:#15803d;margin-top:0.1rem">Variant B</div>' +
+          '<div style="font-size:0.72rem;color:#64748b">Alternatívna správa</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="font-size:0.78rem;color:#64748b;margin-bottom:0.3rem">Podiel leadov</div>' +
+      '<div style="height:10px;background:#e2e8f0;border-radius:99px;overflow:hidden;display:flex">' +
+        '<div style="width:' + pctA + '%;background:#2563eb;transition:width 0.4s"></div>' +
+        '<div style="width:' + pctB + '%;background:#16a34a;transition:width 0.4s"></div>' +
+      '</div>' +
+      '<div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#64748b;margin-top:0.25rem">' +
+        '<span>A: ' + pctA + '%</span><span>B: ' + pctB + '%</span>' +
+      '</div>';
+  } else if (abEl) {
+    abEl.style.display = 'none';
+  }
 
   if (!data.total) {
     empty.style.display = '';

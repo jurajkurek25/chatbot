@@ -154,6 +154,10 @@
                 <option value="contacted">🟡 Kontaktovaný</option>
                 <option value="closed">🟢 Uzavretý</option>
               </select>
+              <div style="display:flex;gap:0.35rem;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                <button id="leads-view-list-btn" onclick="setLeadsView('list')" style="padding:0.38rem 0.7rem;border:none;background:#2563eb;color:white;cursor:pointer;font-size:0.8rem;font-weight:600" title="Zoznam">☰</button>
+                <button id="leads-view-kanban-btn" onclick="setLeadsView('kanban')" style="padding:0.38rem 0.7rem;border:none;background:white;color:#64748b;cursor:pointer;font-size:0.8rem;font-weight:600" title="Kanban">⊞</button>
+              </div>
               <button class="btn btn-secondary" onclick="exportLeadsCSV()" style="font-size:0.875rem;padding:0.4rem 0.9rem;white-space:nowrap">📥 Export CSV</button>
             </div>
           </div>
@@ -169,6 +173,7 @@
           </div>
 
           <div id="leads-list"></div>
+          <div id="leads-kanban" style="display:none"></div>
         </div>
       </div>
 
@@ -1192,6 +1197,12 @@
             <div style="font-size:0.875rem">Trendy sa začnú zobrazovať po prvých konverzáciách s 3+ výmenami správ.</div>
           </div>
 
+          <!-- A/B Test stats -->
+          <div id="ins-ab" style="display:none;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem;margin-bottom:1.5rem">
+            <div style="font-size:0.8rem;font-weight:700;color:#475569;letter-spacing:0.06em;margin-bottom:1rem">🧪 A/B TEST UVÍTACEJ SPRÁVY</div>
+            <div id="ins-ab-content"></div>
+          </div>
+
           <!-- Charts -->
           <div id="ins-charts" style="display:none;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
             <!-- Topics -->
@@ -1485,6 +1496,24 @@
     <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
       <button class="btn btn-secondary" onclick="closeLmFileModal()">Zrušiť</button>
       <button class="btn btn-primary" id="lm-file-btn" onclick="uploadLmFile()">Nahrať</button>
+    </div>
+  </div>
+</div>
+
+<!-- Follow-up Email Modal -->
+<div id="modal-followup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;padding:0.75rem" onclick="closeFollowupModal(event)">
+  <div class="modal-box" style="max-width:480px;width:100%" onclick="event.stopPropagation()">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:0.25rem">📧 Follow-up email</h2>
+    <div id="followup-recipient" style="font-size:0.82rem;color:#64748b;margin-bottom:1rem"></div>
+    <input type="hidden" id="followup-widget-id">
+    <input type="hidden" id="followup-lead-id">
+    <div class="form-group">
+      <label>Správa</label>
+      <textarea id="followup-message" class="form-control" rows="5" placeholder="Ahoj {meno}, ďakujeme za váš záujem..."></textarea>
+    </div>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
+      <button class="btn btn-secondary" onclick="closeFollowupModal()">Zrušiť</button>
+      <button class="btn btn-primary" id="followup-send-btn" onclick="sendFollowupEmail()">Odoslať</button>
     </div>
   </div>
 </div>
