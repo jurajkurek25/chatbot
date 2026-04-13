@@ -328,4 +328,63 @@ function safeParseJSON(str, fallback) {
   try { return JSON.parse(str); } catch { return fallback; }
 }
 
+/* ── Auto-translate via Claude Haiku ─────────────────────────────── */
+
+/**
+ * POST /api/widgets/translate
+ * Body: { text?: string, texts?: object, targetLanguages?: string[], context?: string }
+ * Response: { translations: { langCode: string | object } }
+ */
+router.post('/translate', requireAuth, async (req, res) => {
+  const { text, texts, context, targetLanguages } = req.body;
+  if (!text && !texts) return res.status(400).json({ error: 'Chýba text alebo texts.' });
+
+  const langs = Array.isArray(targetLanguages) && targetLanguages.length
+    ? targetLanguages
+    : ['cs', 'en', 'de', 'fr', 'es', 'pl', 'hu', 'ro', 'hr', 'it', 'nl', 'pt'];
+
+  try {
+    const Anthropic = require('@anthropic-ai/sdk');
+    const client = new Anthropic();
+
+    let prompt;
+    if (text) {
+      prompt = `Translate the following text to these languages: ${langs.join(', ')}.
+Context: ${context || 'welcome message for a chat assistant widget'}
+Text to translate: "${text}"
+
+Return ONLY valid JSON, no extra text:
+{"cs":"...","en":"...","de":"...",...}`;
+    } else {
+      const pairs = Object.entries(texts)
+        .map(([k, v]) => `  "${k}": "${String(v).replace(/"/g, '\\"')}"`)
+        .join(',\n');
+      prompt = `Translate these UI text strings to: ${langs.join(', ')}.
+Context: ${context || 'booking page UI — labels, buttons, messages'}
+Source object:
+{
+${pairs}
+}
+
+Return ONLY valid JSON where each key is a language code and value is an object with the same keys translated:
+{"cs":{"bookingSubtitle":"...","confirmBtn":"..."},"en":{...},...}
+No markdown, no explanation — only the JSON object.`;
+    }
+
+    const resp = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const raw = (resp.content[0]?.text || '').trim();
+    const m = raw.match(/\{[\s\S]*\}/);
+    const result = JSON.parse(m ? m[0] : raw);
+    res.json({ translations: result });
+  } catch (err) {
+    console.error('[translate]', err.message);
+    res.status(500).json({ error: 'Preklad zlyhal: ' + err.message });
+  }
+});
+
 module.exports = router;

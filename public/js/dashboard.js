@@ -342,6 +342,104 @@ async function deleteWidget(widgetId, event) {
   }
 }
 
+/* ── Translation helpers ────────────────────────────────────────── */
+const _sleep = ms => new Promise(r => setTimeout(r, ms));
+
+async function _typeText(input, text, delay = 10) {
+  input.value = '';
+  for (const ch of text) { input.value += ch; await _sleep(delay); }
+}
+
+async function autoTranslateWelcome() {
+  const defaultMsg = document.getElementById('s-welcome')?.value.trim();
+  if (!defaultMsg) { showToast('Najprv vyplňte predvolenú uvítaciu správu.', 'error'); return; }
+
+  const btn = document.getElementById('btn-auto-translate-welcome');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Prekladám...'; }
+
+  try {
+    const targetLangs = Object.keys(WELCOME_LANG_NAMES).filter(l => l !== 'sk');
+    const r = await apiFetch('/api/widgets/translate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: defaultMsg, targetLanguages: targetLangs,
+        context: 'welcome message for a chat assistant widget on a business website' }),
+    });
+    if (!r?.ok) { showToast('Chyba prekladu.', 'error'); return; }
+    const data = await r.json();
+
+    clearWelcomeLangs();
+    const entries = Object.entries(data.translations || {});
+    for (const [lang, msg] of entries) {
+      if (!WELCOME_LANG_NAMES[lang]) continue;
+      addWelcomeLang(lang, '');
+      const rows = document.querySelectorAll('.welcome-lang-row');
+      const lastInput = rows[rows.length - 1]?.querySelector('.wl-msg');
+      if (lastInput) await _typeText(lastInput, String(msg), 8);
+      await _sleep(30);
+    }
+    showToast(`Preložené do ${entries.length} jazykov! Kliknite Uložiť nastavenia.`, 'success');
+  } catch (e) {
+    showToast('Chyba: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🌍 Auto-preložiť'; }
+  }
+}
+
+/* ── Booking text auto-translate ─────────────────────────────────── */
+const _BK_TXT_KEYS = ['bookingSubtitle','selectService','selectDate','selectTime',
+  'contactDetails','continueBtn','backBtn','confirmBtn','noSlots','successTitle','gdprText'];
+
+async function autoTranslateBkTexts() {
+  const skTexts = {};
+  for (const k of _BK_TXT_KEYS) {
+    const el = document.querySelector(`[data-bk-txt="${k}"]`);
+    if (el?.value.trim()) skTexts[k] = el.value.trim();
+  }
+  if (!Object.keys(skTexts).length) { showToast('Vyplňte aspoň jeden text.', 'error'); return; }
+
+  const btn = document.getElementById('btn-translate-bk');
+  const statusEl = document.getElementById('bk-translation-status');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Prekladám...'; }
+  if (statusEl) statusEl.innerHTML = '';
+
+  try {
+    const targetLangs = Object.keys(WELCOME_LANG_NAMES).filter(l => l !== 'sk');
+    const r = await apiFetch('/api/widgets/translate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: skTexts, targetLanguages: targetLangs,
+        context: 'booking page UI — step titles, button labels, messages' }),
+    });
+    if (!r?.ok) { showToast('Chyba prekladu.', 'error'); return; }
+    const data = await r.json();
+
+    // Merge into design state
+    _bkDesign.texts = { ...(_bkDesign.texts || {}), sk: skTexts, ...data.translations };
+
+    // Animate language tags appearing
+    if (statusEl) {
+      statusEl.style.cssText = 'margin-top:0.75rem;display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center';
+      const entries = Object.entries(data.translations || {});
+      for (const [lang] of entries) {
+        if (!WELCOME_LANG_NAMES[lang]) continue;
+        await _sleep(55);
+        const tag = document.createElement('span');
+        tag.style.cssText = 'background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:99px;font-size:0.73rem;font-weight:700;animation:fadeIn 0.2s';
+        tag.textContent = `✓ ${WELCOME_LANG_NAMES[lang]}`;
+        statusEl.appendChild(tag);
+      }
+      await _sleep(200);
+      const note = document.createElement('div');
+      note.style.cssText = 'width:100%;margin-top:0.4rem;font-size:0.8rem;color:#15803d;font-weight:600';
+      note.textContent = `✅ Preložené do ${entries.length} jazykov. Kliknite Uložiť dizajn.`;
+      statusEl.appendChild(note);
+    }
+  } catch (e) {
+    showToast('Chyba: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🌍 Auto-preložiť do všetkých jazykov'; }
+  }
+}
+
 /* ── Multilingual Welcome Messages ─────────────────────────────── */
 const WELCOME_LANG_NAMES = {
   sk:'Slovenčina', en:'English', de:'Deutsch', fr:'Français', es:'Español',
@@ -1721,6 +1819,13 @@ function loadBookingDesign(d) {
   set('bk-d-font',        d.fontFamily           || 'system');
   set('bk-d-avatar',      d.avatarEmoji          || '📅');
 
+  // Load saved SK texts into inputs
+  const skTxts = d.texts?.sk || {};
+  for (const k of _BK_TXT_KEYS) {
+    const el = document.querySelector(`[data-bk-txt="${k}"]`);
+    if (el && skTxts[k]) el.value = skTxts[k];
+  }
+
   // Highlight active shape preset
   document.querySelectorAll('.bk-shape-opt').forEach(btn => {
     btn.style.borderColor = '#e2e8f0';
@@ -1769,6 +1874,19 @@ async function saveBookingDesign() {
     borderRadius:        _bkDesign.borderRadius     ?? 16,
     avatarEmoji:         getVal('bk-d-avatar')      || '📅',
   };
+
+  // Collect SK texts and merge with existing translations
+  const skTxts = {};
+  for (const k of _BK_TXT_KEYS) {
+    const el = document.querySelector(`[data-bk-txt="${k}"]`);
+    const v = el?.value.trim();
+    if (v) skTxts[k] = v;
+  }
+  if (Object.keys(skTxts).length) {
+    design.texts = { ...(_bkDesign.texts || {}), sk: skTxts };
+  } else if (_bkDesign.texts) {
+    design.texts = _bkDesign.texts;
+  }
   const r = await apiFetch(`/api/booking/${currentWidget.id}/config`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ designConfig: design }),

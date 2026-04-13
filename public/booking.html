@@ -250,6 +250,33 @@
     return `rgb(${Math.max(0,r-30)},${Math.max(0,g-30)},${Math.max(0,b-30)})`;
   }
 
+  /* ── i18n texts ── */
+  const DEFAULT_TEXTS = {
+    bookingSubtitle: 'Vyberte si termín online',
+    stepService: 'Služba', stepDate: 'Dátum', stepTime: 'Čas', stepContact: 'Kontakt',
+    selectService: 'Vyberte službu', selectDate: 'Vyberte dátum', selectTime: 'Vyberte čas',
+    contactDetails: 'Vaše kontaktné údaje',
+    continueBtn: 'Pokračovať →', backBtn: '← Späť',
+    confirmBtn: 'Potvrdiť rezerváciu', sendingBtn: 'Odosielam...',
+    noSlots: 'Žiadne voľné termíny pre tento deň.',
+    gdprText: 'Súhlasím so spracovaním osobných údajov za účelom rezervácie termínu.',
+    gdprError: 'Prosím, súhlaste so spracovaním osobných údajov.',
+    successTitle: 'Rezervácia potvrdená!',
+    emailSent: 'Potvrdzovací email bol odoslaný na',
+    closeWindow: 'Môžete zavrieť toto okno.',
+    nameLabel: 'Meno a priezvisko', emailLabel: 'Email', phoneLabel: 'Telefón (nepovinné)',
+  };
+  function t(key) {
+    const lang = (navigator.language || 'sk').slice(0, 2).toLowerCase();
+    const all = cfg?.designConfig?.texts;
+    if (all) {
+      const v = (all[lang] && all[lang][key] != null ? all[lang][key] : null)
+             ?? (all['sk']  && all['sk'][key]  != null ? all['sk'][key]  : null);
+      if (v != null) return v;
+    }
+    return DEFAULT_TEXTS[key] ?? key;
+  }
+
   /* ── Determine starting step ── */
   function firstStep() { return cfg.services && cfg.services.length > 0 ? 0 : 1; }
   let step = null; // set after cfg loaded
@@ -266,7 +293,7 @@
       <div class="bk-header">
         <div class="bk-avatar">${window._bkAvatarEmoji || '📅'}</div>
         <h1>${esc(cfg.botName)}</h1>
-        <p>Vyberte si termín online</p>
+        <p>${t('bookingSubtitle')}</p>
         <div class="steps-bar" id="steps-bar"></div>
       </div>
 
@@ -285,8 +312,8 @@
   function renderSteps() {
     const hasServices = cfg.services && cfg.services.length > 0;
     const labels = hasServices
-      ? ['Služba','Dátum','Čas','Kontakt']
-      : ['Dátum','Čas','Kontakt'];
+      ? [t('stepService'), t('stepDate'), t('stepTime'), t('stepContact')]
+      : [t('stepDate'), t('stepTime'), t('stepContact')];
     const bar = document.getElementById('steps-bar');
     if (!bar) return;
     const stepOffset = hasServices ? 0 : -1; // adjust index
@@ -316,7 +343,7 @@
   function renderServicePanel() {
     const el = document.getElementById('p-service');
     if (!el) return;
-    el.innerHTML = `<div class="card-title">Vyberte službu</div>
+    el.innerHTML = `<div class="card-title">${t('selectService')}</div>
       <div class="services-grid">
         ${cfg.services.map((s, i) => {
           const price = s.price != null ? `${s.price} ${s.currency}` : 'Zadarmo';
@@ -333,7 +360,7 @@
       </div>
       <div class="btn-row" style="margin-top:1.25rem">
         <button class="btn btn-next" id="btn-svc-next" onclick="showStep(1)" ${selService?'':'disabled'}>
-          Pokračovať →
+          ${t('continueBtn')}
         </button>
       </div>`;
   }
@@ -354,7 +381,7 @@
     const el = document.getElementById('p-date');
     if (!el) return;
     el.innerHTML = `
-      <div class="card-title">Vyberte dátum</div>
+      <div class="card-title">${t('selectDate')}</div>
       <div class="cal-nav-row">
         <button class="cal-btn" id="cal-prev">‹</button>
         <h2 id="cal-title"></h2>
@@ -362,8 +389,8 @@
       </div>
       <div class="cal-grid" id="cal-grid"></div>
       <div class="btn-row" style="margin-top:1rem">
-        ${firstStep()===0 ? '<button class="btn btn-back" onclick="showStep(0)">← Späť</button>' : ''}
-        <button class="btn btn-next" id="btn-date-next" onclick="showStep(2)" disabled>Pokračovať →</button>
+        ${firstStep()===0 ? `<button class="btn btn-back" onclick="showStep(0)">${t('backBtn')}</button>` : ''}
+        <button class="btn btn-next" id="btn-date-next" onclick="showStep(2)" disabled>${t('continueBtn')}</button>
       </div>`;
     document.getElementById('cal-prev').onclick = () => { calM--; if(calM<0){calM=11;calY--;} renderCal(); };
     document.getElementById('cal-next').onclick = () => { calM++; if(calM>11){calM=0;calY++;} renderCal(); };
@@ -422,12 +449,12 @@
     const [y,mo,d] = selDate.split('-').map(Number);
     const dateLabel = `${d}. ${MONTHS[mo-1]} ${y}`;
     el.innerHTML = `
-      <div class="card-title">Vyberte čas</div>
+      <div class="card-title">${t('selectTime')}</div>
       <div class="date-label">📅 ${dateLabel}${selService ? ` · ${esc(selService.name)}` : ''}</div>
-      <div id="slots-wrap"><div class="no-slots">Načítavam...</div></div>
+      <div id="slots-wrap"><div class="no-slots">...</div></div>
       <div class="btn-row" style="margin-top:1rem">
-        <button class="btn btn-back" onclick="showStep(1)">← Späť</button>
-        <button class="btn btn-next" id="btn-time-next" onclick="showStep(3)" disabled>Pokračovať →</button>
+        <button class="btn btn-back" onclick="showStep(1)">${t('backBtn')}</button>
+        <button class="btn btn-next" id="btn-time-next" onclick="showStep(3)" disabled>${t('continueBtn')}</button>
       </div>`;
     loadSlots(selDate);
   }
@@ -448,7 +475,7 @@
     const wrap = document.getElementById('slots-wrap');
     if (!wrap) return;
     const list = slotsCache[date] || [];
-    if (!list.length) { wrap.innerHTML = '<div class="no-slots">Žiadne voľné termíny pre tento deň.</div>'; return; }
+    if (!list.length) { wrap.innerHTML = `<div class="no-slots">${t('noSlots')}</div>`; return; }
     wrap.innerHTML = '<div class="slots-grid"></div>';
     const grid = wrap.querySelector('.slots-grid');
     list.forEach(s => {
@@ -477,26 +504,26 @@
     const endTime = slotsCache[selDate]?.find(s => s.start_time === selSlot)?.end_time;
 
     el.innerHTML = `
-      <div class="card-title">Vaše kontaktné údaje</div>
+      <div class="card-title">${t('contactDetails')}</div>
       <div class="summary-box">
         ${selService ? `<div class="summary-row"><span>✂️ Služba</span><span>${esc(selService.name)}</span></div>` : ''}
         <div class="summary-row"><span>📅 Dátum</span><span>${dateLabel}</span></div>
         <div class="summary-row"><span>🕐 Čas</span><span>${selSlot}${endTime ? ' – ' + endTime : ''}</span></div>
         ${selService?.price != null ? `<div class="summary-row"><span>💶 Cena</span><span>${selService.price} ${selService.currency}</span></div>` : ''}
       </div>
-      <div class="form-group"><label>Meno a priezvisko *</label>
+      <div class="form-group"><label>${t('nameLabel')} *</label>
         <input type="text" id="f-name" placeholder="Ján Novák" autocomplete="name"></div>
-      <div class="form-group"><label>Email *</label>
+      <div class="form-group"><label>${t('emailLabel')} *</label>
         <input type="email" id="f-email" placeholder="jan@email.sk" autocomplete="email"></div>
-      <div class="form-group"><label>Telefón (nepovinné)</label>
+      <div class="form-group"><label>${t('phoneLabel')}</label>
         <input type="tel" id="f-phone" placeholder="+421 900 000 000" autocomplete="tel"></div>
       <div class="gdpr-row">
         <input type="checkbox" id="f-gdpr">
-        <label for="f-gdpr">Súhlasím so spracovaním osobných údajov za účelom rezervácie termínu.*</label>
+        <label for="f-gdpr">${t('gdprText')}*</label>
       </div>
       <div class="btn-row">
-        <button class="btn btn-back" onclick="showStep(2)">← Späť</button>
-        <button class="btn btn-next" id="btn-submit" onclick="submitBooking()">Potvrdiť rezerváciu</button>
+        <button class="btn btn-back" onclick="showStep(2)">${t('backBtn')}</button>
+        <button class="btn btn-next" id="btn-submit" onclick="submitBooking()">${t('confirmBtn')}</button>
       </div>`;
   }
 
@@ -512,11 +539,11 @@
     else          document.getElementById('f-name')?.classList.remove('err');
     if (!email) { document.getElementById('f-email')?.classList.add('err'); valid = false; }
     else          document.getElementById('f-email')?.classList.remove('err');
-    if (!gdpr) { alert('Prosím, súhlaste so spracovaním osobných údajov.'); return; }
+    if (!gdpr) { alert(t('gdprError')); return; }
     if (!valid) return;
 
     const btn = document.getElementById('btn-submit');
-    if (btn) { btn.disabled = true; btn.textContent = 'Odosielam...'; }
+    if (btn) { btn.disabled = true; btn.textContent = t('sendingBtn'); }
 
     try {
       const r = await fetch(`${BASE}/api/booking/${widgetId}/public/book`, {
@@ -535,13 +562,13 @@
       const data = await r.json();
       if (!r.ok) {
         alert(data.error || 'Chyba rezervácie.');
-        if (btn) { btn.disabled = false; btn.textContent = 'Potvrdiť rezerváciu'; }
+        if (btn) { btn.disabled = false; btn.textContent = t('confirmBtn'); }
         return;
       }
       renderSuccess(name, email, data);
     } catch {
       alert('Chyba pripojenia. Skúste znova.');
-      if (btn) { btn.disabled = false; btn.textContent = 'Potvrdiť rezerváciu'; }
+      if (btn) { btn.disabled = false; btn.textContent = t('confirmBtn'); }
     }
   };
 
@@ -554,12 +581,12 @@
     el.innerHTML = `
       <div class="success-screen">
         <div class="success-icon">✅</div>
-        <h2>Rezervácia potvrdená!</h2>
+        <h2>${t('successTitle')}</h2>
         ${selService ? `<p style="font-size:1rem;font-weight:700;color:var(--p);margin:0.5rem 0">${esc(selService.name)}</p>` : ''}
         <p style="font-size:1rem;font-weight:700;margin:0.4rem 0">${dateLabel} o ${selSlot}</p>
         <p style="margin-top:0.75rem">${esc(data.confirmationMessage || 'Tešíme sa na vás!')}</p>
-        <p style="margin-top:0.75rem">Potvrdzovací email bol odoslaný na <strong>${esc(email)}</strong>.</p>
-        <p style="margin-top:1.5rem;font-size:0.8rem;color:#94a3b8">Môžete zavrieť toto okno.</p>
+        <p style="margin-top:0.75rem">${t('emailSent')} <strong>${esc(email)}</strong>.</p>
+        <p style="margin-top:1.5rem;font-size:0.8rem;color:#94a3b8">${t('closeWindow')}</p>
       </div>`;
   }
 

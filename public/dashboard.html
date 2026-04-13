@@ -346,7 +346,10 @@
               <label>Uvítacia správa <span style="font-weight:400;color:#94a3b8">(predvolená)</span></label>
               <input type="text" class="form-control" id="s-welcome" placeholder="Ahoj! Ako vám môžem pomôcť?">
               <div id="welcome-langs-container"></div>
-              <button type="button" id="btn-add-welcome-lang" class="btn btn-secondary btn-sm" style="margin-top:0.6rem">+ Pridať jazyk</button>
+              <div style="display:flex;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;align-items:center">
+                <button type="button" id="btn-add-welcome-lang" class="btn btn-secondary btn-sm">+ Pridať jazyk</button>
+                <button type="button" id="btn-auto-translate-welcome" class="btn btn-secondary btn-sm" onclick="autoTranslateWelcome()">🌍 Auto-preložiť</button>
+              </div>
               <div class="hint" style="margin-top:0.4rem">Pre viacjazyčné weby – widget automaticky rozpozná jazyk stránky zákazníka.</div>
             </div>
 
@@ -924,12 +927,45 @@
             </div>
 
             <!-- Header -->
-            <div>
+            <div style="margin-bottom:1.5rem">
               <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Hlavička</div>
               <div class="form-group" style="margin:0;max-width:140px">
                 <label>Emoji ikona</label>
                 <input type="text" class="form-control" id="bk-d-avatar" value="📅" maxlength="4" style="font-size:1.4rem;text-align:center;letter-spacing:0.1em">
               </div>
+            </div>
+
+            <!-- Texts -->
+            <div>
+              <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Texty stránky <span style="font-weight:400;color:#94a3b8;text-transform:none;font-size:0.72rem">(predvolená SK verzia)</span></div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
+                <div class="form-group" style="margin:0"><label>Podnadpis hlavičky</label>
+                  <input type="text" class="form-control" data-bk-txt="bookingSubtitle" placeholder="Vyberte si termín online"></div>
+                <div class="form-group" style="margin:0"><label>Výber služby – nadpis</label>
+                  <input type="text" class="form-control" data-bk-txt="selectService" placeholder="Vyberte službu"></div>
+                <div class="form-group" style="margin:0"><label>Výber dátumu – nadpis</label>
+                  <input type="text" class="form-control" data-bk-txt="selectDate" placeholder="Vyberte dátum"></div>
+                <div class="form-group" style="margin:0"><label>Výber času – nadpis</label>
+                  <input type="text" class="form-control" data-bk-txt="selectTime" placeholder="Vyberte čas"></div>
+                <div class="form-group" style="margin:0"><label>Kontaktné údaje – nadpis</label>
+                  <input type="text" class="form-control" data-bk-txt="contactDetails" placeholder="Vaše kontaktné údaje"></div>
+                <div class="form-group" style="margin:0"><label>Tlačidlo Pokračovať</label>
+                  <input type="text" class="form-control" data-bk-txt="continueBtn" placeholder="Pokračovať →"></div>
+                <div class="form-group" style="margin:0"><label>Tlačidlo Späť</label>
+                  <input type="text" class="form-control" data-bk-txt="backBtn" placeholder="← Späť"></div>
+                <div class="form-group" style="margin:0"><label>Tlačidlo Potvrdiť</label>
+                  <input type="text" class="form-control" data-bk-txt="confirmBtn" placeholder="Potvrdiť rezerváciu"></div>
+                <div class="form-group" style="margin:0"><label>Správa – žiadne termíny</label>
+                  <input type="text" class="form-control" data-bk-txt="noSlots" placeholder="Žiadne voľné termíny..."></div>
+                <div class="form-group" style="margin:0"><label>Nadpis po rezervácii</label>
+                  <input type="text" class="form-control" data-bk-txt="successTitle" placeholder="Rezervácia potvrdená!"></div>
+                <div class="form-group" style="margin:0;grid-column:1/-1"><label>Text GDPR súhlasu</label>
+                  <input type="text" class="form-control" data-bk-txt="gdprText" placeholder="Súhlasím so spracovaním..."></div>
+              </div>
+              <div style="display:flex;gap:0.5rem;margin-top:0.875rem;align-items:center;flex-wrap:wrap">
+                <button class="btn btn-secondary btn-sm" id="btn-translate-bk" onclick="autoTranslateBkTexts()">🌍 Auto-preložiť do všetkých jazykov</button>
+              </div>
+              <div id="bk-translation-status" style="margin-top:0.5rem"></div>
             </div>
           </div>
 
