@@ -960,11 +960,14 @@
               typingEl.textContent = parsed.error;
               typingEl.classList.remove('nd-typing');
             } else if (parsed.done) {
-              // Stream finished — detect booking tokens, then render markdown
+              // Stream finished — detect tokens, then render markdown
               let final = parsed.fullText || fullText;
 
               // __DIRECTBOOK__:JSON — AI collected all info, try to book directly
               const directBookMatch = final.match(/__DIRECTBOOK__:(\{[\s\S]*?\})/);
+              // __LEADMAGNET__:JSON — AI offers a lead magnet
+              const lmMatch = final.match(/__LEADMAGNET__:(\{[^\n]*?\})/);
+
               if (directBookMatch) {
                 final = final.replace(/__DIRECTBOOK__:\{[\s\S]*?\}/g, '').trim();
                 typingEl.innerHTML = renderMarkdown(final);
@@ -976,10 +979,14 @@
               } else {
                 const bookingTrigger = final.includes('__BOOKING__');
                 if (bookingTrigger) final = final.replace(/__BOOKING__/g, '').trim();
+                if (lmMatch) final = final.replace(/__LEADMAGNET__:\{[^\n]*?\}/g, '').trim();
                 typingEl.innerHTML = renderMarkdown(final);
                 history.push({ role: 'assistant', content: final });
                 maybeShowCta();
                 if (bookingTrigger) showInlineBookingCard();
+                if (lmMatch) {
+                  try { showLeadMagnetCapture(JSON.parse(lmMatch[1])); } catch { /* ignore */ }
+                }
               }
             } else if (parsed.text) {
               if (first) {
@@ -1210,6 +1217,78 @@
     msgs.appendChild(card);
     scrollToBottom();
     card.querySelector('#nd-book-open-btn').addEventListener('click', () => showInlineBooking());
+  }
+
+  function showLeadMagnetCapture(lmData) {
+    const msgs = shadow.getElementById('nd-messages');
+    if (!msgs) return;
+    const primary = config.primary_color || '#2563eb';
+    const lmId = lmData.id || '';
+    const lmTitle = lmData.title || 'Lead Magnet';
+    const cardId = 'nd-lm-' + lmId.replace(/[^a-z0-9]/gi, '');
+
+    if (shadow.getElementById(cardId)) return; // already shown
+
+    const card = elem('div', { id: cardId, class: 'nd-msg nd-msg-bot', style: 'padding:0.85rem;max-width:100%' });
+    card.innerHTML = `
+      <div style="font-size:0.78rem;font-weight:700;color:${primary};margin-bottom:0.35rem">🧲 Bezplatný materiál</div>
+      <div style="font-size:0.84rem;font-weight:600;color:#1e293b;margin-bottom:0.6rem">${esc(lmTitle)}</div>
+      <div id="${cardId}-form">
+        <div style="font-size:0.78rem;color:#64748b;margin-bottom:0.5rem">Zadajte email a dostanete prístup okamžite:</div>
+        <input type="email" id="${cardId}-email" placeholder="vas@email.sk"
+          style="width:100%;border:1.5px solid #e2e8f0;border-radius:8px;padding:0.5rem 0.7rem;font-size:0.83rem;font-family:inherit;color:#1e293b;box-sizing:border-box;outline:none;margin-bottom:0.45rem">
+        <button id="${cardId}-btn"
+          style="background:${primary};color:white;border:none;border-radius:8px;padding:0.52rem 1rem;font-size:0.82rem;font-weight:700;cursor:pointer;font-family:inherit;width:100%">
+          Získať zadarmo →
+        </button>
+      </div>
+      <div id="${cardId}-ok" style="display:none;font-size:0.84rem;color:#16a34a;font-weight:600;text-align:center;padding:0.3rem 0">
+        ✅ Skontrolujte email — link sme vám poslali!
+      </div>
+    `;
+    msgs.appendChild(card);
+    scrollToBottom();
+
+    const emailInput = shadow.getElementById(`${cardId}-email`);
+    const btn = shadow.getElementById(`${cardId}-btn`);
+    const formDiv = shadow.getElementById(`${cardId}-form`);
+    const okDiv = shadow.getElementById(`${cardId}-ok`);
+
+    btn.addEventListener('click', async () => {
+      const email = emailInput.value.trim();
+      if (!email || !email.includes('@')) {
+        emailInput.style.borderColor = '#ef4444';
+        return;
+      }
+      emailInput.style.borderColor = '#e2e8f0';
+      btn.disabled = true;
+      btn.textContent = '...';
+
+      try {
+        const r = await fetch(`${BASE_URL}/api/lead-magnets/${WIDGET_ID}/leads/capture`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lmId, email, name: '', sessionId: sessionId }),
+        });
+        const data = await r.json();
+        if (r.ok && data.fileUrl) {
+          formDiv.style.display = 'none';
+          okDiv.style.display = 'block';
+          okDiv.innerHTML = `✅ <a href="${esc(data.fileUrl)}" target="_blank" rel="noopener"
+            style="color:${primary};font-weight:700;text-decoration:underline">Stiahnuť ${esc(lmTitle)}</a>`;
+        } else {
+          formDiv.style.display = 'none';
+          okDiv.style.display = 'block';
+          okDiv.textContent = '✅ Ďakujeme! Skontrolujte si email.';
+        }
+      } catch {
+        btn.disabled = false;
+        btn.textContent = 'Získať zadarmo →';
+        emailInput.style.borderColor = '#ef4444';
+      }
+    });
+
+    emailInput.addEventListener('keydown', e => { if (e.key === 'Enter') btn.click(); });
   }
 
   function showInlineBooking() {

@@ -139,6 +139,45 @@ function loadProducts(widgetId) {
   } catch { return []; }
 }
 
+function loadLeadMagnets(widgetId) {
+  try {
+    const { getDb } = require('../db/database');
+    return getDb().prepare(
+      'SELECT id, name, description, ai_content, when_to_recommend, target_audience FROM lead_magnets WHERE widget_id = ? AND active = 1 ORDER BY created_at DESC'
+    ).all(widgetId);
+  } catch { return []; }
+}
+
+function buildLeadMagnetSection(leadMagnets) {
+  if (!leadMagnets || !leadMagnets.length) return '';
+
+  let section = '\n\n## LEAD MAGNETY (bezplatné materiály pre zákazníkov)\n';
+  section += 'Ak zákazník prejaví záujem o tému, ktorú pokrýva niektorý lead magnet, ponúkni mu ho.\n';
+  section += 'Použi token __LEADMAGNET__:JSON na konci odpovede (JSON na jednom riadku).\n';
+  section += 'Zákazník zadá email a okamžite dostane prístup k materiálu.\n\n';
+
+  leadMagnets.forEach((lm, i) => {
+    section += `### Lead Magnet ${i + 1}: ${lm.name}\n`;
+    if (lm.description) section += `Popis: ${lm.description}\n`;
+    if (lm.ai_content) section += `Obsah: ${lm.ai_content}\n`;
+    if (lm.when_to_recommend) section += `✅ Odporúčaj keď: ${lm.when_to_recommend}\n`;
+    if (lm.target_audience) section += `👤 Pre koho: ${lm.target_audience}\n`;
+    section += `ID: ${lm.id}\n\n`;
+  });
+
+  section += `**Ako použiť token:**
+Keď chceš zákazníkovi ponúknuť lead magnet, na KONIEC svojej odpovede (po texte) vlož:
+__LEADMAGNET__:{"id":"ID_LEAD_MAGNETU","title":"NAZOV_LEAD_MAGNETU"}
+
+PRAVIDLÁ:
+- Ponúkni max 1 lead magnet naraz
+- Ponúkni ho ako pridanú hodnotu, nie ako prerušenie konverzácie
+- Príklad: "Mimochodom, máme aj bezplatného sprievodcu na túto tému – ak chcete, stačí zadať email."
+- NIKDY nepýtaj email priamo v texte – token sa o to postará automaticky`;
+
+  return section;
+}
+
 function loadBookingConfig(widgetId) {
   try {
     const { getDb } = require('../db/database');
@@ -194,10 +233,12 @@ KRITICKÉ: Použi JEDEN token (__DIRECTBOOK__ ALEBO __BOOKING__) IBA raz za konv
 
 /* ── Streaming chat response ───────────────────────────────────── */
 async function streamChatResponse(widget, knowledgeItems, history, userMessage, res, pageContext = null) {
-  const products      = loadProducts(widget.id);
-  const bookingCfg    = loadBookingConfig(widget.id);
-  const bookingSection = buildBookingSection(widget.id, bookingCfg);
-  const systemPrompt  = buildSystemPrompt(widget, knowledgeItems, products, pageContext) + bookingSection;
+  const products        = loadProducts(widget.id);
+  const bookingCfg      = loadBookingConfig(widget.id);
+  const leadMagnets     = loadLeadMagnets(widget.id);
+  const bookingSection  = buildBookingSection(widget.id, bookingCfg);
+  const lmSection       = buildLeadMagnetSection(leadMagnets);
+  const systemPrompt    = buildSystemPrompt(widget, knowledgeItems, products, pageContext) + bookingSection + lmSection;
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
@@ -370,4 +411,4 @@ Text musí byť zrozumiteľný pre bežného človeka, nie príliš dlhý (max 3
   return response.content[0]?.text?.trim() || '';
 }
 
-module.exports = { streamChatResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText };
+module.exports = { streamChatResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets };

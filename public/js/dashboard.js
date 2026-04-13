@@ -156,7 +156,7 @@ function showView(view) {
 function showTab(tab) {
   closeMobileSidebar();
   currentTab = tab;
-  ['settings','knowledge','questions','embed','products','instagram','gdpr','booking'].forEach(t => {
+  ['settings','knowledge','questions','embed','products','instagram','gdpr','booking','leadmagnets'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -167,6 +167,7 @@ function showTab(tab) {
   if (tab === 'products') loadProducts();
   if (tab === 'gdpr') loadGdpr();
   if (tab === 'booking') loadBookingTab();
+  if (tab === 'leadmagnets') loadLeadMagnets();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -2431,3 +2432,217 @@ function copyBookingEmbed(type) {
     window.history.replaceState({}, '', '/dashboard');
   }
 })();
+
+/* ══════════════════════════════════════════════════════════════
+   LEAD MAGNETY
+══════════════════════════════════════════════════════════════ */
+
+let _lmItems = [];
+
+async function loadLeadMagnets() {
+  if (!currentWidget) return;
+  try {
+    const r = await apiFetch(`/api/lead-magnets/${currentWidget.id}`);
+    if (!r) return;
+    _lmItems = await r.json();
+    renderLmCards();
+    populateLmFilter();
+    loadLmLeads();
+  } catch {
+    showToast('Chyba pri načítaní lead magnetov.', 'error');
+  }
+}
+
+function renderLmCards() {
+  const cards = document.getElementById('lm-cards');
+  const empty = document.getElementById('lm-empty');
+  if (!cards) return;
+
+  if (!_lmItems.length) {
+    empty.style.display = '';
+    cards.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+
+  cards.innerHTML = _lmItems.map(lm => `
+    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1rem 1.1rem">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;flex-wrap:wrap">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem">
+            <span style="font-weight:700;font-size:0.95rem;color:#1e293b">${escHtml(lm.name)}</span>
+            <span style="font-size:0.72rem;padding:1px 7px;border-radius:99px;font-weight:600;background:${lm.active ? '#dcfce7' : '#f1f5f9'};color:${lm.active ? '#16a34a' : '#94a3b8'}">${lm.active ? 'Aktívny' : 'Neaktívny'}</span>
+          </div>
+          ${lm.description ? `<div style="font-size:0.82rem;color:#64748b;margin-bottom:0.4rem">${escHtml(lm.description)}</div>` : ''}
+          ${lm.when_to_recommend ? `<div style="font-size:0.78rem;color:#374151;margin-bottom:0.2rem"><b>Odporúčaj keď:</b> ${escHtml(lm.when_to_recommend)}</div>` : ''}
+          ${lm.target_audience ? `<div style="font-size:0.78rem;color:#374151;margin-bottom:0.2rem"><b>Pre koho:</b> ${escHtml(lm.target_audience)}</div>` : ''}
+          ${lm.ai_content ? `<div style="font-size:0.78rem;color:#374151;"><b>AI zhrnutie:</b> ${escHtml(lm.ai_content)}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:0.4rem;flex-shrink:0;flex-wrap:wrap">
+          ${lm.file_url ? `<a href="${escHtml(lm.file_url)}" target="_blank" rel="noopener" class="btn btn-secondary btn-sm">⬇ Súbor</a>` : ''}
+          <button class="btn btn-sm ${lm.active ? 'btn-secondary' : 'btn-primary'}" onclick="toggleLmActive('${lm.id}',${lm.active ? 0 : 1})">${lm.active ? 'Deaktivovať' : 'Aktivovať'}</button>
+          <button class="btn btn-sm btn-danger" onclick="deleteLm('${lm.id}')">Zmazať</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function populateLmFilter() {
+  const sel = document.getElementById('lm-leads-filter');
+  if (!sel) return;
+  // Keep first option, rebuild rest
+  sel.innerHTML = '<option value="">Všetky lead magnety</option>' +
+    _lmItems.map(lm => `<option value="${escHtml(lm.id)}">${escHtml(lm.name)}</option>`).join('');
+}
+
+async function toggleLmActive(lmId, newActive) {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/lead-magnets/${currentWidget.id}/${lmId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ active: newActive }),
+  });
+  if (r && r.ok) {
+    const updated = await r.json();
+    const idx = _lmItems.findIndex(x => x.id === lmId);
+    if (idx !== -1) _lmItems[idx] = updated;
+    renderLmCards();
+    showToast(newActive ? 'Lead magnet aktivovaný.' : 'Lead magnet deaktivovaný.', 'success');
+  } else {
+    showToast('Chyba.', 'error');
+  }
+}
+
+async function deleteLm(lmId) {
+  if (!currentWidget) return;
+  if (!confirm('Zmazať tento lead magnet? Zozbierané emaily budú tiež vymazané.')) return;
+  const r = await apiFetch(`/api/lead-magnets/${currentWidget.id}/${lmId}`, { method: 'DELETE' });
+  if (r && r.ok) {
+    _lmItems = _lmItems.filter(x => x.id !== lmId);
+    renderLmCards();
+    populateLmFilter();
+    loadLmLeads();
+    showToast('Lead magnet zmazaný.', 'success');
+  } else {
+    showToast('Chyba pri mazaní.', 'error');
+  }
+}
+
+function openLmUploadModal() {
+  document.getElementById('lm-name').value = '';
+  document.getElementById('lm-description').value = '';
+  document.getElementById('lm-file').value = '';
+  document.getElementById('lm-upload-progress').style.display = 'none';
+  document.getElementById('lm-upload-btn').disabled = false;
+  const m = document.getElementById('modal-lm-upload');
+  m.style.display = 'flex';
+}
+
+function closeLmUploadModal(e) {
+  if (e && e.currentTarget !== e.target) return;
+  document.getElementById('modal-lm-upload').style.display = 'none';
+}
+
+async function uploadLeadMagnet() {
+  if (!currentWidget) return;
+  const name = document.getElementById('lm-name').value.trim();
+  if (!name) { showToast('Zadajte názov.', 'error'); return; }
+
+  const fileInput = document.getElementById('lm-file');
+  const btn = document.getElementById('lm-upload-btn');
+  const progress = document.getElementById('lm-upload-progress');
+
+  btn.disabled = true;
+  progress.style.display = '';
+
+  const formData = new FormData();
+  formData.append('name', name);
+  formData.append('description', document.getElementById('lm-description').value.trim());
+  if (fileInput.files[0]) formData.append('file', fileInput.files[0]);
+
+  try {
+    const token = localStorage.getItem('nd_token');
+    const r = await fetch(`/api/lead-magnets/${currentWidget.id}`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+    const data = await r.json();
+    if (!r.ok) {
+      showToast(data.error || 'Chyba pri nahrávaní.', 'error');
+      btn.disabled = false;
+      progress.style.display = 'none';
+      return;
+    }
+    _lmItems.unshift(data);
+    renderLmCards();
+    populateLmFilter();
+    document.getElementById('modal-lm-upload').style.display = 'none';
+    showToast('Lead magnet pridaný!', 'success');
+  } catch {
+    showToast('Chyba pri nahrávaní.', 'error');
+    btn.disabled = false;
+    progress.style.display = 'none';
+  }
+}
+
+async function loadLmLeads() {
+  if (!currentWidget) return;
+  const lmId = document.getElementById('lm-leads-filter')?.value || '';
+  const url = lmId
+    ? `/api/lead-magnets/${currentWidget.id}/leads?lmId=${encodeURIComponent(lmId)}`
+    : `/api/lead-magnets/${currentWidget.id}/leads`;
+  try {
+    const r = await apiFetch(url);
+    if (!r) return;
+    const leads = await r.json();
+    renderLmLeads(leads);
+  } catch { /* ignore */ }
+}
+
+function renderLmLeads(leads) {
+  const table = document.getElementById('lm-leads-table');
+  const empty = document.getElementById('lm-leads-empty');
+  const body = document.getElementById('lm-leads-body');
+  if (!table || !body) return;
+
+  if (!leads.length) {
+    table.style.display = 'none';
+    empty.style.display = '';
+    return;
+  }
+  empty.style.display = 'none';
+  table.style.display = '';
+
+  body.innerHTML = leads.map(l => `
+    <tr style="border-bottom:1px solid #f1f5f9">
+      <td style="padding:0.55rem 0.75rem;color:#374151;font-weight:600">${escHtml(l.lm_name || '')}</td>
+      <td style="padding:0.55rem 0.75rem;color:#374151">${escHtml(l.name || '—')}</td>
+      <td style="padding:0.55rem 0.75rem;color:#2563eb">${escHtml(l.email)}</td>
+      <td style="padding:0.55rem 0.75rem;color:#64748b;font-size:0.78rem">${new Date(l.created_at * 1000).toLocaleString('sk-SK')}</td>
+    </tr>
+  `).join('');
+}
+
+async function exportLmLeads() {
+  if (!currentWidget) return;
+  const lmId = document.getElementById('lm-leads-filter')?.value || '';
+  const url = lmId
+    ? `/api/lead-magnets/${currentWidget.id}/leads/export.csv?lmId=${encodeURIComponent(lmId)}`
+    : `/api/lead-magnets/${currentWidget.id}/leads/export.csv`;
+
+  const token = localStorage.getItem('nd_token');
+  try {
+    const r = await fetch(url, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+    if (!r.ok) { showToast('Export zlyhal.', 'error'); return; }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'lead-magnet-leads.csv';
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+  } catch {
+    showToast('Chyba pri exporte.', 'error');
+  }
+}

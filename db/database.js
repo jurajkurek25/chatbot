@@ -245,6 +245,32 @@ function initDatabase() {
       session_id TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+
+    /* ── Lead Magnets ─────────────────────────────────────────── */
+
+    CREATE TABLE IF NOT EXISTS lead_magnets (
+      id TEXT PRIMARY KEY,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      file_path TEXT,
+      file_url TEXT,
+      ai_content TEXT,
+      when_to_recommend TEXT,
+      target_audience TEXT,
+      active INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    CREATE TABLE IF NOT EXISTS lead_magnet_leads (
+      id TEXT PRIMARY KEY,
+      lead_magnet_id TEXT NOT NULL REFERENCES lead_magnets(id) ON DELETE CASCADE,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      name TEXT,
+      session_id TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
   `);
 
   // Migrations: add columns for existing DBs
