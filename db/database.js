@@ -189,6 +189,7 @@ function initDatabase() {
       gcal_calendar_id TEXT NOT NULL DEFAULT 'primary',
       gcal_token_expiry INTEGER,
       gcal_email TEXT,
+      design_config TEXT NOT NULL DEFAULT '{}',
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       UNIQUE(widget_id)
     );
