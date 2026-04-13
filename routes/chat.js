@@ -30,7 +30,8 @@ router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
     SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
-           active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text
+           active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text,
+           hide_branding, business_hours, offline_message, csat_enabled, welcome_message_b
     FROM widgets WHERE id = ?
   `).get(req.params.widgetId);
 

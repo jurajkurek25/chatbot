@@ -54,6 +54,9 @@
       <button class="nav-item" onclick="showTab('instagram')" id="nav-instagram">
         <span class="nav-icon">📱</span> Instagram
       </button>
+      <button class="nav-item" onclick="showTab('facebook')" id="nav-facebook">
+        <span class="nav-icon">💬</span> Facebook Messenger
+      </button>
       <button class="nav-item" onclick="showTab('booking')" id="nav-booking">
         <span class="nav-icon">📅</span> Rezervácie
       </button>
@@ -781,6 +784,93 @@
 
             <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:0.75rem 1rem;border-radius:8px;margin-top:0.5rem;font-size:0.82rem;color:#166534">
               💡 <strong>Tip:</strong> Nastavte kľúčové slová, ktoré zákazníci zvyknú písať pod vaše príspevky (napr. pod ceníkový post napíšte trigger <em>CENA</em>).
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Facebook Messenger Tab -->
+        <div id="tab-facebook" class="tab-panel">
+
+          <!-- Disconnected state -->
+          <div class="panel" style="margin-bottom:1.5rem" id="fb-panel-disconnected">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">💬 Facebook Messenger Bot</div>
+                <div class="panel-subtitle">Bot automaticky odpovedá na správy cez Messenger vašej Facebook stránky</div>
+              </div>
+            </div>
+
+            <div class="ig-how-it-works" style="margin-bottom:1.5rem">
+              <div class="ig-step"><span class="ig-step-num">1</span><span>Zákazník napíše správu na Messenger vašej stránky</span></div>
+              <div class="ig-step"><span class="ig-step-num">2</span><span>Bot okamžite odpovie na základe vašej znalostnej bázy</span></div>
+              <div class="ig-step"><span class="ig-step-num">3</span><span>Môžete kedykoľvek prevziať konverzáciu manuálne (live takeover)</span></div>
+            </div>
+
+            <div class="form-group">
+              <label>Page Access Token <span style="font-weight:400;color:#94a3b8">(z Facebook Developers → App → Messenger → Generate Token)</span></label>
+              <input type="password" class="form-control" id="fb-token" placeholder="EAABx...">
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:1rem;padding:0.75rem" onclick="connectFacebook()">
+              💬 Pripojiť Facebook Messenger
+            </button>
+            <div style="text-align:center;font-size:0.78rem;color:#94a3b8;margin-top:0.5rem">
+              Token sa uloží bezpečne. Messenger webhook URL nájdete v nastaveniach nižšie po pripojení.
+            </div>
+          </div>
+
+          <!-- Connected state -->
+          <div class="panel" style="display:none;margin-bottom:1.5rem" id="fb-panel-connected">
+            <div class="panel-header">
+              <div style="display:flex;align-items:center;gap:0.75rem">
+                <div style="width:40px;height:40px;border-radius:50%;background:#1877f2;display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;flex-shrink:0">💬</div>
+                <div>
+                  <div class="panel-title" id="fb-connected-name">Facebook Stránka</div>
+                  <div class="panel-subtitle" id="fb-connected-id"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center">
+                <span class="ig-connected-badge">✅ Prepojené</span>
+                <button class="btn btn-sm btn-danger" onclick="disconnectFacebook()">Odpojiť</button>
+              </div>
+            </div>
+            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.75rem 1rem;font-size:0.82rem;color:#1e40af;margin-top:0.5rem">
+              <strong>Webhook URL</strong> (nastav v Facebook Developers → Webhooks):<br>
+              <code id="fb-webhook-url" style="font-size:0.8rem;word-break:break-all"></code>
+            </div>
+          </div>
+
+          <!-- Settings (visible when connected) -->
+          <div class="panel" style="display:none;margin-bottom:1.5rem" id="fb-panel-settings">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Nastavenia Messenger bota</div>
+              </div>
+              <button class="btn btn-primary" onclick="saveFacebookSettings()">Uložiť</button>
+            </div>
+
+            <div class="form-group">
+              <label>Kľúčové slová – trigger</label>
+              <div class="hint" style="margin-bottom:0.5rem">Keď zákazník napíše niektoré z týchto slov, bot mu pošle uvítaciu správu. Každé slovo na nový riadok.</div>
+              <textarea class="form-control" id="fb-keywords" rows="5" placeholder="INFO&#10;CENA&#10;CHCEM&#10;ZÁUJEM"></textarea>
+            </div>
+
+            <div class="form-group">
+              <label>Uvítacia správa</label>
+              <textarea class="form-control" id="fb-welcome-msg" rows="3" placeholder="Ahoj! 👋 Som tu, ak máš otázky. Napíš mi čo ťa zaujíma!"></textarea>
+            </div>
+          </div>
+
+          <!-- DM Sessions (visible when connected) -->
+          <div class="panel" style="display:none" id="fb-panel-sessions">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">Messenger konverzácie</div>
+              </div>
+              <button class="btn btn-secondary" onclick="loadFacebookSessions()">↺ Obnoviť</button>
+            </div>
+            <div id="fb-sessions-list">
+              <div style="font-size:0.875rem;color:#94a3b8;padding:1rem 0">Žiadne konverzácie.</div>
             </div>
           </div>
 

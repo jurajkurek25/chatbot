@@ -156,7 +156,7 @@ function showView(view) {
 function showTab(tab) {
   closeMobileSidebar();
   currentTab = tab;
-  ['settings','knowledge','questions','embed','products','instagram','gdpr','booking','leadmagnets','insights','inbox','integrations'].forEach(t => {
+  ['settings','knowledge','questions','embed','products','instagram','facebook','gdpr','booking','leadmagnets','insights','inbox','integrations'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -171,6 +171,7 @@ function showTab(tab) {
   if (tab === 'insights') loadInsights();
   if (tab === 'inbox') loadInbox();
   if (tab === 'integrations') loadIntegrations();
+  if (tab === 'facebook') loadFacebookStatus();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -3361,4 +3362,119 @@ async function deleteTeamMember(memberId) {
   if (!confirm('Odstrániť člena tímu?')) return;
   const res = await apiFetch(`/api/team/${memberId}`, { method: 'DELETE' });
   if (res && res.ok) { showToast('Člen odstránený'); loadTeam(); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FACEBOOK MESSENGER
+   ══════════════════════════════════════════════════════════════ */
+
+async function loadFacebookStatus() {
+  if (!currentWidget) return;
+  const res = await apiFetch(`/api/facebook/${currentWidget.id}/status`);
+  if (!res || !res.ok) return;
+  const data = await res.json();
+
+  const disconnected = document.getElementById('fb-panel-disconnected');
+  const connected    = document.getElementById('fb-panel-connected');
+  const settings     = document.getElementById('fb-panel-settings');
+  const sessions     = document.getElementById('fb-panel-sessions');
+
+  if (data.connected) {
+    disconnected.style.display = 'none';
+    connected.style.display    = '';
+    settings.style.display     = '';
+    sessions.style.display     = '';
+
+    document.getElementById('fb-connected-name').textContent = data.page_name || 'Facebook Stránka';
+    document.getElementById('fb-connected-id').textContent   = data.page_id ? `Page ID: ${data.page_id}` : '';
+    const origin = window.location.origin;
+    document.getElementById('fb-webhook-url').textContent = `${origin}/api/facebook/${currentWidget.id}/webhook`;
+
+    // Populate settings
+    const kws = Array.isArray(data.keyword_triggers) ? data.keyword_triggers.join('\n') : '';
+    document.getElementById('fb-keywords').value    = kws;
+    document.getElementById('fb-welcome-msg').value = data.welcome_msg || '';
+
+    loadFacebookSessions();
+  } else {
+    disconnected.style.display = '';
+    connected.style.display    = 'none';
+    settings.style.display     = 'none';
+    sessions.style.display     = 'none';
+  }
+}
+
+async function connectFacebook() {
+  if (!currentWidget) return;
+  const token = document.getElementById('fb-token')?.value.trim();
+  if (!token) { showToast('Zadajte Page Access Token', 'error'); return; }
+  const res = await apiFetch(`/api/facebook/${currentWidget.id}/connect`, {
+    method: 'POST',
+    body: JSON.stringify({ pageAccessToken: token }),
+  });
+  if (res && res.ok) {
+    showToast('Facebook Messenger pripojený');
+    document.getElementById('fb-token').value = '';
+    loadFacebookStatus();
+  } else {
+    const err = res ? await res.json().catch(() => ({})) : {};
+    showToast(err.error || 'Nepodarilo sa pripojiť', 'error');
+  }
+}
+
+async function disconnectFacebook() {
+  if (!currentWidget || !confirm('Odpojiť Facebook Messenger?')) return;
+  const res = await apiFetch(`/api/facebook/${currentWidget.id}/disconnect`, { method: 'DELETE' });
+  if (res && res.ok) { showToast('Facebook Messenger odpojený'); loadFacebookStatus(); }
+}
+
+async function saveFacebookSettings() {
+  if (!currentWidget) return;
+  const keywords = (document.getElementById('fb-keywords')?.value || '')
+    .split('\n').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const welcome_msg = document.getElementById('fb-welcome-msg')?.value.trim() || '';
+  const res = await apiFetch(`/api/facebook/${currentWidget.id}/settings`, {
+    method: 'PUT',
+    body: JSON.stringify({ keyword_triggers: keywords, welcome_msg }),
+  });
+  if (res && res.ok) showToast('Nastavenia uložené');
+  else showToast('Chyba pri ukladaní', 'error');
+}
+
+async function loadFacebookSessions() {
+  if (!currentWidget) return;
+  const res = await apiFetch(`/api/facebook/${currentWidget.id}/sessions`);
+  if (!res || !res.ok) return;
+  const sessions = await res.json();
+  const list = document.getElementById('fb-sessions-list');
+  if (!list) return;
+  if (!sessions.length) {
+    list.innerHTML = '<div style="font-size:0.875rem;color:#94a3b8;padding:1rem 0">Zatiaľ žiadne Messenger konverzácie.</div>';
+    return;
+  }
+  list.innerHTML = sessions.map(s => {
+    const live = s.live_agent ? '<span style="background:#dcfce7;color:#16a34a;font-size:0.65rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:99px;margin-left:0.4rem">LIVE</span>' : '';
+    const dt = s.updated_at ? new Date(s.updated_at * 1000).toLocaleString('sk-SK', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    const lastMsg = s.last_msg ? s.last_msg.slice(0,60) + (s.last_msg.length > 60 ? '…' : '') : '—';
+    return `<div style="padding:0.65rem 0.75rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
+      <div style="flex:1;min-width:0">
+        <div style="font-size:0.85rem;font-weight:700;color:#1e293b">${escHtml(s.sender_name || s.sender_id)}${live}</div>
+        <div style="font-size:0.75rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(lastMsg)}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.25rem;flex-shrink:0">
+        <span style="font-size:0.7rem;color:#94a3b8">${dt}</span>
+        <button class="btn btn-sm btn-secondary" style="font-size:0.72rem" onclick="toggleFbTakeover('${escHtml(s.id)}','${escHtml(currentWidget.id)}',${s.live_agent ? 1 : 0})">
+          ${s.live_agent ? 'Odovzdať AI' : 'Prevziať'}
+        </button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function toggleFbTakeover(sessionId, widgetId, currentLive) {
+  const res = await apiFetch(`/api/facebook/${widgetId}/sessions/${sessionId}/takeover`, {
+    method: 'PATCH',
+    body: JSON.stringify({ live: !currentLive }),
+  });
+  if (res && res.ok) { showToast(currentLive ? 'Chat vrátený AI' : 'Chat prebraný'); loadFacebookSessions(); }
 }
