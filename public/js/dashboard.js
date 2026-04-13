@@ -1861,28 +1861,27 @@ function _setLogoPreview(url) {
 
 async function uploadBookingLogo(input) {
   if (!currentWidget || !input.files[0]) return;
-  const statusEl = document.getElementById('bk-logo-status');
-  if (statusEl) statusEl.textContent = 'Nahrávam…';
-
-  const fd = new FormData();
-  fd.append('logo', input.files[0]);
+  const file = input.files[0];
   input.value = '';
+  const statusEl = document.getElementById('bk-logo-status');
 
-  try {
-    const r = await apiFetch(`/api/booking/${currentWidget.id}/logo`, {
-      method: 'POST',
-      body: fd,
-    });
-    if (!r) return;
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Chyba');
-    _bkDesign.calendarLogo = data.logo_url;
-    _setLogoPreview(data.logo_url);
-    if (statusEl) statusEl.textContent = 'Logo nahrané!';
-    setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 2500);
-  } catch (err) {
-    if (statusEl) statusEl.textContent = 'Chyba: ' + err.message;
+  if (file.size > 300 * 1024) {
+    if (statusEl) statusEl.textContent = 'Logo musí byť menšie ako 300 KB.';
+    return;
   }
+
+  if (statusEl) statusEl.textContent = 'Spracúvam…';
+  const dataUrl = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+
+  _bkDesign.calendarLogo = dataUrl;
+  _setLogoPreview(dataUrl);
+  if (statusEl) statusEl.textContent = 'Logo načítané — kliknite Uložiť dizajn.';
+  setTimeout(() => { if (statusEl) statusEl.textContent = ''; }, 3000);
 }
 
 function removeBookingLogo() {
