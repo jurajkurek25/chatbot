@@ -82,9 +82,12 @@ app.get('/onboarding', (req, res) =>
 app.get('/demo', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'demo.html'))
 );
-app.get('/book/:widgetId', (req, res) =>
-  res.sendFile(path.join(__dirname, 'public', 'booking.html'))
-);
+app.get('/book/:widgetId', (req, res) => {
+  // Allow booking page to be embedded in iframes on any domain
+  res.setHeader('Content-Security-Policy', "frame-ancestors *");
+  res.setHeader('X-Frame-Options', 'ALLOWALL');
+  res.sendFile(path.join(__dirname, 'public', 'booking.html'));
+});
 
 // 404 handler — must be last
 app.use((req, res) => {
