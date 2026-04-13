@@ -30,6 +30,12 @@ NeuraDeskApp je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvor
 - Stav: Aktívny (viditeľný) / Neaktívny (skrytý)
 - Ciele a kontext biznisu: popis pre AI aby pochopila produkt, cieľovku, tón komunikácie
 - Jazyk widgetu: automaticky sa prispôsobí jazyku zákazníka (SK, EN, DE, FR, ES, PL, CS, HU, RO, HR a ďalšie)
+- White-label: možnosť skryť "Powered by NeuraDesk" z widgetu (Integrácie → White-label & vzhľad)
+- Pracovné hodiny: chatbot zobrazí offline správu mimo pracovných hodín — nastavenie pre každý deň zvlášť (Integrácie → Pracovné hodiny)
+- Offline správa: vlastný text keď je widget mimo prevádzky (napr. "Sme zatvorení, napíšte nám email")
+- A/B test uvítacej správy: otestujte 2 verzie uvítacej správy — systém automaticky rozdelí návštevníkov 50/50 a v záložke Trendy uvidíte ktorá verzia konvertuje lepšie (Integrácie → A/B test)
+- CSAT hodnotenie: po 4 odpovediach chatbota sa zákazníkovi zobrazí 5-hviezdičkové hodnotenie konverzácie; výsledky vidíte pri každom leade (Integrácie → Automatická odpoveď & CSAT)
+- Automatická odpoveď: nastavte auto-reply správu keď agent nie je online (voliteľné)
 
 2. ZNALOSTNÁ BÁZA
 - Pridať text: nadpis + obsah (napr. FAQ, cenník, popis služieb)
@@ -88,6 +94,9 @@ NeuraDeskApp je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvor
 - Filter: podľa widgetu alebo stavu
 - Export do CSV jedným kliknutím
 - Badge v sidebar ukazuje počet nových kontaktov
+- CSAT hodnotenie: pri každom leade vidíte hviezdičkové hodnotenie konverzácie od zákazníka
+- Kanban zobrazenie: prepnite medzi zoznamom (☰) a kanban boardom (⊞) — stĺpce Nový / Kontaktovaný / Uzavretý, drag & drop na zmenu stavu
+- Follow-up email: tlačidlo 📧 pri každom leade otvorí okno kde napíšete správu — odošle sa priamo na email zákazníka
 
 9. AFFILIATE PROGRAM
 - Váš unikátny referral link: neuradesk.online/?ref=VÁŠ_KÓD
@@ -182,6 +191,98 @@ SPRÁVA REZERVÁCIÍ:
 - Stavy: Potvrdená / Zrušená / No-show
 - Zmena stavu jedným klikom
 
+14. TRENDY (ANALYTICS)
+Dashboard → váš widget → záložka "📊 Trendy"
+- Anonymné GDPR-safe štatistiky konverzácií (žiadne osobné údaje, len správanie)
+- Zámer návštevníka (Intent): buying (záujem o kúpu), researching (skúma), support (podpora), just_browsing (len prehliada)
+- Naliehavosť (Urgency): immediate (okamžitá), soon (čoskoro), planning (plánuje), just_browsing
+- Nálada (Sentiment): positive / neutral / negative
+- Časový filter: posledných 7 / 30 / 90 dní
+- A/B test štatistiky: koľko leadov prišlo cez verziu A vs verziu B uvítacej správy
+- Trendy sa začnú zobrazovať po prvých konverzáciách s 3+ výmenami správ
+
+15. INBOX (ŽIVÝ AGENT / LIVE TAKEOVER)
+Dashboard → váš widget → záložka "📥 Inbox"
+- Zoznam všetkých prebiehajúcich a ukončených konverzácií v reálnom čase
+- Prepis správ: kliknite na konverzáciu a uvidíte celú históriu chatbota so zákazníkom
+- Prevziať chat: tlačidlo "Prevziať chat" vypne AI a vy prevezmete konverzáciu ako živý agent
+  – Zákazník dostáva vaše správy priamo v chatbote v reálnom čase
+  – Badge "● LIVE" zobrazí aktívne prebraté konverzácie
+- Späť na AI: druhým kliknutím na "Prevziať chat" vrátite chatbota do automatického režimu
+- Pole na odpoveď sa zobrazí len keď ste v live móde; odoslanie Enterom alebo tlačidlom
+
+16. FACEBOOK MESSENGER BOT
+Dashboard → váš widget → záložka "💬 Facebook Messenger"
+- Bot automaticky odpovedá na správy cez Messenger vašej Facebook Stránky (nie osobného profilu)
+- Prepojenie: zadáte Page Access Token z Facebook Developers (App → Messenger → Generate Token)
+- Webhook URL: po prepojení dostanete adresu ktorú nastavíte v Facebook Developers → Webhooks → Messenger
+- Nastavenia bota: kľúčové slová (každé na nový riadok), uvítacia správa
+- Zoznam Messenger konverzácií: zobrazuje aktívne sessions, možnosť Live Takeover rovnako ako v Inboxe
+- Rozdiel od Instagram bota: Facebook Messenger funguje priamo cez Page; Instagram bot funguje cez komentáre
+- Požiadavky: Facebook Stránka (nie osobný profil), Page Access Token so správnymi oprávneniami (pages_messaging)
+
+17. LEAD MAGNETY
+Dashboard → váš widget → záložka "🧲 Lead Magnety"
+- Ponúknite zákazníkovi PDF, e-book alebo iný súbor výmenou za jeho email
+- Postup: nahráte súbor (PDF/DOC/ZIP) → chatbot ho ponúkne zákazníkovi → zákazník zadá email → súbor sa mu odošle a kontakt sa uloží
+- AI extrakcia: po nahraní súboru AI automaticky naskenuje obsah a pridá ho do znalostnej bázy
+- Zozbierané emaily: záložka "📬 Zozbierané emaily" ukáže všetkých záujemcov o daný magnet
+- Export emailov do CSV jedným kliknutím
+- Každý widget môže mať viacero lead magnetov
+
+18. INTEGRÁCIE
+Dashboard → váš widget → záložka "🔗 Integrácie"
+
+A) ECOMAIL — email marketing
+- Prepojte chatbota s vašim Ecomail účtom — každý nový lead sa automaticky pridá do vášho email zoznamu
+- Postup (4 kroky):
+  1. Vytvorte účet na ecomail.app
+  2. Vytvorte zoznam kontaktov v Ecomaile (napr. "Leady z webu")
+  3. Skopírujte API kľúč z Nastavenia → Integrácie → API kľúč v Ecomaile
+  4. Vložte API kľúč do dashboardu → načítajte zoznamy → vyberte zoznam → Pripojiť
+- AI tagy: systém automaticky pridá tagy podľa zámeru zákazníka (intent-buying, urgency-immediate...) → perfektná segmentácia bez práce
+- Testovací email: tlačidlo "Odoslať test lead" overí či prepojenie funguje
+- API kľúč je bezpečne uložený len na serveri, nikdy sa nezobrazuje vo frontende
+- Odpojenie: tlačidlo "Odpojiť" v Integráciách
+
+B) WEBHOOKS
+- Webhook URL: po každom novom leade systém pošle POST požiadavku na vašu URL (napr. Make.com, Zapier, vlastný server)
+- Slack Webhook URL: pri novom leade pošle správu do vášho Slack kanála
+- Nastavenie: Integrácie → Webhooks → vložte URL → Uložiť
+
+C) WHITE-LABEL & VZHĽAD
+- Skryť "Powered by NeuraDesk" logo z widgetu
+- Nastavenie: Integrácie → White-label & vzhľad → zapnúť prepínač
+
+D) PRACOVNÉ HODINY
+- Nastavte dni a hodiny kedy je chatbot "otvorený"
+- Mimo pracovných hodín chatbot zobrazí offline správu (napr. "Sme zatvorení, otvárame o 9:00")
+- Každý deň zvlášť: zapnúť/vypnúť + čas od–do
+- Nastavenie: Integrácie → Pracovné hodiny
+
+E) AUTOMATICKÁ ODPOVEĎ & CSAT
+- Auto-reply: keď zákazník napíše a agent je preč, chatbot odošle vopred pripravenú správu
+- CSAT (hodnotenie): po 4 odpovediach chatbota sa zákazníkovi zobrazí 5-hviezdičkové hodnotenie; výsledky vidíte pri leadoch
+- Nastavenie: Integrácie → Automatická odpoveď & CSAT
+
+F) A/B TEST UVÍTACEJ SPRÁVY
+- Zadajte verziu A (hlavná uvítacia správa) a verziu B (alternatíva)
+- Systém automaticky rozdeľuje návštevníkov 50/50
+- Výsledky (počet leadov per variant) vidíte v záložke 📊 Trendy → A/B Test
+- Nastavenie: Integrácie → A/B test uvítacej správy
+
+G) WOOCOMMERCE
+- Importuje produkty z WooCommerce do znalostnej bázy chatbota jedným kliknutím
+- Potrebuje: URL WooCommerce obchodu, Consumer Key a Consumer Secret (WooCommerce → Nastavenia → Pokročilé → REST API)
+- Po importe chatbot vie odporúčať konkrétne produkty so správnymi cenami a popismi
+- Nastavenie: Integrácie → WooCommerce → vložte URL + kľúče → Importovať produkty
+
+H) TÍM
+- Pozvite ďalších členov tímu k správe chatbota (napr. zamestnanec, VA, agentúra)
+- Pozvaný dostane email s odkazom na aktiváciu; po prijatí vidí rovnaký dashboard
+- Správa: Integrácie → Tím → Pozvať člena → zadajte email
+- Odstránenie člena: tlačidlo koša pri danom členovi
+
 ━━━ ČASTÉ PROBLÉMY A RIEŠENIA ━━━
 
 Chatbot nič nevie / odpovedá nesprávne:
@@ -210,6 +311,39 @@ Ako zmeniť logo alebo názov na rezervačnej stránke:
 
 Ako pridať rôzne typy služieb s rôznymi cenami:
 → Dashboard → záložka Rezervácie → sekcia "Typy služieb" → pridajte každú službu zvlášť s jej trvaním a cenou.
+
+Chatbot zobrazuje offline správu aj počas pracovných hodín:
+→ Skontrolujte časové pásmo servera a nastavené hodiny v Integrácie → Pracovné hodiny. Uistite sa, že správny deň je zapnutý a čas je vo formáte HH:MM.
+
+CSAT hodnotenie sa nezobrazuje:
+→ CSAT sa zobrazí až po 4 odpovediach chatbota v jednej konverzácii. Uistite sa, že je zapnuté v Integrácie → Automatická odpoveď & CSAT. Funguje len na webe, nie v Instagram/Facebook botovi.
+
+Ecomail sa nedá pripojiť / "Neplatný API kľúč":
+→ API kľúč nájdete v Ecomaile: Nastavenia (ikona ozubeného kolieska) → Integrácie → API kľúč. Skopírujte celý kľúč bez medzier. Ak máte viacero API kľúčov, použite ten s read+write oprávneniami.
+
+Leady sa nepridávajú do Ecomailu:
+→ Ecomail sa spustí až pri prvom leade PO prepojení. Skontrolujte, či je widget prepojený (zelená správa "Prepojené" v Integráciách). Použite "Odoslať test lead" na overenie.
+
+Webhook nefunguje / nedostanem POST požiadavku:
+→ URL musí byť verejne dostupná (nie localhost). Otestujte cez Webhook.site alebo RequestBin. Systém posiela JSON s: meno, email, telefón, widget_id, ai_summary.
+
+Facebook Messenger bot nereaguje:
+→ Skontrolujte či je Webhook URL správne nastavená v Facebook Developers. Verify Token musí zodpovedať. Page Access Token musí mať oprávnenia: pages_messaging, pages_read_engagement.
+
+Inbox sa neaktualizuje / nevidím nové konverzácie:
+→ Kliknite "↺ Obnoviť" v záložke Inbox. Konverzácie sa zobrazujú len pre aktívny widget. Uistite sa, že zákazník skutočne komunikoval s chatbotom (nestačí len otvoriť widget).
+
+Kanban sa nezobrazuje:
+→ Kliknite na ikonu ⊞ vpravo hore v záložke Kontakty (vedľa tlačidla Export CSV). Kanban zobrazuje leady rozdelené do stĺpcov podľa stavu.
+
+Follow-up email sa neodoslal:
+→ Uistite sa, že máte nakonfigurovaný email server (SMTP). Skontrolujte, či email zákazníka existuje a je správny. Skúste znova — tlačidlo 📧 je pri každom leade.
+
+A/B test neukazuje žiadne štatistiky:
+→ Trendy vyžadujú aspoň niekoľko konverzácií. Skontrolujte, že A/B test je zapnutý v Integráciách a že oba texty (A aj B) sú vyplnené. Štatistiky vidíte v záložke Trendy → sekcia A/B Test.
+
+WooCommerce import zlyhal:
+→ Skontrolujte URL obchodu (musí byť https, bez lomítka na konci). Consumer Key a Secret nájdete v WooCommerce → Nastavenia → Pokročilé → REST API → Pridať kľúč (oprávnenie: Čítať). Firewall obchodu nesmie blokovať externé požiadavky.
 
 ━━━ POKYNY PRE TEBA ━━━
 - Odpovedaj v slovenčine (alebo v jazyku otázky ak píše po anglicky, nemecky atď.)
