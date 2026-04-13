@@ -378,6 +378,9 @@ function initDatabase() {
     `ALTER TABLE leads ADD COLUMN ab_variant TEXT NOT NULL DEFAULT 'a'`,
     `ALTER TABLE conversations ADD COLUMN live_agent INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE conversations ADD COLUMN csat_rating INTEGER`,
+    `ALTER TABLE widgets ADD COLUMN ecomail_api_key TEXT`,
+    `ALTER TABLE widgets ADD COLUMN ecomail_list_id TEXT`,
+    `ALTER TABLE widgets ADD COLUMN ecomail_list_name TEXT`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists */ }

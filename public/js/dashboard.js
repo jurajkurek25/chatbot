@@ -170,7 +170,7 @@ function showTab(tab) {
   if (tab === 'leadmagnets') loadLeadMagnets();
   if (tab === 'insights') loadInsights();
   if (tab === 'inbox') loadInbox();
-  if (tab === 'integrations') loadIntegrations();
+  if (tab === 'integrations') { loadIntegrations(); loadEcomailStatus(); }
   if (tab === 'facebook') loadFacebookStatus();
 }
 
@@ -3477,4 +3477,114 @@ async function toggleFbTakeover(sessionId, widgetId, currentLive) {
     body: JSON.stringify({ live: !currentLive }),
   });
   if (res && res.ok) { showToast(currentLive ? 'Chat vrátený AI' : 'Chat prebraný'); loadFacebookSessions(); }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ECOMAIL EMAIL MARKETING
+   ══════════════════════════════════════════════════════════════ */
+
+let _ecomailLists = [];  // cached list from API
+
+async function loadEcomailStatus() {
+  if (!currentWidget) return;
+  const res = await apiFetch(`/api/ecomail/${currentWidget.id}/status`);
+  if (!res || !res.ok) return;
+  const data = await res.json();
+
+  const connected    = document.getElementById('ecomail-connected');
+  const disconnected = document.getElementById('ecomail-disconnected');
+  if (!connected || !disconnected) return;
+
+  if (data.connected) {
+    connected.style.display    = '';
+    disconnected.style.display = 'none';
+    document.getElementById('ecomail-list-name-display').textContent = data.list_name || `#${data.list_id}`;
+  } else {
+    connected.style.display    = 'none';
+    disconnected.style.display = '';
+  }
+}
+
+async function ecomailLoadLists() {
+  const apiKey = document.getElementById('ecomail-api-key-input')?.value.trim();
+  const errEl  = document.getElementById('ecomail-error');
+  const btn    = document.getElementById('ecomail-load-lists-btn');
+  if (!apiKey) { if (errEl) { errEl.textContent = 'Vložte API kľúč.'; errEl.style.display = ''; } return; }
+  if (errEl) errEl.style.display = 'none';
+  if (btn) { btn.disabled = true; btn.textContent = 'Načítavam…'; }
+
+  const res = await apiFetch(`/api/ecomail/${currentWidget.id}/lists`, {
+    method: 'POST',
+    body: JSON.stringify({ apiKey }),
+  });
+  if (btn) { btn.disabled = false; btn.textContent = 'Načítať moje zoznamy →'; }
+
+  if (!res || !res.ok) {
+    const err = res ? await res.json().catch(() => ({})) : {};
+    if (errEl) { errEl.textContent = err.error || 'Nepodarilo sa načítať zoznamy.'; errEl.style.display = ''; }
+    return;
+  }
+  const data = await res.json();
+  _ecomailLists = data.lists || [];
+
+  const select = document.getElementById('ecomail-list-select');
+  const wrap   = document.getElementById('ecomail-lists-wrap');
+  const connectWrap = document.getElementById('ecomail-connect-wrap');
+  if (select) {
+    select.innerHTML = '<option value="">— Vyberte zoznam —</option>' +
+      _ecomailLists.map(l => `<option value="${escHtml(l.id)}">${escHtml(l.name)}</option>`).join('');
+  }
+  if (wrap) wrap.style.display = '';
+  if (connectWrap) connectWrap.style.display = '';
+}
+
+async function connectEcomail() {
+  if (!currentWidget) return;
+  const apiKey = document.getElementById('ecomail-api-key-input')?.value.trim();
+  const select = document.getElementById('ecomail-list-select');
+  const listId = select?.value;
+  const listName = select?.options[select.selectedIndex]?.text || '';
+  const errEl = document.getElementById('ecomail-error');
+
+  if (!apiKey || !listId) {
+    if (errEl) { errEl.textContent = 'Vyberte zoznam.'; errEl.style.display = ''; }
+    return;
+  }
+  if (errEl) errEl.style.display = 'none';
+
+  const res = await apiFetch(`/api/ecomail/${currentWidget.id}/connect`, {
+    method: 'POST',
+    body: JSON.stringify({ apiKey, listId, listName }),
+  });
+  if (res && res.ok) {
+    showToast('Ecomail prepojený! Leady pôjdu automaticky do vášho zoznamu.');
+    document.getElementById('ecomail-api-key-input').value = '';
+    loadEcomailStatus();
+  } else {
+    const err = res ? await res.json().catch(() => ({})) : {};
+    if (errEl) { errEl.textContent = err.error || 'Chyba pri prepojení.'; errEl.style.display = ''; }
+  }
+}
+
+async function disconnectEcomail() {
+  if (!currentWidget || !confirm('Odpojiť Ecomail? Leady sa prestanú automaticky pridávať.')) return;
+  const res = await apiFetch(`/api/ecomail/${currentWidget.id}/disconnect`, { method: 'DELETE' });
+  if (res && res.ok) { showToast('Ecomail odpojený.'); loadEcomailStatus(); }
+}
+
+async function testEcomail() {
+  if (!currentWidget) return;
+  const email = document.getElementById('ecomail-test-email')?.value.trim();
+  if (!email) { showToast('Zadajte testovací email', 'error'); return; }
+  const res = await apiFetch(`/api/ecomail/${currentWidget.id}/test`, {
+    method: 'POST',
+    body: JSON.stringify({ testEmail: email }),
+  });
+  if (res && res.ok) {
+    showToast('✅ Test lead odoslaný do Ecomailu! Skontrolujte váš zoznam.');
+    document.getElementById('ecomail-test-email').value = '';
+  } else {
+    const err = res ? await res.json().catch(() => ({})) : {};
+    showToast(err.error || 'Test zlyhal.', 'error');
+  }
 }

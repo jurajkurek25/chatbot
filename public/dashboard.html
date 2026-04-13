@@ -1373,6 +1373,101 @@
             <button class="btn btn-primary" onclick="saveIntegrations()">Uložiť</button>
           </div>
 
+          <!-- ═══ Ecomail email marketing ═══ -->
+          <div class="panel" style="margin-bottom:1.5rem" id="ecomail-panel">
+
+            <!-- Connected state (hidden by default) -->
+            <div id="ecomail-connected" style="display:none">
+              <div class="panel-header">
+                <div style="display:flex;align-items:center;gap:0.75rem">
+                  <div style="width:36px;height:36px;border-radius:10px;background:#ff5c00;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;flex-shrink:0">📧</div>
+                  <div>
+                    <div class="panel-title">Ecomail</div>
+                    <div class="panel-subtitle">✅ Prepojené — zoznam: <strong id="ecomail-list-name-display"></strong></div>
+                  </div>
+                </div>
+                <button class="btn btn-sm btn-danger" onclick="disconnectEcomail()">Odpojiť</button>
+              </div>
+              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:0.85rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:#166534">
+                🟢 Každý nový lead zo chatbota sa <strong>automaticky pridá do vášho Ecomail zoznamu</strong>. AI navyše pridá tagy podľa zámeru zákazníka (<em>intent-buying</em>, <em>urgency-immediate</em>…) — perfektná segmentácia bez práce.
+              </div>
+              <div class="form-group">
+                <label>Otestovať prepojenie</label>
+                <div style="display:flex;gap:0.5rem">
+                  <input type="email" id="ecomail-test-email" class="form-control" placeholder="vas@email.sk" style="flex:1">
+                  <button class="btn btn-secondary" onclick="testEcomail()">Odoslať test lead</button>
+                </div>
+                <div class="hint">Pošle testovací kontakt do vášho Ecomail zoznamu</div>
+              </div>
+            </div>
+
+            <!-- Disconnected state — step by step -->
+            <div id="ecomail-disconnected">
+              <div class="panel-header">
+                <div style="display:flex;align-items:center;gap:0.75rem">
+                  <div style="width:36px;height:36px;border-radius:10px;background:#ff5c00;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;flex-shrink:0">📧</div>
+                  <div>
+                    <div class="panel-title">Ecomail — automatický email marketing</div>
+                    <div class="panel-subtitle">Každý lead zo chatbota pôjde priamo do vášho mailing listu</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Steps -->
+              <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.25rem">
+                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#f8fafc;border-radius:10px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:#ff5c00;color:white;font-size:0.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+                  <div>
+                    <div style="font-size:0.875rem;font-weight:700;color:#1e293b">Vytvorte si účet v Ecomaile</div>
+                    <div style="font-size:0.8rem;color:#64748b;margin-top:0.15rem">Ak ešte nemáte — registrácia je zadarmo.</div>
+                    <a href="https://www.ecomail.app" target="_blank" rel="noopener" style="font-size:0.8rem;color:#ff5c00;font-weight:600;text-decoration:none">→ Otvoriť ecomail.app</a>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#f8fafc;border-radius:10px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:#ff5c00;color:white;font-size:0.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+                  <div>
+                    <div style="font-size:0.875rem;font-weight:700;color:#1e293b">Vytvorte zoznam kontaktov</div>
+                    <div style="font-size:0.8rem;color:#64748b;margin-top:0.15rem">V Ecomaile: <strong>Zoznamy → Nový zoznam</strong>. Napr. „Leady z webu".</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#f8fafc;border-radius:10px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:#ff5c00;color:white;font-size:0.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+                  <div>
+                    <div style="font-size:0.875rem;font-weight:700;color:#1e293b">Skopírujte API kľúč</div>
+                    <div style="font-size:0.8rem;color:#64748b;margin-top:0.15rem">V Ecomaile: <strong>Nastavenia → Integrácie → API kľúč</strong>. Skopírujte ho.</div>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px">
+                  <div style="width:28px;height:28px;border-radius:50%;background:#ff5c00;color:white;font-size:0.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>
+                  <div style="flex:1">
+                    <div style="font-size:0.875rem;font-weight:700;color:#1e293b">Vložte API kľúč a vyberte zoznam</div>
+                    <div style="font-size:0.8rem;color:#64748b;margin:0.35rem 0 0.6rem">Vložte API kľúč — automaticky načítame vaše zoznamy.</div>
+                    <div class="form-group" style="margin-bottom:0.6rem">
+                      <input type="password" id="ecomail-api-key-input" class="form-control"
+                        placeholder="Váš Ecomail API kľúč..."
+                        style="font-family:monospace;font-size:0.82rem">
+                    </div>
+                    <button class="btn btn-secondary" id="ecomail-load-lists-btn" onclick="ecomailLoadLists()" style="margin-bottom:0.6rem">
+                      Načítať moje zoznamy →
+                    </button>
+                    <div id="ecomail-lists-wrap" style="display:none" class="form-group">
+                      <label>Vyberte zoznam</label>
+                      <select id="ecomail-list-select" class="form-control">
+                        <option value="">— Vyberte zoznam —</option>
+                      </select>
+                    </div>
+                    <div id="ecomail-connect-wrap" style="display:none">
+                      <button class="btn btn-primary" onclick="connectEcomail()" style="width:100%;justify-content:center">
+                        ✅ Zapojiť automatický email marketing
+                      </button>
+                    </div>
+                    <div id="ecomail-error" style="display:none;font-size:0.82rem;color:#dc2626;margin-top:0.4rem;font-weight:600"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Webhooks -->
           <div class="panel" style="margin-bottom:1.5rem">
             <div class="panel-header">

@@ -299,6 +299,31 @@ router.post('/:widgetId/leads', async (req, res) => {
       } catch(e) { console.error('Auto-reply error:', e.message); }
     }
 
+    // Ecomail: subscribe lead with AI-based tags
+    if (widget.ecomail_api_key && widget.ecomail_list_id) {
+      try {
+        const { subscribeLeadToEcomail } = require('./ecomail');
+        const tags = [];
+        // Pull latest insight for this widget to get intent/urgency tags
+        const insight = db.prepare(
+          `SELECT ci.intent, ci.urgency
+           FROM conversation_insights ci
+           JOIN conversations c ON c.widget_id = ci.widget_id
+           WHERE ci.widget_id = ? AND c.session_id = ?
+           ORDER BY ci.created_at DESC LIMIT 1`
+        ).get(widgetRow.id, sessionId || '');
+        if (insight?.intent && insight.intent !== 'just_browsing') tags.push(`intent-${insight.intent}`);
+        if (insight?.urgency && insight.urgency !== 'just_browsing') tags.push(`urgency-${insight.urgency}`);
+        await subscribeLeadToEcomail({
+          apiKey:  widget.ecomail_api_key,
+          listId:  widget.ecomail_list_id,
+          email:   email.trim(),
+          name:    name.trim(),
+          tags,
+        });
+      } catch(e) { console.error('Ecomail error:', e.message); }
+    }
+
     // Webhook (Zapier/n8n/Make)
     if (widget.webhook_url) {
       try {
