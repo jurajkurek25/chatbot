@@ -295,6 +295,51 @@
     .pricing-urgency { font-size: .8rem; color: var(--warn); margin-bottom: .5rem; }
     .pricing-fine { font-size: .76rem; color: var(--muted); }
 
+    /* ── BOOKING SECTION ── */
+    .bk-promo { padding: 72px var(--px); background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .bk-promo-inner { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 2.5rem; }
+    .bk-promo-content .section-label { text-align:left; color:#a78bfa; }
+    .bk-promo-content .section-h2 { text-align:left; }
+    .bk-promo-content > p { color: var(--muted2); line-height:1.75; margin-bottom:.9rem; font-size:.96rem; }
+    .bk-promo-content > p strong { color: var(--text); }
+    .bk-perks { display: flex; flex-direction: column; gap: .6rem; margin-top: .25rem; }
+    .bk-perk { display: flex; align-items: flex-start; gap: .7rem; }
+    .bk-perk-icon { width:30px; height:30px; background:rgba(167,139,250,0.12); border:1px solid rgba(167,139,250,0.22); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0; }
+    .bk-perk p { color:var(--muted2); font-size:.87rem; margin:0; line-height:1.52; }
+    .bk-perk p strong { color:var(--text); }
+    .bk-cta-row { display:flex; flex-direction:column; gap:.55rem; margin-top:1.25rem; }
+    /* Booking visual mockup */
+    .bk-mockup { background: linear-gradient(145deg, #12122a, #18183a); border: 1px solid rgba(167,139,250,0.18); border-radius:20px; overflow:hidden; box-shadow:0 0 60px rgba(91,79,255,0.12); }
+    .bk-mockup-header { background:linear-gradient(135deg,#5b4fff,#9b8cff); padding:1.1rem 1.25rem; display:flex; align-items:center; gap:.75rem; }
+    .bk-mockup-avatar { width:40px; height:40px; background:rgba(255,255,255,0.18); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.15rem; flex-shrink:0; }
+    .bk-mockup-title { font-weight:800; font-size:.95rem; color:#fff; }
+    .bk-mockup-sub { font-size:.7rem; color:rgba(255,255,255,0.72); }
+    .bk-mockup-body { padding:1rem 1.25rem; }
+    .bk-month-label { font-size:.72rem; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:#a78bfa; margin-bottom:.65rem; }
+    .bk-days-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:.25rem; margin-bottom:.85rem; }
+    .bk-day-hdr { font-size:.6rem; font-weight:700; text-align:center; color:var(--muted); padding:.2rem 0; }
+    .bk-day { aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:8px; font-size:.75rem; font-weight:600; cursor:pointer; }
+    .bk-day.empty { opacity:0; }
+    .bk-day.disabled { color:var(--muted); opacity:.35; cursor:default; }
+    .bk-day.has-slots { background:rgba(91,79,255,0.13); color:var(--accent2); border:1px solid rgba(91,79,255,0.2); }
+    .bk-day.has-slots:hover { background:rgba(91,79,255,0.25); }
+    .bk-day.selected { background:var(--grad); color:#fff; border:none; box-shadow:0 0 14px rgba(91,79,255,0.45); }
+    .bk-day.today { border:1px solid rgba(167,139,250,0.4); color:#c4b5fd; }
+    .bk-slots-label { font-size:.7rem; font-weight:700; color:var(--muted2); margin-bottom:.5rem; letter-spacing:.05em; text-transform:uppercase; }
+    .bk-slots { display:flex; flex-wrap:wrap; gap:.35rem; }
+    .bk-slot { padding:.3rem .65rem; border-radius:8px; font-size:.75rem; font-weight:600; border:1px solid rgba(91,79,255,0.22); color:var(--accent2); background:rgba(91,79,255,0.08); cursor:pointer; }
+    .bk-slot:hover { background:rgba(91,79,255,0.2); }
+    .bk-slot.taken { opacity:.3; cursor:default; text-decoration:line-through; color:var(--muted); background:transparent; border-color:transparent; }
+    .bk-slot.picked { background:var(--grad); color:#fff; border-color:transparent; box-shadow:0 0 10px rgba(91,79,255,0.4); }
+    .bk-confirm-btn { width:100%; background:var(--grad); border:none; color:#fff; padding:.75rem; border-radius:12px; font-size:.88rem; font-weight:700; cursor:pointer; font-family:inherit; margin-top:.85rem; box-shadow:0 0 24px rgba(91,79,255,0.3); }
+    .bk-embed-badge { display:inline-flex; align-items:center; gap:.45rem; background:rgba(167,139,250,0.1); border:1px solid rgba(167,139,250,0.2); border-radius:100px; padding:.3rem .85rem; font-size:.72rem; color:#c4b5fd; font-weight:600; margin-top:.9rem; }
+    @media (min-width:900px) {
+      .bk-promo-inner { flex-direction:row; align-items:center; gap:4rem; }
+      .bk-promo-content, .bk-mockup { flex:1; }
+      .bk-cta-row { flex-direction:row; }
+      .bk-cta-row .btn-primary { display:inline-block; width:auto; }
+    }
+
     /* ── FAQ ── */
     .faq-section { padding: 72px var(--px); background: var(--bg2); border-top: 1px solid var(--border); }
     .faq-list { margin-top: 2rem; display: flex; flex-direction: column; gap: .6rem; }
@@ -399,6 +444,7 @@
     <div class="nav-links">
       <a href="#pain">Problém</a>
       <a href="#features">Funkcie</a>
+      <a href="#booking">📅 Rezervácie</a>
       <a href="#instagram">Instagram</a>
       <a href="/wordpress">WordPress</a>
       <a href="#pricing">Cena</a>
@@ -415,6 +461,7 @@
   <div class="nav-mobile" id="nav-mobile">
     <a href="#pain" onclick="closeMobileNav()">Problém</a>
     <a href="#features" onclick="closeMobileNav()">Funkcie</a>
+    <a href="#booking" onclick="closeMobileNav()">📅 Rezervácie</a>
     <a href="#instagram" onclick="closeMobileNav()">Instagram</a>
     <a href="/wordpress" onclick="closeMobileNav()">WordPress</a>
     <a href="#pricing" onclick="closeMobileNav()">Cena</a>
@@ -699,6 +746,74 @@
   </div>
 </section>
   
+<!-- BOOKING PROMO -->
+<section class="bk-promo" id="booking">
+  <div class="bk-promo-inner">
+    <div class="bk-promo-content">
+      <span class="section-label">📅 Online rezervácie</span>
+      <h2 class="section-h2">Zákazník si rezervuje termín<br><span class="grad-text">priamo v chate.</span></h2>
+      <p>Zákazník napíše „chcem sa objednať" – AI <strong>otvorí rezervačný formulár priamo v bubline</strong>. Bez presmerovaní, bez externých nástrojov ako Calendly alebo Bookio. Celý proces od záujmu po potvrdenie v jednom okne.</p>
+      <p>Každý widget dostane vlastnú booking stránku, ktorú <strong>zdieľate ako link</strong> – v emaily, WhatsApp, bio na Instagrame alebo vložíte ako iframe priamo na web.</p>
+      <div class="bk-perks">
+        <div class="bk-perk">
+          <div class="bk-perk-icon">💬</div>
+          <p><strong>Rezervácia priamo v chate</strong> – AI zbiera meno, email, dátum a potvrdí termín bez opustenia konverzácie. Zákazník ani nezbadá, že opustil chatbot.</p>
+        </div>
+        <div class="bk-perk">
+          <div class="bk-perk-icon">🔗</div>
+          <p><strong>Vlastná booking stránka</strong> /book/ID – zdieľajte kdekoľvek, vložte iframe na váš web, pošlite v emaily alebo do bio na Instagrame.</p>
+        </div>
+        <div class="bk-perk">
+          <div class="bk-perk-icon">🗓️</div>
+          <p><strong>Google Calendar sync</strong> – každá rezervácia automaticky vytvorí event. Zákazník dostane email-pozvánku do kalendára. Zrušenie zmizne samo.</p>
+        </div>
+        <div class="bk-perk">
+          <div class="bk-perk-icon">⚙️</div>
+          <p><strong>Plná kontrola</strong> – pracovné hodiny, dĺžka stretnutia, prestávky, výnimky, viac typov služieb. Pre koučov, lekárov, salóny aj obchodné tímy.</p>
+        </div>
+      </div>
+      <div class="bk-cta-row">
+        <button class="btn-primary" style="padding:.85rem 1.6rem" onclick="showAuth('register')">Vyskúšať rezervácie zadarmo</button>
+      </div>
+      <div class="bk-embed-badge">📋 Embed iframe – vložte na akúkoľvek stránku za 10 sekúnd</div>
+    </div>
+    <div class="bk-mockup">
+      <div class="bk-mockup-header">
+        <div class="bk-mockup-avatar">📅</div>
+        <div>
+          <div class="bk-mockup-title">Koučing – rezervácia termínu</div>
+          <div class="bk-mockup-sub">Vyberte dátum a čas</div>
+        </div>
+      </div>
+      <div class="bk-mockup-body">
+        <div class="bk-month-label">Apríl 2025</div>
+        <div class="bk-days-grid">
+          <div class="bk-day-hdr">Po</div><div class="bk-day-hdr">Ut</div><div class="bk-day-hdr">St</div>
+          <div class="bk-day-hdr">Št</div><div class="bk-day-hdr">Pi</div><div class="bk-day-hdr">So</div><div class="bk-day-hdr">Ne</div>
+          <div class="bk-day empty"></div><div class="bk-day disabled">1</div><div class="bk-day has-slots">2</div>
+          <div class="bk-day has-slots">3</div><div class="bk-day has-slots today">4</div><div class="bk-day disabled">5</div><div class="bk-day disabled">6</div>
+          <div class="bk-day has-slots">7</div><div class="bk-day has-slots">8</div><div class="bk-day has-slots">9</div>
+          <div class="bk-day selected">10</div><div class="bk-day has-slots">11</div><div class="bk-day disabled">12</div><div class="bk-day disabled">13</div>
+          <div class="bk-day has-slots">14</div><div class="bk-day has-slots">15</div><div class="bk-day has-slots">16</div>
+          <div class="bk-day has-slots">17</div><div class="bk-day has-slots">18</div><div class="bk-day disabled">19</div><div class="bk-day disabled">20</div>
+        </div>
+        <div class="bk-slots-label">Dostupné časy – štvrtok 10. apríla</div>
+        <div class="bk-slots">
+          <div class="bk-slot taken">08:00</div>
+          <div class="bk-slot taken">09:00</div>
+          <div class="bk-slot">10:00</div>
+          <div class="bk-slot picked">11:00</div>
+          <div class="bk-slot">13:00</div>
+          <div class="bk-slot">14:00</div>
+          <div class="bk-slot taken">15:00</div>
+          <div class="bk-slot">16:00</div>
+        </div>
+        <button class="bk-confirm-btn" onclick="showAuth('register')">Potvrdiť termín – 11:00 →</button>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- GDPR -->
 <section class="section-wrap bg2" id="gdpr">
   <div class="inner">
@@ -831,6 +946,7 @@
         <li>Produktový katalóg s AI odporúčaním</li>
         <li>Až 10 chatbotov / widgetov na rôznych weboch</li>
         <li>Instagram DM Bot (náhrada ManyChat)</li>
+        <li><strong>Online rezervácie</strong> – booking stránka + embed iframe + Google Calendar sync</li>
         <li>Znalostná báza z PDF, TXT, CSV, MD + priamy text</li>
         <li><strong>URL scraping</strong> – AI naskenuje váš web automaticky</li>
         <li><strong>AI Coach</strong> – zákaznícka podpora s aktívnym radením</li>
