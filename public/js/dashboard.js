@@ -726,7 +726,8 @@ async function generateQuestions() {
   status.style.display = 'block';
 
   try {
-    const data = await apiFetch(`/api/knowledge/${currentWidget.id}/suggest-questions`, { method: 'POST' });
+    const res  = await apiFetch(`/api/knowledge/${currentWidget.id}/suggest-questions`, { method: 'POST' });
+    const data = await res.json();
     if (data.error) { showToast(data.error, 'error'); return; }
     const generated = data.questions || [];
     if (!generated.length) { showToast('Znalostná báza je prázdna – najprv pridajte dokumenty.', 'error'); return; }
