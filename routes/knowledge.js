@@ -132,15 +132,21 @@ router.post('/:widgetId/suggest-questions', async (req, res) => {
     'SELECT title, content FROM knowledge_items WHERE widget_id = ? ORDER BY created_at DESC LIMIT 6'
   ).all(req.params.widgetId);
 
-  if (!items.length) return res.json({ questions: [] });
+  if (!items.length) {
+    return res.status(400).json({ error: 'Znalostná báza je prázdna – najprv pridajte dokumenty.' });
+  }
 
   const widget = db.prepare('SELECT goals, cta_type FROM widgets WHERE id = ?').get(req.params.widgetId);
 
   try {
     const questions = await generateSuggestedQuestions(items, widget?.goals, widget?.cta_type);
+    if (!questions.length) {
+      return res.status(500).json({ error: 'AI nevedela vygenerovať otázky. Skúste znova.' });
+    }
     res.json({ questions });
   } catch (err) {
-    res.status(500).json({ error: 'Chyba pri generovaní otázok.' });
+    console.error('[suggest-questions]', err.message);
+    res.status(500).json({ error: 'Chyba AI pri generovaní otázok. Skúste znova.' });
   }
 });
 

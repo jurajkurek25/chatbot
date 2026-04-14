@@ -309,7 +309,7 @@ Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
     return Array.isArray(qs) ? qs.slice(0, 6).map(q => String(q).slice(0, 80)) : [];
   } catch (err) {
     console.error('generateSuggestedQuestions error:', err.message);
-    return [];
+    throw err;
   }
 }
 

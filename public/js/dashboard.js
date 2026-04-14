@@ -728,9 +728,8 @@ async function generateQuestions() {
   try {
     const res  = await apiFetch(`/api/knowledge/${currentWidget.id}/suggest-questions`, { method: 'POST' });
     const data = await res.json();
-    if (data.error) { showToast(data.error, 'error'); return; }
+    if (!res.ok || data.error) { showToast(data.error || 'Chyba pri generovaní otázok.', 'error'); return; }
     const generated = data.questions || [];
-    if (!generated.length) { showToast('Znalostná báza je prázdna – najprv pridajte dokumenty.', 'error'); return; }
 
     // Merge: add only questions not already in the list (case-insensitive dedup)
     const existing = new Set(suggestedQuestions.map(q => q.toLowerCase()));
