@@ -717,6 +717,43 @@ function removeQuestion(index) {
   renderQuestions();
 }
 
+async function generateQuestions() {
+  if (!currentWidget) return;
+  const btn    = document.getElementById('btn-generate-questions');
+  const status = document.getElementById('generate-questions-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Generujem…';
+  status.style.display = 'block';
+
+  try {
+    const data = await apiFetch(`/api/knowledge/${currentWidget.id}/suggest-questions`, { method: 'POST' });
+    if (data.error) { showToast(data.error, 'error'); return; }
+    const generated = data.questions || [];
+    if (!generated.length) { showToast('Znalostná báza je prázdna – najprv pridajte dokumenty.', 'error'); return; }
+
+    // Merge: add only questions not already in the list (case-insensitive dedup)
+    const existing = new Set(suggestedQuestions.map(q => q.toLowerCase()));
+    let added = 0;
+    for (const q of generated) {
+      if (suggestedQuestions.length >= 6) break;
+      if (!existing.has(q.toLowerCase())) {
+        suggestedQuestions.push(q);
+        existing.add(q.toLowerCase());
+        added++;
+      }
+    }
+
+    renderQuestions();
+    showToast(added > 0 ? `✨ Vygenerovaných ${added} otázok.` : 'Otázky sú už pridané.', 'success');
+  } catch (e) {
+    showToast('Chyba pri generovaní otázok.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '✨ Generovať otázky z dokumentov';
+    status.style.display = 'none';
+  }
+}
+
 function updateCtaFields() {
   const type = document.getElementById('cta-type').value;
   document.getElementById('cta-call-fields').style.display    = type === 'call'    ? '' : 'none';

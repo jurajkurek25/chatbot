@@ -504,6 +504,12 @@
               <input type="text" class="form-control" id="new-question" placeholder="Pridať otázku...">
               <button class="btn btn-secondary" onclick="addQuestion()">+ Pridať</button>
             </div>
+            <div style="margin-top:0.75rem;">
+              <button class="btn btn-secondary" id="btn-generate-questions" onclick="generateQuestions()" style="width:100%;">
+                ✨ Generovať otázky z dokumentov
+              </button>
+              <div id="generate-questions-status" style="display:none;margin-top:0.5rem;font-size:0.82rem;color:#94a3b8;text-align:center;">Generujem otázky…</div>
+            </div>
           </div>
 
           <div class="panel">
