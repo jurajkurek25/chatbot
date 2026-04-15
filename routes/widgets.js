@@ -107,7 +107,8 @@ router.put('/:id', (req, res) => {
   const widget = getOwnedWidget(req.params.id, req.userId);
   if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
 
-  const { name, bot_name, welcome_message, primary_color, goals, cta_type, cta_config, suggested_questions, active,
+  const { name, bot_name, welcome_message, primary_color, goals, cta_type, cta_config, suggested_questions,
+          suggested_questions_i18n, active,
           proactive_enabled, proactive_delay, proactive_message, gdpr_text,
           webhook_url, slack_webhook_url, hide_branding, csat_enabled,
           ab_test_enabled, welcome_message_b, auto_reply_enabled, auto_reply_message,
@@ -132,6 +133,7 @@ router.put('/:id', (req, res) => {
       cta_type = ?,
       cta_config = ?,
       suggested_questions = ?,
+      suggested_questions_i18n = ?,
       active = ?,
       proactive_enabled = ?,
       proactive_delay = ?,
@@ -157,6 +159,7 @@ router.put('/:id', (req, res) => {
     cta_type ? validateCtaType(cta_type) : widget.cta_type,
     cta_config !== undefined ? JSON.stringify(cta_config) : widget.cta_config,
     suggested_questions !== undefined ? JSON.stringify(suggested_questions) : widget.suggested_questions,
+    suggested_questions_i18n !== undefined ? JSON.stringify(suggested_questions_i18n) : (widget.suggested_questions_i18n || '{}'),
     active !== undefined ? (active ? 1 : 0) : widget.active,
     proactive_enabled !== undefined ? (proactive_enabled ? 1 : 0) : (widget.proactive_enabled || 0),
     proactive_delay !== undefined ? Math.max(1, Math.min(60, parseInt(proactive_delay) || 4)) : (widget.proactive_delay || 4),
@@ -378,6 +381,7 @@ function parseWidget(w) {
     active: Boolean(w.active),
     cta_config: safeParseJSON(w.cta_config, {}),
     suggested_questions: safeParseJSON(w.suggested_questions, []),
+    suggested_questions_i18n: safeParseJSON(w.suggested_questions_i18n, {}),
     proactive_enabled: Boolean(w.proactive_enabled),
     proactive_delay: w.proactive_delay || 4,
     proactive_message: w.proactive_message || '',

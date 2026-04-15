@@ -8,6 +8,7 @@ let widgets = [];
 let currentWidget = null;
 let currentTab = 'settings';
 let suggestedQuestions = [];
+let suggestedQuestionsI18n = {};
 
 /* ── Auth Helpers ────────────────────────────────────────────── */
 function getToken() { return localStorage.getItem('nd_token'); }
@@ -235,6 +236,7 @@ async function openWidget(widgetId) {
   currentWidget = await res.json();
 
   suggestedQuestions = [...(currentWidget.suggested_questions || [])];
+  suggestedQuestionsI18n = { ...(currentWidget.suggested_questions_i18n || {}) };
 
   // Populate settings form
   document.getElementById('s-name').value = currentWidget.name;
@@ -704,6 +706,7 @@ function addQuestion() {
   if (!val) return;
   if (suggestedQuestions.length >= 6) { showToast('Maximálne 6 otázok.', 'error'); return; }
   suggestedQuestions.push(val);
+  suggestedQuestionsI18n = {};
   input.value = '';
   renderQuestions();
 }
@@ -714,6 +717,7 @@ document.addEventListener('keydown', e => {
 
 function removeQuestion(index) {
   suggestedQuestions.splice(index, 1);
+  suggestedQuestionsI18n = {};
   renderQuestions();
 }
 
@@ -774,6 +778,65 @@ async function generateQuestions() {
   }
 }
 
+async function autoTranslateQuestions() {
+  if (!currentWidget) { showToast('Najprv vyberte widget.', 'error'); return; }
+  if (!suggestedQuestions.length) { showToast('Najprv pridajte alebo vygenerujte otázky.', 'error'); return; }
+
+  const btn = document.getElementById('btn-translate-questions');
+  const statusEl = document.getElementById('translate-questions-status');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Prekladám…'; }
+  if (statusEl) { statusEl.style.display = 'none'; statusEl.innerHTML = ''; }
+
+  try {
+    // Build object keyed by index
+    const textsObj = {};
+    suggestedQuestions.forEach((q, i) => { textsObj[String(i)] = q; });
+
+    const targetLangs = Object.keys(WELCOME_LANG_NAMES).filter(l => l !== 'sk');
+    const r = await apiFetch('/api/widgets/translate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        texts: textsObj,
+        targetLanguages: targetLangs,
+        context: 'suggested questions for a chat assistant widget on a business website',
+      }),
+    });
+    if (!r?.ok) { showToast('Chyba prekladu otázok.', 'error'); return; }
+    const data = await r.json();
+
+    // Convert { cs: { "0": "...", "1": "..." }, ... } → { cs: [...], ... }
+    const newI18n = {};
+    for (const [lang, translated] of Object.entries(data.translations || {})) {
+      if (!WELCOME_LANG_NAMES[lang]) continue;
+      newI18n[lang] = suggestedQuestions.map((_, i) => translated[String(i)] || suggestedQuestions[i]);
+    }
+    suggestedQuestionsI18n = newI18n;
+
+    // Show language badges with animation
+    if (statusEl) {
+      statusEl.style.cssText = 'display:flex;flex-wrap:wrap;gap:0.4rem;align-items:center;margin-top:0.5rem;';
+      const entries = Object.entries(newI18n);
+      for (const [lang] of entries) {
+        await _sleep(55);
+        const tag = document.createElement('span');
+        tag.style.cssText = 'background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:99px;font-size:0.73rem;font-weight:700;animation:fadeIn 0.2s';
+        tag.textContent = `✓ ${WELCOME_LANG_NAMES[lang]}`;
+        statusEl.appendChild(tag);
+      }
+      await _sleep(150);
+      const note = document.createElement('div');
+      note.style.cssText = 'width:100%;margin-top:0.4rem;font-size:0.8rem;color:#15803d;font-weight:600';
+      note.textContent = 'Kliknite Uložiť, aby sa preklady aplikovali.';
+      statusEl.appendChild(note);
+    }
+    showToast(`Otázky preložené do ${Object.keys(newI18n).length} jazykov!`, 'success');
+  } catch (e) {
+    showToast('Chyba: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🌍 Preložiť otázky do všetkých jazykov'; }
+  }
+}
+
 function updateCtaFields() {
   const type = document.getElementById('cta-type').value;
   document.getElementById('cta-call-fields').style.display    = type === 'call'    ? '' : 'none';
@@ -800,6 +863,7 @@ async function saveQuestionsAndCta() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       suggested_questions: suggestedQuestions,
+      suggested_questions_i18n: suggestedQuestionsI18n,
       cta_type: ctaType,
       cta_config: ctaConfig,
     }),

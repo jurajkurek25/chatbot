@@ -1712,7 +1712,7 @@
   /* ── Bootstrap ──────────────────────────────────────────────── */
   async function init() {
     try {
-      const res = await fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/config`);
+      const res = await fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/config?lang=${encodeURIComponent(getLang())}`);
       if (!res.ok) { console.warn('[NeuraDeskApp] Widget nenájdený alebo neaktívny.'); return; }
       config = await res.json();
     } catch (err) {

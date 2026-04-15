@@ -30,7 +30,7 @@ router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
     SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
-           active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text,
+           suggested_questions_i18n, active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text,
            hide_branding, business_hours, offline_message, csat_enabled, welcome_message_b
     FROM widgets WHERE id = ?
   `).get(req.params.widgetId);
@@ -50,7 +50,17 @@ router.get('/:widgetId/config', (req, res) => {
     primary_color: widget.primary_color,
     cta_type: widget.cta_type,
     cta_config: safeParseJSON(widget.cta_config, {}),
-    suggested_questions: safeParseJSON(widget.suggested_questions, []),
+    suggested_questions: (() => {
+      const lang = (req.query.lang || '').toLowerCase().slice(0, 5);
+      if (lang) {
+        const i18n = safeParseJSON(widget.suggested_questions_i18n, {});
+        const langKey = lang.split('-')[0];
+        if (i18n[langKey] && Array.isArray(i18n[langKey]) && i18n[langKey].length) {
+          return i18n[langKey];
+        }
+      }
+      return safeParseJSON(widget.suggested_questions, []);
+    })(),
     avatar_url: widget.avatar_url
       ? `${(process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '')}${widget.avatar_url}`
       : null,
