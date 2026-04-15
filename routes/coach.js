@@ -15,11 +15,19 @@ NeuraDeskApp je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvor
 
 ━━━ CENNÍK ━━━
 • Pro plán: €37/mesiac
-• Zahrnuté: 1 500 AI odpovedí/mesiac, až 10 widgetov
-• Extra AI kredity: 5 € = 500 odpovedí | 10 € = 1 200 odpovedí | ľubovoľná suma (1 € = 100 odpovedí)
+  – ~500 AI odpovedí/mesiac, až 10 widgetov
+• White Label plán: €997/mesiac
+  – Rovnaké funkcie ako Pro, jediný rozdiel: bez "Powered by NeuraDeskApp" loga vo widgete
+  – Vhodné pre agentúry a firmy ktoré nechcú zobrazovať branding NeuraDeskApp
+• Extra AI kredity (neobnovia sa mesačne, spotrebúvajú sa postupne):
+  – €5 = 100 odpovedí (€0.05/odpoveď)
+  – €8 = 200 odpovedí — Refill pack (€0.04/odpoveď)
+  – €15 = 350 odpovedí (€0.043/odpoveď)
+  – Vlastná suma: 1 € = 20 odpovedí
+• Upozornenie pri 80% a 100% využití — v dashboarde aj emailom
 • Affiliate odmena: 15 € kredit za každého platiaceho zákazníka
   – Voľný mesiac: 37 € kreditov = 1 mesiac predplatného zadarmo
-  – AI správy: 1 € = 100 odpovedí (okamžite pripočítané)
+  – AI správy: 1 € = 100 odpovedí (špeciálna sadzba pre affiliate odmeny)
 
 ━━━ VŠETKY FUNKCIE ━━━
 
@@ -108,15 +116,19 @@ NeuraDeskApp je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvor
 - Auto-uplatňovanie kreditov na predplatné (voliteľné nastavenie)
 
 10. PREDPLATNÉ & BILLING
-- Platobný systém: Stripe
-- Mesačné predplatné €37, zrušenie kedykoľvek
+- Platobný systém: Stripe, zrušenie kedykoľvek
+- Pro plán: €37/mesiac | White Label plán: €997/mesiac
 - Správa predplatného: Dashboard → klik na "Spravovať predplatné" (Stripe Customer Portal)
-- Extra AI kredity: sidebar → "+ Dobiť"
-- Zostatok AI odpovedí: viditeľný v sidebar (progress bar)
-- Upozornenie pri 80% a 100% využití mesačného limitu
-- Reset AI odpovedí: každý mesiac automaticky
+- Extra AI kredity: sidebar → "+ Dobiť" → 3 balíky (€5/100, €8/200, €15/350) + vlastná suma
+- Zostatok AI odpovedí: progress bar v sidebar + warning banner pri 80% a 100%
+- Pri 80%: žltý banner s tlačidlom "Dobiť 200 za €8"
+- Pri 100%: červený banner, chatbot prestane odpovedať, tlačidlo "Dobiť kredity"
+- Reset mesačných odpovedí: každý mesiac automaticky (extra kredity sa neobnovia)
+- Minuli sa odpovede: dokúpte kredity alebo zarobte cez affiliate program
 
 11. ONBOARDING (prvé nastavenie po registrácii)
+- Žiadny trial — platba prebehne hneď pri registrácii (Stripe)
+- Trial je dostupný výhradne pri osobnom stretnutí, nie verejne
 - Krok 1: Aktivácia predplatného (Stripe platba)
 - Krok 2: Znalostná báza (nahranie obsahu alebo skenovanie URL)
 - Krok 3: Otázky & CTA (navrhované otázky + typ výzvy k akcii)
@@ -180,9 +192,10 @@ C) SAMOSTATNÁ REZERVAČNÁ STRÁNKA (externý link alebo iframe):
 
 GOOGLE CALENDAR INTEGRÁCIA:
 - Voliteľné napojenie cez OAuth (tlačidlo "Pripojiť Google Calendar" v záložke Rezervácie)
-- Nová rezervácia = nový event v Google Calendari
-- Zákazník dostane email-pozvánku na event
+- Nová rezervácia = nový event v Google Calendari, zákazník dostane email-pozvánku
 - Zrušenie rezervácie = automatické vymazanie eventu z Calendaru
+- Konflikt check: systém automaticky blokuje sloty kde máte existujúcu udalosť v Google Calendari (aj súkromnú) — zákazník nikdy neuvidí obsadený čas
+- Celodenná udalosť v Calendari = celý deň je zablokovaný pre rezervácie
 - Odpojenie: tlačidlo "Odpojiť" v záložke Rezervácie
 
 SPRÁVA REZERVÁCIÍ:
@@ -203,13 +216,15 @@ Dashboard → váš widget → záložka "📊 Trendy"
 
 15. INBOX (ŽIVÝ AGENT / LIVE TAKEOVER)
 Dashboard → váš widget → záložka "📥 Inbox"
-- Zoznam všetkých prebiehajúcich a ukončených konverzácií v reálnom čase
+- Zoznam všetkých prebiehajúcich a ukončených konverzácií
 - Prepis správ: kliknite na konverzáciu a uvidíte celú históriu chatbota so zákazníkom
 - Prevziať chat: tlačidlo "Prevziať chat" vypne AI a vy prevezmete konverzáciu ako živý agent
-  – Zákazník dostáva vaše správy priamo v chatbote v reálnom čase
+  – Vaše správy sa doručia zákazníkovi priamo v chatbote (polling každé 2–3 sekundy)
   – Badge "● LIVE" zobrazí aktívne prebraté konverzácie
-- Späť na AI: druhým kliknutím na "Prevziať chat" vrátite chatbota do automatického režimu
+  – Zákazník vidí "👤 Agent odpovedá…" kým čaká na vašu odpoveď
+- Späť na AI: druhým kliknutím na "Odovzdať AI" vrátite chatbota do automatického režimu
 - Pole na odpoveď sa zobrazí len keď ste v live móde; odoslanie Enterom alebo tlačidlom
+- Obnoviť zoznam: tlačidlo "↺ Obnoviť" načíta nové konverzácie
 
 16. FACEBOOK MESSENGER BOT
 Dashboard → váš widget → záložka "💬 Facebook Messenger"
@@ -228,7 +243,7 @@ Dashboard → váš widget → záložka "🧲 Lead Magnety"
 - AI extrakcia: po nahraní súboru AI automaticky naskenuje obsah a pridá ho do znalostnej bázy
 - Zozbierané emaily: záložka "📬 Zozbierané emaily" ukáže všetkých záujemcov o daný magnet
 - Export emailov do CSV jedným kliknutím
-- Každý widget môže mať viacero lead magnetov
+- Každý widget môže mať neobmedzený počet lead magnetov
 
 18. INTEGRÁCIE
 Dashboard → váš widget → záložka "🔗 Integrácie"
@@ -278,7 +293,7 @@ G) WOOCOMMERCE
 - Nastavenie: Integrácie → WooCommerce → vložte URL + kľúče → Importovať produkty
 
 H) TÍM
-- Pozvite ďalších členov tímu k správe chatbota (napr. zamestnanec, VA, agentúra)
+- Pozvite ľubovoľný počet členov tímu (bez limitu) k správe chatbota
 - Pozvaný dostane email s odkazom na aktiváciu; po prijatí vidí rovnaký dashboard
 - Správa: Integrácie → Tím → Pozvať člena → zadajte email
 - Odstránenie člena: tlačidlo koša pri danom členovi
