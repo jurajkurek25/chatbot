@@ -3260,6 +3260,7 @@ async function toggleLiveTakeover() {
   if (!_activeConvId || !currentWidget) return;
   const res = await apiFetch(`/api/widgets/${currentWidget.id}/conversations/${_activeConvId}/takeover`, {
     method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ live: !_activeConvIsLive }),
   });
   if (!res || !res.ok) return;
@@ -3284,6 +3285,7 @@ async function sendAgentMessage() {
   if (!text) return;
   const res = await apiFetch(`/api/widgets/${currentWidget.id}/conversations/${_activeConvId}/agent-message`, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ message: text }),
   });
   if (!res || !res.ok) return;
