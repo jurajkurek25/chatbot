@@ -3183,15 +3183,11 @@ async function loadInbox() {
 
 function renderInboxList() {
   const list = document.getElementById('inbox-list');
-  const empty = document.getElementById('inbox-empty');
   if (!list) return;
   if (!_inboxConvs.length) {
-    empty.style.display = '';
-    list.innerHTML = '';
-    list.appendChild(empty);
+    list.innerHTML = '<div style="padding:2rem 1rem;text-align:center;color:#94a3b8;font-size:0.875rem">Žiadne konverzácie</div>';
     return;
   }
-  empty.style.display = 'none';
   list.innerHTML = _inboxConvs.map(c => {
     const lastMsg = c.last_msg ? c.last_msg.slice(0, 60) + (c.last_msg.length > 60 ? '…' : '') : '—';
     const dt = c.last_msg_at ? new Date(c.last_msg_at * 1000).toLocaleDateString('sk-SK', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
@@ -3219,48 +3215,52 @@ function renderInboxList() {
 
 async function openConversation(convId) {
   _activeConvId = convId;
-  renderInboxList(); // re-render to highlight active
+  try {
+    renderInboxList(); // re-render to highlight active
+    const res = await apiFetch(`/api/widgets/${currentWidget.id}/conversations/${convId}/messages`);
+    if (!res) return; // 401 — apiFetch already called logout()
+    if (!res.ok) {
+      let errMsg = `Chyba ${res.status}`;
+      try { const d = await res.json(); errMsg = d.error || errMsg; } catch {}
+      console.error('[openConversation]', errMsg);
+      showToast('Nepodarilo sa načítať konverzáciu: ' + errMsg, 'error');
+      return;
+    }
+    const msgs = await res.json();
 
-  const res = await apiFetch(`/api/widgets/${currentWidget.id}/conversations/${convId}/messages`);
-  if (!res) return; // 401 — logout was already called
-  if (!res.ok) {
-    let errMsg = `Chyba ${res.status}`;
-    try { const d = await res.json(); errMsg = d.error || errMsg; } catch {}
-    console.error('[openConversation]', errMsg);
-    showToast('Nepodarilo sa načítať konverzáciu: ' + errMsg, 'error');
-    return;
+    const conv = _inboxConvs.find(c => c.id === convId);
+    _activeConvIsLive = !!(conv && conv.live_agent);
+
+    const panel = document.getElementById('inbox-transcript-panel');
+    const hint  = document.getElementById('inbox-select-hint');
+    panel.style.display = 'block';
+    hint.style.display  = 'none';
+
+    document.getElementById('inbox-conv-title').textContent = conv?.lead_name || 'Anonymný návštevník';
+    document.getElementById('inbox-conv-meta').textContent = conv ? `Session: ${conv.session_id.slice(0,16)}… · ${conv.msg_count} správ` : '';
+
+    const liveBadge = document.getElementById('inbox-live-badge');
+    const takeoverBtn = document.getElementById('inbox-takeover-btn');
+    const replyBox = document.getElementById('inbox-agent-reply');
+    liveBadge.style.display = _activeConvIsLive ? '' : 'none';
+    takeoverBtn.textContent = _activeConvIsLive ? 'Odovzdať AI' : 'Prevziať chat';
+    if (replyBox) replyBox.style.display = _activeConvIsLive ? 'flex' : 'none';
+
+    const msgsEl = document.getElementById('inbox-messages');
+    msgsEl.innerHTML = msgs.map(m => {
+      const isUser = m.role === 'user';
+      return `<div style="display:flex;${isUser ? 'justify-content:flex-end' : ''}">
+        <div style="max-width:75%;padding:0.55rem 0.8rem;border-radius:${isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
+          background:${isUser ? '#2563eb' : '#e2e8f0'};color:${isUser ? '#fff' : '#1e293b'};font-size:0.84rem;line-height:1.45;word-break:break-word">
+          ${escHtml(m.content)}
+        </div>
+      </div>`;
+    }).join('');
+    msgsEl.scrollTop = msgsEl.scrollHeight;
+  } catch (e) {
+    console.error('[openConversation] unexpected error:', e);
+    showToast('Chyba pri otváraní konverzácie: ' + e.message, 'error');
   }
-  const msgs = await res.json();
-
-  const conv = _inboxConvs.find(c => c.id === convId);
-  _activeConvIsLive = !!(conv && conv.live_agent);
-
-  const panel = document.getElementById('inbox-transcript-panel');
-  const hint  = document.getElementById('inbox-select-hint');
-  panel.style.display = '';
-  hint.style.display  = 'none';
-
-  document.getElementById('inbox-conv-title').textContent = conv?.lead_name || 'Anonymný návštevník';
-  document.getElementById('inbox-conv-meta').textContent = conv ? `Session: ${conv.session_id.slice(0,16)}… · ${conv.msg_count} správ` : '';
-
-  const liveBadge = document.getElementById('inbox-live-badge');
-  const takeoverBtn = document.getElementById('inbox-takeover-btn');
-  const replyBox = document.getElementById('inbox-agent-reply');
-  liveBadge.style.display = _activeConvIsLive ? '' : 'none';
-  takeoverBtn.textContent = _activeConvIsLive ? 'Odovzdať AI' : 'Prevziať chat';
-  if (replyBox) replyBox.style.display = _activeConvIsLive ? 'flex' : 'none';
-
-  const msgsEl = document.getElementById('inbox-messages');
-  msgsEl.innerHTML = msgs.map(m => {
-    const isUser = m.role === 'user';
-    return `<div style="display:flex;${isUser ? 'justify-content:flex-end' : ''}">
-      <div style="max-width:75%;padding:0.55rem 0.8rem;border-radius:${isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
-        background:${isUser ? '#2563eb' : '#e2e8f0'};color:${isUser ? '#fff' : '#1e293b'};font-size:0.84rem;line-height:1.45;word-break:break-word">
-        ${escHtml(m.content)}
-      </div>
-    </div>`;
-  }).join('');
-  msgsEl.scrollTop = msgsEl.scrollHeight;
 }
 
 async function toggleLiveTakeover() {
