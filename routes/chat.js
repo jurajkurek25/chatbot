@@ -51,7 +51,9 @@ router.get('/:widgetId/config', (req, res) => {
     cta_type: widget.cta_type,
     cta_config: safeParseJSON(widget.cta_config, {}),
     suggested_questions: safeParseJSON(widget.suggested_questions, []),
-    avatar_url: widget.avatar_url || null,
+    avatar_url: widget.avatar_url
+      ? `${(process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '')}${widget.avatar_url}`
+      : null,
     proactive_enabled: Boolean(widget.proactive_enabled),
     proactive_delay: widget.proactive_delay || 4,
     proactive_message: widget.proactive_message || '',
