@@ -1628,6 +1628,26 @@ async function loadUsageBar() {
     } else {
       extraRow.style.display = 'none';
     }
+
+    // 80 % / 100 % warning banner
+    const banner = document.getElementById('usage-warning-banner');
+    if (banner) {
+      if (pct >= 100) {
+        banner.style.display = '';
+        banner.innerHTML = `⛔ Mesačný limit vyčerpaný. Chatbot neodpovedá. <button class="btn btn-sm btn-primary" style="margin-left:0.5rem" onclick="openCreditsModal()">Dobiť kredity</button>`;
+        banner.style.background = '#fef2f2';
+        banner.style.borderColor = '#fecaca';
+        banner.style.color = '#b91c1c';
+      } else if (pct >= 80) {
+        banner.style.display = '';
+        banner.innerHTML = `⚠️ Zostáva ti ${d.base_remaining} odpovedí (${100 - pct} %). <button class="btn btn-sm btn-secondary" style="margin-left:0.5rem" onclick="buyCredits('p8r')">Dobiť 200 za €8</button>`;
+        banner.style.background = '#fffbeb';
+        banner.style.borderColor = '#fcd34d';
+        banner.style.color = '#92400e';
+      } else {
+        banner.style.display = 'none';
+      }
+    }
   } catch { /* ignore */ }
 }
 
@@ -1640,7 +1660,7 @@ function openCreditsModal() {
   preview.textContent = '= 0 odpovedí';
   input.oninput = () => {
     const eur = Math.floor(Number(input.value) || 0);
-    preview.textContent = eur >= 1 ? `= ${eur * 100} odpovedí` : '= 0 odpovedí';
+    preview.textContent = eur >= 1 ? `= ${eur * 20} odpovedí` : '= 0 odpovedí';
   };
 }
 

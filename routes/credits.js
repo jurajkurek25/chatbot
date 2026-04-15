@@ -7,10 +7,11 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-const BASE_RESPONSES = 1500;
+const BASE_RESPONSES = 500;
 const PACKAGES = [
-  { id: 'p5',  amount_eur: 5,  credits: 500  },
-  { id: 'p10', amount_eur: 10, credits: 1200 },
+  { id: 'p5',  amount_eur: 5,  credits: 100 },
+  { id: 'p8r', amount_eur: 8,  credits: 200 }, // auto-refill pack
+  { id: 'p15', amount_eur: 15, credits: 350 },
 ];
 
 function getStripe() {
@@ -83,7 +84,7 @@ router.post('/buy', requireAuth, async (req, res) => {
     creditsToAdd = pkg.credits;
   } else if (custom_eur && Number(custom_eur) >= 1) {
     amountEur = Math.floor(Number(custom_eur));
-    creditsToAdd = amountEur * 100;
+    creditsToAdd = amountEur * 20;
   } else {
     return res.status(400).json({ error: 'Neplatný balík alebo suma (min. 1 €).' });
   }
