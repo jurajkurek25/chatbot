@@ -156,4 +156,59 @@ async function deleteEvent(cfg, gcalEventId) {
   }
 }
 
-module.exports = { getAuthUrl, verifyState, exchangeCode, createEvent, deleteEvent };
+/**
+ * Return busy time blocks from Google Calendar for a given date.
+ * Used to block slots that overlap with existing calendar events.
+ *
+ * Returns one of:
+ *   [{ allDay: true }]              — if an all-day event exists → block whole day
+ *   [{ startMins, endMins }, ...]   — timed events (minutes from midnight in widget timezone)
+ *   []                              — GCal not connected or no events
+ */
+async function getBusyTimes(cfg, dateStr) {
+  if (!cfg.gcal_access_token || !google) return [];
+  try {
+    const auth     = await getAuthedClient(cfg);
+    const calendar = google.calendar({ version: 'v3', auth });
+
+    // Fetch all events that touch the given date
+    const resp = await calendar.events.list({
+      calendarId:   cfg.gcal_calendar_id || 'primary',
+      timeMin:      new Date(`${dateStr}T00:00:00`).toISOString(),
+      timeMax:      new Date(`${dateStr}T23:59:59`).toISOString(),
+      singleEvents: true,
+      orderBy:      'startTime',
+    });
+
+    const items = (resp.data.items || []).filter(e => e.status !== 'cancelled');
+
+    // All-day event → entire day is blocked
+    if (items.some(e => e.start?.date && !e.start?.dateTime)) return [{ allDay: true }];
+
+    // Timed events → convert to minutes-from-midnight in widget timezone
+    return items
+      .filter(e => e.start?.dateTime && e.end?.dateTime)
+      .map(e => ({
+        startMins: isoToMinsInTz(e.start.dateTime, cfg.timezone),
+        endMins:   isoToMinsInTz(e.end.dateTime,   cfg.timezone),
+      }));
+  } catch (err) {
+    console.warn('[GCal getBusyTimes]', err.message);
+    return []; // fail gracefully — never break booking availability
+  }
+}
+
+/** Convert ISO datetime string to minutes-from-midnight in a given IANA timezone. */
+function isoToMinsInTz(isoStr, timezone) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: timezone || 'UTC',
+    hour:     '2-digit',
+    minute:   '2-digit',
+    hour12:   false,
+  }).formatToParts(new Date(isoStr));
+  const h = parseInt(parts.find(p => p.type === 'hour').value,   10);
+  const m = parseInt(parts.find(p => p.type === 'minute').value, 10);
+  return (h % 24) * 60 + m;
+}
+
+module.exports = { getAuthUrl, verifyState, exchangeCode, createEvent, deleteEvent, getBusyTimes };

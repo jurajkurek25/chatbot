@@ -136,7 +136,12 @@ function getOrCreateConfig(widgetId) {
  * @param {string} date  - 'YYYY-MM-DD'
  * @returns {Array<{start_time, end_time}>}
  */
-function generateSlots(cfg, date) {
+/**
+ * @param {object}   cfg        - booking_configs row
+ * @param {string}   date       - 'YYYY-MM-DD'
+ * @param {Array}    gcalBusy   - busy blocks from getBusyTimes() — optional
+ */
+function generateSlots(cfg, date, gcalBusy = []) {
   const db = getDb();
 
   // Past date?
@@ -148,6 +153,9 @@ function generateSlots(cfg, date) {
   maxDate.setDate(maxDate.getDate() + cfg.max_advance_days);
   const maxDateStr = maxDate.toLocaleDateString('sv-SE', { timeZone: cfg.timezone });
   if (date > maxDateStr) return [];
+
+  // All-day GCal event → block entire day
+  if (gcalBusy.some(b => b.allDay)) return [];
 
   // Day of week (0=Sun…6=Sat) – compute from date string without timezone drift
   const [y, mo, d] = date.split('-').map(Number);
@@ -194,11 +202,16 @@ function generateSlots(cfg, date) {
     const slotEnd   = fromMins(cur + cfg.slot_duration);
     const sS = cur, sE = cur + cfg.slot_duration;
 
-    const blocked = existing.some(b => {
+    // Block if overlaps with existing NeuraDeskApp booking
+    const blockedByBooking = existing.some(b => {
       const bS = toMins(b.start_time), bE = toMins(b.end_time);
       return sS < bE && sE > bS;
     });
-    if (!blocked) slots.push({ start_time: slotStart, end_time: slotEnd });
+
+    // Block if overlaps with any Google Calendar event
+    const blockedByGcal = gcalBusy.some(b => sS < b.endMins && sE > b.startMins);
+
+    if (!blockedByBooking && !blockedByGcal) slots.push({ start_time: slotStart, end_time: slotEnd });
   }
 
   return slots;
@@ -244,7 +257,7 @@ router.get('/:widgetId/public/config', (req, res) => {
 });
 
 /** GET /api/booking/:widgetId/public/slots?date=YYYY-MM-DD */
-router.get('/:widgetId/public/slots', (req, res) => {
+router.get('/:widgetId/public/slots', async (req, res) => {
   const db = getDb();
   const widget = db.prepare('SELECT id, active FROM widgets WHERE id = ?').get(req.params.widgetId);
   if (!widget || !widget.active) return res.status(404).json({ error: 'Widget nenájdený.' });
@@ -263,11 +276,14 @@ router.get('/:widgetId/public/slots', (req, res) => {
     if (svc) effectiveCfg = { ...cfg, slot_duration: svc.duration_mins };
   }
 
-  res.json(generateSlots(effectiveCfg, date));
+  // Fetch Google Calendar busy times (fails gracefully — returns [] if not connected or error)
+  const gcalBusy = await gcal.getBusyTimes(cfg, date);
+
+  res.json(generateSlots(effectiveCfg, date, gcalBusy));
 });
 
 /** POST /api/booking/:widgetId/public/book */
-router.post('/:widgetId/public/book', (req, res) => {
+router.post('/:widgetId/public/book', async (req, res) => {
   const db = getDb();
   const widget = db.prepare('SELECT id, active FROM widgets WHERE id = ?').get(req.params.widgetId);
   if (!widget || !widget.active) return res.status(404).json({ error: 'Widget nenájdený.' });
@@ -290,8 +306,9 @@ router.post('/:widgetId/public/book', (req, res) => {
     if (resolvedService) effectiveCfg = { ...cfg, slot_duration: resolvedService.duration_mins };
   }
 
-  // Verify the slot is still available
-  const available = generateSlots(effectiveCfg, date);
+  // Verify the slot is still available (including Google Calendar check)
+  const gcalBusy = await gcal.getBusyTimes(cfg, date);
+  const available = generateSlots(effectiveCfg, date, gcalBusy);
   const slot = available.find(s => s.start_time === startTime);
   if (!slot) return res.status(409).json({ error: 'Termín nie je dostupný. Vyberte iný čas.' });
 
