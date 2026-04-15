@@ -3196,10 +3196,9 @@ function renderInboxList() {
     const lastMsg = c.last_msg ? c.last_msg.slice(0, 60) + (c.last_msg.length > 60 ? '…' : '') : '—';
     const dt = c.last_msg_at ? new Date(c.last_msg_at * 1000).toLocaleDateString('sk-SK', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
     const live = c.live_agent ? '<span style="background:#dcfce7;color:#16a34a;font-size:0.65rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:99px;margin-left:0.35rem">LIVE</span>' : '';
-    const active = c.id === _activeConvId ? 'background:#eff6ff;border-left:3px solid #2563eb;' : '';
-    return `<div onclick="openConversation('${escHtml(c.id)}')"
-      style="padding:0.7rem 1rem;cursor:pointer;border-bottom:1px solid #f1f5f9;${active}transition:background 0.1s"
-      onmouseover="if(this.style.background!='rgb(239,246,255)')this.style.background='#f8fafc'" onmouseout="if('${c.id}'!=='${_activeConvId||''}')this.style.background=''">
+    const isActive = c.id === _activeConvId;
+    return `<div data-conv-id="${escHtml(c.id)}"
+      style="padding:0.7rem 1rem;cursor:pointer;border-bottom:1px solid #f1f5f9;${isActive ? 'background:#eff6ff;border-left:3px solid #2563eb;' : ''}transition:background 0.1s">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.2rem">
         <span style="font-size:0.8rem;font-weight:700;color:#1e293b">${escHtml(c.lead_name || c.session_id.slice(0,12)+'…')}${live}</span>
         <span style="font-size:0.7rem;color:#94a3b8;white-space:nowrap">${dt}</span>
@@ -3208,6 +3207,14 @@ function renderInboxList() {
       <div style="font-size:0.7rem;color:#94a3b8;margin-top:0.15rem">${c.msg_count} správ</div>
     </div>`;
   }).join('');
+
+  // Event delegation — one listener on the list, removed & re-added on each render
+  list._inboxHandler && list.removeEventListener('click', list._inboxHandler);
+  list._inboxHandler = function(e) {
+    const item = e.target.closest('[data-conv-id]');
+    if (item) openConversation(item.dataset.convId);
+  };
+  list.addEventListener('click', list._inboxHandler);
 }
 
 async function openConversation(convId) {
