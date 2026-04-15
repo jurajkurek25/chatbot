@@ -95,7 +95,7 @@ router.post('/:widgetId/chat', async (req, res) => {
           );
         }
       }
-      res.write(`data: ${JSON.stringify({ done: true, fullText: '' })}\n\n`);
+      res.write(`data: ${JSON.stringify({ done: true, fullText: '', live: true })}\n\n`);
       res.end();
       return;
     }
@@ -393,6 +393,28 @@ router.post('/:widgetId/csat', (req, res) => {
   // Also update lead for this session if exists
   db.prepare('UPDATE leads SET csat_rating = ? WHERE session_id = ? AND widget_id = ?').run(r, sid, req.params.widgetId);
   res.json({ ok: true });
+});
+
+// GET /:widgetId/live-reply — poll for agent reply during live takeover
+router.get('/:widgetId/live-reply', (req, res) => {
+  const db = getDb();
+  const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND active = 1').get(req.params.widgetId);
+  if (!widget) return res.json({ live: false, message: null });
+
+  const sid = (req.query.sessionId || '').slice(0, 64);
+  const since = parseInt(req.query.since, 10) || 0;
+  if (!sid) return res.json({ live: false, message: null });
+
+  const conv = db.prepare('SELECT id, live_agent FROM conversations WHERE session_id = ? AND widget_id = ?').get(sid, widget.id);
+  if (!conv) return res.json({ live: false, message: null });
+
+  const msg = db.prepare(`
+    SELECT content FROM messages
+    WHERE conversation_id = ? AND role = 'assistant' AND created_at > ?
+    ORDER BY created_at ASC LIMIT 1
+  `).get(conv.id, since);
+
+  res.json({ live: Boolean(conv.live_agent), message: msg ? msg.content : null });
 });
 
 function safeParseJSON(str, fallback) {

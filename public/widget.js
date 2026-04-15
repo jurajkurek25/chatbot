@@ -657,6 +657,10 @@
   let botMsgCount = 0;
   let csatShown = false;
   let proactiveDismissed = false;
+  let _liveMode = false;
+  let _livePollTimer = null;
+  let _liveSince = 0;
+  let _liveTypingEl = null;
 
   /* ── Shadow DOM setup ───────────────────────────────────────── */
   const host = document.createElement('div');
@@ -922,6 +926,11 @@
 
   async function sendMessage(text) {
     if (isTyping) return;
+    // Clean up previous live polling if customer sends another message
+    if (_liveMode) {
+      stopLivePolling();
+      if (_liveTypingEl) { _liveTypingEl.remove(); _liveTypingEl = null; }
+    }
     hideSuggestions();
     isTyping = true;
     msgCount++;
@@ -983,6 +992,18 @@
               typingEl.textContent = parsed.error;
               typingEl.classList.remove('nd-typing');
             } else if (parsed.done) {
+              // Live agent takeover — start polling for agent reply
+              if (parsed.live) {
+                _liveMode = true;
+                _liveSince = Math.floor(Date.now() / 1000);
+                typingEl.textContent = '👤 Agent odpovedá…';
+                typingEl.classList.remove('nd-typing');
+                _liveTypingEl = typingEl;
+                history.push({ role: 'assistant', content: '' });
+                startLivePolling();
+                break; // exit SSE loop — keep isTyping = true so user can still send
+              }
+
               // Stream finished — detect tokens, then render markdown
               let final = parsed.fullText || fullText;
 
@@ -1029,17 +1050,90 @@
       typingEl.classList.remove('nd-typing');
     }
 
-    isTyping = false;
-    setSendDisabled(false);
-    shadow.getElementById('nd-input').focus();
+    if (!_liveMode) {
+      isTyping = false;
+      setSendDisabled(false);
+      shadow.getElementById('nd-input').focus();
 
-    // CSAT: show star rating after 4 bot responses
-    botMsgCount++;
-    if (config.csat_enabled && !csatShown && botMsgCount >= 4) {
-      csatShown = true;
-      setTimeout(showCsatCard, 600);
+      // CSAT: show star rating after 4 bot responses
+      botMsgCount++;
+      if (config.csat_enabled && !csatShown && botMsgCount >= 4) {
+        csatShown = true;
+        setTimeout(showCsatCard, 600);
+      }
+    } else {
+      // In live mode: allow sending more messages, but keep UI accessible
+      isTyping = false;
+      setSendDisabled(false);
+      shadow.getElementById('nd-input').focus();
     }
   }
+
+  /* ── Live agent polling ─────────────────────────────────────── */
+  function startLivePolling() {
+    stopLivePolling();
+    let attempts = 0;
+    const MAX = 72; // 3 minutes at 2.5s intervals
+
+    _livePollTimer = setInterval(async () => {
+      attempts++;
+      if (attempts > MAX) {
+        stopLivePolling();
+        _liveMode = false;
+        if (_liveTypingEl) {
+          _liveTypingEl.textContent = 'Agent momentálne nedostupný. Zanechajte správu.';
+          _liveTypingEl = null;
+        }
+        return;
+      }
+      try {
+        const r = await fetch(
+          `${BASE_URL}/api/widget/${WIDGET_ID}/live-reply?sessionId=${encodeURIComponent(sessionId)}&since=${_liveSince}`
+        );
+        if (!r.ok) return;
+        const data = await r.json();
+
+        if (data.message) {
+          // Agent replied — display the message
+          if (_liveTypingEl) {
+            _liveTypingEl.innerHTML = renderMarkdown(data.message);
+            _liveTypingEl = null;
+          } else {
+            addBotMessage(data.message);
+          }
+          // Update empty history placeholder or push new entry
+          const last = history[history.length - 1];
+          if (last && last.role === 'assistant' && last.content === '') {
+            last.content = data.message;
+          } else {
+            history.push({ role: 'assistant', content: data.message });
+          }
+          _liveSince = Math.floor(Date.now() / 1000);
+          scrollToBottom();
+          botMsgCount++;
+          if (config.csat_enabled && !csatShown && botMsgCount >= 4) {
+            csatShown = true;
+            setTimeout(showCsatCard, 600);
+          }
+          // If agent handed back to AI, stop polling
+          if (!data.live) {
+            _liveMode = false;
+            stopLivePolling();
+          }
+        } else if (!data.live) {
+          // Live mode ended without a new message — hand back to AI silently
+          _liveMode = false;
+          stopLivePolling();
+          if (_liveTypingEl) { _liveTypingEl.remove(); _liveTypingEl = null; }
+        }
+      } catch { /* network error — try again next tick */ }
+    }, 2500);
+  }
+
+  function stopLivePolling() {
+    if (_livePollTimer) { clearInterval(_livePollTimer); _livePollTimer = null; }
+  }
+
 
   /* ── CSAT star rating ───────────────────────────────────────── */
   function showCsatCard() {
