@@ -718,7 +718,7 @@ function removeQuestion(index) {
 }
 
 async function generateQuestions() {
-  if (!currentWidget) return;
+  if (!currentWidget) { showToast('Najprv vyberte widget.', 'error'); return; }
   const btn    = document.getElementById('btn-generate-questions');
   const status = document.getElementById('generate-questions-status');
   btn.disabled = true;
@@ -726,9 +726,24 @@ async function generateQuestions() {
   status.style.display = 'block';
 
   try {
-    const res  = await apiFetch(`/api/knowledge/${currentWidget.id}/suggest-questions`, { method: 'POST' });
-    const data = await res.json();
-    if (!res.ok || data.error) { showToast(data.error || 'Chyba pri generovaní otázok.', 'error'); return; }
+    const res = await apiFetch(`/api/knowledge/${currentWidget.id}/suggest-questions`, { method: 'POST' });
+    if (!res) return; // 401 — apiFetch already called logout()
+
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      console.error('[generateQuestions] Response is not JSON, status:', res.status);
+      showToast(`Chyba servera (${res.status}). Skúste znova.`, 'error');
+      return;
+    }
+
+    if (!res.ok || data.error) {
+      console.error('[generateQuestions] API error:', res.status, data.error);
+      showToast(data.error || `Chyba ${res.status} pri generovaní otázok.`, 'error');
+      return;
+    }
+
     const generated = data.questions || [];
 
     // Merge: add only questions not already in the list (case-insensitive dedup)
@@ -744,9 +759,14 @@ async function generateQuestions() {
     }
 
     renderQuestions();
-    showToast(added > 0 ? `✨ Vygenerovaných ${added} otázok.` : 'Otázky sú už pridané.', 'success');
+    if (suggestedQuestions.length >= 6 && added === 0) {
+      showToast('Zoznam otázok je plný (max 6). Najprv niektoré odstráňte.', 'error');
+    } else {
+      showToast(added > 0 ? `✨ Vygenerovaných ${added} otázok.` : 'Otázky sú už pridané.', 'success');
+    }
   } catch (e) {
-    showToast('Chyba pri generovaní otázok.', 'error');
+    console.error('[generateQuestions] Unexpected error:', e);
+    showToast('Neočakávaná chyba: ' + e.message, 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = '✨ Generovať otázky z dokumentov';
