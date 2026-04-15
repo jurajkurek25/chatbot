@@ -1356,7 +1356,7 @@
               </div>
               <div id="inbox-messages" style="padding:1rem;max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:0.6rem"></div>
               <!-- Agent reply input (visible only during live takeover) -->
-              <div id="inbox-agent-reply" style="display:none;padding:0.75rem 1rem;border-top:1px solid #e2e8f0;display:flex;gap:0.5rem">
+              <div id="inbox-agent-reply" style="display:none;padding:0.75rem 1rem;border-top:1px solid #e2e8f0;gap:0.5rem;flex-wrap:nowrap;align-items:center">
                 <input type="text" id="inbox-agent-input" class="form-control" placeholder="Napíšte správu zákazníkovi..." style="flex:1;font-size:0.875rem" onkeydown="if(event.key==='Enter')sendAgentMessage()">
                 <button class="btn btn-primary btn-sm" onclick="sendAgentMessage()">Odoslať</button>
               </div>

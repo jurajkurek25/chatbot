@@ -3131,7 +3131,14 @@ async function openConversation(convId) {
   renderInboxList(); // re-render to highlight active
 
   const res = await apiFetch(`/api/widgets/${currentWidget.id}/conversations/${convId}/messages`);
-  if (!res || !res.ok) return;
+  if (!res) return; // 401 — logout was already called
+  if (!res.ok) {
+    let errMsg = `Chyba ${res.status}`;
+    try { const d = await res.json(); errMsg = d.error || errMsg; } catch {}
+    console.error('[openConversation]', errMsg);
+    showToast('Nepodarilo sa načítať konverzáciu: ' + errMsg, 'error');
+    return;
+  }
   const msgs = await res.json();
 
   const conv = _inboxConvs.find(c => c.id === convId);
@@ -3150,7 +3157,7 @@ async function openConversation(convId) {
   const replyBox = document.getElementById('inbox-agent-reply');
   liveBadge.style.display = _activeConvIsLive ? '' : 'none';
   takeoverBtn.textContent = _activeConvIsLive ? 'Odovzdať AI' : 'Prevziať chat';
-  if (replyBox) replyBox.style.display = _activeConvIsLive ? '' : 'none';
+  if (replyBox) replyBox.style.display = _activeConvIsLive ? 'flex' : 'none';
 
   const msgsEl = document.getElementById('inbox-messages');
   msgsEl.innerHTML = msgs.map(m => {
@@ -3182,7 +3189,7 @@ async function toggleLiveTakeover() {
   const replyBox = document.getElementById('inbox-agent-reply');
   liveBadge.style.display = _activeConvIsLive ? '' : 'none';
   takeoverBtn.textContent = _activeConvIsLive ? 'Odovzdať AI' : 'Prevziať chat';
-  if (replyBox) replyBox.style.display = _activeConvIsLive ? '' : 'none';
+  if (replyBox) replyBox.style.display = _activeConvIsLive ? 'flex' : 'none';
   showToast(_activeConvIsLive ? 'Chat prebraný – odpovedáte vy' : 'Chat vrátený AI asistentovi');
 }
 
