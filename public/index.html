@@ -1182,7 +1182,27 @@
       <div class="field"><label>Heslo</label><input type="password" name="password" required placeholder="••••••••" autocomplete="current-password"></div>
       <button type="submit" class="btn-submit" id="btn-login">Prihlásiť sa</button>
       <div class="auth-error" id="err-login"></div>
+      <p style="text-align:center;margin-top:.75rem"><button type="button" onclick="switchAuthTab('forgot')" style="background:none;border:none;color:var(--muted2);font-size:.82rem;cursor:pointer;text-decoration:underline;font-family:inherit">Zabudli ste heslo?</button></p>
     </form>
+
+    <!-- Forgot password form -->
+    <div id="form-forgot" style="display:none">
+      <p style="color:var(--muted2);font-size:.88rem;margin-bottom:1rem;line-height:1.6">Zadajte váš email a pošleme vám odkaz na obnovu hesla.</p>
+      <div class="field"><label>Email</label><input type="email" id="forgot-email" placeholder="vas@email.sk" autocomplete="email"></div>
+      <button type="button" class="btn-submit" id="btn-forgot" onclick="handleForgotPassword()">Odoslať odkaz</button>
+      <div class="auth-error" id="err-forgot"></div>
+      <div id="ok-forgot" style="display:none;color:var(--success);font-size:.85rem;margin-top:.75rem;line-height:1.6"></div>
+      <p style="text-align:center;margin-top:.75rem"><button type="button" onclick="switchAuthTab('login')" style="background:none;border:none;color:var(--muted2);font-size:.82rem;cursor:pointer;text-decoration:underline;font-family:inherit">← Späť na prihlásenie</button></p>
+    </div>
+
+    <!-- Reset password form (shown when ?reset=TOKEN in URL) -->
+    <div id="form-reset" style="display:none">
+      <p style="color:var(--muted2);font-size:.88rem;margin-bottom:1rem;line-height:1.6">Zadajte nové heslo pre váš účet.</p>
+      <div class="field"><label>Nové heslo <small style="opacity:.6">(min. 8 znakov)</small></label><input type="password" id="reset-pw" placeholder="••••••••" autocomplete="new-password"></div>
+      <div class="field"><label>Potvrdiť heslo</label><input type="password" id="reset-pw2" placeholder="••••••••" autocomplete="new-password"></div>
+      <button type="button" class="btn-submit" id="btn-reset" onclick="handleResetPassword()">Nastaviť heslo</button>
+      <div class="auth-error" id="err-reset"></div>
+    </div>
     <form id="form-register" style="display:none" onsubmit="handleRegister(event)">
       <div class="field"><label>Meno a priezvisko</label><input type="text" name="name" required placeholder="Ján Novák" autocomplete="name"></div>
       <div class="field"><label>Email</label><input type="email" name="email" required placeholder="vas@email.sk" autocomplete="email"></div>
@@ -1269,8 +1289,13 @@
   function switchAuthTab(tab) {
     document.getElementById('form-login').style.display = tab === 'login' ? '' : 'none';
     document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
+    document.getElementById('form-forgot').style.display = tab === 'forgot' ? '' : 'none';
+    document.getElementById('form-reset').style.display = tab === 'reset' ? '' : 'none';
     document.getElementById('tab-login').classList.toggle('active', tab === 'login');
     document.getElementById('tab-register').classList.toggle('active', tab === 'register');
+    // Hide tabs row for forgot/reset
+    const tabsRow = document.querySelector('.auth-tabs');
+    if (tabsRow) tabsRow.style.display = (tab === 'forgot' || tab === 'reset') ? 'none' : '';
   }
 
   // ── REFERRAL ──
@@ -1353,6 +1378,56 @@
     }
   }
 
+  // ── FORGOT PASSWORD ──
+  async function handleForgotPassword() {
+    const email = document.getElementById('forgot-email').value.trim();
+    const btn = document.getElementById('btn-forgot');
+    const err = document.getElementById('err-forgot');
+    const ok = document.getElementById('ok-forgot');
+    err.textContent = ''; ok.style.display = 'none';
+    if (!email) { err.textContent = 'Zadajte email.'; return; }
+    btn.disabled = true; btn.textContent = 'Odosiela sa...';
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      ok.textContent = 'Ak je email zaregistrovaný, poslali sme vám odkaz na obnovu hesla. Skontrolujte si schránku.';
+      ok.style.display = '';
+      document.getElementById('forgot-email').value = '';
+    } catch { err.textContent = 'Chyba. Skúste znova.'; }
+    btn.disabled = false; btn.textContent = 'Odoslať odkaz';
+  }
+
+  // ── RESET PASSWORD ──
+  async function handleResetPassword() {
+    const pw = document.getElementById('reset-pw').value;
+    const pw2 = document.getElementById('reset-pw2').value;
+    const btn = document.getElementById('btn-reset');
+    const err = document.getElementById('err-reset');
+    err.textContent = '';
+    if (!pw || !pw2) { err.textContent = 'Vyplňte obe polia.'; return; }
+    if (pw.length < 8) { err.textContent = 'Heslo musí mať aspoň 8 znakov.'; return; }
+    if (pw !== pw2) { err.textContent = 'Heslá sa nezhodujú.'; return; }
+    const resetToken = params.get('reset');
+    if (!resetToken) { err.textContent = 'Neplatný odkaz.'; return; }
+    btn.disabled = true; btn.textContent = 'Ukladá sa...';
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: resetToken, newPassword: pw }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) { err.textContent = data.error || 'Chyba.'; btn.disabled = false; btn.textContent = 'Nastaviť heslo'; return; }
+      // Success — clear token from URL and show login
+      history.replaceState({}, '', '/');
+      showAuth('login');
+      showToast('Heslo bolo úspešne nastavené. Teraz sa prihláste.', 'success');
+    } catch { err.textContent = 'Chyba. Skúste znova.'; btn.disabled = false; btn.textContent = 'Nastaviť heslo'; }
+  }
+
   // ── FAQ ──
   function toggleFaq(btn) {
     const item = btn.parentElement;
@@ -1375,6 +1450,13 @@
   // ── ON LOAD ──
   document.addEventListener('DOMContentLoaded', () => {
     if (params.get('canceled')) showToast('Platba bola zrušená.', 'error');
+
+    // Password reset link: /?reset=TOKEN
+    const resetToken = params.get('reset');
+    if (resetToken) {
+      showAuth('reset');
+      return;
+    }
 
     const refCode = params.get('ref');
     if (refCode) {

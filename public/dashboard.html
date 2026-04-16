@@ -93,14 +93,17 @@
         <div id="usage-warning-banner" style="display:none;margin-top:0.5rem;font-size:0.75rem;font-weight:600;padding:0.4rem 0.6rem;border-radius:8px;border:1px solid;line-height:1.4"></div>
       </div>
 
-      <div class="user-info">
+      <div class="user-info" style="cursor:pointer" onclick="openAccountModal()" title="Nastavenia účtu">
         <div class="user-avatar" id="user-avatar">?</div>
         <div>
           <div class="user-name" id="user-name">Načítavam...</div>
           <div class="user-email" id="user-email"></div>
         </div>
       </div>
-      <button class="btn-logout" onclick="logout()">Odhlásiť sa</button>
+      <div style="display:flex;gap:0.5rem;margin-top:0.5rem">
+        <button class="btn-logout" style="flex:1" onclick="openAccountModal()">⚙️ Účet</button>
+        <button class="btn-logout" style="flex:1" onclick="logout()">Odhlásiť sa</button>
+      </div>
     </div>
   </nav>
 
@@ -1949,7 +1952,57 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=8"></script>
+<!-- Account Settings Modal -->
+<div id="modal-account" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;padding:0.75rem" onclick="if(event.target===this)closeAccountModal()">
+  <div class="modal-box" style="max-width:460px;width:100%" onclick="event.stopPropagation()">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
+      <h2 style="font-size:1.15rem;font-weight:700;margin:0">Nastavenia účtu</h2>
+      <button onclick="closeAccountModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;padding:0.25rem">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex;gap:0.35rem;margin-bottom:1.5rem;background:#f1f5f9;border-radius:10px;padding:0.2rem">
+      <button id="acc-tab-pw" onclick="switchAccTab('pw')" style="flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">Zmena hesla</button>
+      <button id="acc-tab-email" onclick="switchAccTab('email')" style="flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">Zmena emailu</button>
+    </div>
+
+    <!-- Change password -->
+    <div id="acc-panel-pw">
+      <div class="form-group">
+        <label class="form-label">Aktuálne heslo</label>
+        <input type="password" id="acc-cur-pw" class="form-control" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Nové heslo <small style="color:#94a3b8">(min. 8 znakov)</small></label>
+        <input type="password" id="acc-new-pw" class="form-control" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Potvrdiť nové heslo</label>
+        <input type="password" id="acc-new-pw2" class="form-control" placeholder="••••••••" autocomplete="new-password">
+      </div>
+      <div id="acc-pw-err" style="color:#dc2626;font-size:0.82rem;margin-bottom:0.75rem;display:none"></div>
+      <div id="acc-pw-ok" style="color:#16a34a;font-size:0.82rem;margin-bottom:0.75rem;display:none">Heslo bolo úspešne zmenené.</div>
+      <button class="btn btn-primary" style="width:100%" onclick="doChangePassword()">Zmeniť heslo</button>
+    </div>
+
+    <!-- Change email -->
+    <div id="acc-panel-email" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Nový email</label>
+        <input type="email" id="acc-new-email" class="form-control" placeholder="novy@email.sk" autocomplete="email">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Potvrdiť heslom</label>
+        <input type="password" id="acc-email-pw" class="form-control" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <div id="acc-email-err" style="color:#dc2626;font-size:0.82rem;margin-bottom:0.75rem;display:none"></div>
+      <div id="acc-email-ok" style="color:#16a34a;font-size:0.82rem;margin-bottom:0.75rem;display:none">Email bol úspešne zmenený.</div>
+      <button class="btn btn-primary" style="width:100%" onclick="doChangeEmail()">Zmeniť email</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/dashboard.js?v=9"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

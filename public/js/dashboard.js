@@ -3752,3 +3752,103 @@ async function testEcomail() {
     showToast(err.error || 'Test zlyhal.', 'error');
   }
 }
+
+/* ── Account Settings ────────────────────────────────────────── */
+function openAccountModal() {
+  const el = document.getElementById('modal-account');
+  if (!el) return;
+  // reset fields and messages
+  ['acc-cur-pw','acc-new-pw','acc-new-pw2','acc-new-email','acc-email-pw'].forEach(id => {
+    const f = document.getElementById(id); if (f) f.value = '';
+  });
+  ['acc-pw-err','acc-pw-ok','acc-email-err','acc-email-ok'].forEach(id => {
+    const f = document.getElementById(id); if (f) { f.style.display = 'none'; f.textContent = ''; }
+  });
+  switchAccTab('pw');
+  el.style.display = 'flex';
+}
+
+function closeAccountModal() {
+  const el = document.getElementById('modal-account');
+  if (el) el.style.display = 'none';
+}
+
+function switchAccTab(tab) {
+  const isPw = tab === 'pw';
+  document.getElementById('acc-panel-pw').style.display = isPw ? '' : 'none';
+  document.getElementById('acc-panel-email').style.display = isPw ? 'none' : '';
+  document.getElementById('acc-tab-pw').style.cssText = isPw
+    ? 'flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit'
+    : 'flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
+  document.getElementById('acc-tab-email').style.cssText = isPw
+    ? 'flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit'
+    : 'flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
+}
+
+async function doChangePassword() {
+  const errEl = document.getElementById('acc-pw-err');
+  const okEl = document.getElementById('acc-pw-ok');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+
+  const cur = document.getElementById('acc-cur-pw').value;
+  const nw = document.getElementById('acc-new-pw').value;
+  const nw2 = document.getElementById('acc-new-pw2').value;
+
+  if (!cur || !nw || !nw2) {
+    errEl.textContent = 'Vyplňte všetky polia.'; errEl.style.display = ''; return;
+  }
+  if (nw.length < 8) {
+    errEl.textContent = 'Nové heslo musí mať aspoň 8 znakov.'; errEl.style.display = ''; return;
+  }
+  if (nw !== nw2) {
+    errEl.textContent = 'Nové heslá sa nezhodujú.'; errEl.style.display = ''; return;
+  }
+
+  const res = await apiFetch('/api/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword: cur, newPassword: nw }),
+  });
+  if (!res) return;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { errEl.textContent = data.error || 'Chyba.'; errEl.style.display = ''; return; }
+
+  document.getElementById('acc-cur-pw').value = '';
+  document.getElementById('acc-new-pw').value = '';
+  document.getElementById('acc-new-pw2').value = '';
+  okEl.style.display = '';
+}
+
+async function doChangeEmail() {
+  const errEl = document.getElementById('acc-email-err');
+  const okEl = document.getElementById('acc-email-ok');
+  errEl.style.display = 'none'; okEl.style.display = 'none';
+
+  const newEmail = document.getElementById('acc-new-email').value.trim();
+  const pw = document.getElementById('acc-email-pw').value;
+
+  if (!newEmail || !pw) {
+    errEl.textContent = 'Vyplňte všetky polia.'; errEl.style.display = ''; return;
+  }
+
+  const res = await apiFetch('/api/auth/change-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newEmail, password: pw }),
+  });
+  if (!res) return;
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) { errEl.textContent = data.error || 'Chyba.'; errEl.style.display = ''; return; }
+
+  // Update stored user info and UI
+  const stored = JSON.parse(localStorage.getItem('nd_user') || '{}');
+  stored.email = data.email;
+  localStorage.setItem('nd_user', JSON.stringify(stored));
+  const emailEl = document.getElementById('user-email');
+  if (emailEl) emailEl.textContent = data.email;
+
+  document.getElementById('acc-new-email').value = '';
+  document.getElementById('acc-email-pw').value = '';
+  okEl.textContent = `Email bol zmenený na ${data.email}.`;
+  okEl.style.display = '';
+}
