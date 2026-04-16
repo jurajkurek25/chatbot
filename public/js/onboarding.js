@@ -1,5 +1,5 @@
 /* ================================================================
-   NeuraDeskApp – Onboarding JS
+   Neoworkly – Onboarding JS
    4-step flow: Subscription → Knowledge → Questions&CTA → Embed
    ================================================================ */
 

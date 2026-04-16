@@ -122,8 +122,8 @@ router.post('/:widgetId/test', async (req, res) => {
       body: {
         subscriber_data: {
           email: testEmail.trim(),
-          name: 'Test lead (NeuraDesk)',
-          tags: ['neuradesk-test'],
+          name: 'Test lead (Neoworkly)',
+          tags: ['neoworkly-test'],
         },
         trigger_autoresponders: false,
         update_existing: true,
@@ -143,7 +143,7 @@ router.post('/:widgetId/test', async (req, res) => {
 /* ── subscribeLeadToEcomail — used internally from chat.js ────── */
 async function subscribeLeadToEcomail({ apiKey, listId, email, name, tags = [] }) {
   try {
-    const allTags = ['neuradesk-lead', ...tags].filter(Boolean);
+    const allTags = ['neoworkly-lead', ...tags].filter(Boolean);
     await ecomailReq({
       apiKey,
       method: 'POST',

@@ -192,7 +192,7 @@ function loadBookingConfig(widgetId) {
 
 function buildBookingSection(widgetId, bookingCfg) {
   if (!bookingCfg) return '';
-  const origin = (process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '');
+  const origin = (process.env.APP_URL || 'https://neoworkly.com').replace(/\/$/, '');
   const bookingUrl = `${origin}/book/${widgetId}`;
   const now = new Date();
   const todayStr = now.toLocaleDateString('sk-SK', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });

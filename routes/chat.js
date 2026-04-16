@@ -62,7 +62,7 @@ router.get('/:widgetId/config', (req, res) => {
       return safeParseJSON(widget.suggested_questions, []);
     })(),
     avatar_url: widget.avatar_url
-      ? `${(process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '')}${widget.avatar_url}`
+      ? `${(process.env.APP_URL || 'https://neoworkly.com').replace(/\/$/, '')}${widget.avatar_url}`
       : null,
     proactive_enabled: Boolean(widget.proactive_enabled),
     proactive_delay: widget.proactive_delay || 4,

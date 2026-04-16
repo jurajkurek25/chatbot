@@ -52,7 +52,7 @@ async function translateChunk(skChunk, langName) {
   const { sanitized, keyMap } = sanitizeObj(skChunk);
 
   const prompt = `Translate JSON values from Slovak to ${langName}. Return ONLY a valid JSON object — no explanation, no markdown, no code blocks.
-Rules: keep keys EXACTLY unchanged, keep brand names (NeuraDeskApp, NeuraDesk, AI Coach, WooCommerce, GDPR, CTA, API, Instagram), keep {variable} placeholders, keep __DQ__ tokens as-is.
+Rules: keep keys EXACTLY unchanged, keep brand names (Neoworkly, Neoworkly, AI Coach, WooCommerce, GDPR, CTA, API, Instagram), keep {variable} placeholders, keep __DQ__ tokens as-is.
 
 ${JSON.stringify(sanitized)}`;
 

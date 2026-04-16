@@ -31,7 +31,7 @@ async function sendLeadNotification({ toEmail, ownerName, widgetName, lead }) {
   }
 
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
-  const dashboardUrl = process.env.BASE_URL ? `${process.env.BASE_URL}/dashboard` : 'https://neuradesk.online/dashboard';
+  const dashboardUrl = process.env.BASE_URL ? `${process.env.BASE_URL}/dashboard` : 'https://neoworkly.com/dashboard';
 
   const summaryBlock = lead.chat_summary
     ? `<div style="background:#f0f7ff;border-left:4px solid #2563eb;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14px;line-height:1.7;color:#1e293b;">
@@ -52,7 +52,7 @@ async function sendLeadNotification({ toEmail, ownerName, widgetName, lead }) {
   <div style="max-width:560px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
 
     <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:28px 32px">
-      <div style="font-size:22px;font-weight:800;color:white;letter-spacing:-0.5px">NeuraDeskApp</div>
+      <div style="font-size:22px;font-weight:800;color:white;letter-spacing:-0.5px">Neoworkly</div>
       <div style="color:rgba(255,255,255,0.8);font-size:14px;margin-top:4px">Nový kontakt zo chatbota</div>
     </div>
 
@@ -76,7 +76,7 @@ async function sendLeadNotification({ toEmail, ownerName, widgetName, lead }) {
     </div>
 
     <div style="padding:20px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">
-      Táto správa bola odoslaná automaticky systémom NeuraDeskApp · <a href="${dashboardUrl}" style="color:#94a3b8">neuradesk.online</a>
+      Táto správa bola odoslaná automaticky systémom Neoworkly · <a href="${dashboardUrl}" style="color:#94a3b8">neoworkly.com</a>
     </div>
   </div>
 </body>
@@ -86,7 +86,7 @@ async function sendLeadNotification({ toEmail, ownerName, widgetName, lead }) {
 
   try {
     await transport.sendMail({
-      from: `"NeuraDeskApp" <${from}>`,
+      from: `"Neoworkly" <${from}>`,
       to: toEmail,
       subject: `📋 Nový kontakt: ${lead.name} – ${widgetName}`,
       html,
@@ -111,7 +111,7 @@ async function sendUsageNotification({ toEmail, ownerName, pct, extra }) {
   if (!transport) return;
 
   const from = process.env.SMTP_FROM || process.env.SMTP_USER;
-  const dashboardUrl = process.env.BASE_URL ? `${process.env.BASE_URL}/dashboard` : 'https://neuradesk.online/dashboard';
+  const dashboardUrl = process.env.BASE_URL ? `${process.env.BASE_URL}/dashboard` : 'https://neoworkly.com/dashboard';
   const is100 = pct >= 100;
 
   const subject = is100
@@ -129,7 +129,7 @@ async function sendUsageNotification({ toEmail, ownerName, pct, extra }) {
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
   <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
     <div style="background:${is100 ? 'linear-gradient(135deg,#dc2626,#b91c1c)' : 'linear-gradient(135deg,#f59e0b,#d97706)'};padding:24px 32px">
-      <div style="font-size:20px;font-weight:800;color:white">NeuraDeskApp</div>
+      <div style="font-size:20px;font-weight:800;color:white">Neoworkly</div>
       <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">${is100 ? 'Limit AI odpovedí vyčerpaný' : '80 % mesačného limitu využité'}</div>
     </div>
     <div style="padding:28px 32px">
@@ -140,14 +140,14 @@ async function sendUsageNotification({ toEmail, ownerName, pct, extra }) {
       </a>
     </div>
     <div style="padding:16px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">
-      NeuraDeskApp · <a href="${dashboardUrl}" style="color:#94a3b8">neuradesk.online</a>
+      Neoworkly · <a href="${dashboardUrl}" style="color:#94a3b8">neoworkly.com</a>
     </div>
   </div>
 </body>
 </html>`;
 
   try {
-    await transport.sendMail({ from: `"NeuraDeskApp" <${from}>`, to: toEmail, subject, html });
+    await transport.sendMail({ from: `"Neoworkly" <${from}>`, to: toEmail, subject, html });
     console.log(`[email] Usage notification (${pct}%) sent to ${toEmail}`);
   } catch (err) {
     console.error('[email] Failed to send usage notification:', err.message);
@@ -219,18 +219,18 @@ async function sendTeamInvite({ toEmail, ownerName, inviteUrl }) {
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
   <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
     <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:24px 32px">
-      <div style="font-size:20px;font-weight:800;color:white">NeuraDeskApp</div>
+      <div style="font-size:20px;font-weight:800;color:white">Neoworkly</div>
       <div style="color:rgba(255,255,255,0.8);font-size:14px;margin-top:4px">Pozvánka do tímu</div>
     </div>
     <div style="padding:28px 32px">
       <p style="color:#374151;font-size:15px;margin:0 0 16px">Dobrý deň,</p>
-      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px"><strong>${ownerName}</strong> vás pozýva do tímu na platforme NeuraDeskApp.</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px"><strong>${ownerName}</strong> vás pozýva do tímu na platforme Neoworkly.</p>
       <a href="${inviteUrl}" style="display:inline-block;background:#2563eb;color:white;font-weight:700;font-size:15px;padding:13px 28px;border-radius:10px;text-decoration:none">Prijať pozvánku →</a>
     </div>
   </div>
 </body></html>`;
   try {
-    await transport.sendMail({ from: `"NeuraDeskApp" <${from}>`, to: toEmail, subject: `${ownerName} vás pozýva do NeuraDeskApp`, html });
+    await transport.sendMail({ from: `"Neoworkly" <${from}>`, to: toEmail, subject: `${ownerName} vás pozýva do Neoworkly`, html });
     console.log(`[email] Team invite sent to ${toEmail}`);
   } catch (err) { console.error('[email] Team invite failed:', err.message); }
 }
@@ -249,7 +249,7 @@ async function sendPasswordReset({ toEmail, resetUrl }) {
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
   <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
     <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:24px 32px">
-      <div style="font-size:20px;font-weight:800;color:white">NeuraDeskApp</div>
+      <div style="font-size:20px;font-weight:800;color:white">Neoworkly</div>
       <div style="color:rgba(255,255,255,0.8);font-size:14px;margin-top:4px">Obnova hesla</div>
     </div>
     <div style="padding:28px 32px">
@@ -261,13 +261,13 @@ async function sendPasswordReset({ toEmail, resetUrl }) {
       <p style="color:#94a3b8;font-size:12px;margin:24px 0 0;line-height:1.6">Ak ste o obnovu hesla nežiadali, tento email ignorujte. Vaše heslo zostane nezmenené.</p>
     </div>
     <div style="padding:16px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">
-      NeuraDeskApp · <a href="https://neuradesk.online" style="color:#94a3b8">neuradesk.online</a>
+      Neoworkly · <a href="https://neoworkly.com" style="color:#94a3b8">neoworkly.com</a>
     </div>
   </div>
 </body></html>`;
   const text = `Obnova hesla\n\nKliknite na odkaz pre nastavenie nového hesla (platný 1 hodinu):\n${resetUrl}\n\nAk ste o obnovu nežiadali, ignorujte tento email.`;
   try {
-    await transport.sendMail({ from: `"NeuraDeskApp" <${from}>`, to: toEmail, subject: 'Obnova hesla – NeuraDeskApp', html, text });
+    await transport.sendMail({ from: `"Neoworkly" <${from}>`, to: toEmail, subject: 'Obnova hesla – Neoworkly', html, text });
     console.log(`[email] Password reset sent to ${toEmail}`);
   } catch (err) { console.error('[email] Password reset failed:', err.message); }
 }

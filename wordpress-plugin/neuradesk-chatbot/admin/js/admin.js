@@ -1,8 +1,8 @@
-/* NeuraDeskApp WP Plugin – Admin JS */
+/* Neoworkly WP Plugin – Admin JS */
 (function ($) {
   'use strict';
 
-  const { ajax_url, nonce, api_base, token, widget_id, site_name, t } = window.NeuraDesk || {};
+  const { ajax_url, nonce, api_base, token, widget_id, site_name, t } = window.Neoworkly || {};
 
   /* ── i18n helper ──────────────────────────────────────────── */
   function __(key, vars) {
@@ -45,7 +45,7 @@
 
     setLoading($btn, true);
 
-    ajax('neuradesk_login', { api_base: apiBase, email, password })
+    ajax('neoworkly_login', { api_base: apiBase, email, password })
       .done(function (res) {
         if (res.success) {
           location.reload();
@@ -73,7 +73,7 @@
 
     setLoading($btn, true);
 
-    ajax('neuradesk_set_widget', { widget_id: widgetVal, site_name })
+    ajax('neoworkly_set_widget', { widget_id: widgetVal, site_name })
       .done(function (res) {
         if (res.success) {
           location.reload();
@@ -91,13 +91,13 @@
   /* ── Disconnect ───────────────────────────────────────────── */
   $(document).on('click', '.nd-btn-disconnect', function () {
     if (!confirm(__('js_confirm_logout'))) return;
-    ajax('neuradesk_disconnect').done(function () { location.reload(); });
+    ajax('neoworkly_disconnect').done(function () { location.reload(); });
   });
 
   /* ── Embed toggle ─────────────────────────────────────────── */
   $(document).on('change', '#nd-embed-toggle', function () {
     const enabled = $(this).is(':checked') ? 1 : 0;
-    ajax('neuradesk_save_settings', { embed_enabled: enabled });
+    ajax('neoworkly_save_settings', { embed_enabled: enabled });
     $('.nd-status-dot').toggleClass('nd-dot-green', !!enabled).toggleClass('nd-dot-gray', !enabled);
     $('.nd-status-row span').html(enabled ? __('chatbot_active') : __('chatbot_inactive'));
   });
@@ -105,7 +105,7 @@
   /* ── Re-scan ──────────────────────────────────────────────── */
   $(document).on('click', '#nd-btn-rescan', function () {
     if (!confirm(__('js_confirm_rescan'))) return;
-    $.post(ajax_url, { action: 'neuradesk_reset_scan', nonce })
+    $.post(ajax_url, { action: 'neoworkly_reset_scan', nonce })
       .done(function () { location.reload(); });
   });
 
@@ -121,7 +121,7 @@
   /* ── Scanner ──────────────────────────────────────────────── */
   let scanTotals   = { pages: 0, posts: 0, products: 0 };
   let scanImported = { pages: 0, posts: 0, products: 0 };
-  const hasWoo = window.NeuraDesk?.has_woo || $('#step-products').length > 0;
+  const hasWoo = window.Neoworkly?.has_woo || $('#step-products').length > 0;
 
   $(document).on('click', '#nd-btn-scan', function () {
     $('#nd-scan-box').hide();
@@ -146,7 +146,7 @@
 
       while (hasMore) {
         try {
-          const res = await ajaxAsync('neuradesk_scan_batch', { type, offset });
+          const res = await ajaxAsync('neoworkly_scan_batch', { type, offset });
 
           if (!res.success) {
             setStepStatus(type, 'error');
@@ -178,7 +178,7 @@
     }
 
     // Mark scan done on server
-    await ajaxAsync('neuradesk_mark_scan_done', {});
+    await ajaxAsync('neoworkly_mark_scan_done', {});
 
     // Show overlay
     setTimeout(() => {

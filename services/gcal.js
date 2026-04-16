@@ -14,7 +14,7 @@ const crypto = require('crypto');
 const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI  = process.env.GOOGLE_REDIRECT_URI ||
-  `${(process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '')}/api/booking/gcal/callback`;
+  `${(process.env.APP_URL || 'https://neoworkly.com').replace(/\/$/, '')}/api/booking/gcal/callback`;
 
 const SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',

@@ -37,7 +37,7 @@ function chunk(obj, size) {
 
 async function translateChunk(skChunk, lang, langName, attempt = 1) {
   const prompt = `Translate JSON values from Slovak to ${langName}. Return ONLY a valid JSON object, nothing else — no explanation, no markdown, no code blocks.
-Rules: keep keys unchanged, keep brand names (NeuraDeskApp, NeuraDesk, AI Coach, WooCommerce, GDPR, CTA, API, Instagram), keep {variable} placeholders.
+Rules: keep keys unchanged, keep brand names (Neoworkly, Neoworkly, AI Coach, WooCommerce, GDPR, CTA, API, Instagram), keep {variable} placeholders.
 
 ${JSON.stringify(skChunk)}`;
 

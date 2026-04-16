@@ -221,10 +221,10 @@ router.get('/:id/embed-code', (req, res) => {
   const widget = getOwnedWidget(req.params.id, req.userId);
   if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
 
-  const baseUrl = process.env.BASE_URL || 'https://neuradesk.online';
-  const code = `<!-- NeuraDeskApp Chat Widget -->
+  const baseUrl = process.env.BASE_URL || 'https://neoworkly.com';
+  const code = `<!-- Neoworkly Chat Widget -->
 <script>
-  window.NeuraDeskConfig = { widgetId: '${widget.id}' };
+  window.NeoworklyConfig = { widgetId: '${widget.id}' };
 </script>
 <script src="${baseUrl}/widget.js" async></script>`;
 

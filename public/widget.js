@@ -1,8 +1,8 @@
-/* NeuraDeskApp Embeddable Widget v1.0
+/* Neoworkly Embeddable Widget v1.0
  * Vložte tento súbor na váš web a chatbot sa automaticky zobrazí.
  * Usage:
- *   <script>window.NeuraDeskConfig = { widgetId: 'YOUR_WIDGET_ID' };</script>
- *   <script src="https://neuradesk.online/widget.js" async></script>
+ *   <script>window.NeoworklyConfig = { widgetId: 'YOUR_WIDGET_ID' };</script>
+ *   <script src="https://neoworkly.com/widget.js" async></script>
  */
 (function () {
   'use strict';
@@ -19,12 +19,12 @@
         try { return new URL(scripts[i].src).origin; } catch {}
       }
     }
-    return 'https://neuradesk.online';
+    return 'https://neoworkly.com';
   })();
 
-  const cfg = window.NeuraDeskConfig || {};
+  const cfg = window.NeoworklyConfig || {};
   const WIDGET_ID = cfg.widgetId;
-  if (!WIDGET_ID) { console.warn('[NeuraDeskApp] Chýba widgetId v NeuraDeskConfig.'); return; }
+  if (!WIDGET_ID) { console.warn('[Neoworkly] Chýba widgetId v NeoworklyConfig.'); return; }
 
   /* ── Widget i18n (zero API cost) ─────────────────────────────── */
   function detectPageLang() {
@@ -710,7 +710,7 @@
         <button id="nd-send" style="background:${primary}">${ICON_SEND}</button>
       </div>
       <div id="nd-powered" style="text-align:center;padding:0.35rem 0.5rem;font-size:0.7rem;color:#94a3b8;background:white;border-top:1px solid #f1f5f9;flex-shrink:0;">
-        ${wt('powered')}<a href="https://NeuraDesk.online" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:underline;">${wt('powered_link')}</a>
+        ${wt('powered')}<a href="https://Neoworkly.online" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:underline;">${wt('powered_link')}</a>
       </div>
       <div id="nd-contact-overlay"></div>
     `);
@@ -1713,10 +1713,10 @@
   async function init() {
     try {
       const res = await fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/config?lang=${encodeURIComponent(getLang())}`);
-      if (!res.ok) { console.warn('[NeuraDeskApp] Widget nenájdený alebo neaktívny.'); return; }
+      if (!res.ok) { console.warn('[Neoworkly] Widget nenájdený alebo neaktívny.'); return; }
       config = await res.json();
     } catch (err) {
-      console.warn('[NeuraDeskApp] Nepodarilo sa načítať konfiguráciu:', err.message);
+      console.warn('[Neoworkly] Nepodarilo sa načítať konfiguráciu:', err.message);
       return;
     }
 

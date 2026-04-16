@@ -1,6 +1,6 @@
 'use strict';
 /**
- * sync-translations.js — Comprehensive translation sync for NeuraDeskApp
+ * sync-translations.js — Comprehensive translation sync for Neoworkly
  *
  * What it does:
  *   1. Scans all HTML files in /public for translatable text strings
@@ -61,7 +61,7 @@ const SKIP_PATTERNS = [
 
 // Brand/tech names that should NOT be translated (used as guard in prompt only)
 const BRAND_NAMES = [
-  'NeuraDeskApp','NeuraDesk','AI Coach','WooCommerce','GDPR','CTA','API',
+  'Neoworkly','Neoworkly','AI Coach','WooCommerce','GDPR','CTA','API',
   'Instagram','Stripe','WordPress','Shopify','Webflow','Wix','React',
   'Next.js','SQLite','JWT','OAuth','FTS5','WAL','ManyChat','Salesforce',
   'Intercom','CSV','PDF','TXT','MD','URL','DM','ROI',

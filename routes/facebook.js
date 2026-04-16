@@ -196,7 +196,7 @@ router.get('/:widgetId/webhook', (req, res) => {
   const challenge   = req.query['hub.challenge'];
   const verifyToken = req.query['hub.verify_token'];
 
-  const expected = process.env.FB_VERIFY_TOKEN || 'neuradesk_verify';
+  const expected = process.env.FB_VERIFY_TOKEN || 'neoworkly_verify';
 
   if (mode === 'subscribe' && verifyToken === expected) {
     console.log('[facebook] Webhook verified.');

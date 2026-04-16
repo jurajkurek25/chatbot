@@ -4,7 +4,15 @@ const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');
 
-const DB_PATH = path.join(__dirname, '..', 'data', 'neuradesk.db');
+const DB_PATH = (() => {
+  // Keep backward-compatible filename; rename old file if it exists
+  const newPath = path.join(__dirname, '..', 'data', 'neoworkly.db');
+  const oldPath = path.join(__dirname, '..', 'data', 'neuradesk.db');
+  if (!fs.existsSync(newPath) && fs.existsSync(oldPath)) {
+    fs.renameSync(oldPath, newPath);
+  }
+  return newPath;
+})();
 
 let db;
 
@@ -164,7 +172,7 @@ function initDatabase() {
       access_token TEXT NOT NULL,
       shop_name TEXT,
       shop_email TEXT,
-      neuradesk_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+      neoworkly_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
       widget_id TEXT REFERENCES widgets(id) ON DELETE SET NULL,
       script_tag_id TEXT,
       scan_done INTEGER NOT NULL DEFAULT 0,
@@ -385,9 +393,10 @@ function initDatabase() {
     `ALTER TABLE widgets ADD COLUMN suggested_questions_i18n TEXT NOT NULL DEFAULT '{}'`,
     `ALTER TABLE users ADD COLUMN password_reset_token TEXT`,
     `ALTER TABLE users ADD COLUMN password_reset_expires INTEGER`,
+    `ALTER TABLE shopify_connections RENAME COLUMN neuradesk_user_id TO neoworkly_user_id`,
   ];
   for (const sql of migrations) {
-    try { db.exec(sql); } catch { /* column exists */ }
+    try { db.exec(sql); } catch { /* column exists or not applicable */ }
   }
 
   // Remove CHECK constraint from widgets.cta_type so 'booking' and future types work

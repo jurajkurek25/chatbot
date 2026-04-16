@@ -43,7 +43,7 @@ function ownsWidget(widgetId, userId) {
 }
 
 function appOrigin() {
-  return (process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '');
+  return (process.env.APP_URL || 'https://neoworkly.com').replace(/\/$/, '');
 }
 
 const SUPPORTED_LANGS = ['sk','en','de','fr','es','pl','cs','hu','ro','hr'];

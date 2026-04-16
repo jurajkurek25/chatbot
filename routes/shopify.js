@@ -1,15 +1,15 @@
 'use strict';
 
 /**
- * NeuraDeskApp – Shopify Integration
+ * Neoworkly – Shopify Integration
  *
  * Routes:
  *   GET  /shopify/install           — start OAuth (redirect to Shopify)
  *   GET  /shopify/callback          — OAuth callback (exchange code → token)
  *   GET  /shopify/setup             — setup UI page (served as HTML)
  *   GET  /api/shopify/status           — connection status for current shop
- *   GET  /api/shopify/widgets          — list user's NeuraDeskApp widgets
- *   POST /api/shopify/link-account     — link NeuraDeskApp account to shop
+ *   GET  /api/shopify/widgets          — list user's Neoworkly widgets
+ *   POST /api/shopify/link-account     — link Neoworkly account to shop
  *   POST /api/shopify/scan             — batch-scan shop content → knowledge base
  *   POST /api/shopify/inject           — inject/update ScriptTag on shop
  *   POST /api/shopify/toggle-embed     — enable/disable widget on shop
@@ -32,7 +32,7 @@ const SHOPIFY_API_VERSION = '2024-01';
 // ── Env vars (set in .env) ────────────────────────────────────────
 function apiKey()    { return process.env.SHOPIFY_API_KEY    || ''; }
 function apiSecret() { return process.env.SHOPIFY_API_SECRET || ''; }
-function appUrl()    { return (process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, ''); }
+function appUrl()    { return (process.env.APP_URL || 'https://neoworkly.com').replace(/\/$/, ''); }
 
 // ── Shopify REST helper ───────────────────────────────────────────
 function shopifyRequest(shop, token, method, endpoint, body = null) {
@@ -215,7 +215,7 @@ router.get('/status', (req, res) => {
   if (!shop) return res.status(400).json({ error: 'Chýba shop.' });
 
   const db   = getDb();
-  const conn = db.prepare('SELECT shop_name, shop_email, neuradesk_user_id, widget_id, scan_done, script_tag_id FROM shopify_connections WHERE shop = ?').get(shop);
+  const conn = db.prepare('SELECT shop_name, shop_email, neoworkly_user_id, widget_id, scan_done, script_tag_id FROM shopify_connections WHERE shop = ?').get(shop);
   if (!conn) return res.status(404).json({ error: 'Shop nie je prepojený.' });
 
   let widgetName = null;
@@ -228,7 +228,7 @@ router.get('/status', (req, res) => {
     shop,
     shop_name:   conn.shop_name,
     shop_email:  conn.shop_email,
-    linked:      Boolean(conn.neuradesk_user_id),
+    linked:      Boolean(conn.neoworkly_user_id),
     widget_id:   conn.widget_id,
     widget_name: widgetName,
     scan_done:   Boolean(conn.scan_done),
@@ -238,8 +238,8 @@ router.get('/status', (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════
 // API: POST /api/shopify/link-account
-// Links a NeuraDeskApp account to the Shopify shop
-// Body: { shop, neuradesk_token, widget_id? }
+// Links a Neoworkly account to the Shopify shop
+// Body: { shop, neoworkly_token, widget_id? }
 // ═══════════════════════════════════════════════════════════════
 router.post('/link-account', requireAuth, (req, res) => {
   const shop = sanitizeShop(req.body.shop);
@@ -267,7 +267,7 @@ router.post('/link-account', requireAuth, (req, res) => {
     if (!w) return res.status(403).json({ error: 'Widget nenájdený.' });
   }
 
-  db.prepare('UPDATE shopify_connections SET neuradesk_user_id = ?, widget_id = ? WHERE shop = ?')
+  db.prepare('UPDATE shopify_connections SET neoworkly_user_id = ?, widget_id = ? WHERE shop = ?')
     .run(req.userId, widget_id, shop);
 
   const widget = db.prepare('SELECT id, name FROM widgets WHERE id = ?').get(widget_id);
@@ -286,7 +286,7 @@ router.get('/widgets', requireAuth, (req, res) => {
 
 // ═══════════════════════════════════════════════════════════════
 // API: POST /api/shopify/scan
-// Scans a batch of Shopify content → NeuraDeskApp knowledge base
+// Scans a batch of Shopify content → Neoworkly knowledge base
 // Body: { shop, type: 'products'|'pages'|'blogs', offset }
 // ═══════════════════════════════════════════════════════════════
 router.post('/scan', requireAuth, async (req, res) => {
@@ -298,7 +298,7 @@ router.post('/scan', requireAuth, async (req, res) => {
   if (!shop) return res.status(400).json({ error: 'Chýba shop.' });
 
   const db   = getDb();
-  const conn = db.prepare('SELECT access_token, widget_id FROM shopify_connections WHERE shop = ? AND neuradesk_user_id = ?').get(shop, req.userId);
+  const conn = db.prepare('SELECT access_token, widget_id FROM shopify_connections WHERE shop = ? AND neoworkly_user_id = ?').get(shop, req.userId);
   if (!conn || !conn.widget_id) return res.status(404).json({ error: 'Shop nie je prepojený.' });
 
   const { access_token: token, widget_id } = conn;
@@ -427,7 +427,7 @@ router.post('/inject', requireAuth, async (req, res) => {
   if (!shop) return res.status(400).json({ error: 'Chýba shop.' });
 
   const db   = getDb();
-  const conn = db.prepare('SELECT access_token, widget_id, script_tag_id FROM shopify_connections WHERE shop = ? AND neuradesk_user_id = ?').get(shop, req.userId);
+  const conn = db.prepare('SELECT access_token, widget_id, script_tag_id FROM shopify_connections WHERE shop = ? AND neoworkly_user_id = ?').get(shop, req.userId);
   if (!conn?.widget_id) return res.status(404).json({ error: 'Shop nie je prepojený.' });
 
   const scriptSrc = `${appUrl()}/shopify-widget-loader.js?widget=${encodeURIComponent(conn.widget_id)}`;
@@ -465,7 +465,7 @@ router.post('/toggle-embed', requireAuth, async (req, res) => {
   if (!shop) return res.status(400).json({ error: 'Chýba shop.' });
 
   const db   = getDb();
-  const conn = db.prepare('SELECT access_token, widget_id, script_tag_id FROM shopify_connections WHERE shop = ? AND neuradesk_user_id = ?').get(shop, req.userId);
+  const conn = db.prepare('SELECT access_token, widget_id, script_tag_id FROM shopify_connections WHERE shop = ? AND neoworkly_user_id = ?').get(shop, req.userId);
   if (!conn) return res.status(404).json({ error: 'Shop nie je prepojený.' });
 
   if (!enabled && conn.script_tag_id) {
@@ -491,7 +491,7 @@ router.delete('/disconnect', requireAuth, async (req, res) => {
   if (!shop) return res.status(400).json({ error: 'Chýba shop.' });
 
   const db   = getDb();
-  const conn = db.prepare('SELECT access_token, script_tag_id FROM shopify_connections WHERE shop = ? AND neuradesk_user_id = ?').get(shop, req.userId);
+  const conn = db.prepare('SELECT access_token, script_tag_id FROM shopify_connections WHERE shop = ? AND neoworkly_user_id = ?').get(shop, req.userId);
   if (!conn) return res.status(404).json({ error: 'Pripojenie nenájdené.' });
 
   // Remove script tag from Shopify
@@ -533,9 +533,9 @@ router.get('/widget-loader.js', (req, res) => {
   res.setHeader('Cache-Control', 'public, max-age=3600');
   res.send(`
 (function(){
-  if(window.__neuradeskLoaded) return;
-  window.__neuradeskLoaded = true;
-  window.NeuraDeskConfig = { widgetId: ${JSON.stringify(widgetId)} };
+  if(window.__neoworklyLoaded) return;
+  window.__neoworklyLoaded = true;
+  window.NeoworklyConfig = { widgetId: ${JSON.stringify(widgetId)} };
   var s = document.createElement('script');
   s.src = ${JSON.stringify(origin + '/widget.js')};
   s.async = true;

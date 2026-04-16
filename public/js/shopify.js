@@ -1,12 +1,12 @@
 'use strict';
 /**
- * NeuraDeskApp × Shopify – Setup page JS
+ * Neoworkly × Shopify – Setup page JS
  * Drives the 4-step onboarding: Login → Widget → Scan → Done
  */
 
 const shop = new URLSearchParams(location.search).get('shop') || '';
 
-let ndToken   = '';   // NeuraDeskApp JWT
+let ndToken   = '';   // Neoworkly JWT
 let widgetId  = '';
 let totalImported = { products: 0, pages: 0, blogs: 0 };
 

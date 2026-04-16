@@ -139,8 +139,8 @@ const PATCH_KEYS = {
     'Opíšete váš produkt, cieľovku, námietky – AI si',
   '– kladie otázky, identifikuje problém zákazníka, spracúva námietky a aktívne uzatvára predaj. Na webe aj v Instagram DMs.':
     '– kladie otázky, identifikuje problém zákazníka, spracúva námietky a aktívne uzatvára predaj. Na webe aj v Instagram DMs.',
-  'NeuraDesk sa naučí váš produkt, vaše ceny, vaše námietky – a vedie každého návštevníka od prvej otázky po uzavretý predaj. Presne tak, ako by ste to robili vy, len':
-    'NeuraDesk sa naučí váš produkt, vaše ceny, vaše námietky – a vedie každého návštevníka od prvej otázky po uzavretý predaj. Presne tak, ako by ste to robili vy, len',
+  'Neoworkly sa naučí váš produkt, vaše ceny, vaše námietky – a vedie každého návštevníka od prvej otázky po uzavretý predaj. Presne tak, ako by ste to robili vy, len':
+    'Neoworkly sa naučí váš produkt, vaše ceny, vaše námietky – a vedie každého návštevníka od prvej otázky po uzavretý predaj. Presne tak, ako by ste to robili vy, len',
   'Napíšte čo predávate — za 10 sekúnd uvidíte, ako váš chatbot kladie otázky, rieši námietky a uzatvára predaj.':
     'Napíšte čo predávate — za 10 sekúnd uvidíte, ako váš chatbot kladie otázky, rieši námietky a uzatvára predaj.',
   'Je to skutočný predajný AI. Má zabudovaný 5-fázový framework (Discovery → Pain → Solution → Objections → Close), kladie otázky namiesto len odpovedania, identifikuje problém zákazníka a spracúva námietky. To je fundamentálny rozdiel oproti chatbotom, čo len hľadajú v FAQ.':
@@ -160,7 +160,7 @@ function splitObj(obj, size) {
 async function translateChunk(skChunk, langName) {
   const { sanitized, keyMap } = sanitizeObj(skChunk);
   const prompt = `Translate JSON values from Slovak to ${langName}. Return ONLY a valid JSON object — no explanation, no markdown, no code blocks.
-Rules: keep keys EXACTLY unchanged, keep brand names (NeuraDeskApp, NeuraDesk, AI Coach, WooCommerce, GDPR, CTA, API, Instagram), keep {variable} placeholders, keep __DQ__ tokens as-is.
+Rules: keep keys EXACTLY unchanged, keep brand names (Neoworkly, Neoworkly, AI Coach, WooCommerce, GDPR, CTA, API, Instagram), keep {variable} placeholders, keep __DQ__ tokens as-is.
 
 ${JSON.stringify(sanitized)}`;
 

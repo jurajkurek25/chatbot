@@ -8,7 +8,7 @@ const { sendTeamInvite } = require('../services/email');
 const router = express.Router();
 router.use(requireAuth);
 
-const APP_URL = () => (process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '');
+const APP_URL = () => (process.env.APP_URL || 'https://neoworkly.com').replace(/\/$/, '');
 
 router.get('/', (req, res) => {
   const members = getDb().prepare(

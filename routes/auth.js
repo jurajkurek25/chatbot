@@ -181,7 +181,7 @@ router.post('/forgot-password', async (req, res) => {
     const expires = Math.floor(Date.now() / 1000) + 3600; // 1 hour
     db.prepare('UPDATE users SET password_reset_token = ?, password_reset_expires = ? WHERE id = ?').run(token, expires, user.id);
 
-    const baseUrl = process.env.BASE_URL || 'https://neuradesk.online';
+    const baseUrl = process.env.BASE_URL || 'https://neoworkly.com';
     const resetUrl = `${baseUrl}/?reset=${token}`;
     await sendPasswordReset({ toEmail: email.toLowerCase(), resetUrl });
 

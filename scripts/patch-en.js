@@ -66,8 +66,8 @@ const patch = {
   '– kladie otázky, identifikuje problém zákazníka, spracúva námietky a aktívne uzatvára predaj. Na webe aj v Instagram DMs.':
     '– asks questions, identifies the customer\'s problem, handles objections and actively closes the sale. On the web and in Instagram DMs.',
 
-  'NeuraDesk sa naučí váš produkt, vaše ceny, vaše námietky – a vedie každého návštevníka od prvej otázky po uzavretý predaj. Presne tak, ako by ste to robili vy, len':
-    'NeuraDesk will learn your product, your prices, your objections – and guide every visitor from the first question to a closed sale. Exactly as you would do it, but',
+  'Neoworkly sa naučí váš produkt, vaše ceny, vaše námietky – a vedie každého návštevníka od prvej otázky po uzavretý predaj. Presne tak, ako by ste to robili vy, len':
+    'Neoworkly will learn your product, your prices, your objections – and guide every visitor from the first question to a closed sale. Exactly as you would do it, but',
 
   'Napíšte čo predávate — za 10 sekúnd uvidíte, ako váš chatbot kladie otázky, rieši námietky a uzatvára predaj.':
     'Describe what you sell — in 10 seconds you\'ll see how your chatbot asks questions, handles objections and closes the sale.',

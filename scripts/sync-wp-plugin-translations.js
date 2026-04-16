@@ -1,9 +1,9 @@
 'use strict';
 /**
- * sync-wp-plugin-translations.js — Translation sync for NeuraDeskApp WordPress plugin
+ * sync-wp-plugin-translations.js — Translation sync for Neoworkly WordPress plugin
  *
  * What it does:
- *   1. Reads wordpress-plugin/neuradesk-chatbot/languages/sk.json as master
+ *   1. Reads wordpress-plugin/neoworkly-chatbot/languages/sk.json as master
  *   2. For every non-SK language: translates missing keys using Claude Haiku
  *   3. Creates language files that don't exist yet (translating all of sk.json)
  *
@@ -14,7 +14,7 @@
  *
  * Requires: ANTHROPIC_API_KEY env var
  *
- * Output: wordpress-plugin/neuradesk-chatbot/languages/{lang}.json
+ * Output: wordpress-plugin/neoworkly-chatbot/languages/{lang}.json
  */
 
 try { require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }); } catch {}
@@ -22,7 +22,7 @@ try { require('dotenv').config({ path: require('path').join(__dirname, '..', '.e
 const fs   = require('fs');
 const path = require('path');
 
-const PLUGIN_DIR  = path.join(__dirname, '..', 'wordpress-plugin', 'neuradesk-chatbot');
+const PLUGIN_DIR  = path.join(__dirname, '..', 'wordpress-plugin', 'neoworkly-chatbot');
 const LANG_DIR    = path.join(PLUGIN_DIR, 'languages');
 const SK_FILE     = path.join(LANG_DIR, 'sk.json');
 
@@ -33,7 +33,7 @@ const LANG_NAMES = {
 
 // Brand/tech names that must NOT be translated
 const BRAND_NAMES = [
-  'NeuraDeskApp', 'NeuraDesk', 'WooCommerce', 'WordPress', 'CTA', 'API',
+  'Neoworkly', 'Neoworkly', 'WooCommerce', 'WordPress', 'CTA', 'API',
 ];
 
 // ── Translation helpers ──────────────────────────────────────────────────────
@@ -150,7 +150,7 @@ async function main() {
   const targetLangs = singleLang ? [singleLang] : Object.keys(LANG_NAMES);
 
   console.log('\n' + col(C.bold, '═'.repeat(60)));
-  console.log(col(C.bold + C.cyan, '  NeuraDeskApp WP Plugin — Translation Sync'));
+  console.log(col(C.bold + C.cyan, '  Neoworkly WP Plugin — Translation Sync'));
   console.log(col(C.bold, '═'.repeat(60)));
 
   // ── 1. Load sk.json ────────────────────────────────────────────────────────
@@ -210,7 +210,7 @@ async function main() {
 
   console.log(col(C.bold, '═'.repeat(60)));
   console.log(col(C.green, '  Done! Commit with:'));
-  console.log(col(C.gray,  '  git add wordpress-plugin/neuradesk-chatbot/languages/'));
+  console.log(col(C.gray,  '  git add wordpress-plugin/neoworkly-chatbot/languages/'));
   console.log(col(C.gray,  '  git commit -m "i18n: translate WP plugin into all languages"'));
   console.log(col(C.bold, '═'.repeat(60)) + '\n');
 }

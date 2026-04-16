@@ -202,7 +202,7 @@ function generateSlots(cfg, date, gcalBusy = []) {
     const slotEnd   = fromMins(cur + cfg.slot_duration);
     const sS = cur, sE = cur + cfg.slot_duration;
 
-    // Block if overlaps with existing NeuraDeskApp booking
+    // Block if overlaps with existing Neoworkly booking
     const blockedByBooking = existing.some(b => {
       const bS = toMins(b.start_time), bE = toMins(b.end_time);
       return sS < bE && sE > bS;

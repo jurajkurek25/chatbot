@@ -111,7 +111,7 @@ router.post('/buy', requireAuth, async (req, res) => {
           currency: 'eur',
           unit_amount: amountEur * 100,
           product_data: {
-            name: `NeuraDeskApp – ${creditsToAdd} AI odpovedí`,
+            name: `Neoworkly – ${creditsToAdd} AI odpovedí`,
             description: `Kredit pre AI chatbot`,
           },
         },

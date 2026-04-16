@@ -1,6 +1,6 @@
 'use strict';
 /**
- * audit-translations.js — Translation coverage report for NeuraDeskApp
+ * audit-translations.js — Translation coverage report for Neoworkly
  *
  * Shows:
  *   • Coverage table: which language files exist and how many keys they have
@@ -157,7 +157,7 @@ function main() {
 
   // ── HEADER ─────────────────────────────────────────────────────────────────
   console.log('\n' + col(C.bold, '═'.repeat(70)));
-  console.log(col(C.bold + C.cyan, '  NeuraDesk Translation Audit'));
+  console.log(col(C.bold + C.cyan, '  Neoworkly Translation Audit'));
   console.log(col(C.bold, '═'.repeat(70)));
   console.log(`  sk.json master keys : ${col(C.bold, skCount)}`);
   console.log(`  HTML strings found  : ${col(C.bold, foundInHTML.size)}`);

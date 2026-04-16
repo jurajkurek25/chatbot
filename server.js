@@ -80,10 +80,10 @@ app.use('/api/shopify', shopifyRoutes);
 // Widget loader script (called from Shopify storefront via ScriptTag)
 app.get('/shopify-widget-loader.js', (req, res) => {
   const widgetId = req.query.widget || '';
-  const origin   = (process.env.APP_URL || 'https://neuradesk.online').replace(/\/$/, '');
+  const origin   = (process.env.APP_URL || 'https://neoworkly.com').replace(/\/$/, '');
   res.setHeader('Content-Type', 'application/javascript');
   res.setHeader('Cache-Control', 'public, max-age=3600');
-  res.send(`(function(){if(window.__neuradeskLoaded)return;window.__neuradeskLoaded=true;window.NeuraDeskConfig={widgetId:${JSON.stringify(widgetId)}};var s=document.createElement('script');s.src=${JSON.stringify(origin+'/widget.js')};s.async=true;document.head.appendChild(s);})();`);
+  res.send(`(function(){if(window.__neoworklyLoaded)return;window.__neoworklyLoaded=true;window.NeoworklyConfig={widgetId:${JSON.stringify(widgetId)}};var s=document.createElement('script');s.src=${JSON.stringify(origin+'/widget.js')};s.async=true;document.head.appendChild(s);})();`);
 });
 
 // Page routes
@@ -109,5 +109,5 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`NeuraDeskApp running on http://localhost:${PORT}`);
+  console.log(`Neoworkly running on http://localhost:${PORT}`);
 });

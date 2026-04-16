@@ -20,7 +20,7 @@ function fetchPage(rawUrl, redirects = 0) {
     const lib = parsed.protocol === 'https:' ? https : http;
     const req = lib.get(rawUrl, {
       headers: {
-        'User-Agent': 'NeuraDeskBot/1.0 (knowledge-scanner)',
+        'User-Agent': 'NeoworklyBot/1.0 (knowledge-scanner)',
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Language': 'sk,cs,en',
       },

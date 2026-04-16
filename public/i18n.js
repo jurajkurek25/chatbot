@@ -1,4 +1,4 @@
-/* NeuraDeskApp i18n — text-node replacement engine
+/* Neoworkly i18n — text-node replacement engine
  * No HTML changes required — translations applied via DOM walker.
  * Language files: /locales/{lang}.json  (keys = SK source, values = translation)
  * To generate translations: node scripts/translate.js  (needs ANTHROPIC_API_KEY)

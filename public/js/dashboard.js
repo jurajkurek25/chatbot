@@ -1,5 +1,5 @@
 'use strict';
-/* ── NeuraDeskApp Dashboard ─────────────────────────────────── */
+/* ── Neoworkly Dashboard ─────────────────────────────────── */
 
 const API = '';  // relative URLs
 

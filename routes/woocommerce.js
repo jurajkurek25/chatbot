@@ -15,7 +15,7 @@ async function fetchWooProducts(storeUrl, key, secret) {
   const base = storeUrl.replace(/\/$/, '');
   const url = `${base}/wp-json/wc/v3/products?per_page=100&status=publish`;
   const creds = Buffer.from(`${key}:${secret}`).toString('base64');
-  const resp = await fetch(url, { headers: { Authorization: `Basic ${creds}`, 'User-Agent': 'NeuraDeskApp/1.0' } });
+  const resp = await fetch(url, { headers: { Authorization: `Basic ${creds}`, 'User-Agent': 'Neoworkly/1.0' } });
   if (!resp.ok) throw new Error(`WooCommerce API returned ${resp.status}`);
   return resp.json();
 }
