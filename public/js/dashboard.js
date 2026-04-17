@@ -3990,13 +3990,13 @@ async function loadSeoAudit() {
     }
 
     document.getElementById('seo-running-banner').style.display = 'none';
-    renderSeoResult(d.audit);
+    renderSeoResult(d.audit, d.has_boost);
   } catch { /* ignore */ }
 }
 
 const SEV_ICON = { critical: '🔴', warning: '🟡', info: '🔵' };
 
-function renderSeoResult(audit) {
+function renderSeoResult(audit, hasBoost) {
   document.getElementById('seo-result-card').style.display = '';
   const score = audit.score ?? 0;
   const circle = document.getElementById('seo-score-circle');
@@ -4013,7 +4013,42 @@ function renderSeoResult(audit) {
   document.getElementById('seo-chip-warning').textContent = `🟡 ${s.warnings ?? 0} varovaní`;
   document.getElementById('seo-chip-info').textContent = `🔵 ${s.info ?? 0} informácií`;
 
+  const allFindings = (audit.findings?.pages || []).flatMap(p => p.findings);
   const pages = audit.findings?.pages || [];
+
+  if (!hasBoost) {
+    // Teaser: show first 3 findings only, blur the rest
+    const teaser = allFindings.slice(0, 3);
+    const remaining = allFindings.length - teaser.length;
+    document.getElementById('seo-pages-list').innerHTML = `
+      ${teaser.map(f => `
+        <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.6rem 1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.5rem;font-size:0.83rem">
+          <span style="flex-shrink:0">${SEV_ICON[f.severity] || '•'}</span>
+          <div>
+            <div style="font-weight:600">${escHtml(f.issue)}</div>
+            <div style="color:#64748b;margin-top:0.15rem">${escHtml(f.suggestion)}</div>
+          </div>
+        </div>`).join('')}
+      ${remaining > 0 ? `
+        <div style="position:relative;margin-top:0.5rem">
+          <div style="filter:blur(4px);pointer-events:none;user-select:none">
+            ${allFindings.slice(3, 6).map(f => `
+              <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.6rem 1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.5rem;font-size:0.83rem">
+                <span>${SEV_ICON[f.severity] || '•'}</span>
+                <div><div style="font-weight:600">${escHtml(f.issue)}</div></div>
+              </div>`).join('')}
+          </div>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.7);border-radius:8px;text-align:center;padding:1rem">
+            <div style="font-weight:700;font-size:1rem;margin-bottom:0.25rem">🔒 + ďalších ${remaining} problémov</div>
+            <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.75rem">Odomknite plný audit + hotové opravy cez Growth Boost</div>
+            <button class="btn btn-primary btn-sm" onclick="window.location.href='/onboarding?step=5'">Aktivovať Growth Boost – €49</button>
+          </div>
+        </div>` : ''}
+    `;
+    return;
+  }
+
+  // Full results for boost users
   document.getElementById('seo-pages-list').innerHTML = pages.map(p => `
     <div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
       <div style="padding:0.6rem 1rem;background:#f8fafc;font-size:0.83rem;font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0">${escHtml(p.url)}</div>
