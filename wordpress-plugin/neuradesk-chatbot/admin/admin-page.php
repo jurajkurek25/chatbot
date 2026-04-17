@@ -3,7 +3,7 @@
 $token     = get_option( 'neuradesk_token', '' );
 $widget_id = get_option( 'neuradesk_widget_id', '' );
 $user_name = get_option( 'neuradesk_user_name', '' );
-$api_base  = get_option( 'neuradesk_api_base', 'https://neuradesk.com' );
+$api_base  = get_option( 'neuradesk_api_base', 'https://neoworkly.com' );
 $scan_done = get_option( 'neuradesk_scan_done', 0 );
 $embed_on  = get_option( 'neuradesk_embed_enabled', 0 );
 
@@ -27,11 +27,11 @@ $has_woo      = class_exists( 'WooCommerce' );
   <!-- ── STEP 1: Login ──────────────────────────────────────── -->
   <div class="nd-card" id="nd-step-login">
     <h2><?php echo esc_html( nd_t( 'login_title' ) ); ?></h2>
-    <p class="nd-subtitle"><?php echo esc_html( nd_t( 'login_subtitle' ) ); ?> <a href="https://neuradesk.com" target="_blank"><?php echo esc_html( nd_t( 'login_subtitle_link' ) ); ?></a>.</p>
+    <p class="nd-subtitle"><?php echo esc_html( nd_t( 'login_subtitle' ) ); ?> <a href="https://neoworkly.com" target="_blank"><?php echo esc_html( nd_t( 'login_subtitle_link' ) ); ?></a>.</p>
 
     <div class="nd-form-group">
       <label><?php echo esc_html( nd_t( 'label_api_url' ) ); ?></label>
-      <input type="url" id="nd-api-base" value="https://neuradesk.com" class="nd-input">
+      <input type="url" id="nd-api-base" value="https://neoworkly.com" class="nd-input">
       <span class="nd-hint"><?php echo esc_html( nd_t( 'hint_self_hosted' ) ); ?></span>
     </div>
     <div class="nd-form-group">
@@ -50,7 +50,7 @@ $has_woo      = class_exists( 'WooCommerce' );
       <span class="nd-spinner" style="display:none"></span>
     </button>
 
-    <p class="nd-signup-hint"><?php echo esc_html( nd_t( 'no_account' ) ); ?> <a href="https://neuradesk.com" target="_blank"><?php echo esc_html( nd_t( 'register_free' ) ); ?></a></p>
+    <p class="nd-signup-hint"><?php echo esc_html( nd_t( 'no_account' ) ); ?> <a href="https://neoworkly.com" target="_blank"><?php echo esc_html( nd_t( 'register_free' ) ); ?></a></p>
   </div>
 
   <?php elseif ( ! $widget_id ) : ?>

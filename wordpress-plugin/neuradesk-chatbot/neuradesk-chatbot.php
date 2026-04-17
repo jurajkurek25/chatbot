@@ -1,7 +1,7 @@
 <?php
 /**
  * Plugin Name: NeuraDeskApp Chatbot
- * Plugin URI:  https://neuradesk.com
+ * Plugin URI:  https://neoworkly.com
  * Description: Automatická integrácia AI chatbota – prihlás sa, plugin naskenuje celý web a nasadí sa sám.
  * Version:     1.0.3
  * Author:      NeuraDeskApp
@@ -84,7 +84,7 @@ add_action( 'admin_enqueue_scripts', function ( $hook ) {
     wp_localize_script( 'neuradesk-admin', 'NeuraDesk', [
         'ajax_url' => admin_url( 'admin-ajax.php' ),
         'nonce'    => wp_create_nonce( 'neuradesk_nonce' ),
-        'api_base' => get_option( 'neuradesk_api_base', 'https://neuradesk.com' ),
+        'api_base' => get_option( 'neuradesk_api_base', 'https://neoworkly.com' ),
         'token'    => get_option( 'neuradesk_token', '' ),
         'widget_id'=> get_option( 'neuradesk_widget_id', '' ),
         'user_name'=> get_option( 'neuradesk_user_name', '' ),
@@ -102,7 +102,7 @@ function neuradesk_render_admin_page() {
 add_action( 'wp_ajax_neuradesk_login', function () {
     check_ajax_referer( 'neuradesk_nonce', 'nonce' );
 
-    $api_base = esc_url_raw( sanitize_text_field( $_POST['api_base'] ?? 'https://neuradesk.com' ) );
+    $api_base = esc_url_raw( sanitize_text_field( $_POST['api_base'] ?? 'https://neoworkly.com' ) );
     $email    = sanitize_email( $_POST['email'] ?? '' );
     $password = $_POST['password'] ?? '';
 
@@ -135,7 +135,7 @@ add_action( 'wp_ajax_neuradesk_login', function () {
 add_action( 'wp_ajax_neuradesk_set_widget', function () {
     check_ajax_referer( 'neuradesk_nonce', 'nonce' );
 
-    $api_base  = get_option( 'neuradesk_api_base', 'https://neuradesk.com' );
+    $api_base  = get_option( 'neuradesk_api_base', 'https://neoworkly.com' );
     $token     = get_option( 'neuradesk_token', '' );
     $widget_id = sanitize_text_field( $_POST['widget_id'] ?? '' );
     $site_name = sanitize_text_field( $_POST['site_name'] ?? get_bloginfo( 'name' ) );
@@ -164,7 +164,7 @@ add_action( 'wp_ajax_neuradesk_set_widget', function () {
 add_action( 'wp_ajax_neuradesk_scan_batch', function () {
     check_ajax_referer( 'neuradesk_nonce', 'nonce' );
 
-    $api_base  = get_option( 'neuradesk_api_base', 'https://neuradesk.com' );
+    $api_base  = get_option( 'neuradesk_api_base', 'https://neoworkly.com' );
     $token     = get_option( 'neuradesk_token', '' );
     $widget_id = get_option( 'neuradesk_widget_id', '' );
 
@@ -281,7 +281,7 @@ function neuradesk_should_inject() {
  */
 function neuradesk_embed_html() {
     $widget_id = get_option( 'neuradesk_widget_id', '' );
-    $api_base  = get_option( 'neuradesk_api_base', 'https://neuradesk.com' );
+    $api_base  = get_option( 'neuradesk_api_base', 'https://neoworkly.com' );
     $config    = wp_json_encode( [ 'widgetId' => $widget_id ] );
     $src       = esc_url( trailingslashit( $api_base ) . 'widget.js' );
     return "\n<script>window.NeuraDeskConfig={$config};</script>\n"
