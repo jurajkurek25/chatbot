@@ -163,7 +163,7 @@ router.put('/:id', (req, res) => {
     active !== undefined ? (active ? 1 : 0) : widget.active,
     proactive_enabled !== undefined ? (proactive_enabled ? 1 : 0) : (widget.proactive_enabled || 0),
     proactive_delay !== undefined ? Math.max(1, Math.min(60, parseInt(proactive_delay) || 4)) : (widget.proactive_delay || 4),
-    proactive_message !== undefined ? String(proactive_message).slice(0, 500) : (widget.proactive_message || ''),
+    proactive_message !== undefined ? String(proactive_message).slice(0, 5000) : (widget.proactive_message || ''),
     gdpr_text !== undefined ? String(gdpr_text).slice(0, 5000) : (widget.gdpr_text || ''),
     webhook_url !== undefined ? (webhook_url ? String(webhook_url).slice(0, 512) : null) : (widget.webhook_url || null),
     slack_webhook_url !== undefined ? (slack_webhook_url ? String(slack_webhook_url).slice(0, 512) : null) : (widget.slack_webhook_url || null),
