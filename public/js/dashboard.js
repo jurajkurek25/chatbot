@@ -128,12 +128,14 @@ function showView(view) {
   document.getElementById('view-leads').style.display = view === 'leads' ? '' : 'none';
   document.getElementById('view-affiliate').style.display = view === 'affiliate' ? '' : 'none';
   document.getElementById('view-coach').style.display = view === 'coach' ? '' : 'none';
+  document.getElementById('view-seo').style.display = view === 'seo' ? '' : 'none';
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
   document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
   document.getElementById('nav-leads').classList.toggle('active', view === 'leads');
   document.getElementById('nav-affiliate').classList.toggle('active', view === 'affiliate');
   document.getElementById('nav-coach').classList.toggle('active', view === 'coach');
+  document.getElementById('nav-seo').classList.toggle('active', view === 'seo');
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
@@ -154,6 +156,11 @@ function showView(view) {
     document.getElementById('topbar-title').textContent = 'AI Coach';
     document.getElementById('topbar-actions').innerHTML =
       '<button class="btn btn-secondary btn-sm" onclick="clearCoachHistory()">Vymazať chat</button>';
+  }
+  if (view === 'seo') {
+    document.getElementById('topbar-title').textContent = 'SEO Audit';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadSeoAudit();
   }
 }
 
@@ -3945,3 +3952,139 @@ async function doChangeEmail() {
   okEl.textContent = `Email bol zmenený na ${data.email}.`;
   okEl.style.display = '';
 }
+
+/* ══════════════════════════════════════════════════════════════
+   SEO Audit
+══════════════════════════════════════════════════════════════ */
+let seoAuditId = null;
+let seoPolling = null;
+
+async function loadSeoAudit() {
+  clearTimeout(seoPolling);
+  try {
+    const r = await apiFetch('/api/seo/latest');
+    if (!r) return;
+    const d = await r.json();
+
+    document.getElementById('seo-locked-banner').style.display = d.has_boost ? 'none' : '';
+    document.getElementById('btn-dl-wp').style.display = d.has_boost ? '' : 'none';
+    document.getElementById('btn-dl-html').style.display = d.has_boost ? '' : 'none';
+
+    if (!d.audit) {
+      document.getElementById('seo-no-audit').style.display = '';
+      document.getElementById('seo-result-card').style.display = 'none';
+      document.getElementById('seo-running-banner').style.display = 'none';
+      return;
+    }
+
+    seoAuditId = d.audit.id;
+    document.getElementById('seo-no-audit').style.display = 'none';
+
+    if (d.audit.status === 'running') {
+      document.getElementById('seo-running-banner').style.display = '';
+      document.getElementById('seo-result-card').style.display = 'none';
+      seoPolling = setTimeout(loadSeoAudit, 4000);
+      return;
+    }
+
+    document.getElementById('seo-running-banner').style.display = 'none';
+    renderSeoResult(d.audit);
+  } catch { /* ignore */ }
+}
+
+const SEV_ICON = { critical: '🔴', warning: '🟡', info: '🔵' };
+
+function renderSeoResult(audit) {
+  document.getElementById('seo-result-card').style.display = '';
+  const score = audit.score ?? 0;
+  const circle = document.getElementById('seo-score-circle');
+  circle.textContent = score;
+  circle.style.background = score >= 70 ? '#16a34a' : score >= 45 ? '#d97706' : '#ef4444';
+  document.getElementById('seo-score-label').textContent = `SEO skóre: ${score} / 100`;
+  document.getElementById('seo-url-label').textContent = audit.url || '';
+  document.getElementById('seo-date-label').textContent = audit.completed_at
+    ? 'Dokončené: ' + new Date(audit.completed_at * 1000).toLocaleString('sk')
+    : '';
+
+  const s = audit.findings?.summary || {};
+  document.getElementById('seo-chip-critical').textContent = `🔴 ${s.critical ?? 0} kritických`;
+  document.getElementById('seo-chip-warning').textContent = `🟡 ${s.warnings ?? 0} varovaní`;
+  document.getElementById('seo-chip-info').textContent = `🔵 ${s.info ?? 0} informácií`;
+
+  const pages = audit.findings?.pages || [];
+  document.getElementById('seo-pages-list').innerHTML = pages.map(p => `
+    <div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+      <div style="padding:0.6rem 1rem;background:#f8fafc;font-size:0.83rem;font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0">${escHtml(p.url)}</div>
+      ${p.findings.length === 0
+        ? '<div style="padding:0.75rem 1rem;font-size:0.82rem;color:#16a34a">✓ Žiadne problémy</div>'
+        : p.findings.map(f => `
+          <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.6rem 1rem;border-bottom:1px solid #f1f5f9;font-size:0.83rem">
+            <span style="flex-shrink:0">${SEV_ICON[f.severity] || '•'}</span>
+            <div>
+              <div style="font-weight:600">${escHtml(f.issue)}</div>
+              <div style="color:#64748b;margin-top:0.15rem">${escHtml(f.suggestion)}</div>
+              ${p.ai_fix ? `<div style="margin-top:0.35rem;font-size:0.78rem;color:#2563eb">✨ AI: <em>${escHtml(f.type === 'title' ? (p.ai_fix.title || '') : f.type === 'description' ? (p.ai_fix.description || '') : '')}</em></div>` : ''}
+            </div>
+          </div>`).join('')
+      }
+    </div>
+  `).join('');
+}
+
+function openSeoScanModal() {
+  document.getElementById('seo-scan-modal').style.display = 'flex';
+}
+
+function closeSeoScanModal() {
+  document.getElementById('seo-scan-modal').style.display = 'none';
+}
+
+async function startSeoScan() {
+  let url = document.getElementById('seo-scan-input').value.trim();
+  if (!url) { showToast('Zadajte URL.', 'error'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  try {
+    const r = await apiFetch('/api/seo/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Chyba');
+    seoAuditId = d.audit_id;
+    closeSeoScanModal();
+    document.getElementById('seo-scan-input').value = '';
+    showToast('SEO analýza spustená!', 'success');
+    loadSeoAudit();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function downloadSeoFix(type) {
+  try {
+    const r = await apiFetch(`/api/seo/fix/${type}`);
+    if (!r.ok) {
+      const d = await r.json();
+      showToast(d.error || 'Chyba pri sťahovaní.', 'error');
+      return;
+    }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = type === 'wordpress' ? 'neoworkly-seo-fix.php' : 'neoworkly-seo-fix.html';
+    a.click();
+  } catch {
+    showToast('Chyba pri sťahovaní.', 'error');
+  }
+}
+
+// Handle ?tab=seo URL param on dashboard load
+(function() {
+  const p = new URLSearchParams(location.search);
+  if (p.get('tab') === 'seo') {
+    window.history.replaceState({}, '', '/dashboard');
+    document.addEventListener('DOMContentLoaded', () => showView('seo'), { once: true });
+  }
+})();

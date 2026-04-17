@@ -26,6 +26,7 @@ const leadMagnetsRoutes = require('./routes/lead-magnets');
 const insightsRoutes    = require('./routes/insights');
 const facebookRoutes    = require('./routes/facebook');
 const ecomailRoutes     = require('./routes/ecomail');
+const seoRoutes         = require('./routes/seo');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -67,6 +68,7 @@ app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
 app.use('/api/ecomail',     ecomailRoutes);
+app.use('/api/seo',         seoRoutes);
 app.use('/api/team',        teamRoutes);
 app.use('/api/woocommerce', woocommerceRoutes);
 // Team invite accept (public, no auth needed on GET)

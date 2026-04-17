@@ -13,7 +13,7 @@
 <header class="ob-mobile-header">
   <div class="ob-mobile-logo">Neoworkly</div>
   <div style="display:flex;align-items:center;gap:0.75rem">
-    <div class="ob-mobile-step" id="ob-mobile-step-label">Krok 1 z 4</div>
+    <div class="ob-mobile-step" id="ob-mobile-step-label">Krok 1 z 5</div>
     <div class="lang-switcher"></div>
   </div>
 </header>
@@ -28,6 +28,8 @@
     <div class="ob-mobile-step-dot" id="mps-3">3</div>
     <div class="ob-mobile-step-line" id="mpl-3"></div>
     <div class="ob-mobile-step-dot" id="mps-4">4</div>
+    <div class="ob-mobile-step-line" id="mpl-4"></div>
+    <div class="ob-mobile-step-dot" id="mps-5">5</div>
   </div>
 </div>
 
@@ -56,6 +58,11 @@
         <div class="ob-step-dot">4</div>
         <div class="ob-step-label">Embed kód</div>
       </div>
+      <div class="ob-step-line"></div>
+      <div class="ob-step" id="ps-5">
+        <div class="ob-step-dot">5</div>
+        <div class="ob-step-label">Growth Boost</div>
+      </div>
     </div>
     <div class="ob-sidebar-footer">
       <div class="lang-switcher" style="margin-bottom:0.75rem"></div>
@@ -69,7 +76,7 @@
     <!-- ── STEP 1: Subscription ───────────────────────── -->
     <div class="ob-panel" id="step-1">
       <div class="ob-panel-header">
-        <div class="ob-step-badge">Krok 1 z 4</div>
+        <div class="ob-step-badge">Krok 1 z 5</div>
         <h1>Aktivujte predplatné</h1>
         <p>Jeden plán. Všetko čo potrebujete pre inteligentný AI chatbot.</p>
       </div>
@@ -129,7 +136,7 @@
     <!-- ── STEP 2: Knowledge ──────────────────────────── -->
     <div class="ob-panel hidden" id="step-2">
       <div class="ob-panel-header">
-        <div class="ob-step-badge">Krok 2 z 4</div>
+        <div class="ob-step-badge">Krok 2 z 5</div>
         <h1>Nahrajte vaše know-how</h1>
         <p>Pridajte texty, PDF dokumenty alebo cenníky. AI sa ich naučí a bude odpovedať zákazníkom presne na ich základe.</p>
       </div>
@@ -208,7 +215,7 @@
     <!-- ── STEP 3: Questions & CTA ────────────────────── -->
     <div class="ob-panel hidden" id="step-3">
       <div class="ob-panel-header">
-        <div class="ob-step-badge">Krok 3 z 4</div>
+        <div class="ob-step-badge">Krok 3 z 5</div>
         <h1>Otázky & Cieľ konverzie</h1>
         <p>Nastavte, čo chatbot navrhne zákazníkovi a aká je vaša konverzná akcia.</p>
       </div>
@@ -321,7 +328,7 @@
     <!-- ── STEP 4: Embed ───────────────────────────────── -->
     <div class="ob-panel hidden" id="step-4">
       <div class="ob-panel-header">
-        <div class="ob-step-badge">Krok 4 z 4</div>
+        <div class="ob-step-badge">Krok 4 z 5</div>
         <h1>🎉 Chatbot je pripravený!</h1>
         <p>Skopírujte kód a vložte ho do hlavičky vašej webstránky. Chatbot sa okamžite zobrazí.</p>
       </div>
@@ -371,7 +378,80 @@
       </div>
 
       <div class="ob-finish-actions">
-        <button class="btn-ob-primary btn-large" onclick="finishOnboarding()">Otvoriť dashboard →</button>
+        <button class="btn-ob-primary btn-large" onclick="goToStep(5)">Pokračovať →</button>
+      </div>
+    </div>
+
+    <!-- ── STEP 5: Growth Boost upsell ───────────────── -->
+    <div class="ob-panel hidden" id="step-5">
+      <div class="ob-panel-header">
+        <div class="ob-step-badge">Krok 5 z 5</div>
+        <h1>🚀 Zvýšte návštevnosť webu</h1>
+        <p>Náš AI skener analyzuje váš web, odhalí SEO chyby a pripraví hotové opravy pre WordPress aj HTML weby.</p>
+      </div>
+
+      <!-- Teaser – shown while scanning / after scan -->
+      <div class="ob-card" style="margin-bottom:1.25rem" id="boost-scan-card">
+        <div class="ob-card-title">🔍 SEO sken vášho webu</div>
+        <div class="ob-card-desc">Zadajte adresu webu – okamžite uvidíte prvé problémy zadarmo.</div>
+        <div class="ob-form-row" style="margin-bottom:0.5rem">
+          <div class="ob-field" style="margin:0">
+            <input type="url" id="boost-scan-url" class="ob-input" placeholder="https://vasafirma.sk">
+          </div>
+          <button class="btn-ob-primary" id="btn-boost-scan" onclick="startBoostScan()">Skenovať</button>
+        </div>
+        <div id="boost-scan-status" style="display:none;font-size:0.82rem;margin-top:0.5rem;color:#64748b"></div>
+      </div>
+
+      <!-- Teaser results (shown after scan) -->
+      <div class="ob-card" id="boost-teaser-card" style="display:none;margin-bottom:1.25rem">
+        <div class="ob-card-title">📊 Výsledky skenu</div>
+        <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1rem">
+          <div id="boost-score-circle" style="width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;font-weight:700;color:white;background:#ef4444;flex-shrink:0">--</div>
+          <div>
+            <div style="font-weight:600;font-size:1rem" id="boost-score-label">SEO skóre</div>
+            <div style="font-size:0.82rem;color:#64748b" id="boost-issues-label"></div>
+          </div>
+        </div>
+        <div id="boost-teaser-findings" style="display:flex;flex-direction:column;gap:0.5rem;margin-bottom:1rem"></div>
+        <div style="font-size:0.82rem;color:#94a3b8;font-style:italic" id="boost-more-label"></div>
+      </div>
+
+      <!-- Upsell offer -->
+      <div class="ob-card" id="boost-offer-card" style="margin-bottom:1.25rem;border:2px solid var(--primary);background:linear-gradient(135deg,rgba(37,99,235,0.04),transparent)">
+        <div style="display:flex;align-items:flex-start;gap:0.75rem;margin-bottom:1rem">
+          <div style="font-size:2rem">⚡</div>
+          <div>
+            <div style="font-weight:700;font-size:1.05rem;margin-bottom:0.25rem">Growth Boost – Kompletná SEO oprava</div>
+            <div style="font-size:0.85rem;color:#475569">Jednorazová platba · Okamžité stiahnutie hotových opráv</div>
+          </div>
+        </div>
+        <ul style="list-style:none;padding:0;margin:0 0 1rem;display:flex;flex-direction:column;gap:0.4rem;font-size:0.88rem">
+          <li>✅ AI optimalizovaný title &amp; description pre každú stránku</li>
+          <li>✅ Hotový WordPress plugin (.php) – 1 klik inštalácia</li>
+          <li>✅ HTML snippet pre statické weby – vložte do &lt;head&gt;</li>
+          <li>✅ Kompletný audit až 8 podstránok</li>
+          <li>✅ Opravy canonical, OG tagov, viewport, alt textov</li>
+        </ul>
+        <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+          <div style="font-size:1.6rem;font-weight:700;color:var(--primary)">€49 <span style="font-size:0.9rem;font-weight:400;color:#94a3b8;text-decoration:line-through">€149</span></div>
+          <button class="btn-ob-primary" id="btn-boost-buy" onclick="startBoostCheckout()" style="flex:1;min-width:200px">
+            💳 Získať Growth Boost – €49
+          </button>
+        </div>
+        <p style="font-size:0.78rem;color:#94a3b8;margin:0.5rem 0 0">Bezpečná platba cez Stripe · Jednorazová platba</p>
+      </div>
+
+      <!-- Already paid -->
+      <div id="boost-paid-msg" style="display:none" class="success-box">
+        <div class="success-icon">✅</div>
+        <h3>Growth Boost je aktívny!</h3>
+        <p>SEO opravy nájdete v dashboarde na záložke <strong>SEO Audit</strong>.</p>
+      </div>
+
+      <div class="ob-nav">
+        <button class="btn-ob-ghost" onclick="goToStep(4)">← Späť</button>
+        <button class="btn-ob-ghost" onclick="finishOnboarding()">Preskočiť a otvoriť dashboard →</button>
       </div>
     </div>
 

@@ -339,6 +339,18 @@ function initDatabase() {
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       UNIQUE(owner_user_id, email)
     );
+
+    /* ── SEO audits ──────────────────────────────────────────── */
+    CREATE TABLE IF NOT EXISTS seo_audits (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      url TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      score INTEGER,
+      findings_json TEXT NOT NULL DEFAULT '{}',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      completed_at INTEGER
+    );
   `);
 
   // Migrations: add columns for existing DBs
@@ -390,6 +402,7 @@ function initDatabase() {
     `ALTER TABLE widgets ADD COLUMN ecomail_list_id TEXT`,
     `ALTER TABLE widgets ADD COLUMN ecomail_list_name TEXT`,
     `ALTER TABLE users ADD COLUMN subscription_plan TEXT NOT NULL DEFAULT 'pro'`,
+    `ALTER TABLE users ADD COLUMN growth_boost_paid INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE widgets ADD COLUMN suggested_questions_i18n TEXT NOT NULL DEFAULT '{}'`,
     `ALTER TABLE users ADD COLUMN password_reset_token TEXT`,
     `ALTER TABLE users ADD COLUMN password_reset_expires INTEGER`,

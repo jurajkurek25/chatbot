@@ -29,6 +29,9 @@
       <button class="nav-item" onclick="showView('coach')" id="nav-coach">
         <span class="nav-icon">🎓</span> AI Coach
       </button>
+      <button class="nav-item" onclick="showView('seo')" id="nav-seo">
+        <span class="nav-icon">🚀</span> SEO Audit
+      </button>
     </div>
 
     <div class="sidebar-section" id="widget-nav-section" style="display:none">
@@ -282,6 +285,81 @@
               <div>💰 <strong>Vy dostanete 15 €</strong> kredit na účet za každého platiaceho zákazníka</div>
               <div>🎁 <strong>37 € kreditov = 1 mesiac zadarmo</strong> – predplatné sa pozastaví, kredity sa odpočítajú</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── View: SEO Audit ───────────────────────────── -->
+      <div id="view-seo" style="display:none">
+        <div class="section-header">
+          <div>
+            <h2 style="margin:0 0 0.25rem">🚀 SEO Audit</h2>
+            <p style="margin:0;color:#64748b;font-size:0.875rem">Naskenujte web, odhaľte SEO problémy a stiahnite hotové opravy.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openSeoScanModal()">+ Nový sken</button>
+        </div>
+
+        <!-- Locked state (no boost) -->
+        <div id="seo-locked-banner" style="display:none;margin-bottom:1.5rem;padding:1.25rem 1.5rem;background:linear-gradient(135deg,rgba(37,99,235,0.08),transparent);border:1.5px solid var(--primary);border-radius:12px">
+          <div style="font-weight:700;font-size:1rem;margin-bottom:0.4rem">⚡ Growth Boost – Kompletná SEO oprava</div>
+          <div style="font-size:0.875rem;color:#475569;margin-bottom:0.75rem">Odomknite stiahnutie WordPress pluginu a HTML snippetu s AI optimalizovanými meta tagmi.</div>
+          <button class="btn btn-primary" onclick="window.location.href='/onboarding?step=5'">Aktivovať Growth Boost – €49</button>
+        </div>
+
+        <!-- Latest audit card -->
+        <div id="seo-no-audit" style="display:none;text-align:center;padding:3rem 1rem;color:#94a3b8">
+          <div style="font-size:2.5rem;margin-bottom:0.5rem">🔍</div>
+          <div style="font-size:1rem;font-weight:600;margin-bottom:0.25rem">Zatiaľ žiadny audit</div>
+          <div style="font-size:0.875rem">Kliknite "+ Nový sken" a zadajte URL vášho webu.</div>
+        </div>
+
+        <div id="seo-running-banner" style="display:none;padding:1rem 1.25rem;background:#fef3c7;border:1px solid #fbbf24;border-radius:10px;margin-bottom:1rem;font-size:0.875rem;color:#92400e">
+          ⏳ SEO analýza prebieha… Táto stránka sa automaticky obnoví.
+        </div>
+
+        <div id="seo-result-card" style="display:none">
+          <!-- Score header -->
+          <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;flex-wrap:wrap">
+            <div id="seo-score-circle" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700;color:white;background:#ef4444;flex-shrink:0">--</div>
+            <div>
+              <div style="font-size:1.1rem;font-weight:700" id="seo-score-label">SEO skóre</div>
+              <div style="font-size:0.875rem;color:#64748b" id="seo-url-label"></div>
+              <div style="font-size:0.82rem;color:#94a3b8" id="seo-date-label"></div>
+            </div>
+            <div style="display:flex;gap:0.75rem;margin-left:auto;flex-wrap:wrap">
+              <button class="btn btn-secondary" id="btn-dl-wp" onclick="downloadSeoFix('wordpress')">⬇ WordPress Plugin</button>
+              <button class="btn btn-secondary" id="btn-dl-html" onclick="downloadSeoFix('html')">⬇ HTML Snippet</button>
+            </div>
+          </div>
+
+          <!-- Summary chips -->
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.25rem">
+            <span id="seo-chip-critical" style="padding:0.25rem 0.75rem;border-radius:99px;font-size:0.8rem;font-weight:600;background:#fee2e2;color:#dc2626"></span>
+            <span id="seo-chip-warning" style="padding:0.25rem 0.75rem;border-radius:99px;font-size:0.8rem;font-weight:600;background:#fef3c7;color:#d97706"></span>
+            <span id="seo-chip-info" style="padding:0.25rem 0.75rem;border-radius:99px;font-size:0.8rem;font-weight:600;background:#dbeafe;color:#2563eb"></span>
+          </div>
+
+          <!-- Per-page findings -->
+          <div id="seo-pages-list"></div>
+        </div>
+      </div>
+
+      <!-- SEO Scan Modal -->
+      <div id="seo-scan-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeSeoScanModal()">
+        <div class="modal-box" style="max-width:480px">
+          <div class="modal-header">
+            <h3>🔍 Nový SEO sken</h3>
+            <button class="modal-close" onclick="closeSeoScanModal()">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">URL webu</label>
+              <input type="url" class="form-control" id="seo-scan-input" placeholder="https://vasafirma.sk">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeSeoScanModal()">Zrušiť</button>
+            <button class="btn btn-primary" onclick="startSeoScan()">Spustiť sken</button>
           </div>
         </div>
       </div>

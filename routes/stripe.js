@@ -67,6 +67,45 @@ router.post('/checkout', requireAuth, async (req, res) => {
   }
 });
 
+// POST /api/stripe/checkout-boost — Growth Boost one-time payment
+router.post('/checkout-boost', requireAuth, async (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, growth_boost_paid FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+  if (user.growth_boost_paid) return res.json({ url: '/dashboard?tab=seo' });
+
+  const priceId = process.env.STRIPE_PRICE_ID_GROWTH_BOOST;
+  if (!priceId) return res.status(500).json({ error: 'Growth Boost price nie je nakonfigurovaná.' });
+
+  const stripe = getStripe();
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
+  try {
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
+      customerId = customer.id;
+      db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: 'payment',
+      success_url: `${baseUrl}/onboarding?success_boost=1&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/onboarding?step=5`,
+      locale: 'sk',
+      metadata: { type: 'growth_boost', userId: user.id },
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Growth Boost checkout error:', err.message);
+    res.status(500).json({ error: 'Chyba pri vytváraní platby: ' + err.message });
+  }
+});
+
 // POST /api/stripe/webhook — Stripe webhook (raw body parsed in server.js)
 router.post('/webhook', async (req, res) => {
   const sig = req.headers['stripe-signature'];
@@ -109,6 +148,16 @@ router.post('/webhook', async (req, res) => {
   switch (event.type) {
     case 'checkout.session.completed': {
       const session = event.data.object;
+
+      // Growth Boost one-time payment
+      if (session.mode === 'payment' && session.metadata?.type === 'growth_boost') {
+        const userId = session.metadata.userId;
+        if (userId) {
+          db.prepare('UPDATE users SET growth_boost_paid = 1 WHERE id = ?').run(userId);
+          console.log(`[growth_boost] Unlocked for user ${userId}`);
+        }
+        break;
+      }
 
       // Credit top-up (one-time payment)
       if (session.mode === 'payment' && session.metadata?.type === 'credits') {

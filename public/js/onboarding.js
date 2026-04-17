@@ -41,30 +41,30 @@ function goToStep(n) {
 
   if (n === 2) ensureWidget().then(() => loadKnowledge());
   if (n === 4) loadEmbedCode();
+  if (n === 5) initBoostStep();
 }
 
 function updateSidebar(active) {
-  for (let i = 1; i <= 4; i++) {
+  for (let i = 1; i <= 5; i++) {
     const el = document.getElementById(`ps-${i}`);
-    el.classList.remove('active', 'done');
-    if (i < active) el.classList.add('done');
-    else if (i === active) el.classList.add('active');
-
-    // Update mobile progress dots
+    if (el) {
+      el.classList.remove('active', 'done');
+      if (i < active) el.classList.add('done');
+      else if (i === active) el.classList.add('active');
+    }
     const mdot = document.getElementById(`mps-${i}`);
     if (mdot) {
       mdot.classList.remove('active', 'done');
       if (i < active) mdot.classList.add('done');
       else if (i === active) mdot.classList.add('active');
     }
-    // Update mobile progress lines
-    if (i < 4) {
+    if (i < 5) {
       const mline = document.getElementById(`mpl-${i}`);
       if (mline) mline.classList.toggle('done', i < active);
     }
   }
   const label = document.getElementById('ob-mobile-step-label');
-  if (label) label.textContent = `Krok ${active} z 4`;
+  if (label) label.textContent = `Krok ${active} z 5`;
 }
 
 // ── Logout ───────────────────────────────────────────────────────
@@ -249,6 +249,7 @@ async function obScrapeWebsite() {
   let url = document.getElementById('ob-scrape-url').value.trim();
   if (!url) { showToast('Zadajte URL adresu webu.', 'error'); return; }
   if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+  localStorage.setItem('ob_scrape_url', url);
 
   const btn = document.getElementById('ob-btn-scrape');
   const status = document.getElementById('ob-scrape-status');
@@ -514,6 +515,170 @@ async function finishOnboarding() {
 }
 
 // ════════════════════════════════════════════════════════════════
+// STEP 5 – Growth Boost
+// ════════════════════════════════════════════════════════════════
+
+let boostAuditId = null;
+let boostPollTimer = null;
+
+async function initBoostStep() {
+  // Check if already paid
+  try {
+    const r = await fetch(`${API}/api/seo/latest`, { headers: authHeaders() });
+    const d = await r.json();
+    if (d.has_boost) {
+      showBoostPaid();
+      return;
+    }
+    if (d.audit) {
+      boostAuditId = d.audit.id;
+      if (d.audit.status === 'running') {
+        showBoostScanning();
+        pollBoostAudit();
+      } else if (d.audit.status === 'done') {
+        renderBoostTeaser(d.audit);
+      }
+    }
+  } catch { /* ignore */ }
+
+  // Pre-fill URL from localStorage (set during step 2 scrape)
+  const savedUrl = localStorage.getItem('ob_scrape_url');
+  if (savedUrl) document.getElementById('boost-scan-url').value = savedUrl;
+}
+
+async function startBoostScan() {
+  let url = document.getElementById('boost-scan-url').value.trim();
+  if (!url) { showToast('Zadajte URL adresu webu.', 'error'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  const btn = document.getElementById('btn-boost-scan');
+  const status = document.getElementById('boost-scan-status');
+  btn.disabled = true;
+  btn.textContent = '⏳ Skenujem...';
+  status.style.display = 'block';
+  status.textContent = 'Spúšťam SEO analýzu…';
+
+  try {
+    const r = await fetch(`${API}/api/seo/start`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ url })
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Chyba');
+    boostAuditId = d.audit_id;
+    showBoostScanning();
+    pollBoostAudit();
+  } catch (err) {
+    status.style.color = '#dc2626';
+    status.textContent = '✗ ' + err.message;
+    btn.disabled = false;
+    btn.textContent = 'Skenovať';
+  }
+}
+
+function showBoostScanning() {
+  const status = document.getElementById('boost-scan-status');
+  status.style.display = 'block';
+  status.style.color = '#64748b';
+  status.textContent = '⏳ Analýza prebieha, prosím čakajte (30–60 sekúnd)…';
+  document.getElementById('btn-boost-scan').disabled = true;
+}
+
+function pollBoostAudit() {
+  if (!boostAuditId) return;
+  clearTimeout(boostPollTimer);
+  boostPollTimer = setTimeout(async () => {
+    try {
+      const r = await fetch(`${API}/api/seo/status/${boostAuditId}`, { headers: authHeaders() });
+      const d = await r.json();
+      if (d.status === 'done') {
+        document.getElementById('boost-scan-status').style.display = 'none';
+        document.getElementById('btn-boost-scan').disabled = false;
+        document.getElementById('btn-boost-scan').textContent = 'Skenovať znovu';
+        renderBoostTeaser(d);
+      } else if (d.status === 'error') {
+        document.getElementById('boost-scan-status').style.color = '#dc2626';
+        document.getElementById('boost-scan-status').textContent = '✗ Audit zlyhal. Skúste znovu.';
+        document.getElementById('btn-boost-scan').disabled = false;
+        document.getElementById('btn-boost-scan').textContent = 'Skenovať';
+      } else {
+        pollBoostAudit();
+      }
+    } catch { pollBoostAudit(); }
+  }, 3000);
+}
+
+const SEVERITY_ICON = { critical: '🔴', warning: '🟡', info: '🔵' };
+
+function renderBoostTeaser(audit) {
+  const card = document.getElementById('boost-teaser-card');
+  card.style.display = 'block';
+
+  const score = audit.score ?? 0;
+  const circle = document.getElementById('boost-score-circle');
+  circle.textContent = score;
+  circle.style.background = score >= 70 ? '#16a34a' : score >= 45 ? '#d97706' : '#ef4444';
+
+  document.getElementById('boost-score-label').textContent = `SEO skóre: ${score}/100`;
+
+  const total = audit.findings?.summary?.total_issues ?? 0;
+  document.getElementById('boost-issues-label').textContent = `Nájdených problémov: ${total}`;
+
+  const teaser = (audit.findings?.pages || []).flatMap(p => p.findings).slice(0, 3);
+  document.getElementById('boost-teaser-findings').innerHTML = teaser.map(f =>
+    `<div style="display:flex;gap:0.5rem;align-items:flex-start;padding:0.4rem 0.6rem;background:rgba(255,255,255,0.05);border-radius:6px;font-size:0.83rem">
+      <span>${SEVERITY_ICON[f.severity] || '•'}</span>
+      <span>${escHtml(f.issue)}</span>
+    </div>`
+  ).join('');
+
+  const remaining = total - teaser.length;
+  document.getElementById('boost-more-label').textContent = remaining > 0
+    ? `+ ďalších ${remaining} problémov v plnom audite (po aktivácii Growth Boost)`
+    : '';
+}
+
+function showBoostPaid() {
+  document.getElementById('boost-offer-card').style.display = 'none';
+  document.getElementById('boost-paid-msg').style.display = 'block';
+}
+
+async function startBoostCheckout() {
+  const btn = document.getElementById('btn-boost-buy');
+  btn.disabled = true;
+  btn.textContent = 'Presmerovávam...';
+  try {
+    const r = await fetch(`${API}/api/stripe/checkout-boost`, {
+      method: 'POST',
+      headers: authHeaders()
+    });
+    const d = await r.json();
+    if (d.url) {
+      window.location.href = d.url;
+    } else {
+      showToast(d.error || 'Chyba pri platbe.', 'error');
+      btn.disabled = false;
+      btn.textContent = '💳 Získať Growth Boost – €49';
+    }
+  } catch {
+    showToast('Sieťová chyba. Skúste znovu.', 'error');
+    btn.disabled = false;
+    btn.textContent = '💳 Získať Growth Boost – €49';
+  }
+}
+
+async function handleBoostReturn() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('success_boost') !== '1') return false;
+
+  window.history.replaceState({}, '', '/onboarding?step=5');
+  showToast('Growth Boost bol úspešne aktivovaný! 🎉', 'success');
+  showBoostPaid();
+  return true;
+}
+
+// ════════════════════════════════════════════════════════════════
 // Color picker sync
 // ════════════════════════════════════════════════════════════════
 function setupColorPicker() {
@@ -563,25 +728,23 @@ async function init() {
     }
   } catch { /* ignore */ }
 
-  // Handle Stripe return
+  // Handle Stripe returns
   await handleStripeReturn();
+  const boostReturned = await handleBoostReturn();
 
   // Check subscription status
   const active = await checkSubscription();
   if (active) {
-    // Show active state in step 1
     showSubscriptionActive();
-
-    // Ensure widget exists and load knowledge
     await ensureWidget();
     await loadKnowledge();
 
-    // Check if user was previously on a later step
     const params = new URLSearchParams(window.location.search);
     const startStep = parseInt(params.get('step') || '1', 10);
-    if (startStep >= 2 && startStep <= 4) {
+    if (boostReturned) {
+      goToStep(5);
+    } else if (startStep >= 2 && startStep <= 5) {
       goToStep(startStep);
-      if (startStep === 4) loadEmbedCode();
     } else {
       goToStep(1);
     }
