@@ -525,7 +525,9 @@ async function initBoostStep() {
   // Check if already paid
   try {
     const r = await fetch(`${API}/api/seo/latest`, { headers: authHeaders() });
-    const d = await r.json();
+    if (!r.ok) return;
+    const d = await r.json().catch(() => null);
+    if (!d) return;
     if (d.has_boost) {
       showBoostPaid();
       return;
@@ -564,7 +566,7 @@ async function startBoostScan() {
       headers: authHeaders(),
       body: JSON.stringify({ url })
     });
-    const d = await r.json();
+    const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'Chyba');
     boostAuditId = d.audit_id;
     showBoostScanning();
@@ -591,7 +593,9 @@ function pollBoostAudit() {
   boostPollTimer = setTimeout(async () => {
     try {
       const r = await fetch(`${API}/api/seo/status/${boostAuditId}`, { headers: authHeaders() });
-      const d = await r.json();
+      if (!r.ok) { pollBoostAudit(); return; }
+      const d = await r.json().catch(() => null);
+      if (!d) { pollBoostAudit(); return; }
       if (d.status === 'done') {
         document.getElementById('boost-scan-status').style.display = 'none';
         document.getElementById('btn-boost-scan').disabled = false;
@@ -653,7 +657,7 @@ async function startBoostCheckout() {
       method: 'POST',
       headers: authHeaders()
     });
-    const d = await r.json();
+    const d = await r.json().catch(() => ({}));
     if (d.url) {
       window.location.href = d.url;
     } else {

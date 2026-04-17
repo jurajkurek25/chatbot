@@ -4088,7 +4088,7 @@ async function startSeoScan() {
       body: JSON.stringify({ url })
     });
     if (!r) throw new Error('Sieťová chyba');
-    const d = await r.json();
+    const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'Chyba');
     seoAuditId = d.audit_id;
     closeSeoScanModal();
@@ -4104,7 +4104,7 @@ async function downloadSeoFix(type) {
   try {
     const r = await apiFetch(`/api/seo/fix/${type}`);
     if (!r.ok) {
-      const d = await r.json();
+      const d = await r.json().catch(() => ({}));
       showToast(d.error || 'Chyba pri sťahovaní.', 'error');
       return;
     }
