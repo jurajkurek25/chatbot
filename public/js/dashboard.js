@@ -3963,7 +3963,9 @@ async function loadSeoAudit() {
   clearTimeout(seoPolling);
   try {
     const r = await apiFetch('/api/seo/latest');
-    if (!r) return;
+    if (!r || !r.ok) return;
+    const ct = r.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) return;
     const d = await r.json();
 
     document.getElementById('seo-locked-banner').style.display = d.has_boost ? 'none' : '';
@@ -4050,6 +4052,7 @@ async function startSeoScan() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url })
     });
+    if (!r) throw new Error('Sieťová chyba');
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Chyba');
     seoAuditId = d.audit_id;
