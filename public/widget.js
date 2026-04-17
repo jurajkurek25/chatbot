@@ -378,6 +378,29 @@
     }
     #nd-launcher:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.28); }
     #nd-launcher svg { width: 26px; height: 26px; fill: white; transition: opacity 0.2s; }
+    #nd-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 18px;
+      height: 18px;
+      background: #ef4444;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      border: 2px solid white;
+      pointer-events: none;
+      animation: ndBadgePop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes ndBadgePop {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
 
     /* Proactive bubble */
     #nd-proactive-bubble {
@@ -657,6 +680,7 @@
   let botMsgCount = 0;
   let csatShown = false;
   let proactiveDismissed = false;
+  let unreadCount = 0;
   let _liveMode = false;
   let _livePollTimer = null;
   let _liveSince = 0;
@@ -681,9 +705,8 @@
     shadow.appendChild(styleEl);
 
     // Launcher button
-    const launcher = elem('button', { id: 'nd-launcher', title: wt('open'), style: `background:${primary}` },
-      ICON_CHAT
-    );
+    const launcher = elem('button', { id: 'nd-launcher', title: wt('open'), style: `background:${primary}` });
+    launcher.innerHTML = `<span id="nd-launcher-icon">${ICON_CHAT}</span>`;
     launcher.addEventListener('click', toggleChat);
     shadow.appendChild(launcher);
 
@@ -737,7 +760,8 @@
       const delay = (config.proactive_delay || 4) * 1000;
       setTimeout(() => {
         if (isOpen || proactiveDismissed) return;
-        showProactiveBubble(config.proactive_message);
+        showProactiveBubble(getWelcomeMessage(config.proactive_message));
+        showBadge();
       }, delay);
     }
 
@@ -802,15 +826,37 @@
     }
   }
 
+  /* ── Unread Badge ───────────────────────────────────────────── */
+  function showBadge() {
+    unreadCount++;
+    const launcherEl = shadow.getElementById('nd-launcher');
+    if (!launcherEl) return;
+    let badge = shadow.getElementById('nd-badge');
+    if (badge) {
+      badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+    } else {
+      badge = elem('span', { id: 'nd-badge' });
+      badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+      launcherEl.appendChild(badge);
+    }
+  }
+
+  function hideBadge() {
+    unreadCount = 0;
+    const badge = shadow.getElementById('nd-badge');
+    if (badge) badge.remove();
+  }
+
   /* ── Toggle ─────────────────────────────────────────────────── */
   function toggleChat() {
     isOpen = !isOpen;
     dismissBubble();
     const win = shadow.getElementById('nd-window');
-    const launcher = shadow.getElementById('nd-launcher');
+    const iconEl = shadow.getElementById('nd-launcher-icon');
     win.classList.toggle('nd-hidden', !isOpen);
-    launcher.innerHTML = isOpen ? ICON_CLOSE : ICON_CHAT;
+    if (iconEl) iconEl.innerHTML = isOpen ? ICON_CLOSE : ICON_CHAT;
     if (isOpen) {
+      hideBadge();
       shadow.getElementById('nd-input').focus();
       scrollToBottom();
     }

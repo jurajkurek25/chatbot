@@ -84,6 +84,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Wire "add language" button via JS (not onclick attribute) to avoid scope issues
   const addLangBtn = document.getElementById('btn-add-welcome-lang');
   if (addLangBtn) addLangBtn.addEventListener('click', () => addWelcomeLang());
+
+  const addProactiveLangBtn = document.getElementById('btn-add-proactive-lang');
+  if (addProactiveLangBtn) addProactiveLangBtn.addEventListener('click', () => addProactiveLang());
 });
 
 function renderBillingButton() {
@@ -258,7 +261,17 @@ async function openWidget(widgetId) {
   document.getElementById('s-active').value = currentWidget.active ? '1' : '0';
   updateColorPreview(currentWidget.primary_color);
   document.getElementById('s-proactive-enabled').checked = Boolean(currentWidget.proactive_enabled);
-  document.getElementById('s-proactive-message').value = currentWidget.proactive_message || '';
+  const rawProactive = currentWidget.proactive_message || '';
+  if (rawProactive.startsWith('{')) {
+    try {
+      const pmObj = JSON.parse(rawProactive);
+      document.getElementById('s-proactive-message').value = pmObj.default || '';
+      loadProactiveLangs(pmObj);
+    } catch { document.getElementById('s-proactive-message').value = rawProactive; clearProactiveLangs(); }
+  } else {
+    document.getElementById('s-proactive-message').value = rawProactive;
+    clearProactiveLangs();
+  }
   document.getElementById('s-proactive-delay').value = currentWidget.proactive_delay || 4;
 
   // Avatar preview
@@ -499,6 +512,86 @@ function buildWelcomeMessage() {
   return JSON.stringify(obj);
 }
 
+/* ── Multilingual Proactive Messages ────────────────────────────── */
+function clearProactiveLangs() {
+  const c = document.getElementById('proactive-langs-container');
+  if (c) c.innerHTML = '';
+}
+
+function loadProactiveLangs(pmObj) {
+  clearProactiveLangs();
+  for (const [lang, msg] of Object.entries(pmObj)) {
+    if (lang === 'default') continue;
+    addProactiveLang(lang, msg);
+  }
+}
+
+function addProactiveLang(lang, msg) {
+  const container = document.getElementById('proactive-langs-container');
+  if (!container) return;
+  const row = document.createElement('div');
+  row.className = 'proactive-lang-row';
+  row.style.cssText = 'display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem';
+  const options = Object.entries(WELCOME_LANG_NAMES)
+    .map(([code, name]) => `<option value="${code}">${name} (${code})</option>`).join('');
+  row.innerHTML =
+    `<select class="form-control pl-lang" style="width:150px;flex-shrink:0">${options}</select>` +
+    `<input type="text" class="form-control pl-msg" placeholder="Proaktívna správa..." style="flex:1">` +
+    `<button type="button" class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:0.35rem 0.65rem" ` +
+    `onclick="this.closest('.proactive-lang-row').remove()">×</button>`;
+  container.appendChild(row);
+  if (lang) row.querySelector('.pl-lang').value = lang;
+  if (msg)  row.querySelector('.pl-msg').value  = msg;
+}
+
+function buildProactiveMessage() {
+  const def = document.getElementById('s-proactive-message').value.trim();
+  const rows = document.querySelectorAll('.proactive-lang-row');
+  if (!rows.length) return def;
+  const obj = { default: def };
+  rows.forEach(r => {
+    const lang = r.querySelector('.pl-lang').value;
+    const msg  = r.querySelector('.pl-msg').value.trim();
+    if (lang && msg) obj[lang] = msg;
+  });
+  return JSON.stringify(obj);
+}
+
+async function autoTranslateProactive() {
+  const defaultMsg = document.getElementById('s-proactive-message')?.value.trim();
+  if (!defaultMsg) { showToast('Najprv vyplňte predvolenú proaktívnu správu.', 'error'); return; }
+
+  const btn = document.getElementById('btn-auto-translate-proactive');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Prekladám...'; }
+
+  try {
+    const targetLangs = Object.keys(WELCOME_LANG_NAMES).filter(l => l !== 'sk');
+    const r = await apiFetch('/api/widgets/translate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: defaultMsg, targetLanguages: targetLangs,
+        context: 'proactive chat bubble greeting a website visitor' }),
+    });
+    if (!r?.ok) { showToast('Chyba prekladu.', 'error'); return; }
+    const data = await r.json();
+
+    clearProactiveLangs();
+    const entries = Object.entries(data.translations || {});
+    for (const [lang, msg] of entries) {
+      if (!WELCOME_LANG_NAMES[lang]) continue;
+      addProactiveLang(lang, '');
+      const rows = document.querySelectorAll('.proactive-lang-row');
+      const lastInput = rows[rows.length - 1]?.querySelector('.pl-msg');
+      if (lastInput) await _typeText(lastInput, String(msg), 8);
+      await _sleep(30);
+    }
+    showToast(`Preložené do ${entries.length} jazykov! Kliknite Uložiť nastavenia.`, 'success');
+  } catch (e) {
+    showToast('Chyba: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🌍 Auto-preložiť'; }
+  }
+}
+
 /* ── Save Settings ─────────────────────────────────────────────── */
 async function saveSettings() {
   if (!currentWidget) return;
@@ -510,7 +603,7 @@ async function saveSettings() {
     goals: document.getElementById('s-goals').value.trim(),
     active: document.getElementById('s-active').value === '1',
     proactive_enabled: document.getElementById('s-proactive-enabled').checked,
-    proactive_message: document.getElementById('s-proactive-message').value.trim(),
+    proactive_message: buildProactiveMessage(),
     proactive_delay: parseInt(document.getElementById('s-proactive-delay').value) || 4,
   };
   if (!body.name) { showToast('Názov widgetu je povinný.', 'error'); return; }

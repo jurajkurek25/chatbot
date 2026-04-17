@@ -417,9 +417,15 @@
               <div id="proactive-fields">
                 <div class="form-row">
                   <div class="form-group">
-                    <label>Správa (text bubliny)</label>
+                    <label>Správa (text bubliny) <span style="font-weight:400;color:#94a3b8">(predvolená)</span></label>
                     <input type="text" class="form-control" id="s-proactive-message"
                       placeholder="napr. Ahoj! Môžem vám s niečím pomôcť? 👋">
+                    <div id="proactive-langs-container"></div>
+                    <div style="display:flex;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;align-items:center">
+                      <button type="button" id="btn-add-proactive-lang" class="btn btn-secondary btn-sm">+ Pridať jazyk</button>
+                      <button type="button" id="btn-auto-translate-proactive" class="btn btn-secondary btn-sm" onclick="autoTranslateProactive()">🌍 Auto-preložiť</button>
+                    </div>
+                    <div class="hint" style="margin-top:0.4rem">Pre viacjazyčné weby – widget automaticky rozpozná jazyk stránky zákazníka.</div>
                   </div>
                   <div class="form-group" style="max-width:160px">
                     <label>Zobrazí sa po (sek.)</label>
