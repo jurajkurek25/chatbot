@@ -29,15 +29,33 @@
     @keyframes checkPop { 0%{transform:scale(0)} 70%{transform:scale(1.2)} 100%{transform:scale(1)} }
 
     /* ── NAV ── */
-    .nav { position: sticky; top: 0; z-index: 100; background: rgba(8,8,16,0.94); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border); }
-    .nav-inner { max-width: 1100px; margin: 0 auto; padding: 0 var(--px); display: flex; align-items: center; justify-content: space-between; height: 56px; }
-    .logo { font-weight: 800; font-size: 1.15rem; letter-spacing: -.025em; }
-    .logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .nav-wp-badge { display: flex; align-items: center; gap: .4rem; background: rgba(56,88,233,0.12); border: 1px solid rgba(56,88,233,0.28); border-radius: 100px; padding: .28rem .85rem; font-size: .72rem; font-weight: 700; color: var(--wp-light); letter-spacing: .04em; }
-    .wp-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--wp-light); animation: pulse 2s infinite; }
+    .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: rgba(8,8,16,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); }
+    .nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 var(--px); display: flex; align-items: center; justify-content: space-between; height: 58px; }
+    .nav-logo { font-weight: 800; font-size: clamp(1rem, 4vw, 1.2rem); letter-spacing: -0.02em; flex-shrink: 0; }
+    .nav-logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .nav-links { display: none; }
+    .nav-cta-desktop { display: none; }
+    /* Hamburger */
+    .nav-hamburger { display: flex; flex-direction: column; justify-content: center; gap: 5px; width: 40px; height: 40px; background: none; border: 1px solid var(--border2); border-radius: 8px; cursor: pointer; padding: 8px; }
+    .nav-hamburger span { display: block; height: 2px; background: var(--text); border-radius: 2px; transition: all .25s; }
+    .nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-hamburger.open span:nth-child(2) { opacity: 0; }
+    .nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    /* Mobile menu */
+    .nav-mobile { display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(8,8,16,0.98); border-bottom: 1px solid var(--border); padding: 1rem var(--px) 1.5rem; flex-direction: column; gap: .25rem; }
+    .nav-mobile.open { display: flex; }
+    .nav-mobile a { color: var(--muted2); text-decoration: none; font-size: .95rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
+    .nav-mobile a:last-of-type { border-bottom: none; }
+    .nav-mobile-cta { display: flex; flex-direction: column; gap: .5rem; margin-top: .75rem; }
+    /* Buttons */
+    .btn-ghost { background: none; border: 1px solid var(--border2); color: var(--muted2); padding: .5rem 1rem; border-radius: 8px; cursor: pointer; font-size: .875rem; font-family: inherit; transition: all .2s; width: 100%; }
+    .btn-ghost:hover { color: var(--text); border-color: var(--accent2); }
+    .btn-primary { background: var(--grad); border: none; color: white; padding: .9rem 1.75rem; border-radius: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 0 40px rgba(91,79,255,0.35); transition: all .25s; width: 100%; display: block; text-align: center; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(91,79,255,0.52); }
+    .btn-nav-cta { background: var(--grad); border: none; color: white; padding: .5rem 1.1rem; border-radius: 8px; font-size: .875rem; font-weight: 700; font-family: inherit; cursor: pointer; transition: opacity .2s; }
 
     /* ── HERO ── */
-    .hero { padding: 4rem var(--px) 3rem; text-align: center; position: relative; isolation: isolate; }
+    .hero { padding: calc(58px + 4rem) var(--px) 3rem; text-align: center; position: relative; isolation: isolate; }
     .hero-glow { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: min(700px, 100vw); height: 450px; background: radial-gradient(ellipse at 50% 0%, rgba(56,88,233,0.16) 0%, rgba(91,79,255,0.1) 40%, transparent 70%); pointer-events: none; z-index: -1; }
 
     .wp-logo-wrap { display: flex; align-items: center; justify-content: center; gap: .75rem; margin-bottom: 1.75rem; animation: fadeUp .5s ease both; }
@@ -197,6 +215,12 @@
       .footer-inner { flex-direction: row; align-items: center; justify-content: space-between; }
     }
     @media (min-width: 900px) {
+      .nav-links { display: flex; gap: 2rem; }
+      .nav-links a { color: var(--muted); text-decoration: none; font-size: .875rem; transition: color .2s; }
+      .nav-links a:hover { color: var(--text); }
+      .nav-cta-desktop { display: flex; gap: .6rem; align-items: center; }
+      .nav-hamburger { display: none; }
+      .nav-mobile { display: none !important; }
       .features-grid { grid-template-columns: repeat(3, 1fr); }
     }
     @media (max-width: 540px) {
@@ -214,12 +238,39 @@
 <body>
 
 <!-- NAV -->
-<nav class="nav">
+<nav class="nav" id="main-nav">
   <div class="nav-inner">
-    <div class="logo">Neoworkly</div>
-    <div style="display:flex;align-items:center;gap:1rem">
-      <div class="nav-wp-badge"><span class="wp-dot"></span>WordPress Plugin</div>
+    <div class="nav-logo">Neoworkly</div>
+    <div class="nav-links">
+      <a href="/#pain">Problém</a>
+      <a href="/#features">Funkcie</a>
+      <a href="/#booking">📅 Rezervácie</a>
+      <a href="/#instagram">Instagram</a>
+      <a href="/#facebook">Facebook</a>
+      <a href="/wordpress">WordPress</a>
+      <a href="/#pricing">Cena</a>
+    </div>
+    <div class="nav-cta-desktop">
       <div class="lang-switcher"></div>
+      <button class="btn-ghost" style="width:auto" onclick="showAuth('login')">Prihlásiť sa</button>
+      <button class="btn-nav-cta" onclick="showAuth('register')">Začať</button>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile" id="nav-mobile">
+    <a href="/#pain" onclick="closeMobileNav()">Problém</a>
+    <a href="/#features" onclick="closeMobileNav()">Funkcie</a>
+    <a href="/#booking" onclick="closeMobileNav()">📅 Rezervácie</a>
+    <a href="/#instagram" onclick="closeMobileNav()">Instagram</a>
+    <a href="/#facebook" onclick="closeMobileNav()">Facebook</a>
+    <a href="/wordpress" onclick="closeMobileNav()">WordPress</a>
+    <a href="/#pricing" onclick="closeMobileNav()">Cena</a>
+    <div class="nav-mobile-cta">
+      <button class="btn-ghost" onclick="closeMobileNav();showAuth('login')">Prihlásiť sa</button>
+      <button class="btn-primary" style="padding:.75rem" onclick="closeMobileNav();showAuth('register')">Začať</button>
+      <div class="lang-switcher" style="margin-top:0.5rem;align-self:center"></div>
     </div>
   </div>
 </nav>
@@ -551,6 +602,26 @@
 
 <script src="/i18n.js?v=2"></script>
 <script>
+  // ── MOBILE NAV ──
+  const hamburger = document.getElementById('hamburger');
+  const navMobile = document.getElementById('nav-mobile');
+  hamburger.addEventListener('click', () => {
+    const open = navMobile.classList.toggle('open');
+    hamburger.classList.toggle('open', open);
+    hamburger.setAttribute('aria-expanded', String(open));
+    document.body.style.overflow = open ? 'hidden' : '';
+  });
+  function closeMobileNav() {
+    navMobile.classList.remove('open');
+    hamburger.classList.remove('open');
+    hamburger.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+  function showAuth(tab) {
+    window.location.href = '/?auth=' + tab;
+  }
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMobileNav(); });
+
   function toggleFaq(btn) {
     const item = btn.closest('.faq-item');
     const open = item.classList.toggle('open');
