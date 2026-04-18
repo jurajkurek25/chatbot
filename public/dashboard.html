@@ -291,72 +291,26 @@
 
       <!-- ── View: SEO Audit ───────────────────────────── -->
       <div id="view-seo" style="display:none">
-        <div class="section-header">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
           <div>
-            <h2 style="margin:0 0 0.25rem">🚀 SEO Audit</h2>
+            <h2 style="margin:0 0 0.25rem;font-size:1.35rem;font-weight:800">🚀 SEO Audit</h2>
             <p style="margin:0;color:#64748b;font-size:0.875rem">Naskenujte web, odhaľte SEO problémy a stiahnite hotové opravy.</p>
           </div>
           <button class="btn btn-primary" onclick="openSeoScanModal()">+ Nový sken</button>
         </div>
 
-        <!-- Locked/credits banner — content rendered by renderSeoBoostBanner() -->
-        <div id="seo-locked-banner" style="display:none;margin-bottom:1.5rem;padding:1.25rem 1.5rem;background:linear-gradient(135deg,rgba(37,99,235,0.08),transparent);border:1.5px solid var(--primary);border-radius:12px"></div>
+        <div id="seo-running-banner" style="display:none;align-items:center;gap:0.75rem;padding:1rem 1.5rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;margin-bottom:1.25rem;font-size:0.875rem;color:#1d4ed8">
+          <span>⏳</span>
+          <span>SEO analýza prebieha… Táto stránka sa automaticky obnoví.</span>
+        </div>
 
-        <!-- Latest audit card -->
-        <div id="seo-no-audit" style="display:none;text-align:center;padding:3rem 1rem;color:#94a3b8">
-          <div style="font-size:2.5rem;margin-bottom:0.5rem">🔍</div>
-          <div style="font-size:1rem;font-weight:600;margin-bottom:0.25rem">Zatiaľ žiadny audit</div>
+        <div id="seo-no-audit" style="display:none;text-align:center;padding:4rem 1rem;color:#94a3b8">
+          <div style="font-size:3rem;margin-bottom:0.75rem">🔍</div>
+          <div style="font-size:1rem;font-weight:600;color:#64748b;margin-bottom:0.4rem">Zatiaľ žiadny audit</div>
           <div style="font-size:0.875rem">Kliknite "+ Nový sken" a zadajte URL vášho webu.</div>
         </div>
 
-        <div id="seo-running-banner" style="display:none;padding:1rem 1.25rem;background:#fef3c7;border:1px solid #fbbf24;border-radius:10px;margin-bottom:1rem;font-size:0.875rem;color:#92400e">
-          ⏳ SEO analýza prebieha… Táto stránka sa automaticky obnoví.
-        </div>
-
-        <div id="seo-result-card" style="display:none">
-          <!-- Score header -->
-          <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem;flex-wrap:wrap">
-            <div id="seo-score-circle" style="width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:700;color:white;background:#ef4444;flex-shrink:0">--</div>
-            <div>
-              <div style="font-size:1.1rem;font-weight:700" id="seo-score-label">SEO skóre</div>
-              <div style="font-size:0.875rem;color:#64748b" id="seo-url-label"></div>
-              <div style="font-size:0.82rem;color:#94a3b8" id="seo-date-label"></div>
-            </div>
-            <div id="seo-dl-btns" style="display:none;gap:0.75rem;margin-left:auto;flex-wrap:wrap">
-              <button class="btn btn-secondary" onclick="downloadSeoFix('wordpress')">⬇ WordPress Plugin</button>
-              <button class="btn btn-secondary" onclick="downloadSeoFix('html')">⬇ HTML Snippet</button>
-              <button class="btn btn-secondary" onclick="downloadSeoFix('schema')">⬇ Schema.org JSON-LD</button>
-              <button class="btn btn-secondary" onclick="downloadSeoFix('llms')">⬇ llms.txt</button>
-            </div>
-          </div>
-
-          <!-- Summary chips -->
-          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1.25rem">
-            <span id="seo-chip-critical" style="padding:0.25rem 0.75rem;border-radius:99px;font-size:0.8rem;font-weight:600;background:#fee2e2;color:#dc2626"></span>
-            <span id="seo-chip-warning" style="padding:0.25rem 0.75rem;border-radius:99px;font-size:0.8rem;font-weight:600;background:#fef3c7;color:#d97706"></span>
-            <span id="seo-chip-info" style="padding:0.25rem 0.75rem;border-radius:99px;font-size:0.8rem;font-weight:600;background:#dbeafe;color:#2563eb"></span>
-          </div>
-
-          <!-- Domain metrics -->
-          <div id="seo-domain-metrics" style="display:none;margin-bottom:1.25rem;padding:1rem 1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px">
-            <div style="font-size:0.82rem;font-weight:700;color:#475569;margin-bottom:0.75rem;text-transform:uppercase;letter-spacing:0.05em">📊 Autorita domény (DataForSEO)</div>
-            <div style="display:flex;gap:1.5rem;flex-wrap:wrap">
-              <div><div style="font-size:1.4rem;font-weight:700;color:#2563eb" id="dm-rank">—</div><div style="font-size:0.75rem;color:#64748b">Domain Rank</div></div>
-              <div><div style="font-size:1.4rem;font-weight:700" id="dm-backlinks">—</div><div style="font-size:0.75rem;color:#64748b">Backlinky</div></div>
-              <div><div style="font-size:1.4rem;font-weight:700" id="dm-domains">—</div><div style="font-size:0.75rem;color:#64748b">Odkazujúce domény</div></div>
-              <div><div style="font-size:1.4rem;font-weight:700;color:#ef4444" id="dm-broken">—</div><div style="font-size:0.75rem;color:#64748b">Nefunkčné backlinky</div></div>
-            </div>
-          </div>
-
-          <!-- Site-wide findings -->
-          <div id="seo-site-findings" style="display:none;margin-bottom:1.25rem">
-            <div style="font-size:0.82rem;font-weight:700;color:#475569;margin-bottom:0.5rem;text-transform:uppercase;letter-spacing:0.05em">🌐 Problémy celého webu</div>
-            <div id="seo-site-list"></div>
-          </div>
-
-          <!-- Per-page findings -->
-          <div id="seo-pages-list"></div>
-        </div>
+        <div id="seo-result-wrap"></div>
       </div>
 
       <!-- SEO Scan Modal -->

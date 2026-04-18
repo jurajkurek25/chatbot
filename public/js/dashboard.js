@@ -3970,15 +3970,11 @@ async function loadSeoAudit() {
     const d = await r.json();
 
     seoBoostCredits = d.boost_credits ?? 0;
-    renderSeoBoostBanner(d.has_boost, seoBoostCredits);
-
-    const dlBtns = document.getElementById('seo-dl-btns');
-    if (dlBtns) dlBtns.style.display = d.has_boost ? 'flex' : 'none';
 
     if (!d.audit) {
       document.getElementById('seo-no-audit').style.display = '';
-      document.getElementById('seo-result-card').style.display = 'none';
       document.getElementById('seo-running-banner').style.display = 'none';
+      document.getElementById('seo-result-wrap').innerHTML = '';
       return;
     }
 
@@ -3986,8 +3982,8 @@ async function loadSeoAudit() {
     document.getElementById('seo-no-audit').style.display = 'none';
 
     if (d.audit.status === 'running') {
-      document.getElementById('seo-running-banner').style.display = '';
-      document.getElementById('seo-result-card').style.display = 'none';
+      document.getElementById('seo-running-banner').style.display = 'flex';
+      document.getElementById('seo-result-wrap').innerHTML = '';
       seoPolling = setTimeout(loadSeoAudit, 4000);
       return;
     }
@@ -3997,142 +3993,182 @@ async function loadSeoAudit() {
   } catch { /* ignore */ }
 }
 
-// Renders the top locked/credits/unlocked banner
-function renderSeoBoostBanner(hasBoost, credits) {
-  const banner = document.getElementById('seo-locked-banner');
-  if (hasBoost) { banner.style.display = 'none'; return; }
-  banner.style.display = '';
-  if (credits > 0) {
-    banner.innerHTML = `
-      <div style="font-weight:700;font-size:1rem;margin-bottom:0.4rem">⚡ Máte ${credits} Boost token${credits > 1 ? 'y' : ''}</div>
-      <div style="font-size:0.875rem;color:#475569;margin-bottom:0.75rem">
-        Spustite audit a kliknite "Odomknúť" pre plné výsledky + hotové opravy (WordPress, HTML, Schema.org, llms.txt).
-        <br><span style="font-size:0.8rem;color:#94a3b8">1 token = 1 odomknutý audit. Nesúvisí s AI kreditmi chatbota.</span>
-      </div>
-      <button class="btn btn-primary" onclick="unlockBoost()">🔓 Odomknúť tento audit (1 token)</button>
-      <button class="btn btn-secondary" onclick="buyBoost()" style="margin-left:0.5rem">+ Kúpiť ďalší token – €49</button>`;
-  } else {
-    banner.innerHTML = `
-      <div style="font-weight:700;font-size:1rem;margin-bottom:0.4rem">⚡ Growth Boost – Kompletná SEO oprava za €49</div>
-      <div style="font-size:0.875rem;color:#475569;margin-bottom:0.5rem">Jednorazová platba. Odomkne hotové AI opravy pre váš web:</div>
-      <ul style="font-size:0.85rem;color:#475569;margin:0 0 1rem 1.1rem;padding:0;line-height:1.8">
-        <li><strong>WordPress plugin</strong> — automaticky opraví meta tagy na celom webe</li>
-        <li><strong>HTML snippet</strong> — pre Webflow, Squarespace a vlastné weby</li>
-        <li><strong>Schema.org JSON-LD</strong> — AI vás správne opíše v Google a ChatGPT</li>
-        <li><strong>llms.txt</strong> — nový štandard pre AI asistentov (Claude, Perplexity...)</li>
-      </ul>
-      <div style="font-size:0.8rem;color:#64748b;margin-bottom:0.75rem">1 Boost token = 1 odomknutý audit. Kupujte keď aktualizujete web alebo skenujete ďalší web.<br><span style="color:#94a3b8">Boost tokeny nesúvisia s AI kreditmi chatbota.</span></div>
-      <button class="btn btn-primary" onclick="buyBoost()">💳 Kúpiť Boost token – €49</button>`;
-  }
+function seoScoreRing(score) {
+  const r = 30, cx = 40, cy = 40, sw = 8;
+  const circ = +(2 * Math.PI * r).toFixed(1);
+  const offset = +(circ * (1 - Math.max(0, Math.min(100, score)) / 100)).toFixed(1);
+  const color = score >= 70 ? '#16a34a' : score >= 45 ? '#d97706' : '#ef4444';
+  return `<svg viewBox="0 0 80 80" width="80" height="80" style="flex-shrink:0">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="${sw}"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}"
+      stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+      transform="rotate(-90 ${cx} ${cy})"/>
+    <text x="${cx}" y="${cy + 6}" text-anchor="middle" fill="${color}" font-size="18" font-weight="700">${score}</text>
+  </svg>`;
 }
 
-const SEV_ICON = { critical: '🔴', warning: '🟡', info: '🔵' };
+function seoFindingRow(f, ai_fix) {
+  const colors = { critical: '#ef4444', warning: '#fbbf24', info: '#60a5fa' };
+  const badges = { critical: 'background:#fee2e2;color:#dc2626', warning: 'background:#fef3c7;color:#d97706', info: 'background:#dbeafe;color:#2563eb' };
+  const leftColor = colors[f.severity] || '#cbd5e1';
+  const badgeStyle = badges[f.severity] || 'background:#f1f5f9;color:#475569';
+  const aiHint = ai_fix && (f.type === 'title' || f.type === 'description')
+    ? `<div style="margin-top:0.4rem;padding:0.35rem 0.6rem;background:#eff6ff;border-radius:6px;font-size:0.78rem;color:#1d4ed8">✨ AI návrh: <em>${escHtml(f.type === 'title' ? (ai_fix.title || '') : (ai_fix.description || ''))}</em></div>` : '';
+  return `<div style="display:flex;border-bottom:1px solid #f1f5f9">
+    <div style="width:3px;flex-shrink:0;background:${leftColor}"></div>
+    <div style="padding:0.6rem 1rem;flex:1;min-width:0">
+      <div style="display:flex;align-items:flex-start;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.2rem">
+        <span style="font-size:0.7rem;font-weight:700;padding:0.15rem 0.45rem;border-radius:4px;${badgeStyle};white-space:nowrap;flex-shrink:0">${(f.severity || 'info').toUpperCase()}</span>
+        <span style="font-size:0.84rem;font-weight:600;color:#1e293b">${escHtml(f.issue)}</span>
+      </div>
+      <div style="font-size:0.81rem;color:#64748b">${escHtml(f.suggestion)}</div>
+      ${aiHint}
+    </div>
+  </div>`;
+}
+
+function seoTogglePage(id) {
+  const el = document.getElementById(id);
+  const icon = document.getElementById(id + '-icon');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : '';
+  if (icon) icon.textContent = open ? '▶' : '▼';
+}
 
 function renderSeoResult(audit, hasBoost, credits) {
-  document.getElementById('seo-result-card').style.display = '';
+  const wrap = document.getElementById('seo-result-wrap');
+  if (!wrap) return;
   const score = audit.score ?? 0;
-  const circle = document.getElementById('seo-score-circle');
-  circle.textContent = score;
-  circle.style.background = score >= 70 ? '#16a34a' : score >= 45 ? '#d97706' : '#ef4444';
-  document.getElementById('seo-score-label').textContent = `SEO skóre: ${score} / 100`;
-  document.getElementById('seo-url-label').textContent = audit.url || '';
-  document.getElementById('seo-date-label').textContent = audit.completed_at
-    ? 'Dokončené: ' + new Date(audit.completed_at * 1000).toLocaleString('sk')
-    : '';
-
   const s = audit.findings?.summary || {};
-  document.getElementById('seo-chip-critical').textContent = `🔴 ${s.critical ?? 0} kritických`;
-  document.getElementById('seo-chip-warning').textContent = `🟡 ${s.warnings ?? 0} varovaní`;
-  document.getElementById('seo-chip-info').textContent = `🔵 ${s.info ?? 0} informácií`;
+  const date = audit.completed_at ? new Date(audit.completed_at * 1000).toLocaleDateString('sk') : '';
 
-  // Domain metrics (visible in teaser too — motivates purchase)
+  let html = `<div style="display:grid;grid-template-columns:auto 1fr;gap:1.25rem;align-items:center;padding:1.25rem 1.5rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+    ${seoScoreRing(score)}
+    <div>
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:0.15rem">SEO skóre</div>
+      <div style="font-size:0.95rem;font-weight:600;color:#1e293b;word-break:break-all;margin-bottom:0.1rem">${escHtml(audit.url || '')}</div>
+      ${date ? `<div style="font-size:0.78rem;color:#94a3b8;margin-bottom:0.5rem">Dokončené: ${date}</div>` : '<div style="margin-bottom:0.5rem"></div>'}
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+        ${(s.critical ?? 0) > 0 ? `<span style="font-size:0.77rem;font-weight:600;padding:0.2rem 0.55rem;border-radius:99px;background:#fee2e2;color:#dc2626">🔴 ${s.critical} kritické</span>` : ''}
+        ${(s.warnings ?? 0) > 0 ? `<span style="font-size:0.77rem;font-weight:600;padding:0.2rem 0.55rem;border-radius:99px;background:#fef3c7;color:#d97706">🟡 ${s.warnings} varovaní</span>` : ''}
+        ${(s.info ?? 0) > 0 ? `<span style="font-size:0.77rem;font-weight:600;padding:0.2rem 0.55rem;border-radius:99px;background:#dbeafe;color:#2563eb">🔵 ${s.info} info</span>` : ''}
+        ${(s.critical ?? 0) === 0 && (s.warnings ?? 0) === 0 ? `<span style="font-size:0.77rem;font-weight:600;padding:0.2rem 0.55rem;border-radius:99px;background:#dcfce7;color:#16a34a">✓ Žiadne kritické problémy</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+
   const dm = audit.findings?.domain_metrics;
-  const dmWrap = document.getElementById('seo-domain-metrics');
   if (dm) {
-    dmWrap.style.display = '';
-    document.getElementById('dm-rank').textContent = dm.rank ?? '—';
-    document.getElementById('dm-backlinks').textContent = (dm.backlinks || 0).toLocaleString('sk');
-    document.getElementById('dm-domains').textContent = (dm.referring_domains || 0).toLocaleString('sk');
-    document.getElementById('dm-broken').textContent = (dm.broken_backlinks || 0).toLocaleString('sk');
-  } else {
-    dmWrap.style.display = 'none';
-  }
-
-  // Site-wide findings (visible in teaser too)
-  const siteFindings = audit.findings?.site_findings || [];
-  const siteWrap = document.getElementById('seo-site-findings');
-  const siteList = document.getElementById('seo-site-list');
-  if (siteFindings.length > 0) {
-    siteWrap.style.display = '';
-    siteList.innerHTML = siteFindings.map(f => `
-      <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.5rem 0.75rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.4rem;font-size:0.83rem">
-        <span style="flex-shrink:0">${SEV_ICON[f.severity] || '•'}</span>
-        <div><div style="font-weight:600">${escHtml(f.issue)}</div><div style="color:#64748b;margin-top:0.1rem">${escHtml(f.suggestion)}</div></div>
-      </div>`).join('');
-  } else {
-    siteWrap.style.display = 'none';
+    html += `<div style="padding:1rem 1.5rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:1rem">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#94a3b8;margin-bottom:0.75rem">📊 Autorita domény (DataForSEO)</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;text-align:center">
+        <div><div style="font-size:1.5rem;font-weight:800;color:#2563eb;line-height:1.1">${dm.rank ?? '—'}</div><div style="font-size:0.72rem;color:#64748b;margin-top:0.15rem">Domain Rank</div></div>
+        <div><div style="font-size:1.5rem;font-weight:800;color:#1e293b;line-height:1.1">${(dm.backlinks || 0).toLocaleString('sk')}</div><div style="font-size:0.72rem;color:#64748b;margin-top:0.15rem">Backlinky</div></div>
+        <div><div style="font-size:1.5rem;font-weight:800;color:#1e293b;line-height:1.1">${(dm.referring_domains || 0).toLocaleString('sk')}</div><div style="font-size:0.72rem;color:#64748b;margin-top:0.15rem">Ref. domény</div></div>
+        <div><div style="font-size:1.5rem;font-weight:800;line-height:1.1;color:${(dm.broken_backlinks || 0) > 0 ? '#ef4444' : '#16a34a'}">${(dm.broken_backlinks || 0).toLocaleString('sk')}</div><div style="font-size:0.72rem;color:#64748b;margin-top:0.15rem">Nefunkčné</div></div>
+      </div>
+    </div>`;
   }
 
   if (!hasBoost) {
-    // Teaser view: server sends first 3 findings + total count
+    const hasToken = (credits ?? 0) > 0;
+    html += `<div style="padding:1.25rem 1.5rem;background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 100%);border:1.5px solid #bfdbfe;border-radius:12px;margin-bottom:1rem">
+      <div style="font-size:1rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem">${hasToken ? `⚡ Máte ${credits} Boost token${credits > 1 ? 'y' : ''}` : '⚡ Growth Boost – Kompletná SEO oprava za €49'}</div>
+      <div style="font-size:0.84rem;color:#475569;margin-bottom:${hasToken ? '0.75rem' : '0.6rem'}">${hasToken ? 'Spustite audit a kliknite Odomknúť pre plné výsledky + hotové opravy.' : 'Jednorazová platba. Odomkne hotové AI opravy pre váš web:'}</div>
+      ${!hasToken ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.3rem 1.5rem;font-size:0.82rem;color:#374151;margin-bottom:0.6rem">
+        <div>✅ WordPress plugin</div><div>✅ HTML snippet</div>
+        <div>✅ Schema.org JSON-LD</div><div>✅ llms.txt</div>
+      </div>` : ''}
+      <div style="font-size:0.73rem;color:#94a3b8;margin-bottom:0.75rem">1 Boost token = 1 odomknutý audit · Boost tokeny ≠ AI kredity chatbota</div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+        ${hasToken
+          ? `<button class="btn btn-primary btn-sm" onclick="unlockBoost()">🔓 Odomknúť tento audit (1 token)</button><button class="btn btn-secondary btn-sm" onclick="buyBoost()">+ Kúpiť ďalší – €49</button>`
+          : `<button class="btn btn-primary" onclick="buyBoost()">💳 Kúpiť Boost token – €49</button>`}
+      </div>
+    </div>`;
+  } else {
+    html += `<div style="padding:1rem 1.5rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;margin-bottom:1rem">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#15803d;margin-bottom:0.75rem">📦 Hotové opravy na stiahnutie</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.5rem">
+        <button class="btn btn-secondary" onclick="downloadSeoFix('wordpress')" style="justify-content:flex-start;font-size:0.82rem">⬇ WordPress Plugin</button>
+        <button class="btn btn-secondary" onclick="downloadSeoFix('html')" style="justify-content:flex-start;font-size:0.82rem">⬇ HTML Snippet</button>
+        <button class="btn btn-secondary" onclick="downloadSeoFix('schema')" style="justify-content:flex-start;font-size:0.82rem">⬇ Schema.org JSON-LD</button>
+        <button class="btn btn-secondary" onclick="downloadSeoFix('llms')" style="justify-content:flex-start;font-size:0.82rem">⬇ llms.txt</button>
+      </div>
+    </div>`;
+  }
+
+  const siteFindings = audit.findings?.site_findings || [];
+  if (siteFindings.length > 0) {
+    html += `<div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+      <div style="padding:0.75rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:0.5rem">
+        <span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#475569">🌐 Problémy celého webu</span>
+        <span style="font-size:0.75rem;color:#94a3b8">(${siteFindings.length})</span>
+      </div>
+      ${siteFindings.map(f => seoFindingRow(f, null)).join('')}
+    </div>`;
+  }
+
+  if (!hasBoost) {
     const teaser = audit.findings?.teaser || [];
     const total = audit.findings?.total_findings ?? 0;
     const remaining = total - teaser.length;
-    document.getElementById('seo-pages-list').innerHTML = `
-      ${teaser.map(f => `
-        <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.6rem 1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.5rem;font-size:0.83rem">
-          <span style="flex-shrink:0">${SEV_ICON[f.severity] || '•'}</span>
-          <div>
-            <div style="font-weight:600">${escHtml(f.issue)}</div>
-            <div style="color:#64748b;margin-top:0.15rem">${escHtml(f.suggestion)}</div>
+    if (teaser.length > 0) {
+      html += `<div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <div style="padding:0.75rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#475569">📄 Náhľad problémov</div>
+        ${teaser.map(f => seoFindingRow(f, null)).join('')}
+        <div style="position:relative">
+          <div style="filter:blur(4px);pointer-events:none;user-select:none">
+            ${['Chýba meta description', 'Pomalé načítanie (LCP > 4s)', 'Schema.org nie je implementovaná'].map(t => `
+              <div style="display:flex;border-bottom:1px solid #f1f5f9">
+                <div style="width:3px;flex-shrink:0;background:#ef4444"></div>
+                <div style="padding:0.6rem 1rem;flex:1;display:flex;align-items:center;gap:0.5rem">
+                  <span style="font-size:0.7rem;font-weight:700;padding:0.15rem 0.45rem;border-radius:4px;background:#fee2e2;color:#dc2626;white-space:nowrap">CRITICAL</span>
+                  <span style="font-size:0.84rem;font-weight:600;color:#1e293b">${t}</span>
+                </div>
+              </div>`).join('')}
           </div>
-        </div>`).join('')}
-      <div style="position:relative;margin-top:0.5rem">
-        <div style="filter:blur(5px);pointer-events:none;user-select:none;padding:0.5rem 0">
-          ${['Chýba meta description', 'Pomalé načítanie (LCP > 4s)', 'Schema.org nie je implementovaná'].map(t => `
-            <div style="display:flex;gap:0.75rem;padding:0.6rem 1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.5rem;font-size:0.83rem">
-              <span>🔴</span><div style="font-weight:600">${t}</div>
-            </div>`).join('')}
-        </div>
-        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.75);border-radius:8px;text-align:center;padding:1.25rem">
-          <div style="font-weight:700;font-size:1rem;margin-bottom:0.25rem">🔒 ${remaining > 0 ? `+ ďalších ${remaining} problémov` : 'Plné výsledky uzamknuté'}</div>
-          <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.85rem">Odomknite plný audit vrátane AI opráv</div>
-          ${(credits ?? 0) > 0
-            ? `<button class="btn btn-primary btn-sm" onclick="unlockBoost()">🔓 Odomknúť (1 token)</button>`
-            : `<button class="btn btn-primary btn-sm" onclick="buyBoost()">💳 Growth Boost – €49</button>`}
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);border-radius:0 0 12px 12px;padding:1.5rem;text-align:center">
+            <div style="font-size:1.5rem;margin-bottom:0.4rem">🔒</div>
+            <div style="font-size:0.95rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem">${remaining > 0 ? `+ ďalších ${remaining} problémov` : 'Plné výsledky uzamknuté'}</div>
+            <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.85rem">Odomknite plný audit vrátane AI opráv</div>
+            ${(credits ?? 0) > 0
+              ? `<button class="btn btn-primary btn-sm" onclick="unlockBoost()">🔓 Odomknúť (1 token)</button>`
+              : `<button class="btn btn-primary btn-sm" onclick="buyBoost()">💳 Growth Boost – €49</button>`}
+          </div>
         </div>
       </div>`;
+    }
+    wrap.innerHTML = html;
     return;
   }
 
-  // Full results
   const pages = audit.findings?.pages || [];
-  document.getElementById('seo-pages-list').innerHTML = pages.map(p => {
-    const ps = p.pagespeed;
-    const psColor = !ps ? '#94a3b8' : ps.score >= 75 ? '#16a34a' : ps.score >= 50 ? '#d97706' : '#ef4444';
-    const psBadge = ps
-      ? `<span style="margin-left:auto;font-size:0.75rem;font-weight:700;color:${psColor};background:${psColor}18;padding:0.15rem 0.5rem;border-radius:99px">⚡ ${ps.score}/100</span>
-         <span style="font-size:0.7rem;color:#94a3b8;margin-left:0.5rem">LCP ${ps.lcp || '?'} · CLS ${ps.cls || '?'}</span>`
-      : '';
-    return `
-    <div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
-      <div style="padding:0.6rem 1rem;background:#f8fafc;font-size:0.83rem;font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
-        <span>${escHtml(p.url)}</span>${psBadge}
-      </div>
-      ${p.findings.length === 0
-        ? '<div style="padding:0.75rem 1rem;font-size:0.82rem;color:#16a34a">✓ Žiadne problémy</div>'
-        : p.findings.map(f => `
-          <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.6rem 1rem;border-bottom:1px solid #f1f5f9;font-size:0.83rem">
-            <span style="flex-shrink:0">${SEV_ICON[f.severity] || '•'}</span>
-            <div>
-              <div style="font-weight:600">${escHtml(f.issue)}</div>
-              <div style="color:#64748b;margin-top:0.15rem">${escHtml(f.suggestion)}</div>
-              ${p.ai_fix && (f.type === 'title' || f.type === 'description') ? `<div style="margin-top:0.35rem;font-size:0.78rem;color:#2563eb">✨ AI návrh: <em>${escHtml(f.type === 'title' ? (p.ai_fix.title || '') : (p.ai_fix.description || ''))}</em></div>` : ''}
-            </div>
-          </div>`).join('')
-      }
-    </div>`;
-  }).join('');
+  if (pages.length > 0) {
+    html += `<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#94a3b8;margin-bottom:0.6rem">📄 Výsledky podľa stránok</div>`;
+    pages.forEach((p, i) => {
+      const ps = p.pagespeed;
+      const psColor = !ps ? '#94a3b8' : ps.score >= 75 ? '#16a34a' : ps.score >= 50 ? '#d97706' : '#ef4444';
+      const collapseId = `seo-pg-${i}`;
+      html += `<div style="margin-bottom:0.75rem;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <button onclick="seoTogglePage('${collapseId}')" style="width:100%;display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1.25rem;background:#f8fafc;border:none;border-bottom:1px solid #e2e8f0;cursor:pointer;font-family:inherit;text-align:left">
+          <span style="flex:1;font-size:0.83rem;font-weight:600;color:#374151;word-break:break-all;text-align:left">${escHtml(p.url)}</span>
+          ${ps ? `<span style="font-size:0.75rem;font-weight:700;color:${psColor};background:${psColor}18;padding:0.2rem 0.5rem;border-radius:99px;white-space:nowrap;flex-shrink:0">⚡ ${ps.score}/100</span>` : ''}
+          ${ps ? `<span style="font-size:0.7rem;color:#94a3b8;white-space:nowrap;flex-shrink:0">LCP ${ps.lcp || '?'}</span>` : ''}
+          <span id="${collapseId}-icon" style="font-size:0.7rem;color:#94a3b8;flex-shrink:0">▼</span>
+        </button>
+        <div id="${collapseId}">
+          ${p.findings.length === 0
+            ? '<div style="padding:0.75rem 1.25rem;font-size:0.83rem;color:#16a34a">✓ Žiadne problémy na tejto stránke</div>'
+            : p.findings.map(f => seoFindingRow(f, p.ai_fix)).join('')
+          }
+        </div>
+      </div>`;
+    });
+  }
+
+  wrap.innerHTML = html;
 }
 
 async function unlockBoost() {
