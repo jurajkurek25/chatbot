@@ -3958,6 +3958,7 @@ async function doChangeEmail() {
 ══════════════════════════════════════════════════════════════ */
 let seoAuditId = null;
 let seoPolling = null;
+let seoBoostCredits = 0;
 
 async function loadSeoAudit() {
   clearTimeout(seoPolling);
@@ -3968,7 +3969,9 @@ async function loadSeoAudit() {
     if (!ct.includes('application/json')) return;
     const d = await r.json();
 
-    document.getElementById('seo-locked-banner').style.display = d.has_boost ? 'none' : '';
+    seoBoostCredits = d.boost_credits ?? 0;
+    renderSeoBoostBanner(d.has_boost, seoBoostCredits);
+
     const dlBtns = document.getElementById('seo-dl-btns');
     if (dlBtns) dlBtns.style.display = d.has_boost ? 'flex' : 'none';
 
@@ -3990,13 +3993,41 @@ async function loadSeoAudit() {
     }
 
     document.getElementById('seo-running-banner').style.display = 'none';
-    renderSeoResult(d.audit, d.has_boost);
+    renderSeoResult(d.audit, d.has_boost, seoBoostCredits);
   } catch { /* ignore */ }
+}
+
+// Renders the top locked/credits/unlocked banner
+function renderSeoBoostBanner(hasBoost, credits) {
+  const banner = document.getElementById('seo-locked-banner');
+  if (hasBoost) { banner.style.display = 'none'; return; }
+  banner.style.display = '';
+  if (credits > 0) {
+    banner.innerHTML = `
+      <div style="font-weight:700;font-size:1rem;margin-bottom:0.4rem">⚡ Máte ${credits} Growth Boost kredit${credits > 1 ? 'y' : ''}</div>
+      <div style="font-size:0.875rem;color:#475569;margin-bottom:0.75rem">
+        Spustite audit a kliknite "Odomknúť" pre plné výsledky + hotové opravy (WordPress, HTML, Schema.org, llms.txt).
+      </div>
+      <button class="btn btn-primary" onclick="unlockBoost()">🔓 Odomknúť tento audit (1 kredit)</button>
+      <button class="btn btn-secondary" onclick="buyBoost()" style="margin-left:0.5rem">+ Kúpiť ďalší kredit – €49</button>`;
+  } else {
+    banner.innerHTML = `
+      <div style="font-weight:700;font-size:1rem;margin-bottom:0.4rem">⚡ Growth Boost – Kompletná SEO oprava za €49</div>
+      <div style="font-size:0.875rem;color:#475569;margin-bottom:0.5rem">Jednorazová platba. Odomkne hotové AI opravy pre váš web:</div>
+      <ul style="font-size:0.85rem;color:#475569;margin:0 0 1rem 1.1rem;padding:0;line-height:1.8">
+        <li><strong>WordPress plugin</strong> — automaticky opraví meta tagy na celom webe</li>
+        <li><strong>HTML snippet</strong> — pre Webflow, Squarespace a vlastné weby</li>
+        <li><strong>Schema.org JSON-LD</strong> — AI vás správne opíše v Google a ChatGPT</li>
+        <li><strong>llms.txt</strong> — nový štandard pre AI asistentov (Claude, Perplexity...)</li>
+      </ul>
+      <div style="font-size:0.8rem;color:#64748b;margin-bottom:0.75rem">Každý kredit = 1 odomknutý audit. Kupujte keď aktualizujete web alebo skenujete nový.</div>
+      <button class="btn btn-primary" onclick="buyBoost()">💳 Kúpiť Growth Boost – €49</button>`;
+  }
 }
 
 const SEV_ICON = { critical: '🔴', warning: '🟡', info: '🔵' };
 
-function renderSeoResult(audit, hasBoost) {
+function renderSeoResult(audit, hasBoost, credits) {
   document.getElementById('seo-result-card').style.display = '';
   const score = audit.score ?? 0;
   const circle = document.getElementById('seo-score-circle');
@@ -4013,7 +4044,7 @@ function renderSeoResult(audit, hasBoost) {
   document.getElementById('seo-chip-warning').textContent = `🟡 ${s.warnings ?? 0} varovaní`;
   document.getElementById('seo-chip-info').textContent = `🔵 ${s.info ?? 0} informácií`;
 
-  // Domain metrics
+  // Domain metrics (visible in teaser too — motivates purchase)
   const dm = audit.findings?.domain_metrics;
   const dmWrap = document.getElementById('seo-domain-metrics');
   if (dm) {
@@ -4026,7 +4057,7 @@ function renderSeoResult(audit, hasBoost) {
     dmWrap.style.display = 'none';
   }
 
-  // Site-wide findings
+  // Site-wide findings (visible in teaser too)
   const siteFindings = audit.findings?.site_findings || [];
   const siteWrap = document.getElementById('seo-site-findings');
   const siteList = document.getElementById('seo-site-list');
@@ -4041,13 +4072,11 @@ function renderSeoResult(audit, hasBoost) {
     siteWrap.style.display = 'none';
   }
 
-  const allFindings = (audit.findings?.pages || []).flatMap(p => p.findings);
-  const pages = audit.findings?.pages || [];
-
   if (!hasBoost) {
-    // Teaser: show first 3 findings only, blur the rest
-    const teaser = allFindings.slice(0, 3);
-    const remaining = allFindings.length - teaser.length;
+    // Teaser view: server sends first 3 findings + total count
+    const teaser = audit.findings?.teaser || [];
+    const total = audit.findings?.total_findings ?? 0;
+    const remaining = total - teaser.length;
     document.getElementById('seo-pages-list').innerHTML = `
       ${teaser.map(f => `
         <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.6rem 1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.5rem;font-size:0.83rem">
@@ -4057,26 +4086,26 @@ function renderSeoResult(audit, hasBoost) {
             <div style="color:#64748b;margin-top:0.15rem">${escHtml(f.suggestion)}</div>
           </div>
         </div>`).join('')}
-      ${remaining > 0 ? `
-        <div style="position:relative;margin-top:0.5rem">
-          <div style="filter:blur(4px);pointer-events:none;user-select:none">
-            ${allFindings.slice(3, 6).map(f => `
-              <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.6rem 1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.5rem;font-size:0.83rem">
-                <span>${SEV_ICON[f.severity] || '•'}</span>
-                <div><div style="font-weight:600">${escHtml(f.issue)}</div></div>
-              </div>`).join('')}
-          </div>
-          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.7);border-radius:8px;text-align:center;padding:1rem">
-            <div style="font-weight:700;font-size:1rem;margin-bottom:0.25rem">🔒 + ďalších ${remaining} problémov</div>
-            <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.75rem">Odomknite plný audit + hotové opravy cez Growth Boost</div>
-            <button class="btn btn-primary btn-sm" onclick="buyBoost()">💳 Aktivovať Growth Boost – €49</button>
-          </div>
-        </div>` : ''}
-    `;
+      <div style="position:relative;margin-top:0.5rem">
+        <div style="filter:blur(5px);pointer-events:none;user-select:none;padding:0.5rem 0">
+          ${['Chýba meta description', 'Pomalé načítanie (LCP > 4s)', 'Schema.org nie je implementovaná'].map(t => `
+            <div style="display:flex;gap:0.75rem;padding:0.6rem 1rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.5rem;font-size:0.83rem">
+              <span>🔴</span><div style="font-weight:600">${t}</div>
+            </div>`).join('')}
+        </div>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.75);border-radius:8px;text-align:center;padding:1.25rem">
+          <div style="font-weight:700;font-size:1rem;margin-bottom:0.25rem">🔒 ${remaining > 0 ? `+ ďalších ${remaining} problémov` : 'Plné výsledky uzamknuté'}</div>
+          <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.85rem">Odomknite plný audit vrátane AI opráv</div>
+          ${(credits ?? 0) > 0
+            ? `<button class="btn btn-primary btn-sm" onclick="unlockBoost()">🔓 Odomknúť (1 kredit)</button>`
+            : `<button class="btn btn-primary btn-sm" onclick="buyBoost()">💳 Growth Boost – €49</button>`}
+        </div>
+      </div>`;
     return;
   }
 
-  // Full results for boost users
+  // Full results
+  const pages = audit.findings?.pages || [];
   document.getElementById('seo-pages-list').innerHTML = pages.map(p => {
     const ps = p.pagespeed;
     const psColor = !ps ? '#94a3b8' : ps.score >= 75 ? '#16a34a' : ps.score >= 50 ? '#d97706' : '#ef4444';
@@ -4101,9 +4130,24 @@ function renderSeoResult(audit, hasBoost) {
             </div>
           </div>`).join('')
       }
-    </div>
-  `;
+    </div>`;
   }).join('');
+}
+
+async function unlockBoost() {
+  try {
+    const r = await apiFetch('/api/seo/unlock', { method: 'POST' });
+    if (!r) throw new Error('Sieťová chyba');
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      if (r.status === 402) { buyBoost(); return; }
+      throw new Error(d.error || 'Chyba');
+    }
+    showToast('Audit odomknutý! Načítavam plné výsledky...', 'success');
+    loadSeoAudit();
+  } catch (err) {
+    showToast(err.message || 'Chyba pri odomykaní.', 'error');
+  }
 }
 
 function openSeoScanModal() {

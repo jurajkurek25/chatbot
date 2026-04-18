@@ -299,18 +299,8 @@
           <button class="btn btn-primary" onclick="openSeoScanModal()">+ Nový sken</button>
         </div>
 
-        <!-- Locked state (no boost) -->
-        <div id="seo-locked-banner" style="display:none;margin-bottom:1.5rem;padding:1.25rem 1.5rem;background:linear-gradient(135deg,rgba(37,99,235,0.08),transparent);border:1.5px solid var(--primary);border-radius:12px">
-          <div style="font-weight:700;font-size:1rem;margin-bottom:0.4rem">⚡ Growth Boost – Kompletná SEO oprava za €49</div>
-          <div style="font-size:0.875rem;color:#475569;margin-bottom:0.5rem">Jednorazová platba. Odomkne hotové AI opravy pre váš web:</div>
-          <ul style="font-size:0.85rem;color:#475569;margin:0 0 1rem 1.1rem;padding:0;line-height:1.8">
-            <li><strong>WordPress plugin</strong> — automaticky opraví meta tagy na celom webe</li>
-            <li><strong>HTML snippet</strong> — pre Webflow, Squarespace a vlastné weby</li>
-            <li><strong>Schema.org JSON-LD</strong> — AI vás správne opíše v Google a ChatGPT</li>
-            <li><strong>llms.txt</strong> — nový štandard pre AI asistentov (Claude, Perplexity...)</li>
-          </ul>
-          <button class="btn btn-primary" onclick="buyBoost()">💳 Aktivovať Growth Boost – €49</button>
-        </div>
+        <!-- Locked/credits banner — content rendered by renderSeoBoostBanner() -->
+        <div id="seo-locked-banner" style="display:none;margin-bottom:1.5rem;padding:1.25rem 1.5rem;background:linear-gradient(135deg,rgba(37,99,235,0.08),transparent);border:1.5px solid var(--primary);border-radius:12px"></div>
 
         <!-- Latest audit card -->
         <div id="seo-no-audit" style="display:none;text-align:center;padding:3rem 1rem;color:#94a3b8">

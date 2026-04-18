@@ -161,8 +161,8 @@ router.post('/webhook', async (req, res) => {
       if (session.mode === 'payment' && session.metadata?.type === 'growth_boost') {
         const userId = session.metadata.userId;
         if (userId) {
-          db.prepare('UPDATE users SET growth_boost_paid = 1 WHERE id = ?').run(userId);
-          console.log(`[growth_boost] Unlocked for user ${userId}`);
+          db.prepare('UPDATE users SET boost_credits = boost_credits + 1 WHERE id = ?').run(userId);
+          console.log(`[growth_boost] +1 credit for user ${userId}`);
         }
         break;
       }

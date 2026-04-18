@@ -403,6 +403,8 @@ function initDatabase() {
     `ALTER TABLE widgets ADD COLUMN ecomail_list_name TEXT`,
     `ALTER TABLE users ADD COLUMN subscription_plan TEXT NOT NULL DEFAULT 'pro'`,
     `ALTER TABLE users ADD COLUMN growth_boost_paid INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN boost_credits INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE seo_audits ADD COLUMN boost_unlocked INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE widgets ADD COLUMN suggested_questions_i18n TEXT NOT NULL DEFAULT '{}'`,
     `ALTER TABLE users ADD COLUMN password_reset_token TEXT`,
     `ALTER TABLE users ADD COLUMN password_reset_expires INTEGER`,
