@@ -4015,6 +4015,21 @@ function renderSeoResult(audit, hasBoost) {
   document.getElementById('seo-chip-warning').textContent = `🟡 ${s.warnings ?? 0} varovaní`;
   document.getElementById('seo-chip-info').textContent = `🔵 ${s.info ?? 0} informácií`;
 
+  // Site-wide findings
+  const siteFindings = audit.findings?.site_findings || [];
+  const siteWrap = document.getElementById('seo-site-findings');
+  const siteList = document.getElementById('seo-site-list');
+  if (siteFindings.length > 0) {
+    siteWrap.style.display = '';
+    siteList.innerHTML = siteFindings.map(f => `
+      <div style="display:flex;gap:0.75rem;align-items:flex-start;padding:0.5rem 0.75rem;border:1px solid #e2e8f0;border-radius:8px;margin-bottom:0.4rem;font-size:0.83rem">
+        <span style="flex-shrink:0">${SEV_ICON[f.severity] || '•'}</span>
+        <div><div style="font-weight:600">${escHtml(f.issue)}</div><div style="color:#64748b;margin-top:0.1rem">${escHtml(f.suggestion)}</div></div>
+      </div>`).join('');
+  } else {
+    siteWrap.style.display = 'none';
+  }
+
   const allFindings = (audit.findings?.pages || []).flatMap(p => p.findings);
   const pages = audit.findings?.pages || [];
 

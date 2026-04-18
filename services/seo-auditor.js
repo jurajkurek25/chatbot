@@ -56,6 +56,41 @@ function fetchText(rawUrl) {
   });
 }
 
+/* ── Site-level checks: HTTPS, robots.txt, sitemap ──────────── */
+async function analyzeSite(origin) {
+  const findings = [];
+  const base = new URL(origin);
+
+  // HTTPS
+  if (base.protocol !== 'https:') {
+    findings.push({ type: 'https', severity: 'critical', issue: 'Web nepoužíva HTTPS', suggestion: 'Nainštalujte SSL certifikát a presmerujte HTTP → HTTPS. Google penalizuje HTTP weby.' });
+  }
+
+  // robots.txt
+  try {
+    const robots = await fetchText(`${origin}/robots.txt`);
+    if (/Disallow:\s*\/\s*$|Disallow:\s*\/\s*\n/m.test(robots)) {
+      findings.push({ type: 'robots', severity: 'critical', issue: 'robots.txt blokuje celý web (Disallow: /)', suggestion: 'Opravte robots.txt — blokujete indexovanie všetkých stránok Googlom.' });
+    }
+    if (!/Sitemap:/i.test(robots)) {
+      findings.push({ type: 'robots', severity: 'info', issue: 'robots.txt neobsahuje odkaz na sitemap', suggestion: `Pridajte riadok: Sitemap: ${origin}/sitemap.xml` });
+    }
+  } catch {
+    findings.push({ type: 'robots', severity: 'warning', issue: 'Chýba robots.txt', suggestion: `Vytvorte ${origin}/robots.txt — pomáha Googlu správne crawlovať váš web.` });
+  }
+
+  // sitemap.xml
+  let sitemapFound = false;
+  for (const path of ['/sitemap.xml', '/sitemap_index.xml', '/sitemap/sitemap.xml']) {
+    try { await fetchText(`${origin}${path}`); sitemapFound = true; break; } catch {}
+  }
+  if (!sitemapFound) {
+    findings.push({ type: 'sitemap', severity: 'warning', issue: 'Chýba sitemap.xml', suggestion: `Vytvorte XML sitemap na ${origin}/sitemap.xml a nahláste ju v Google Search Console.` });
+  }
+
+  return findings;
+}
+
 /* ── Discover links ─────────────────────────────────────────── */
 function extractLinks(html, baseUrl) {
   const base = new URL(baseUrl);
@@ -105,19 +140,25 @@ function extractSeoMeta(html, pageUrl) {
   const hasOgDesc    = /<meta[^>]+property=["']og:description["'][^>]*>/i.test(html);
   const hasViewport  = /<meta[^>]+name=["']viewport["'][^>]*>/i.test(html);
   const hasJsonLd    = extractSchemaOrg(html).length > 0;
+  const hasNoindex   = /<meta[^>]+name=["']robots["'][^>]+content=["'][^"']*noindex/i.test(html)
+                    || /<meta[^>]+content=["'][^"']*noindex[^"']*["'][^>]+name=["']robots["']/i.test(html);
   const h2Questions  = h2s.filter(h => h.includes('?'));
 
-  const text = html
+  const h3Matches = [...html.matchAll(/<h3[^>]*>([\s\S]*?)<\/h3>/gi)];
+  const h3s = h3Matches.map(m => m[1].replace(/<[^>]+>/g, '').trim()).filter(Boolean);
+
+  const fullText = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<[^>]+>/g, ' ')
     .replace(/\s{2,}/g, ' ')
-    .trim()
-    .slice(0, 800);
+    .trim();
+  const wordCount = fullText.split(/\s+/).filter(w => w.length > 1).length;
+  const text = fullText.slice(0, 800);
 
   return { title, titleLength: title.length, metaDesc, metaDescLength: metaDesc.length,
-           h1s, h2s, h2Questions, totalImages, imagesWithoutAlt,
-           hasCanonical, hasOgTitle, hasOgDesc, hasViewport, hasJsonLd, text };
+           h1s, h2s, h3s, h2Questions, wordCount, totalImages, imagesWithoutAlt,
+           hasCanonical, hasOgTitle, hasOgDesc, hasViewport, hasJsonLd, hasNoindex, text };
 }
 
 /* ── Generate findings per page ─────────────────────────────── */
@@ -169,6 +210,18 @@ function generateFindings(meta, pageUrl) {
 
   if (!meta.hasJsonLd) {
     findings.push({ type: 'schema', severity: 'info', issue: 'Chýba Schema.org JSON-LD (štruktúrované dáta)', suggestion: 'Pridajte JSON-LD – AI agenti (ChatGPT, Claude, Perplexity) a Google ho čítajú prednostne' });
+  }
+
+  if (meta.hasNoindex) {
+    findings.push({ type: 'noindex', severity: 'warning', issue: 'Stránka má noindex – Google ju neindexuje', suggestion: 'Skontrolujte či je noindex zámerný. Ak nie, odstráňte meta robots noindex tag.' });
+  }
+
+  if (meta.wordCount < 300 && meta.wordCount > 0) {
+    findings.push({ type: 'content', severity: 'info', issue: `Málo obsahu (${meta.wordCount} slov)`, suggestion: 'Stránky s menej ako 300 slovami Google považuje za "thin content". Rozšírte obsah.' });
+  }
+
+  if (meta.h3s.length > 0 && meta.h2s.length === 0) {
+    findings.push({ type: 'structure', severity: 'info', issue: 'H3 nadpisy bez H2 (nesprávna hierarchia)', suggestion: 'Pridajte H2 nadpisy pred H3 – správna hierarchia je H1 → H2 → H3.' });
   }
 
   return findings;
@@ -269,40 +322,80 @@ async function runSeoAudit(startUrl, maxPages = 8) {
   const queue   = [seed];
   const pages   = [];
 
+  const brokenLinks = new Set();
+
   while (queue.length > 0 && pages.length < maxPages) {
     const url = queue.shift();
     try {
+      const t0 = Date.now();
       const html = await fetchHtml(url);
+      const responseTime = Date.now() - t0;
+
       const meta = extractSeoMeta(html, url);
       const findings = generateFindings(meta, url);
-      pages.push({ url, html, meta, findings });
+
+      // Response time finding
+      if (responseTime > 3000) {
+        findings.push({ type: 'speed', severity: 'warning', issue: `Pomalé načítanie stránky (${(responseTime / 1000).toFixed(1)}s)`, suggestion: 'Načítanie nad 3s negatívne ovplyvňuje SEO. Zvážte CDN, caching, optimalizáciu obrázkov.' });
+      } else if (responseTime > 1500) {
+        findings.push({ type: 'speed', severity: 'info', issue: `Priemerné načítanie (${(responseTime / 1000).toFixed(1)}s)`, suggestion: 'Ideálny čas načítania je pod 1.5s. Optimalizujte server alebo použite caching.' });
+      }
+
+      pages.push({ url, html, meta, findings, responseTime });
 
       for (const link of extractLinks(html, url)) {
         if (!visited.has(link) && visited.size < maxPages * 3) {
           visited.add(link); queue.push(link);
         }
       }
-    } catch { /* skip unreachable pages */ }
+    } catch (err) {
+      if (err.message && err.message.startsWith('HTTP 4')) brokenLinks.add(url);
+    }
 
     if (queue.length > 0) await new Promise(r => setTimeout(r, CRAWL_DELAY_MS));
   }
 
   if (pages.length === 0) throw new Error('Nepodarilo sa načítať žiadnu stránku webu.');
 
-  // Check if llms.txt already exists
+  // Duplicate title / description detection
+  const titleCount = {}, descCount = {};
+  pages.forEach(p => {
+    if (p.meta.title)    titleCount[p.meta.title]    = (titleCount[p.meta.title]    || 0) + 1;
+    if (p.meta.metaDesc) descCount[p.meta.metaDesc]  = (descCount[p.meta.metaDesc]  || 0) + 1;
+  });
+  pages.forEach(p => {
+    if (p.meta.title    && titleCount[p.meta.title]    > 1)
+      p.findings.push({ type: 'duplicate', severity: 'warning', issue: 'Duplicitný title tag (rovnaký na viacerých stránkach)', suggestion: `"${p.meta.title.slice(0, 40)}…" sa opakuje – každá stránka musí mať unikátny title.` });
+    if (p.meta.metaDesc && descCount[p.meta.metaDesc]  > 1)
+      p.findings.push({ type: 'duplicate', severity: 'warning', issue: 'Duplicitná meta description', suggestion: 'Každá stránka musí mať unikátnu meta description.' });
+  });
+
+  // Site-level checks (HTTPS, robots.txt, sitemap)
+  const siteFindings = await analyzeSite(base.origin).catch(() => []);
+
+  // Broken links site finding
+  if (brokenLinks.size > 0) {
+    siteFindings.push({ type: 'broken', severity: 'warning', issue: `${brokenLinks.size} nedostupných interných stránok (4xx)`, suggestion: `Opravte alebo odstráňte tieto URL: ${[...brokenLinks].slice(0, 3).join(', ')}` });
+  }
+
+  // llms.txt
   let hasLlmsTxt = false;
   try { await fetchText(`${base.origin}/llms.txt`); hasLlmsTxt = true; } catch {}
+  if (!hasLlmsTxt) {
+    siteFindings.push({ type: 'llms', severity: 'info', issue: 'Chýba llms.txt (AI agent indexing)', suggestion: `Nahrajte llms.txt na ${base.origin}/llms.txt – pomáha ChatGPT, Claude a Perplexity pochopiť váš web.` });
+  }
 
   const [aiFixes, schemaFixes] = await Promise.all([
     generateAiFixes(pages).catch(() => ({})),
     generateSchemaFixes(pages).catch(() => ({})),
   ]);
 
-  const allFindings = pages.flatMap(p => p.findings);
+  const allFindings = [...siteFindings, ...pages.flatMap(p => p.findings)];
 
   const result = {
     score: calculateScore(allFindings),
     has_llms_txt: hasLlmsTxt,
+    site_findings: siteFindings,
     summary: {
       total_pages: pages.length,
       total_issues: allFindings.length,
