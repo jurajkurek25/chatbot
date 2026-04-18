@@ -20,6 +20,7 @@ router.get('/stats', (req, res) => {
     const stats = db.prepare(`
       SELECT
         COUNT(*) AS total_leads,
+        COUNT(CASE WHEN email IS NOT NULL AND email != '' THEN 1 END) AS leads_with_email,
         COUNT(CASE WHEN converted_at IS NOT NULL THEN 1 END) AS total_conversions,
         COALESCE(SUM(CASE WHEN converted_at IS NOT NULL THEN deal_value ELSE 0 END), 0) AS total_revenue
       FROM leads
@@ -40,6 +41,7 @@ router.get('/stats', (req, res) => {
     const total_revenue = stats?.total_revenue ?? 0;
     const total_conversions = stats?.total_conversions ?? 0;
     const total_leads = stats?.total_leads ?? 0;
+    const leads_with_email = stats?.leads_with_email ?? 0;
     const conversion_rate = total_leads > 0
       ? Math.round((total_conversions / total_leads) * 100)
       : 0;
@@ -62,6 +64,7 @@ router.get('/stats', (req, res) => {
       total_conversions,
       total_revenue,
       total_leads,
+      leads_with_email,
       conversion_rate,
       credits_used,
       roi_multiple,

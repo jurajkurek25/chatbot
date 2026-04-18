@@ -387,6 +387,26 @@ router.post('/:widgetId/leads', async (req, res) => {
     } catch (err) {
       console.error('Lead email error:', err.message);
     }
+
+    // Schedule follow-up sequence jobs if configured for this widget
+    try {
+      const seq = db.prepare(
+        'SELECT * FROM followup_sequences WHERE widget_id = ? AND enabled = 1'
+      ).get(widgetRow.id);
+      if (seq) {
+        const steps = JSON.parse(seq.steps || '[]');
+        const now = Math.floor(Date.now() / 1000);
+        const { v4: jobUuid } = require('uuid');
+        for (let i = 0; i < steps.length; i++) {
+          const delaySeconds = Math.max(0, (steps[i].delay_hours || 0)) * 3600;
+          db.prepare(
+            'INSERT INTO followup_jobs (id, lead_id, widget_id, sequence_id, step_index, send_at) VALUES (?, ?, ?, ?, ?, ?)'
+          ).run(jobUuid(), leadId, widgetRow.id, seq.id, i, now + delaySeconds);
+        }
+      }
+    } catch (err) {
+      console.error('Sequence scheduling error:', err.message);
+    }
   });
 });
 

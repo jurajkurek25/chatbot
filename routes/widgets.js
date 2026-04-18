@@ -113,7 +113,7 @@ router.put('/:id', (req, res) => {
           proactive_enabled, proactive_delay, proactive_message, gdpr_text,
           webhook_url, slack_webhook_url, hide_branding, csat_enabled,
           ab_test_enabled, welcome_message_b, auto_reply_enabled, auto_reply_message,
-          offline_message, business_hours } = req.body;
+          offline_message, business_hours, demo_video_url } = req.body;
 
   const db = getDb();
 
@@ -149,7 +149,8 @@ router.put('/:id', (req, res) => {
       auto_reply_enabled = ?,
       auto_reply_message = ?,
       offline_message = ?,
-      business_hours = ?
+      business_hours = ?,
+      demo_video_url = ?
     WHERE id = ?
   `).run(
     name !== undefined ? name.trim() : widget.name,
@@ -176,6 +177,7 @@ router.put('/:id', (req, res) => {
     auto_reply_message !== undefined ? String(auto_reply_message || '').slice(0, 2000) : (widget.auto_reply_message || ''),
     offline_message !== undefined ? String(offline_message || '').slice(0, 500) : (widget.offline_message || ''),
     business_hours !== undefined ? (typeof business_hours === 'string' ? business_hours : JSON.stringify(business_hours)) : (widget.business_hours || '{}'),
+    demo_video_url !== undefined ? (demo_video_url ? String(demo_video_url).slice(0, 512) : null) : (widget.demo_video_url || null),
     widget.id
   );
 
@@ -397,6 +399,7 @@ function parseWidget(w) {
     webhook_url: w.webhook_url || null,
     slack_webhook_url: w.slack_webhook_url || null,
     business_hours: safeParseJSON(w.business_hours, {}),
+    demo_video_url: w.demo_video_url || null,
   };
 }
 

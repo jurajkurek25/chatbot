@@ -413,6 +413,52 @@ function initDatabase() {
     `ALTER TABLE leads ADD COLUMN converted_at INTEGER`,
     `ALTER TABLE leads ADD COLUMN last_reactivation_at INTEGER`,
     `ALTER TABLE leads ADD COLUMN reactivation_count INTEGER NOT NULL DEFAULT 0`,
+    `CREATE TABLE IF NOT EXISTS followup_sequences (
+  id TEXT PRIMARY KEY,
+  widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+  name TEXT NOT NULL DEFAULT 'Automatická sekvencia',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  steps TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `CREATE TABLE IF NOT EXISTS followup_jobs (
+  id TEXT PRIMARY KEY,
+  lead_id TEXT NOT NULL,
+  widget_id TEXT NOT NULL,
+  sequence_id TEXT NOT NULL,
+  step_index INTEGER NOT NULL DEFAULT 0,
+  send_at INTEGER NOT NULL,
+  sent_at INTEGER,
+  failed INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `CREATE TABLE IF NOT EXISTS whatsapp_connections (
+  id TEXT PRIMARY KEY,
+  widget_id TEXT NOT NULL UNIQUE REFERENCES widgets(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  phone_number_id TEXT NOT NULL,
+  access_token TEXT NOT NULL,
+  phone_display TEXT,
+  verify_token TEXT NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `CREATE TABLE IF NOT EXISTS whatsapp_conversations (
+  id TEXT PRIMARY KEY,
+  connection_id TEXT NOT NULL REFERENCES whatsapp_connections(id) ON DELETE CASCADE,
+  wa_contact_id TEXT NOT NULL,
+  contact_name TEXT,
+  last_message_at INTEGER,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  UNIQUE(connection_id, wa_contact_id)
+)`,
+    `CREATE TABLE IF NOT EXISTS whatsapp_messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES whatsapp_conversations(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `ALTER TABLE widgets ADD COLUMN demo_video_url TEXT`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

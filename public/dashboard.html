@@ -66,6 +66,9 @@
       <button class="nav-item" onclick="showTab('facebook')" id="nav-facebook">
         <span class="nav-icon">💬</span> Facebook Messenger
       </button>
+      <button class="nav-item" onclick="showTab('whatsapp')" id="nav-whatsapp">
+        <span class="nav-icon">💬</span> WhatsApp
+      </button>
       <button class="nav-item" onclick="showTab('booking')" id="nav-booking">
         <span class="nav-icon">📅</span> Rezervácie
       </button>
@@ -81,6 +84,9 @@
       </button>
       <button class="nav-item" onclick="showTab('integrations')" id="nav-integrations">
         <span class="nav-icon">🔗</span> Integrácie
+      </button>
+      <button class="nav-item" onclick="showTab('sequences')" id="nav-sequences">
+        <span class="nav-icon">📨</span> Sekvencia emailov
       </button>
     </div>
 
@@ -993,6 +999,75 @@
 
         </div>
 
+        <!-- WhatsApp Tab -->
+        <div id="tab-whatsapp" class="tab-panel">
+
+          <!-- Disconnected state -->
+          <div class="panel" style="margin-bottom:1.5rem" id="wa-panel-disconnected">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">💬 WhatsApp Business Bot</div>
+                <div class="panel-subtitle">Bot automaticky odpovedá na správy cez váš WhatsApp Business účet</div>
+              </div>
+            </div>
+
+            <div class="ig-how-it-works" style="margin-bottom:1.5rem">
+              <div class="ig-step"><span class="ig-step-num">1</span><span>V Meta for Developers vytvorte aplikáciu a pridajte WhatsApp produkt</span></div>
+              <div class="ig-step"><span class="ig-step-num">2</span><span>Skopírujte Phone Number ID a vygenerujte Access Token</span></div>
+              <div class="ig-step"><span class="ig-step-num">3</span><span>Zadajte Webhook URL nižšie do Meta nastavení a overte ho</span></div>
+              <div class="ig-step"><span class="ig-step-num">4</span><span>Zákazníci píšu na vaše číslo – bot okamžite odpovie</span></div>
+            </div>
+
+            <div class="form-group">
+              <label>Phone Number ID <span style="font-weight:400;color:#94a3b8">(z Meta for Developers → WhatsApp → API Setup)</span></label>
+              <input type="text" class="form-control" id="wa-phone-number-id" placeholder="123456789012345">
+            </div>
+            <div class="form-group">
+              <label>Access Token <span style="font-weight:400;color:#94a3b8">(Permanent Token z System User, alebo dočasný token na testovanie)</span></label>
+              <input type="password" class="form-control" id="wa-access-token" placeholder="EAABx...">
+            </div>
+            <div class="form-group">
+              <label>Zobrazované číslo <span style="font-weight:400;color:#94a3b8">(nepovinné, napr. +421 900 123 456)</span></label>
+              <input type="text" class="form-control" id="wa-phone-display" placeholder="+421 900 123 456">
+            </div>
+            <div class="form-group">
+              <label>Verify Token <span style="font-weight:400;color:#94a3b8">(váš vlastný tajný reťazec pre overenie webhooku)</span></label>
+              <div style="display:flex;gap:0.5rem">
+                <input type="text" class="form-control" id="wa-verify-token" placeholder="moj_tajny_token_123" style="flex:1">
+                <button class="btn btn-secondary" onclick="generateWaVerifyToken()" style="flex-shrink:0">Generovať</button>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:1rem;padding:0.75rem" onclick="connectWhatsApp()">
+              💬 Pripojiť WhatsApp
+            </button>
+            <div style="text-align:center;font-size:0.78rem;color:#94a3b8;margin-top:0.5rem">
+              Údaje sa uložia bezpečne. Webhook URL nájdete nižšie po pripojení.
+            </div>
+          </div>
+
+          <!-- Connected state -->
+          <div class="panel" style="display:none;margin-bottom:1.5rem" id="wa-panel-connected">
+            <div class="panel-header">
+              <div style="display:flex;align-items:center;gap:0.75rem">
+                <div style="width:40px;height:40px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;flex-shrink:0">💬</div>
+                <div>
+                  <div class="panel-title" id="wa-connected-phone">WhatsApp Business</div>
+                  <div class="panel-subtitle" id="wa-connected-id"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center">
+                <span class="ig-connected-badge">✅ Prepojené</span>
+                <button class="btn btn-sm btn-danger" onclick="disconnectWhatsApp()">Odpojiť</button>
+              </div>
+            </div>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem 1rem;font-size:0.82rem;color:#166534;margin-top:0.5rem">
+              <strong>Webhook URL</strong> (nastav v Meta for Developers → WhatsApp → Configuration → Webhooks):<br>
+              <code id="wa-webhook-url" style="font-size:0.8rem;word-break:break-all"></code>
+            </div>
+          </div>
+
+        </div>
+
         <!-- Embed Tab -->
         <div id="tab-embed" class="tab-panel">
           <div class="panel">
@@ -1671,6 +1746,21 @@
             </div>
           </div>
 
+          <!-- Demo Video -->
+          <div class="panel" style="margin-bottom:1.5rem">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">🎥 Demo video / GIF</div>
+                <div class="panel-subtitle">Bot môže zdieľať video keď zákazník požiada o ukážku — YouTube, Vimeo, MP4 alebo GIF</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>URL videa <span style="font-weight:400;color:#94a3b8">(napr. https://youtu.be/xxxxx alebo https://vimeo.com/xxxxx)</span></label>
+              <input type="url" class="form-control" id="int-demo-video-url" placeholder="https://youtu.be/..." style="font-size:0.85rem">
+              <div style="font-size:0.78rem;color:#64748b;margin-top:0.35rem">Bot automaticky vloží video priamo do chatu. Zákazník si ho môže pozrieť bez opustenia stránky.</div>
+            </div>
+          </div>
+
           <!-- A/B Testing -->
           <div class="panel" style="margin-bottom:1.5rem">
             <div class="panel-header">
@@ -1736,6 +1826,16 @@
               <div id="team-empty" style="font-size:0.875rem;color:#94a3b8;padding:0.5rem 0">Zatiaľ žiadni členovia tímu.</div>
             </div>
           </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Sequences tab                                          -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div id="tab-sequences" class="tab-panel">
+          <div class="tab-header">
+            <h2 class="tab-title">📨 Sekvencia emailov</h2>
+          </div>
+          <div id="sequences-wrap" style="padding:0.5rem 0"></div>
         </div>
 
       </div>
@@ -2151,7 +2251,7 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=10"></script>
+<script src="/js/dashboard.js?v=11"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

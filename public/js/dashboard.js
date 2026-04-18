@@ -175,7 +175,7 @@ function showView(view) {
 function showTab(tab) {
   closeMobileSidebar();
   currentTab = tab;
-  ['settings','knowledge','questions','embed','products','instagram','facebook','gdpr','booking','leadmagnets','insights','inbox','integrations'].forEach(t => {
+  ['settings','knowledge','questions','embed','products','instagram','facebook','gdpr','booking','leadmagnets','insights','inbox','integrations','sequences','whatsapp'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -191,6 +191,8 @@ function showTab(tab) {
   if (tab === 'inbox') loadInbox();
   if (tab === 'integrations') { loadIntegrations(); loadEcomailStatus(); }
   if (tab === 'facebook') loadFacebookStatus();
+  if (tab === 'sequences') loadSequences();
+  if (tab === 'whatsapp') loadWaStatus();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -3449,6 +3451,7 @@ function loadIntegrations() {
   document.getElementById('int-auto-reply-enabled').checked = Boolean(w.auto_reply_enabled);
   document.getElementById('int-auto-reply-msg').value  = w.auto_reply_message || '';
   document.getElementById('int-offline-msg').value     = w.offline_message   || '';
+  document.getElementById('int-demo-video-url').value  = w.demo_video_url    || '';
   toggleAutoReplyFields();
 
   // Business hours
@@ -3519,6 +3522,7 @@ async function saveIntegrations() {
     auto_reply_message: document.getElementById('int-auto-reply-msg').value.trim(),
     offline_message:    document.getElementById('int-offline-msg').value.trim(),
     business_hours:     JSON.stringify(readBhValue()),
+    demo_video_url:     document.getElementById('int-demo-video-url').value.trim() || null,
   };
   const res = await apiFetch(`/api/widgets/${currentWidget.id}`, {
     method: 'PUT',
@@ -4403,6 +4407,36 @@ function renderMoneyStats(d) {
     </div>
   </div>`;
 
+  // Conversion funnel chart
+  if (d.total_leads > 0) {
+    const withEmail = d.leads_with_email ?? 0;
+    const converted = d.total_conversions;
+    const p1 = 100;
+    const p2 = Math.round((withEmail / d.total_leads) * 100);
+    const p3 = withEmail > 0 ? Math.round((converted / withEmail) * 100) : 0;
+    const bar = (pct, color) => `<div style="height:28px;border-radius:6px;background:${color};width:${Math.max(pct,2)}%;transition:width 0.4s;display:flex;align-items:center;padding-left:0.5rem;font-size:0.72rem;font-weight:700;color:white;white-space:nowrap;overflow:hidden">${pct > 8 ? pct + '%' : ''}</div>`;
+    html += `<div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+      <div style="padding:0.75rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#475569">📊 Konverzný lievik</div>
+      <div style="padding:1rem 1.25rem;display:flex;flex-direction:column;gap:0.6rem">
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:120px;font-size:0.78rem;color:#475569;flex-shrink:0">Všetky leady</div>
+          <div style="flex:1">${bar(p1,'#6366f1')}</div>
+          <div style="width:40px;text-align:right;font-size:0.78rem;font-weight:700;color:#6366f1">${d.total_leads}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:120px;font-size:0.78rem;color:#475569;flex-shrink:0">S emailom</div>
+          <div style="flex:1">${bar(p2,'#3b82f6')}</div>
+          <div style="width:40px;text-align:right;font-size:0.78rem;font-weight:700;color:#3b82f6">${withEmail}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:120px;font-size:0.78rem;color:#475569;flex-shrink:0">Konvertovaní</div>
+          <div style="flex:1">${bar(p3,'#22c55e')}</div>
+          <div style="width:40px;text-align:right;font-size:0.78rem;font-weight:700;color:#22c55e">${converted}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
   // Missed revenue alert
   if (d.missed_revenue) {
     html += `<div style="padding:1rem 1.5rem;background:#fef3c7;border:1px solid #fbbf24;border-radius:12px;margin-bottom:1rem;display:flex;align-items:flex-start;gap:0.75rem">
@@ -4635,4 +4669,229 @@ async function sendReactivation() {
     loadColdLeads(_coldLeadsHours);
   } catch { showToast('Chyba pri odosielaní.', 'error'); }
   btn.disabled = false; btn.textContent = '📧 Odoslať email';
+}
+
+/* ── Follow-up Sequences ──────────────────────────────────────── */
+
+let _sequenceSteps = [];
+
+async function loadSequences() {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/sequences/${currentWidget.id}`);
+  if (!r || !r.ok) return;
+  const d = await r.json();
+  renderSequences(d.sequence);
+}
+
+function renderSequences(seq) {
+  const wrap = document.getElementById('sequences-wrap');
+  if (!wrap) return;
+
+  _sequenceSteps = seq ? (seq.steps || []) : [];
+  const enabled = seq ? seq.enabled : true;
+  const name = seq ? seq.name : 'Automatická sekvencia';
+
+  wrap.innerHTML = `
+    <div class="panel" style="margin-bottom:1.5rem">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">📨 Automatická sekvencia emailov</div>
+          <div class="panel-subtitle">Automaticky odosielajte emaily novým leandom v nastavených intervaloch (drip kampaň)</div>
+        </div>
+        ${seq ? `<button class="btn btn-sm btn-danger" onclick="deleteSequence()">Vymazať sekvenciu</button>` : ''}
+      </div>
+
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+          <input type="checkbox" id="seq-enabled" style="width:16px;height:16px" ${enabled ? 'checked' : ''}>
+          Sekvencia aktívna
+        </label>
+        <div class="hint">Ak je vypnutá, nové leady sa nezaradia do sekvencie.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Názov sekvencie</label>
+        <input type="text" class="form-control" id="seq-name" value="${escHtml(name)}" placeholder="Automatická sekvencia">
+      </div>
+
+      <div style="margin-bottom:1rem">
+        <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.75rem">Kroky sekvencie <span style="color:#94a3b8;font-size:0.8rem">(max 5)</span></div>
+        <div id="seq-steps-list"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addSequenceStep()" id="seq-add-btn" style="margin-top:0.75rem">+ Pridať krok</button>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1rem">
+        <button class="btn btn-primary" onclick="saveSequence()">Uložiť sekvenciu</button>
+      </div>
+    </div>
+  `;
+
+  renderSequenceSteps();
+}
+
+function renderSequenceSteps() {
+  const list = document.getElementById('seq-steps-list');
+  if (!list) return;
+
+  if (_sequenceSteps.length === 0) {
+    list.innerHTML = `<div style="color:#94a3b8;font-size:0.875rem;padding:0.5rem 0">Zatiaľ žiadne kroky. Pridajte prvý krok sekvencie.</div>`;
+  } else {
+    list.innerHTML = _sequenceSteps.map((step, idx) => `
+      <div style="border:1px solid #e2e8f0;border-radius:10px;padding:1rem;margin-bottom:0.75rem;background:#f8fafc">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+          <strong style="font-size:0.875rem">Krok ${idx + 1}</strong>
+          <button class="btn btn-sm btn-danger" onclick="removeSequenceStep(${idx})">Odstrániť</button>
+        </div>
+        <div class="form-group" style="margin-bottom:0.65rem">
+          <label style="font-size:0.8rem">Odoslať po (hodiny od zachytenia leadu)</label>
+          <input type="number" class="form-control" id="seq-delay-${idx}" value="${step.delay_hours || 24}" min="0" style="width:120px">
+        </div>
+        <div class="form-group" style="margin-bottom:0.65rem">
+          <label style="font-size:0.8rem">Predmet emailu</label>
+          <input type="text" class="form-control" id="seq-subject-${idx}" value="${escHtml(step.subject || '')}" placeholder="napr. Nadväzujem na náš chatbot...">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label style="font-size:0.8rem">Správa <span style="color:#94a3b8;font-weight:400">— použite <code>{{name}}</code> pre meno zákazníka</span></label>
+          <textarea class="form-control" id="seq-message-${idx}" rows="4" placeholder="Ahoj {{name}}, nadväzujem na váš záujem...">${escHtml(step.message || '')}</textarea>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const addBtn = document.getElementById('seq-add-btn');
+  if (addBtn) addBtn.style.display = _sequenceSteps.length >= 5 ? 'none' : '';
+}
+
+function addSequenceStep() {
+  if (_sequenceSteps.length >= 5) return;
+  // Collect current values first
+  collectSequenceSteps();
+  _sequenceSteps.push({ delay_hours: 24, subject: '', message: '' });
+  renderSequenceSteps();
+}
+
+function removeSequenceStep(idx) {
+  collectSequenceSteps();
+  _sequenceSteps.splice(idx, 1);
+  renderSequenceSteps();
+}
+
+function collectSequenceSteps() {
+  // Read current form values into _sequenceSteps
+  _sequenceSteps = _sequenceSteps.map((step, idx) => {
+    const delayEl = document.getElementById(`seq-delay-${idx}`);
+    const subjectEl = document.getElementById(`seq-subject-${idx}`);
+    const messageEl = document.getElementById(`seq-message-${idx}`);
+    return {
+      delay_hours: delayEl ? parseFloat(delayEl.value) || 24 : (step.delay_hours || 24),
+      subject: subjectEl ? subjectEl.value.trim() : (step.subject || ''),
+      message: messageEl ? messageEl.value.trim() : (step.message || ''),
+    };
+  });
+}
+
+async function saveSequence() {
+  if (!currentWidget) return;
+  collectSequenceSteps();
+
+  const nameEl = document.getElementById('seq-name');
+  const enabledEl = document.getElementById('seq-enabled');
+
+  const payload = {
+    name: nameEl ? nameEl.value.trim() || 'Automatická sekvencia' : 'Automatická sekvencia',
+    enabled: enabledEl ? enabledEl.checked : true,
+    steps: _sequenceSteps,
+  };
+
+  const r = await apiFetch(`/api/sequences/${currentWidget.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!r || !r.ok) {
+    showToast('Chyba pri ukladaní sekvencie.', 'error');
+    return;
+  }
+  const d = await r.json();
+  showToast('Sekvencia uložená!', 'success');
+  renderSequences(d.sequence);
+}
+
+async function deleteSequence() {
+  if (!currentWidget) return;
+  if (!confirm('Naozaj vymazať sekvenciu? Naplánované úlohy zostanú v rade.')) return;
+
+  const r = await apiFetch(`/api/sequences/${currentWidget.id}`, { method: 'DELETE' });
+  if (!r || !r.ok) {
+    showToast('Chyba pri mazaní sekvencie.', 'error');
+    return;
+  }
+  showToast('Sekvencia vymazaná.', 'success');
+  _sequenceSteps = [];
+  renderSequences(null);
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── WhatsApp Business ────────────────────────────────────────────── */
+async function loadWaStatus() {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/whatsapp/status/${currentWidget.id}`);
+  if (!r || !r.ok) return;
+  const d = await r.json();
+  const disconnected = document.getElementById('wa-panel-disconnected');
+  const connected    = document.getElementById('wa-panel-connected');
+  if (!disconnected || !connected) return;
+  if (d.connected) {
+    disconnected.style.display = 'none';
+    connected.style.display = '';
+    const phoneEl = document.getElementById('wa-connected-phone');
+    const idEl    = document.getElementById('wa-connected-id');
+    const urlEl   = document.getElementById('wa-webhook-url');
+    if (phoneEl) phoneEl.textContent = d.phone_display || 'WhatsApp Business';
+    if (idEl)    idEl.textContent    = `Phone Number ID: ${d.phone_number_id}`;
+    if (urlEl)   urlEl.textContent   = `${location.origin}/api/whatsapp/webhook`;
+  } else {
+    disconnected.style.display = '';
+    connected.style.display    = 'none';
+  }
+}
+
+function generateWaVerifyToken() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < 24; i++) token += chars[Math.floor(Math.random() * chars.length)];
+  const el = document.getElementById('wa-verify-token');
+  if (el) el.value = token;
+}
+
+async function connectWhatsApp() {
+  if (!currentWidget) return;
+  const phoneNumberId = document.getElementById('wa-phone-number-id')?.value.trim();
+  const accessToken   = document.getElementById('wa-access-token')?.value.trim();
+  const phoneDisplay  = document.getElementById('wa-phone-display')?.value.trim();
+  const verifyToken   = document.getElementById('wa-verify-token')?.value.trim();
+  if (!phoneNumberId || !accessToken || !verifyToken) {
+    showToast('Vyplňte Phone Number ID, Access Token a Verify Token.', 'error'); return;
+  }
+  const r = await apiFetch(`/api/whatsapp/connect/${currentWidget.id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone_number_id: phoneNumberId, access_token: accessToken, phone_display: phoneDisplay, verify_token: verifyToken }),
+  });
+  if (!r || !r.ok) { showToast('Chyba pri pripájaní WhatsApp.', 'error'); return; }
+  showToast('✅ WhatsApp prepojený!', 'success');
+  loadWaStatus();
+}
+
+async function disconnectWhatsApp() {
+  if (!currentWidget) return;
+  if (!confirm('Odpojiť WhatsApp? Bot prestane odpovedať na správy.')) return;
+  const r = await apiFetch(`/api/whatsapp/disconnect/${currentWidget.id}`, { method: 'DELETE' });
+  if (!r || !r.ok) { showToast('Chyba pri odpájaní.', 'error'); return; }
+  showToast('WhatsApp odpojený.', 'success');
+  loadWaStatus();
 }

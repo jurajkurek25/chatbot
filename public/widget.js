@@ -885,6 +885,16 @@
   }
 
   /* ── Markdown renderer (bold, italic, newlines only) ────────── */
+  function getVideoEmbed(url) {
+    const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    if (ytMatch) return `<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:8px;overflow:hidden;margin:4px 0"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe></div>`;
+    const vmMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vmMatch) return `<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:8px;overflow:hidden;margin:4px 0"><iframe src="https://player.vimeo.com/video/${vmMatch[1]}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe></div>`;
+    if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) return `<video src="${escAttr(url)}" controls style="width:100%;border-radius:8px;margin:4px 0;max-height:200px"></video>`;
+    if (/\.(gif|gifv)(\?|$)/i.test(url)) return `<img src="${escAttr(url)}" alt="GIF" style="max-width:100%;border-radius:8px;margin:4px 0">`;
+    return null;
+  }
+
   function renderMarkdown(text) {
     // Match [label](url) and bare https?:// URLs, trim trailing punctuation from bare URLs
     const URL_RE = /(\[([^\]]{1,200})\]\((https?:\/\/[^\s)]{1,500})\))|(https?:\/\/[^\s<>"]{1,500})/g;
@@ -904,13 +914,18 @@
         let url = m[0].replace(/[.,!?:)\]]+$/, '');
         const trailingPunct = m[0].slice(url.length);
 
-        // Button style if URL is on its own line
+        // Video/GIF embed if URL is on its own line
         const before = text.slice(0, m.index);
         const after  = text.slice(m.index + url.length);
         const alone  = /(\n|^)\s*$/.test(before) && /^\s*(\n|$)/.test(after);
 
-        const cls = alone ? 'nd-link-btn' : 'nd-link';
-        html += `<a href="${escAttr(url)}" target="_blank" rel="noopener noreferrer" class="${cls}">${esc(url)}</a>`;
+        const embed = alone && getVideoEmbed(url);
+        if (embed) {
+          html += embed;
+        } else {
+          const cls = alone ? 'nd-link-btn' : 'nd-link';
+          html += `<a href="${escAttr(url)}" target="_blank" rel="noopener noreferrer" class="${cls}">${esc(url)}</a>`;
+        }
         if (trailingPunct) html += escInline(trailingPunct);
       }
       last = m.index + m[0].length;

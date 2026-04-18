@@ -71,6 +71,11 @@ function buildSystemPrompt(widget, knowledgeItems, products = [], pageContext = 
     goalsSection = `\n\n## KONTEXT BIZNISU A PRODUKTU\n${widget.goals}`;
   }
 
+  let videoSection = '';
+  if (widget.demo_video_url?.trim()) {
+    videoSection = `\n\n## DEMO VIDEO\nAk zákazník požiada o ukážku alebo demo, môžeš zdieľať tento odkaz: ${widget.demo_video_url}\nOdkaz pošli priamo v správe ako text URL — chatbot ho automaticky zobrazí ako video.`;
+  }
+
   const productsSection = buildProductsSection(products);
 
   let pageContextSection = '';
@@ -127,7 +132,7 @@ Keď zákazník prejaví záujem alebo súhlas:
 - Odpovedaj VŽDY v jazyku zákazníka (podľa toho ako píše – sk, en, de, fr, es, pl, cs, hu, ro, hr alebo iný).
 - Nikdy si nevymýšľaj fakty, ceny, mená, kontakty ani referencie.
 - Nebuď agresívny ani nátlakový – predávaj cez dôveru a pochopenie.
-- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
+- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${videoSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
 }
 
 function loadProducts(widgetId) {

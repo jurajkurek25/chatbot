@@ -25,6 +25,8 @@ const woocommerceRoutes = require('./routes/woocommerce');
 const leadMagnetsRoutes = require('./routes/lead-magnets');
 const insightsRoutes    = require('./routes/insights');
 const facebookRoutes    = require('./routes/facebook');
+const whatsappRoutes    = require('./routes/whatsapp');
+const sequencesRoutes   = require('./routes/sequences');
 const ecomailRoutes     = require('./routes/ecomail');
 const seoRoutes         = require('./routes/seo');
 const moneyRoutes       = require('./routes/money');
@@ -69,6 +71,8 @@ app.use('/api/booking', bookingRoutes);
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
+app.use('/api/whatsapp',    whatsappRoutes);
+app.use('/api/sequences',   sequencesRoutes);
 app.use('/api/ecomail',     ecomailRoutes);
 app.use('/api/seo',         seoRoutes);
 app.use('/api/money',       moneyRoutes);
@@ -117,3 +121,14 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Neoworkly running on http://localhost:${PORT}`);
 });
+
+// Process follow-up sequence emails every 5 minutes
+setInterval(async () => {
+  try {
+    const http = require('http');
+    const opts = { hostname: 'localhost', port: PORT, path: '/api/sequences/process', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': 0 } };
+    const req = http.request(opts);
+    req.on('error', () => {});
+    req.end();
+  } catch {}
+}, 5 * 60 * 1000);
