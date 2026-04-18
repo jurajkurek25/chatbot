@@ -56,6 +56,83 @@ function fetchText(rawUrl) {
   });
 }
 
+/* ── Google PageSpeed Insights (mobile) ─────────────────────── */
+function fetchPageSpeed(url) {
+  const key = process.env.GOOGLE_PAGESPEED_API_KEY;
+  if (!key) return Promise.resolve(null);
+  const apiUrl = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&key=${key}&strategy=mobile&category=performance`;
+  return new Promise(resolve => {
+    const req = https.get(apiUrl, { timeout: 20000 }, res => {
+      let body = '';
+      res.on('data', c => { body += c; });
+      res.on('end', () => {
+        try {
+          const d = JSON.parse(body);
+          const audits = d.lighthouseResult?.audits || {};
+          const perf = d.lighthouseResult?.categories?.performance;
+          if (!perf) return resolve(null);
+          resolve({
+            score:  Math.round((perf.score || 0) * 100),
+            lcp:    audits['largest-contentful-paint']?.displayValue  || null,
+            cls:    audits['cumulative-layout-shift']?.displayValue    || null,
+            fcp:    audits['first-contentful-paint']?.displayValue     || null,
+            tbt:    audits['total-blocking-time']?.displayValue        || null,
+            si:     audits['speed-index']?.displayValue                || null,
+            lcpMs:  audits['largest-contentful-paint']?.numericValue  || 0,
+            clsVal: audits['cumulative-layout-shift']?.numericValue    || 0,
+          });
+        } catch { resolve(null); }
+      });
+      res.on('error', () => resolve(null));
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+  });
+}
+
+/* ── DataForSEO: domain rank + backlinks ─────────────────────── */
+function fetchDataForSeo(origin) {
+  const login    = process.env.DATAFORSEO_LOGIN;
+  const password = process.env.DATAFORSEO_PASSWORD;
+  if (!login || !password) return Promise.resolve(null);
+
+  const auth   = Buffer.from(`${login}:${password}`).toString('base64');
+  const domain = origin.replace(/^https?:\/\//, '').replace(/\/$/, '');
+  const body   = JSON.stringify([{ target: domain, include_subdomains: true }]);
+
+  return new Promise(resolve => {
+    const req = https.request({
+      hostname: 'api.dataforseo.com',
+      path:     '/v3/backlinks/summary/live',
+      method:   'POST',
+      headers:  { Authorization: `Basic ${auth}`, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body) },
+      timeout:  20000,
+    }, res => {
+      let data = '';
+      res.on('data', c => { data += c; });
+      res.on('end', () => {
+        try {
+          const parsed = JSON.parse(data);
+          const r = parsed.tasks?.[0]?.result?.[0];
+          if (!r) return resolve(null);
+          resolve({
+            rank:              r.rank               || 0,
+            backlinks:         r.backlinks          || 0,
+            referring_domains: r.referring_domains  || 0,
+            referring_ips:     r.referring_ips      || 0,
+            broken_backlinks:  r.broken_backlinks   || 0,
+          });
+        } catch { resolve(null); }
+      });
+      res.on('error', () => resolve(null));
+    });
+    req.on('error', () => resolve(null));
+    req.on('timeout', () => { req.destroy(); resolve(null); });
+    req.write(body);
+    req.end();
+  });
+}
+
 /* ── Site-level checks: HTTPS, robots.txt, sitemap ──────────── */
 async function analyzeSite(origin) {
   const findings = [];
@@ -385,6 +462,33 @@ async function runSeoAudit(startUrl, maxPages = 8) {
     siteFindings.push({ type: 'llms', severity: 'info', issue: 'Chýba llms.txt (AI agent indexing)', suggestion: `Nahrajte llms.txt na ${base.origin}/llms.txt – pomáha ChatGPT, Claude a Perplexity pochopiť váš web.` });
   }
 
+  // PageSpeed per page (parallel, max 8 pages)
+  const psResults = await Promise.all(
+    pages.map(p => fetchPageSpeed(p.url).catch(() => null))
+  );
+  psResults.forEach((ps, i) => {
+    if (!ps) return;
+    pages[i].pagespeed = ps;
+    const f = pages[i].findings;
+    if (ps.score < 50)
+      f.push({ type: 'speed', severity: 'critical', issue: `Veľmi nízke PageSpeed skóre (${ps.score}/100)`, suggestion: `LCP: ${ps.lcp || '?'}, CLS: ${ps.cls || '?'}. Optimalizujte obrázky, odstráňte blokovacie JS/CSS, použite CDN.` });
+    else if (ps.score < 75)
+      f.push({ type: 'speed', severity: 'warning', issue: `Nízke PageSpeed skóre (${ps.score}/100)`, suggestion: `LCP: ${ps.lcp || '?'}, CLS: ${ps.cls || '?'}. Zvážte optimalizáciu výkonu stránky.` });
+    if (ps.lcpMs > 4000)
+      f.push({ type: 'cwv', severity: 'warning', issue: `LCP príliš vysoký (${ps.lcp}) – Core Web Vital`, suggestion: 'Google penalizuje LCP > 4s. Optimalizujte najväčší element stránky (obrázok, hero banner).' });
+    if (ps.clsVal > 0.25)
+      f.push({ type: 'cwv', severity: 'warning', issue: `Vysoký CLS (${ps.cls}) – stránka "skáče" pri načítaní`, suggestion: 'CLS > 0.25 je zlý UX aj pre Google. Nastavte pevné rozmery obrázkov a reklamných blokov.' });
+  });
+
+  // DataForSEO domain metrics (once per domain)
+  const domainMetrics = await fetchDataForSeo(base.origin).catch(() => null);
+  if (domainMetrics) {
+    if (domainMetrics.rank < 10 && domainMetrics.rank >= 0)
+      siteFindings.push({ type: 'authority', severity: 'info', issue: `Nízka autorita domény (DataForSEO Rank: ${domainMetrics.rank}/100)`, suggestion: 'Získajte kvalitné spätné odkazy (backlinks) z relevantných webov vo vašom odvetví.' });
+    if (domainMetrics.broken_backlinks > 50)
+      siteFindings.push({ type: 'backlinks', severity: 'info', issue: `${domainMetrics.broken_backlinks} nefunkčných spätných odkazov`, suggestion: 'Opravte alebo presmerujte stránky s nefunkčnými backlinkami (stratená link equity).' });
+  }
+
   const [aiFixes, schemaFixes] = await Promise.all([
     generateAiFixes(pages).catch(() => ({})),
     generateSchemaFixes(pages).catch(() => ({})),
@@ -404,12 +508,14 @@ async function runSeoAudit(startUrl, maxPages = 8) {
       info:      allFindings.filter(f => f.severity === 'info').length,
     },
     schema_fixes: schemaFixes,
+    domain_metrics: domainMetrics,
     pages: pages.map(p => ({
       url: p.url,
       title: p.meta.title,
       meta: { metaDesc: p.meta.metaDesc, text: p.meta.text.slice(0, 200) },
       findings: p.findings,
       ai_fix: aiFixes[p.url] || null,
+      pagespeed: p.pagespeed || null,
     })),
   };
 

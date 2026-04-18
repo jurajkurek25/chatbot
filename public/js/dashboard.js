@@ -4015,6 +4015,19 @@ function renderSeoResult(audit, hasBoost) {
   document.getElementById('seo-chip-warning').textContent = `🟡 ${s.warnings ?? 0} varovaní`;
   document.getElementById('seo-chip-info').textContent = `🔵 ${s.info ?? 0} informácií`;
 
+  // Domain metrics
+  const dm = audit.findings?.domain_metrics;
+  const dmWrap = document.getElementById('seo-domain-metrics');
+  if (dm) {
+    dmWrap.style.display = '';
+    document.getElementById('dm-rank').textContent = dm.rank ?? '—';
+    document.getElementById('dm-backlinks').textContent = (dm.backlinks || 0).toLocaleString('sk');
+    document.getElementById('dm-domains').textContent = (dm.referring_domains || 0).toLocaleString('sk');
+    document.getElementById('dm-broken').textContent = (dm.broken_backlinks || 0).toLocaleString('sk');
+  } else {
+    dmWrap.style.display = 'none';
+  }
+
   // Site-wide findings
   const siteFindings = audit.findings?.site_findings || [];
   const siteWrap = document.getElementById('seo-site-findings');
@@ -4066,9 +4079,18 @@ function renderSeoResult(audit, hasBoost) {
   }
 
   // Full results for boost users
-  document.getElementById('seo-pages-list').innerHTML = pages.map(p => `
+  document.getElementById('seo-pages-list').innerHTML = pages.map(p => {
+    const ps = p.pagespeed;
+    const psColor = !ps ? '#94a3b8' : ps.score >= 75 ? '#16a34a' : ps.score >= 50 ? '#d97706' : '#ef4444';
+    const psBadge = ps
+      ? `<span style="margin-left:auto;font-size:0.75rem;font-weight:700;color:${psColor};background:${psColor}18;padding:0.15rem 0.5rem;border-radius:99px">⚡ ${ps.score}/100</span>
+         <span style="font-size:0.7rem;color:#94a3b8;margin-left:0.5rem">LCP ${ps.lcp || '?'} · CLS ${ps.cls || '?'}</span>`
+      : '';
+    return `
     <div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
-      <div style="padding:0.6rem 1rem;background:#f8fafc;font-size:0.83rem;font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0">${escHtml(p.url)}</div>
+      <div style="padding:0.6rem 1rem;background:#f8fafc;font-size:0.83rem;font-weight:600;color:#475569;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+        <span>${escHtml(p.url)}</span>${psBadge}
+      </div>
       ${p.findings.length === 0
         ? '<div style="padding:0.75rem 1rem;font-size:0.82rem;color:#16a34a">✓ Žiadne problémy</div>'
         : p.findings.map(f => `
@@ -4082,7 +4104,8 @@ function renderSeoResult(audit, hasBoost) {
           </div>`).join('')
       }
     </div>
-  `).join('');
+  `;
+  }).join('');
 }
 
 function openSeoScanModal() {
