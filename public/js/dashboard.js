@@ -123,6 +123,7 @@ function renderUserInfo() {
 /* ── Views ─────────────────────────────────────────────────────── */
 function showView(view) {
   closeMobileSidebar();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   const views = ['widgets','editor','leads','affiliate','coach','seo','money','reactivation'];
   views.forEach(v => {
     const el = document.getElementById(`view-${v}`);
@@ -3975,19 +3976,32 @@ let seoBoostCredits = 0;
 
 async function loadSeoAudit() {
   clearTimeout(seoPolling);
+  // Show loading state while fetching
+  document.getElementById('seo-no-audit').style.display = 'none';
+  document.getElementById('seo-running-banner').style.display = 'none';
+  document.getElementById('seo-result-wrap').innerHTML =
+    '<div style="text-align:center;padding:3rem 1rem;color:#94a3b8"><div style="font-size:2rem;margin-bottom:0.5rem">⏳</div><div>Načítavam audit...</div></div>';
   try {
     const r = await apiFetch('/api/seo/latest');
-    if (!r || !r.ok) return;
+    if (!r || !r.ok) {
+      document.getElementById('seo-result-wrap').innerHTML = '';
+      document.getElementById('seo-no-audit').style.display = '';
+      return;
+    }
     const ct = r.headers.get('content-type') || '';
-    if (!ct.includes('application/json')) return;
+    if (!ct.includes('application/json')) {
+      document.getElementById('seo-result-wrap').innerHTML = '';
+      document.getElementById('seo-no-audit').style.display = '';
+      return;
+    }
     const d = await r.json();
+    document.getElementById('seo-result-wrap').innerHTML = '';
 
     seoBoostCredits = d.boost_credits ?? 0;
 
     if (!d.audit) {
       document.getElementById('seo-no-audit').style.display = '';
       document.getElementById('seo-running-banner').style.display = 'none';
-      document.getElementById('seo-result-wrap').innerHTML = '';
       return;
     }
 
