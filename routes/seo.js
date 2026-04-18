@@ -6,6 +6,11 @@ const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
 const { runSeoAudit, generateWordPressFix, generateHtmlFix, generateSchemaFix, generateLlmsTxt } = require('../services/seo-auditor');
 
+function getStripe() {
+  const Stripe = require('stripe');
+  return Stripe(process.env.STRIPE_SECRET_KEY);
+}
+
 const router = express.Router();
 router.use(requireAuth);
 
@@ -131,6 +136,77 @@ router.get('/latest', (req, res) => {
     });
   } catch (err) {
     console.error('[seo/latest]', err.message);
+    res.status(500).json({ error: 'Interná chyba servera.' });
+  }
+});
+
+/* ── POST /api/seo/claim ─────────────────────────────────────────
+   Called immediately when user returns from Stripe with session_id.
+   Verifies payment server-side and unlocks the audit without waiting
+   for the webhook (which may arrive seconds later).
+────────────────────────────────────────────────────────────────── */
+router.post('/claim', async (req, res) => {
+  try {
+    const { session_id } = req.body || {};
+    if (!session_id || typeof session_id !== 'string') {
+      return res.status(400).json({ error: 'session_id je povinný.' });
+    }
+
+    const db = getDb();
+    const user = db.prepare('SELECT id, growth_boost_paid, boost_credits FROM users WHERE id = ?').get(req.userId);
+    if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+
+    // Verify the Stripe session
+    let session;
+    try {
+      const stripe = getStripe();
+      session = await stripe.checkout.sessions.retrieve(session_id);
+    } catch (err) {
+      return res.status(400).json({ error: 'Nepodarilo sa overiť platbu.' });
+    }
+
+    if (
+      session.payment_status !== 'paid' ||
+      session.metadata?.type !== 'growth_boost' ||
+      session.metadata?.userId !== req.userId
+    ) {
+      return res.status(403).json({ error: 'Platba nie je platná pre tento účet.' });
+    }
+
+    // Find latest completed audit
+    const audit = db.prepare(`
+      SELECT id, boost_unlocked FROM seo_audits
+      WHERE user_id = ? AND status = 'done'
+      ORDER BY completed_at DESC LIMIT 1
+    `).get(req.userId);
+
+    if (!audit) {
+      // Payment valid but no audit yet — ensure credit is available
+      // (webhook may not have fired yet; add credit idempotently via session check)
+      const currentCredits = db.prepare('SELECT boost_credits FROM users WHERE id = ?').get(req.userId)?.boost_credits ?? 0;
+      if (currentCredits === 0) {
+        db.prepare('UPDATE users SET boost_credits = boost_credits + 1 WHERE id = ?').run(req.userId);
+      }
+      return res.json({ success: true, unlocked: false, boost_credits: currentCredits + 1, message: 'Kredit pripravený. Spustite SEO audit.' });
+    }
+
+    if (audit.boost_unlocked) {
+      // Already unlocked (webhook already processed it)
+      return res.json({ success: true, unlocked: true, already: true });
+    }
+
+    // Unlock the audit. Handle credits: if webhook already added a credit, consume it.
+    // If not yet, unlock without touching credits (webhook will sort itself out).
+    db.prepare('UPDATE seo_audits SET boost_unlocked = 1 WHERE id = ?').run(audit.id);
+    const freshUser = db.prepare('SELECT boost_credits FROM users WHERE id = ?').get(req.userId);
+    if ((freshUser?.boost_credits ?? 0) > 0) {
+      db.prepare('UPDATE users SET boost_credits = boost_credits - 1 WHERE id = ?').run(req.userId);
+    }
+
+    console.log(`[seo/claim] unlocked audit ${audit.id} for user ${req.userId}`);
+    res.json({ success: true, unlocked: true });
+  } catch (err) {
+    console.error('[seo/claim]', err.message);
     res.status(500).json({ error: 'Interná chyba servera.' });
   }
 });

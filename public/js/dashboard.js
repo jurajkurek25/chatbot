@@ -4223,14 +4223,70 @@ async function buyBoost() {
   const p = new URLSearchParams(location.search);
   const isSeo = p.get('tab') === 'seo';
   const isBoostSuccess = p.get('success_boost') === '1';
+  const sessionId = p.get('session_id');
 
   if (isSeo || isBoostSuccess) {
     window.history.replaceState({}, '', '/dashboard');
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
       showView('seo');
       if (isBoostSuccess) {
-        showToast('Growth Boost aktivovaný! Sťahujte opravy nižšie.', 'success');
+        await handleBoostSuccess(sessionId);
       }
     }, { once: true });
   }
 })();
+
+async function handleBoostSuccess(sessionId) {
+  // Try to claim (verify + unlock) using Stripe session_id
+  if (sessionId) {
+    try {
+      const r = await apiFetch('/api/seo/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      if (r && r.ok) {
+        const d = await r.json().catch(() => ({}));
+        if (d.unlocked) {
+          showToast('Audit odomknutý! Plné výsledky sú dostupné.', 'success');
+          loadSeoAudit();
+          return;
+        }
+        if (!d.unlocked && d.boost_credits > 0) {
+          showToast('Boost token je pripravený. Spustite audit a kliknite Odomknúť.', 'success');
+          loadSeoAudit();
+          return;
+        }
+      }
+    } catch { /* fallthrough to polling */ }
+  }
+
+  // Fallback: poll until webhook fires (max 12s)
+  showToast('Overujem platbu…', 'success');
+  let attempts = 0;
+  const poll = async () => {
+    attempts++;
+    try {
+      const r = await apiFetch('/api/seo/latest');
+      if (r && r.ok) {
+        const d = await r.json().catch(() => ({}));
+        if (d.has_boost) {
+          showToast('Audit odomknutý! Plné výsledky sú dostupné.', 'success');
+          loadSeoAudit();
+          return;
+        }
+        if ((d.boost_credits ?? 0) > 0) {
+          await unlockBoost();
+          return;
+        }
+      }
+    } catch { /* ignore */ }
+    if (attempts < 6) {
+      setTimeout(poll, 2000);
+    } else {
+      showToast('Growth Boost aktivovaný! Obnovte stránku ak nevidíte výsledky.', 'success');
+      loadSeoAudit();
+    }
+  };
+  setTimeout(poll, 1500);
+}

@@ -90,7 +90,7 @@ router.post('/checkout-boost', requireAuth, async (req, res) => {
 
     const from = req.body?.from === 'dashboard' ? 'dashboard' : 'onboarding';
     const successUrl = from === 'dashboard'
-      ? `${baseUrl}/dashboard?tab=seo&success_boost=1`
+      ? `${baseUrl}/dashboard?tab=seo&success_boost=1&session_id={CHECKOUT_SESSION_ID}`
       : `${baseUrl}/onboarding?success_boost=1&session_id={CHECKOUT_SESSION_ID}`;
     const cancelUrl = from === 'dashboard'
       ? `${baseUrl}/dashboard?tab=seo`
@@ -162,7 +162,20 @@ router.post('/webhook', async (req, res) => {
         const userId = session.metadata.userId;
         if (userId) {
           db.prepare('UPDATE users SET boost_credits = boost_credits + 1 WHERE id = ?').run(userId);
-          console.log(`[growth_boost] +1 credit for user ${userId}`);
+
+          // Auto-unlock the latest completed audit so user sees results immediately
+          const latestAudit = db.prepare(`
+            SELECT id FROM seo_audits
+            WHERE user_id = ? AND status = 'done' AND boost_unlocked = 0
+            ORDER BY completed_at DESC LIMIT 1
+          `).get(userId);
+          if (latestAudit) {
+            db.prepare('UPDATE seo_audits SET boost_unlocked = 1 WHERE id = ?').run(latestAudit.id);
+            db.prepare('UPDATE users SET boost_credits = boost_credits - 1 WHERE id = ?').run(userId);
+            console.log(`[growth_boost] auto-unlocked audit ${latestAudit.id} for user ${userId}`);
+          } else {
+            console.log(`[growth_boost] +1 credit for user ${userId} (no audit to auto-unlock)`);
+          }
         }
         break;
       }
