@@ -3986,11 +3986,11 @@ function updateSeoProgress() {
   // Logarithmic curve: fast start, slows near 90%
   const pct = Math.min(90, Math.round(100 * (1 - Math.exp(-elapsed / 28))));
   const steps = [
-    [0,  'Kontrolujem štruktúru stránky…'],
-    [20, 'Sťahujem podstránky…'],
-    [40, 'Analyzujem SEO faktory…'],
-    [65, 'Kontrolujem meta tagy a rýchlosť…'],
-    [80, 'Generujem odporúčania…'],
+    [0,  t('Kontrolujem štruktúru stránky…')],
+    [20, t('Sťahujem podstránky…')],
+    [40, t('Analyzujem SEO faktory…')],
+    [65, t('Kontrolujem meta tagy a rýchlosť…')],
+    [80, t('Generujem odporúčania…')],
   ];
   let label = steps[0][1];
   for (const [threshold, text] of steps) { if (pct >= threshold) label = text; }
@@ -4020,8 +4020,8 @@ function stopSeoProgressAnimation(done) {
     const labelEl = document.getElementById('seo-progress-label');
     if (bar) bar.style.width = '100%';
     if (pctEl) pctEl.textContent = '100 %';
-    if (stepEl) stepEl.textContent = 'Hotovo!';
-    if (labelEl) labelEl.textContent = 'Audit dokončený!';
+    if (stepEl) stepEl.textContent = t('Hotovo!');
+    if (labelEl) labelEl.textContent = t('Audit dokončený!');
   }
 }
 
