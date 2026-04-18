@@ -88,13 +88,21 @@ router.post('/checkout-boost', requireAuth, async (req, res) => {
       db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
     }
 
+    const from = req.body?.from === 'dashboard' ? 'dashboard' : 'onboarding';
+    const successUrl = from === 'dashboard'
+      ? `${baseUrl}/dashboard?tab=seo&success_boost=1`
+      : `${baseUrl}/onboarding?success_boost=1&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = from === 'dashboard'
+      ? `${baseUrl}/dashboard?tab=seo`
+      : `${baseUrl}/onboarding?step=5`;
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'payment',
-      success_url: `${baseUrl}/onboarding?success_boost=1&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/onboarding?step=5`,
+      success_url: successUrl,
+      cancel_url: cancelUrl,
       locale: 'sk',
       metadata: { type: 'growth_boost', userId: user.id },
     });

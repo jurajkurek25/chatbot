@@ -3969,10 +3969,8 @@ async function loadSeoAudit() {
     const d = await r.json();
 
     document.getElementById('seo-locked-banner').style.display = d.has_boost ? 'none' : '';
-    ['btn-dl-wp','btn-dl-html','btn-dl-schema','btn-dl-llms'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = d.has_boost ? '' : 'none';
-    });
+    const dlBtns = document.getElementById('seo-dl-btns');
+    if (dlBtns) dlBtns.style.display = d.has_boost ? 'flex' : 'none';
 
     if (!d.audit) {
       document.getElementById('seo-no-audit').style.display = '';
@@ -4071,7 +4069,7 @@ function renderSeoResult(audit, hasBoost) {
           <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.7);border-radius:8px;text-align:center;padding:1rem">
             <div style="font-weight:700;font-size:1rem;margin-bottom:0.25rem">🔒 + ďalších ${remaining} problémov</div>
             <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.75rem">Odomknite plný audit + hotové opravy cez Growth Boost</div>
-            <button class="btn btn-primary btn-sm" onclick="window.location.href='/onboarding?step=5'">Aktivovať Growth Boost – €49</button>
+            <button class="btn btn-primary btn-sm" onclick="buyBoost()">💳 Aktivovať Growth Boost – €49</button>
           </div>
         </div>` : ''}
     `;
@@ -4099,7 +4097,7 @@ function renderSeoResult(audit, hasBoost) {
             <div>
               <div style="font-weight:600">${escHtml(f.issue)}</div>
               <div style="color:#64748b;margin-top:0.15rem">${escHtml(f.suggestion)}</div>
-              ${p.ai_fix ? `<div style="margin-top:0.35rem;font-size:0.78rem;color:#2563eb">✨ AI: <em>${escHtml(f.type === 'title' ? (p.ai_fix.title || '') : f.type === 'description' ? (p.ai_fix.description || '') : '')}</em></div>` : ''}
+              ${p.ai_fix && (f.type === 'title' || f.type === 'description') ? `<div style="margin-top:0.35rem;font-size:0.78rem;color:#2563eb">✨ AI návrh: <em>${escHtml(f.type === 'title' ? (p.ai_fix.title || '') : (p.ai_fix.description || ''))}</em></div>` : ''}
             </div>
           </div>`).join('')
       }
@@ -4159,11 +4157,35 @@ async function downloadSeoFix(type) {
   }
 }
 
-// Handle ?tab=seo URL param on dashboard load
+async function buyBoost() {
+  try {
+    const r = await apiFetch('/api/stripe/checkout-boost', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'dashboard' })
+    });
+    if (!r) throw new Error('Sieťová chyba');
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Chyba');
+    if (d.url) window.location.href = d.url;
+  } catch (err) {
+    showToast(err.message || 'Chyba pri platbe.', 'error');
+  }
+}
+
+// Handle ?tab=seo and ?success_boost=1 URL params on dashboard load
 (function() {
   const p = new URLSearchParams(location.search);
-  if (p.get('tab') === 'seo') {
+  const isSeo = p.get('tab') === 'seo';
+  const isBoostSuccess = p.get('success_boost') === '1';
+
+  if (isSeo || isBoostSuccess) {
     window.history.replaceState({}, '', '/dashboard');
-    document.addEventListener('DOMContentLoaded', () => showView('seo'), { once: true });
+    document.addEventListener('DOMContentLoaded', () => {
+      showView('seo');
+      if (isBoostSuccess) {
+        showToast('Growth Boost aktivovaný! Sťahujte opravy nižšie.', 'success');
+      }
+    }, { once: true });
   }
 })();
