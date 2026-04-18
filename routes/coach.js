@@ -133,6 +133,7 @@ Neoworkly je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvoria 
 - Krok 2: Znalostná báza (nahranie obsahu alebo skenovanie URL)
 - Krok 3: Otázky & CTA (navrhované otázky + typ výzvy k akcii)
 - Krok 4: Embed kód (vloženie na web)
+- Krok 5: Growth Boost — SEO audit webu (voliteľný, €49 jednorazovo)
 
 12. WORDPRESS PLUGIN
 - Plugin: Neoworkly Chatbot plugin (neoworkly-chatbot.zip)
@@ -298,6 +299,74 @@ H) TÍM
 - Správa: Integrácie → Tím → Pozvať člena → zadajte email
 - Odstránenie člena: tlačidlo koša pri danom členovi
 
+19. SEO AUDIT & GROWTH BOOST — "Privedenie návštevníkov na web"
+
+━━━ ČO JE SEO (vysvetlenie pre každého) ━━━
+SEO (Search Engine Optimization) je jednoducho povedané: keď niekto napíše do Googlu "kaderník Bratislava" alebo "účtovník Košice", Google rozhodne kto sa zobrazí na prvom mieste a kto až na piatej strane. SEO je práca na tom, aby to bol práve VÁŠ web — nie konkurencia.
+
+Bez SEO máte krásny web aj skvelý chatbot, ale návštevníci k vám jednoducho nedôjdu — lebo vás Google neukáže.
+
+━━━ PREPOJENIE S CHATBOTOM ━━━
+Chatbot a SEO tvoria dokonalú dvojicu:
+1. SEO privedie návštevníka na váš web (z Googlu, z AI asistentov ako ChatGPT či Google AI Overviews)
+2. Chatbot ho privíta, odpovie na otázky a premení ho na zákazníka alebo lead
+
+Bez SEO: chatbot čaká, ale nikto nepríde.
+Bez chatbota: návštevník príde, ale odíde bez toho aby zanechal kontakt.
+Spolu: kompletný systém — od prvého kliknutia až po uzavretý obchod.
+
+━━━ ČO SEO AUDIT KONTROLUJE (15+ faktorov) ━━━
+Technické základy:
+- HTTPS (zabezpečené spojenie — Google penalizuje weby bez neho)
+- robots.txt (súbor ktorý hovorí Googlu čo môže a nemôže indexovať)
+- sitemap.xml (mapa webu pre Google — bez nej Google ťažšie objavuje stránky)
+- Rýchlosť načítania (Core Web Vitals via Google PageSpeed — pomalý web = nižšia pozícia)
+
+Obsah stránok:
+- Meta title a description (titulok a popis v Google výsledkoch — kľúčové pre kliknutie)
+- H1/H2/H3 nadpisy (štruktúra obsahu — Google ich číta podobne ako obsah knihy)
+- Počet slov / thin content (málo textu = Google stránku neohodnotí ako hodnotnú)
+- Duplikátne titulky/popisy (každá stránka musí byť unikátna)
+- noindex meta tag (stránka explicitne blokujúca Google)
+
+AEO/GEO — optimalizácia pre AI asistentov:
+- Schema.org štruktúrované dáta (JSON-LD) — vďaka nim ChatGPT, Claude a Google AI vedia kto ste, čo predávate, kde ste
+- llms.txt — nový štandard súboru ktorý hovorí AI agentom o vašom biznise (podobne ako robots.txt pre Google)
+- FAQ nadpisy (H2 s otázkami) — AI asistenti ich prioritizujú pri odpovediach na otázky používateľov
+
+Autorita domény (DataForSEO):
+- Domain Rank — sila vašej domény voči konkurencii (čím vyššie, tým lepšia pozícia)
+- Počet backlinkov — koľko iných webov odkazuje na vás (odporúčania pre Google)
+- Nefunkčné backlinky — mŕtve odkazy kazia reputáciu domény
+
+━━━ GROWTH BOOST — ČO DOSTANE ZÁKAZNÍK ━━━
+Cena: €49 jednorazovo (nie mesačne)
+
+Po zaplatení sa odomknú 4 automatické opravy:
+1. WordPress fix (PHP plugin) — stiahnete PHP súbor, nahráte do WordPressu → automaticky opraví meta titulky, popisy a vloží Schema.org
+2. HTML fix — hotový HTML kód s meta tagmi a Schema.org pre statické weby (Webflow, Squarespace, vlastný HTML)
+3. Schema.org snippet — samostatný JSON-LD kód vhodný pre akýkoľvek web; AI ho generuje podľa obsahu stránky (rozpozná či ide o reštauráciu, e-shop, poradcu atď.)
+4. llms.txt súbor — text pre AI asistentov (ChatGPT, Claude, Perplexity) aby správne odporúčali váš biznis
+
+Výsledok: po implementácii opráv Google aj AI asistenti lepšie pochopia váš web → vyššia pozícia v Googli → viac návštevníkov → viac zákazníkov pre váš chatbot.
+
+━━━ KTO BY MAL GROWTH BOOST VYUŽIŤ ━━━
+Odporúčajte Growth Boost keď zákazník:
+- Hovorí, že má málo návštevníkov na webe
+- Pýta sa ako dostať viac zákazníkov
+- Chce byť viditeľný na Googli alebo v ChatGPT/Claude
+- Má WordPress alebo vlastný web a chce ho zlepšiť bez platenia agentúry
+- Chce vedieť "čo je s mojím webom nie v poriadku"
+
+Argument pre zákazníka: "SEO agentúra stojí €300–1500/mesiac. Náš audit s AI opravami urobí to isté za jednorazových €49 — a máte hotovo do hodiny."
+
+━━━ AKO FUNGUJE (postup) ━━━
+1. Dashboard → záložka "📈 SEO Audit"
+2. Zadajte URL webu → Spustiť audit
+3. Audit prebehne automaticky (2–5 minút) — skenuje až 8 stránok webu
+4. Výsledky: SEO skóre 0–100, zoznam problémov, odporúčania
+5. Ak chcete AI opravy: kliknite "Získať Growth Boost za €49" → platba cez Stripe → okamžitý prístup k stiahnutiu opráv
+
 ━━━ ČASTÉ PROBLÉMY A RIEŠENIA ━━━
 
 Chatbot nič nevie / odpovedá nesprávne:
@@ -356,6 +425,30 @@ Follow-up email sa neodoslal:
 
 A/B test neukazuje žiadne štatistiky:
 → Trendy vyžadujú aspoň niekoľko konverzácií. Skontrolujte, že A/B test je zapnutý v Integráciách a že oba texty (A aj B) sú vyplnené. Štatistiky vidíte v záložke Trendy → sekcia A/B Test.
+
+SEO audit nenájde záložku / "SEO Audit" sa nezobrazuje:
+→ Záložka "📈 SEO Audit" je v ľavom menu dashboardu. Ak ju nevidíte, skontrolujte či máte aktívne predplatné. Audit je dostupný pre všetkých platiacich zákazníkov.
+
+SEO audit beží príliš dlho / zasekol sa:
+→ Audit skenuje až 8 stránok webu a môže trvať 2–5 minút. Ak trvá dlhšie ako 10 minút, stránka sa mohla stať nedostupnou alebo má neobvyklú štruktúru. Skúste spustiť nový audit.
+
+Stiahnutie opráv (WordPress/HTML/Schema/llms.txt) nefunguje:
+→ Opravy sú dostupné len po zakúpení Growth Boost (€49). Tlačidlo "Získať Growth Boost" sa zobrazí pod výsledkami auditu. Po platbe sa stránka automaticky obnoví a tlačidlá na stiahnutie sa aktivujú.
+
+Aký je rozdiel medzi WordPress fix a HTML fix?
+→ WordPress fix je PHP súbor (plugin) — nahráte ho cez WordPress admin → Pluginy → Nahrať plugin. Automaticky opraví meta tagy na celom webe. HTML fix je pre weby bez WordPressu (Webflow, vlastný HTML) — dostanete kód na ručné vloženie do hlavičky každej stránky.
+
+Čo je Schema.org a prečo je dôležité?
+→ Schema.org je "štítok" pre váš web — hovorí Googlu aj AI asistentom presne kto ste (napr. reštaurácia, advokát, e-shop), kde sídlite, čo predávate a ako vás kontaktovať. Vďaka tomu vás Google môže zobrazovať v rozšírených výsledkoch (hviezdičkové hodnotenia, otváracie hodiny priamo vo výsledkoch) a ChatGPT či Claude vás správne odporučí keď sa niekto pýta na služby vo vašom odbore.
+
+Čo je llms.txt?
+→ llms.txt je nový súbor (podobne ako robots.txt pre Google) ale špeciálne pre AI asistentov — ChatGPT, Claude, Perplexity. Keď tieto AI systémy navštívia váš web alebo dostanú otázku o vašom odbore, llms.txt im hovorí kto ste a čo ponúkate. Váš vygenerovaný llms.txt nahráte do root adresára webu (napr. vasestranka.sk/llms.txt).
+
+PageSpeed skóre je nízke — čo mám robiť?
+→ Nízke PageSpeed skóre (pod 50) znamená pomalý web. Najčastejšie príčiny: veľké obrázky (komprimujte na WebP), zbytočné pluginy (WordPress), pomalý hosting. Growth Boost obsahuje odporúčania pre konkrétne problémy nájdené pri audite. Pre hlbšiu optimalizáciu rýchlosti odporúčame Cloudflare (zadarmo) alebo upgrade hostingu.
+
+Domain Rank je nízky — čo to znamená?
+→ Domain Rank (DataForSEO metrika) ukazuje silu vašej domény — čím vyšší (max 100), tým lepšie. Nový web má prirodzene nízky rank. Zlepšuje sa získavaním kvalitných backlinkov (iné weby ktoré odkazujú na vás) — napr. zápisom do firemných katalógov (Zlaté stránky, Firmy.sk, Google Business Profile), článkami v odborných médiách, spoluprácou s partnermi.
 
 WooCommerce import zlyhal:
 → Skontrolujte URL obchodu (musí byť https, bez lomítka na konci). Consumer Key a Secret nájdete v WooCommerce → Nastavenia → Pokročilé → REST API → Pridať kľúč (oprávnenie: Čítať). Firewall obchodu nesmie blokovať externé požiadavky.
