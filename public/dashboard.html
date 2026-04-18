@@ -366,10 +366,21 @@
           <button class="btn btn-primary" onclick="openSeoScanModal()">+ Nový sken</button>
         </div>
 
-        <div id="seo-running-banner" style="display:none;align-items:center;gap:0.75rem;padding:1rem 1.5rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;margin-bottom:1.25rem;font-size:0.875rem;color:#1d4ed8">
-          <span>⏳</span>
-          <span>SEO analýza prebieha… Táto stránka sa automaticky obnoví.</span>
+        <div id="seo-running-banner" style="display:none;flex-direction:column;gap:0.75rem;padding:1.25rem 1.5rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;margin-bottom:1.25rem">
+          <div style="display:flex;align-items:center;gap:0.75rem">
+            <div id="seo-progress-spinner" style="width:20px;height:20px;border:3px solid #bfdbfe;border-top-color:#2563eb;border-radius:50%;animation:spin 0.9s linear infinite;flex-shrink:0"></div>
+            <div style="flex:1">
+              <div style="font-size:0.875rem;font-weight:600;color:#1e40af" id="seo-progress-label">Analyzujem váš web…</div>
+              <div style="font-size:0.78rem;color:#3b82f6;margin-top:0.1rem" id="seo-progress-url"></div>
+            </div>
+            <div style="font-size:0.78rem;font-weight:600;color:#2563eb;white-space:nowrap" id="seo-progress-pct">0 %</div>
+          </div>
+          <div style="height:8px;background:#dbeafe;border-radius:99px;overflow:hidden">
+            <div id="seo-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#60a5fa);border-radius:99px;transition:width 1s ease"></div>
+          </div>
+          <div style="font-size:0.75rem;color:#60a5fa" id="seo-progress-step">Kontrolujem štruktúru stránky…</div>
         </div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
         <div id="seo-no-audit" style="display:none;text-align:center;padding:4rem 1rem;color:#94a3b8">
           <div style="font-size:3rem;margin-bottom:0.75rem">🔍</div>
@@ -2262,7 +2273,7 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=11"></script>
+<script src="/js/dashboard.js?v=12"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

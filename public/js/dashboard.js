@@ -3977,49 +3977,116 @@ async function doChangeEmail() {
 let seoAuditId = null;
 let seoPolling = null;
 let seoBoostCredits = 0;
+let seoScanStartTime = null;
+let seoProgressTimer = null;
+
+function updateSeoProgress() {
+  if (!seoScanStartTime) return;
+  const elapsed = (Date.now() - seoScanStartTime) / 1000;
+  // Logarithmic curve: fast start, slows near 90%
+  const pct = Math.min(90, Math.round(100 * (1 - Math.exp(-elapsed / 28))));
+  const steps = [
+    [0,  'Kontrolujem štruktúru stránky…'],
+    [20, 'Sťahujem podstránky…'],
+    [40, 'Analyzujem SEO faktory…'],
+    [65, 'Kontrolujem meta tagy a rýchlosť…'],
+    [80, 'Generujem odporúčania…'],
+  ];
+  let label = steps[0][1];
+  for (const [threshold, text] of steps) { if (pct >= threshold) label = text; }
+  const bar = document.getElementById('seo-progress-bar');
+  const pctEl = document.getElementById('seo-progress-pct');
+  const stepEl = document.getElementById('seo-progress-step');
+  if (bar) bar.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + ' %';
+  if (stepEl) stepEl.textContent = label;
+}
+
+function startSeoProgressAnimation(url) {
+  clearInterval(seoProgressTimer);
+  const urlEl = document.getElementById('seo-progress-url');
+  if (urlEl) urlEl.textContent = url || '';
+  seoProgressTimer = setInterval(updateSeoProgress, 1000);
+  updateSeoProgress();
+}
+
+function stopSeoProgressAnimation(done) {
+  clearInterval(seoProgressTimer);
+  seoProgressTimer = null;
+  if (done) {
+    const bar = document.getElementById('seo-progress-bar');
+    const pctEl = document.getElementById('seo-progress-pct');
+    const stepEl = document.getElementById('seo-progress-step');
+    const labelEl = document.getElementById('seo-progress-label');
+    if (bar) bar.style.width = '100%';
+    if (pctEl) pctEl.textContent = '100 %';
+    if (stepEl) stepEl.textContent = 'Hotovo!';
+    if (labelEl) labelEl.textContent = 'Audit dokončený!';
+  }
+}
 
 async function loadSeoAudit() {
   clearTimeout(seoPolling);
-  // Show loading state while fetching
-  document.getElementById('seo-no-audit').style.display = 'none';
-  document.getElementById('seo-running-banner').style.display = 'none';
-  document.getElementById('seo-result-wrap').innerHTML =
-    '<div style="text-align:center;padding:3rem 1rem;color:#94a3b8"><div style="font-size:2rem;margin-bottom:0.5rem">⏳</div><div>Načítavam audit...</div></div>';
+  const banner = document.getElementById('seo-running-banner');
+  const noAudit = document.getElementById('seo-no-audit');
+  const resultWrap = document.getElementById('seo-result-wrap');
+
+  // Only show the spinner placeholder when not already showing progress banner
+  if (banner.style.display === 'none' || !banner.style.display) {
+    noAudit.style.display = 'none';
+    resultWrap.innerHTML =
+      '<div style="text-align:center;padding:3rem 1rem;color:#94a3b8"><div style="font-size:2rem;margin-bottom:0.5rem">⏳</div><div>Načítavam audit...</div></div>';
+  }
+
   try {
     const r = await apiFetch('/api/seo/latest');
+    resultWrap.innerHTML = '';
+
     if (!r || !r.ok) {
-      document.getElementById('seo-result-wrap').innerHTML = '';
-      document.getElementById('seo-no-audit').style.display = '';
+      stopSeoProgressAnimation(false);
+      banner.style.display = 'none';
+      noAudit.style.display = '';
       return;
     }
     const ct = r.headers.get('content-type') || '';
     if (!ct.includes('application/json')) {
-      document.getElementById('seo-result-wrap').innerHTML = '';
-      document.getElementById('seo-no-audit').style.display = '';
+      stopSeoProgressAnimation(false);
+      banner.style.display = 'none';
+      noAudit.style.display = '';
       return;
     }
     const d = await r.json();
-    document.getElementById('seo-result-wrap').innerHTML = '';
 
     seoBoostCredits = d.boost_credits ?? 0;
 
     if (!d.audit) {
-      document.getElementById('seo-no-audit').style.display = '';
-      document.getElementById('seo-running-banner').style.display = 'none';
+      stopSeoProgressAnimation(false);
+      banner.style.display = 'none';
+      noAudit.style.display = '';
       return;
     }
 
     seoAuditId = d.audit.id;
-    document.getElementById('seo-no-audit').style.display = 'none';
+    noAudit.style.display = 'none';
 
     if (d.audit.status === 'running') {
-      document.getElementById('seo-running-banner').style.display = 'flex';
-      document.getElementById('seo-result-wrap').innerHTML = '';
+      banner.style.display = 'flex';
+      // If page refreshed mid-scan, start timer from now (we lost original start time)
+      if (!seoScanStartTime) seoScanStartTime = Date.now();
+      if (!seoProgressTimer) startSeoProgressAnimation(d.audit.url);
       seoPolling = setTimeout(loadSeoAudit, 4000);
       return;
     }
 
-    document.getElementById('seo-running-banner').style.display = 'none';
+    // Done — flash to 100% then render
+    if (seoProgressTimer || seoScanStartTime) {
+      stopSeoProgressAnimation(true);
+      banner.style.display = 'flex';
+      await new Promise(res => setTimeout(res, 700));
+    }
+    banner.style.display = 'none';
+    stopSeoProgressAnimation(false);
+    seoScanStartTime = null;
     renderSeoResult(d.audit, d.has_boost, seoBoostCredits);
   } catch { /* ignore */ }
 }
@@ -4241,9 +4308,18 @@ async function startSeoScan() {
     const d = await r.json().catch(() => ({}));
     if (!r.ok) throw new Error(d.error || 'Chyba');
     seoAuditId = d.audit_id;
+    seoScanStartTime = Date.now();
     closeSeoScanModal();
     document.getElementById('seo-scan-input').value = '';
     showToast('SEO analýza spustená!', 'success');
+    // Show banner immediately and start animation before first poll
+    const banner = document.getElementById('seo-running-banner');
+    if (banner) {
+      banner.style.display = 'flex';
+      const urlEl = document.getElementById('seo-progress-url');
+      if (urlEl) urlEl.textContent = url;
+    }
+    startSeoProgressAnimation(url);
     loadSeoAudit();
   } catch (err) {
     showToast(err.message, 'error');
