@@ -54,6 +54,7 @@ router.get('/leads/all', (req, res) => {
     SELECT l.id, l.name, l.email, l.phone, l.status, l.notes, l.chat_summary,
            l.gdpr_consent, l.created_at, l.widget_id, l.csat_rating,
            l.follow_up_sent_at, l.ab_variant,
+           l.deal_value, l.converted_at, l.last_reactivation_at, l.reactivation_count,
            w.name AS widget_name, w.bot_name
     FROM leads l
     JOIN widgets w ON w.id = l.widget_id

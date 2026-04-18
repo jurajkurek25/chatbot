@@ -29,6 +29,12 @@
       <button class="nav-item" onclick="showView('coach')" id="nav-coach">
         <span class="nav-icon">🎓</span> AI Coach
       </button>
+      <button class="nav-item" onclick="showView('money')" id="nav-money">
+        <span class="nav-icon">💰</span> Money Mode
+      </button>
+      <button class="nav-item" onclick="showView('reactivation')" id="nav-reactivation">
+        <span class="nav-icon">🔁</span> Lead Reaktivácia
+      </button>
       <button class="nav-item" onclick="showView('seo')" id="nav-seo">
         <span class="nav-icon">🚀</span> SEO Audit
       </button>
@@ -184,6 +190,50 @@
 
           <div id="leads-list"></div>
           <div id="leads-kanban" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- ── View: Money Mode ──────────────────────── -->
+      <div id="view-money" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
+          <div>
+            <h2 style="margin:0 0 0.25rem;font-size:1.35rem;font-weight:800">💰 Money Mode</h2>
+            <p style="margin:0;color:#64748b;font-size:0.875rem">Sledujte koľko vám Neoworkly skutočne zarobil</p>
+          </div>
+          <button class="btn btn-secondary" onclick="loadMoneyStats()">↺ Obnoviť</button>
+        </div>
+        <div id="money-content">
+          <div style="text-align:center;padding:3rem 1rem;color:#94a3b8">
+            <div style="font-size:2rem;margin-bottom:0.5rem">⏳</div>
+            <div>Načítavam...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── View: Lead Reaktivácia ─────────────────── -->
+      <div id="view-reactivation" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
+          <div>
+            <h2 style="margin:0 0 0.25rem;font-size:1.35rem;font-weight:800">🔁 Lead Reaktivácia</h2>
+            <p style="margin:0;color:#64748b;font-size:0.875rem">Reaktivuj existujúcich leadov bez nového trafficu — najlacnejší spôsob ako rásť</p>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;flex-wrap:wrap">
+          <span style="font-size:0.82rem;color:#64748b;font-weight:600">Leady bez odpovede viac ako:</span>
+          <div style="display:flex;gap:0.35rem">
+            <button id="react-filter-1" class="btn btn-secondary btn-sm" onclick="loadColdLeads(1)">1 hod</button>
+            <button id="react-filter-24" class="btn btn-primary btn-sm" onclick="loadColdLeads(24)">24 hod</button>
+            <button id="react-filter-72" class="btn btn-secondary btn-sm" onclick="loadColdLeads(72)">3 dni</button>
+            <button id="react-filter-168" class="btn btn-secondary btn-sm" onclick="loadColdLeads(168)">7 dní</button>
+          </div>
+        </div>
+
+        <div id="reactivation-content">
+          <div style="text-align:center;padding:3rem 1rem;color:#94a3b8">
+            <div style="font-size:2rem;margin-bottom:0.5rem">⏳</div>
+            <div>Načítavam...</div>
+          </div>
         </div>
       </div>
 
@@ -1766,6 +1816,52 @@
     <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
       <button class="btn btn-secondary" onclick="closeFollowupModal()">Zrušiť</button>
       <button class="btn btn-primary" id="followup-send-btn" onclick="sendFollowupEmail()">Odoslať</button>
+    </div>
+  </div>
+</div>
+
+<!-- Convert Lead Modal -->
+<div id="modal-convert" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;padding:0.75rem" onclick="if(event.target===this)closeConvertModal()">
+  <div class="modal-box" style="max-width:400px;width:100%" onclick="event.stopPropagation()">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:0.25rem">💰 Označiť ako konverziu</h2>
+    <div id="convert-lead-name" style="font-size:0.82rem;color:#64748b;margin-bottom:1rem"></div>
+    <input type="hidden" id="convert-lead-id">
+    <div class="form-group">
+      <label class="form-label">Hodnota obchodu (€)</label>
+      <input type="number" class="form-control" id="convert-deal-value" placeholder="napr. 250" min="0" step="0.01">
+      <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.35rem">Ak nevieš presnú sumu, zadaj odhadovanú hodnotu.</div>
+    </div>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="closeConvertModal()">Zrušiť</button>
+      <button class="btn btn-danger btn-sm" id="convert-remove-btn" style="display:none" onclick="saveConversion(true)">Zrušiť konverziu</button>
+      <button class="btn btn-primary" onclick="saveConversion(false)">💰 Uložiť</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reactivation Preview Modal -->
+<div id="modal-reactivation" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;padding:0.75rem" onclick="if(event.target===this)closeReactivationModal()">
+  <div class="modal-box" style="max-width:520px;width:100%" onclick="event.stopPropagation()">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:0.25rem" id="react-modal-title">✨ AI správa</h2>
+    <div id="react-modal-meta" style="font-size:0.82rem;color:#64748b;margin-bottom:1rem"></div>
+    <input type="hidden" id="react-lead-id">
+    <div id="react-modal-loading" style="text-align:center;padding:2rem;color:#64748b">
+      <div style="font-size:1.5rem;margin-bottom:0.5rem">✨</div>
+      <div style="font-size:0.875rem">AI generuje správu...</div>
+    </div>
+    <div id="react-modal-body" style="display:none">
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Správa (môžeš upraviť)</span>
+          <button class="btn btn-secondary btn-sm" onclick="regenerateReactivation()">↺ Regenerovať</button>
+        </label>
+        <textarea id="react-message" class="form-control" rows="6"></textarea>
+      </div>
+      <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:1rem">Správa bude odoslaná z tvojho emailu (SMTP) na adresu zákazníka.</div>
+      <div style="display:flex;gap:0.75rem;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="closeReactivationModal()">Zrušiť</button>
+        <button class="btn btn-primary" id="react-send-btn" onclick="sendReactivation()">📧 Odoslať email</button>
+      </div>
     </div>
   </div>
 </div>

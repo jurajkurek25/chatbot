@@ -123,19 +123,16 @@ function renderUserInfo() {
 /* ── Views ─────────────────────────────────────────────────────── */
 function showView(view) {
   closeMobileSidebar();
-  document.getElementById('view-widgets').style.display = view === 'widgets' ? '' : 'none';
-  document.getElementById('view-editor').style.display = view === 'editor' ? '' : 'none';
-  document.getElementById('view-leads').style.display = view === 'leads' ? '' : 'none';
-  document.getElementById('view-affiliate').style.display = view === 'affiliate' ? '' : 'none';
-  document.getElementById('view-coach').style.display = view === 'coach' ? '' : 'none';
-  document.getElementById('view-seo').style.display = view === 'seo' ? '' : 'none';
+  const views = ['widgets','editor','leads','affiliate','coach','seo','money','reactivation'];
+  views.forEach(v => {
+    const el = document.getElementById(`view-${v}`);
+    if (el) el.style.display = v === view ? '' : 'none';
+  });
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
-  document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
-  document.getElementById('nav-leads').classList.toggle('active', view === 'leads');
-  document.getElementById('nav-affiliate').classList.toggle('active', view === 'affiliate');
-  document.getElementById('nav-coach').classList.toggle('active', view === 'coach');
-  document.getElementById('nav-seo').classList.toggle('active', view === 'seo');
+  ['widgets','leads','affiliate','coach','seo','money','reactivation'].forEach(v => {
+    document.getElementById(`nav-${v}`)?.classList.toggle('active', v === view);
+  });
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
@@ -161,6 +158,16 @@ function showView(view) {
     document.getElementById('topbar-title').textContent = 'SEO Audit';
     document.getElementById('topbar-actions').innerHTML = '';
     loadSeoAudit();
+  }
+  if (view === 'money') {
+    document.getElementById('topbar-title').textContent = 'Money Mode';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadMoneyStats();
+  }
+  if (view === 'reactivation') {
+    document.getElementById('topbar-title').textContent = 'Lead Reaktivácia';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadColdLeads(24);
   }
 }
 
@@ -1128,9 +1135,13 @@ function renderLeads() {
     const csatHtml = lead.csat_rating
       ? `<span style="font-size:0.8rem;color:#f59e0b;margin-left:0.35rem" title="CSAT hodnotenie">${'★'.repeat(lead.csat_rating)}${'☆'.repeat(5 - lead.csat_rating)}</span>`
       : '';
+    const conversionBadge = lead.converted_at
+      ? `<span style="font-size:0.77rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:99px;background:#dcfce7;color:#15803d;margin-left:0.35rem">💰 €${Number(lead.deal_value || 0).toLocaleString('sk')}</span>`
+      : '';
     const followUpHtml = lead.follow_up_sent_at
       ? `<span style="font-size:0.72rem;color:#16a34a;white-space:nowrap">✅ Follow-up odoslaný</span>`
       : `<button class="btn btn-sm btn-secondary" style="font-size:0.75rem;white-space:nowrap" onclick="openFollowupModal('${lead.widgetId}','${lead.id}','${esc(lead.name)}','${esc(lead.email)}')">📧 Follow-up</button>`;
+    const convertHtml = `<button class="btn btn-sm btn-secondary" style="font-size:0.75rem;white-space:nowrap;${lead.converted_at ? 'color:#15803d;border-color:#bbf7d0' : ''}" onclick="openConvertModal('${lead.id}','${esc(lead.name)}',${lead.deal_value ?? 'null'},${lead.converted_at ? 'true' : 'false'})">${lead.converted_at ? '💰 Zmeniť' : '💰 Konverzia'}</button>`;
 
     return `
       <div class="lead-card" id="lead-${lead.id}">
@@ -1142,6 +1153,7 @@ function renderLeads() {
                 <span class="lead-name">${esc(lead.name)}</span>
                 <span class="lead-status-badge ${statusInfo.cls}">${statusInfo.label}</span>
                 ${csatHtml}
+                ${conversionBadge}
               </div>
               <div class="lead-meta">
                 <a class="lead-meta-item" href="mailto:${esc(lead.email)}">✉️ ${esc(lead.email)}</a>
@@ -1168,6 +1180,7 @@ function renderLeads() {
               <option value="closed" ${status === 'closed' ? 'selected' : ''}>🟢 Uzavretý</option>
             </select>
             ${followUpHtml}
+            ${convertHtml}
           </div>
           <div class="lead-notes-row">
             <textarea class="lead-notes-input" id="notes-${lead.id}" rows="2"
@@ -4325,4 +4338,287 @@ async function handleBoostSuccess(sessionId) {
     }
   };
   setTimeout(poll, 1500);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Money Mode
+══════════════════════════════════════════════════════════════ */
+
+async function loadMoneyStats() {
+  document.getElementById('money-content').innerHTML =
+    '<div style="text-align:center;padding:3rem 1rem;color:#94a3b8"><div style="font-size:2rem;margin-bottom:0.5rem">⏳</div><div>Načítavam...</div></div>';
+  try {
+    const r = await apiFetch('/api/money/stats');
+    if (!r || !r.ok) return;
+    const d = await r.json();
+    renderMoneyStats(d);
+  } catch { /* ignore */ }
+}
+
+function renderMoneyStats(d) {
+  const wrap = document.getElementById('money-content');
+  const hasData = d.total_conversions > 0;
+  let html = '';
+
+  // ROI headline
+  if (d.roi_multiple && d.roi_multiple >= 1) {
+    html += `<div style="padding:1.25rem 1.5rem;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #bbf7d0;border-radius:12px;margin-bottom:1rem">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#15803d;margin-bottom:0.35rem">📈 ROI tohto mesiaca</div>
+      <div style="font-size:1.15rem;font-weight:800;color:#14532d">Za tento mesiac ti Neoworkly zarobil <span style="color:#15803d">€${d.total_revenue.toLocaleString('sk')}</span> — to je <span style="color:#15803d">${d.roi_multiple}×</span> viac než stojí predplatné</div>
+    </div>`;
+  }
+
+  // KPI grid
+  const kpiColor = (val) => val ? '#1e293b' : '#94a3b8';
+  html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1rem">
+    <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:${d.total_revenue > 0 ? '#15803d' : '#94a3b8'}">€${d.total_revenue.toLocaleString('sk')}</div>
+      <div style="font-size:0.72rem;color:#64748b;margin-top:0.2rem">Zarobené</div>
+    </div>
+    <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:${kpiColor(d.total_conversions)}">${d.total_conversions}</div>
+      <div style="font-size:0.72rem;color:#64748b;margin-top:0.2rem">Konverzie</div>
+    </div>
+    <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:${kpiColor(d.conversion_rate)}">${d.conversion_rate}%</div>
+      <div style="font-size:0.72rem;color:#64748b;margin-top:0.2rem">Conversion rate</div>
+    </div>
+    <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:${d.revenue_per_credit ? '#2563eb' : '#94a3b8'}">${d.revenue_per_credit ? '€' + d.revenue_per_credit : '—'}</div>
+      <div style="font-size:0.72rem;color:#64748b;margin-top:0.2rem">/ 1 kredit</div>
+    </div>
+  </div>`;
+
+  // Missed revenue alert
+  if (d.missed_revenue) {
+    html += `<div style="padding:1rem 1.5rem;background:#fef3c7;border:1px solid #fbbf24;border-radius:12px;margin-bottom:1rem;display:flex;align-items:flex-start;gap:0.75rem">
+      <span style="font-size:1.25rem;flex-shrink:0">⚠️</span>
+      <div>
+        <div style="font-size:0.875rem;font-weight:700;color:#92400e">Váš chatbot bol bez kreditov</div>
+        <div style="font-size:0.82rem;color:#92400e;margin-top:0.15rem">Odhadovaná strata: <strong>€${d.missed_revenue}</strong> za nevybavené konverzácie. Dobite kredity, aby chatbot neprichádzal o zákazníkov.</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:0.5rem" onclick="showView('widgets');setTimeout(()=>document.querySelector('[onclick*=credits]')?.click(),300)">Dobiť kredity →</button>
+      </div>
+    </div>`;
+  }
+
+  // Top conversions
+  if (d.top_conversions && d.top_conversions.length > 0) {
+    html += `<div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+      <div style="padding:0.75rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#475569">🏆 Posledné konverzie</div>
+      ${d.top_conversions.map(c => {
+        const date = c.converted_at ? new Date(c.converted_at * 1000).toLocaleDateString('sk') : '';
+        return `<div style="padding:0.75rem 1.25rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:flex-start;gap:0.75rem">
+          <div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;color:#15803d">${(c.name || '?').charAt(0).toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+              <span style="font-size:0.875rem;font-weight:600">${escHtml(c.name)}</span>
+              <span style="font-size:0.8rem;font-weight:700;color:#15803d">€${Number(c.deal_value || 0).toLocaleString('sk')}</span>
+              ${date ? `<span style="font-size:0.72rem;color:#94a3b8">${date}</span>` : ''}
+            </div>
+            ${c.chat_summary ? `<div style="font-size:0.78rem;color:#64748b;margin-top:0.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.chat_summary.slice(0, 100))}${c.chat_summary.length > 100 ? '…' : ''}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // Empty state / guide
+  if (!hasData) {
+    html += `<div style="padding:1.5rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:1rem">
+      <div style="font-size:0.875rem;font-weight:700;color:#374151;margin-bottom:0.5rem">📋 Ako začať sledovať ROI</div>
+      <ol style="font-size:0.82rem;color:#475569;padding-left:1.25rem;line-height:2">
+        <li>Choď do <strong>Kontakty</strong> — nájdi lead, ktorý si konvertoval na zákazníka</li>
+        <li>Klikni na tlačidlo <strong>💰 Konverzia</strong> a zadaj hodnotu obchodu</li>
+        <li>Vrát sa sem — uvidíš €/kredit, ROI multiple a ďalšie metriky</li>
+      </ol>
+    </div>`;
+  }
+
+  // CTA to reactivation
+  html += `<div style="padding:1.25rem 1.5rem;background:linear-gradient(135deg,#eff6ff,#f8fafc);border:1.5px solid #bfdbfe;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+    <div>
+      <div style="font-size:0.95rem;font-weight:700;color:#1e293b">Získaj +€300 z existujúcich leadov</div>
+      <div style="font-size:0.82rem;color:#475569;margin-top:0.1rem">Leady, čo ešte nekúpili, stačí správne osloviť — AI správu vygenerujeme za 10 sekúnd.</div>
+    </div>
+    <button class="btn btn-primary" onclick="showView('reactivation')">🔁 Reaktivovať leady →</button>
+  </div>`;
+
+  wrap.innerHTML = html;
+}
+
+/* ── Convert Modal ──────────────────────────────────────────────── */
+function openConvertModal(leadId, name, currentValue, alreadyConverted) {
+  document.getElementById('convert-lead-id').value = leadId;
+  document.getElementById('convert-lead-name').textContent = name;
+  document.getElementById('convert-deal-value').value = currentValue != null ? currentValue : '';
+  document.getElementById('convert-remove-btn').style.display = alreadyConverted ? '' : 'none';
+  document.getElementById('modal-convert').style.display = 'flex';
+  setTimeout(() => document.getElementById('convert-deal-value').focus(), 50);
+}
+
+function closeConvertModal() {
+  document.getElementById('modal-convert').style.display = 'none';
+}
+
+async function saveConversion(remove = false) {
+  const leadId = document.getElementById('convert-lead-id').value;
+  const dealValue = remove ? null : parseFloat(document.getElementById('convert-deal-value').value);
+  if (!remove && (isNaN(dealValue) || dealValue < 0)) {
+    showToast('Zadajte platnú sumu.', 'error'); return;
+  }
+  try {
+    const r = await apiFetch(`/api/money/${leadId}/convert`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deal_value: remove ? null : dealValue }),
+    });
+    if (!r || !r.ok) throw new Error('Chyba');
+    closeConvertModal();
+    showToast(remove ? 'Konverzia zrušená.' : `💰 Konverzia €${dealValue} uložená!`, 'success');
+    const lead = allLeads.find(l => l.id === leadId);
+    if (lead) {
+      lead.deal_value = remove ? null : dealValue;
+      lead.converted_at = remove ? null : Math.floor(Date.now() / 1000);
+    }
+    renderLeads();
+  } catch { showToast('Chyba pri ukladaní.', 'error'); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Lead Reactivation
+══════════════════════════════════════════════════════════════ */
+
+let _coldLeadsHours = 24;
+
+async function loadColdLeads(hours = 24) {
+  _coldLeadsHours = hours;
+  // Update filter button styles
+  [1, 24, 72, 168].forEach(h => {
+    const btn = document.getElementById(`react-filter-${h}`);
+    if (!btn) return;
+    btn.className = h === hours ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+  });
+
+  document.getElementById('reactivation-content').innerHTML =
+    '<div style="text-align:center;padding:3rem 1rem;color:#94a3b8"><div style="font-size:2rem;margin-bottom:0.5rem">⏳</div><div>Načítavam...</div></div>';
+  try {
+    const r = await apiFetch(`/api/reactivation/cold-leads?hours=${hours}`);
+    if (!r || !r.ok) return;
+    const d = await r.json();
+    renderColdLeads(d.leads || [], hours);
+  } catch { /* ignore */ }
+}
+
+function renderColdLeads(leads, hours) {
+  const wrap = document.getElementById('reactivation-content');
+  if (leads.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:#94a3b8">
+      <div style="font-size:2.5rem;margin-bottom:0.75rem">✅</div>
+      <div style="font-size:1rem;font-weight:600;color:#64748b;margin-bottom:0.3rem">Žiadne studené leady</div>
+      <div style="font-size:0.875rem">Všetky leady boli kontaktované v posledných ${hours} hod.</div>
+    </div>
+    ${reactInfoCard()}`;
+    return;
+  }
+
+  const hoursLabel = hours === 1 ? '1 hodinu' : hours === 24 ? '24 hodín' : hours === 72 ? '3 dni' : '7 dní';
+  let html = `<div style="font-size:0.82rem;color:#64748b;margin-bottom:0.75rem">${leads.length} lead${leads.length > 1 ? 'ov' : ''} bez odpovede viac ako ${hoursLabel}</div>`;
+
+  leads.forEach(lead => {
+    const hLabel = lead.hours_cold >= 168
+      ? `${Math.round(lead.hours_cold / 24)} dní`
+      : lead.hours_cold >= 24
+        ? `${Math.round(lead.hours_cold / 24)} dní`
+        : `${lead.hours_cold} hod`;
+    html += `<div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:0.75rem">
+      <div style="display:flex;align-items:flex-start;gap:0.75rem;flex-wrap:wrap">
+        <div style="flex-shrink:0;width:38px;height:38px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:700;color:#2563eb">${(lead.name || '?').charAt(0).toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.2rem">
+            <span style="font-size:0.9rem;font-weight:600;color:#1e293b">${escHtml(lead.name)}</span>
+            <span style="font-size:0.75rem;color:#94a3b8">🕐 ${hLabel} studenej</span>
+            ${lead.reactivation_count > 0 ? `<span style="font-size:0.72rem;color:#d97706;background:#fef3c7;padding:0.1rem 0.4rem;border-radius:4px">Reaktivovaný ${lead.reactivation_count}×</span>` : ''}
+          </div>
+          ${lead.chat_summary ? `<div style="font-size:0.8rem;color:#64748b;margin-bottom:0.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(lead.chat_summary.slice(0, 120))}${lead.chat_summary.length > 120 ? '…' : ''}</div>` : `<div style="font-size:0.8rem;color:#94a3b8;margin-bottom:0.5rem;font-style:italic">Žiadne zhrnutie konverzácie</div>`}
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="openReactivationModal('${lead.id}','${escHtml(lead.name).replace(/'/g,"\\'")}')">✨ Reaktivovať AI správou</button>
+            <span style="font-size:0.78rem;color:#94a3b8;align-self:center">${escHtml(lead.email)}</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  html += reactInfoCard();
+  wrap.innerHTML = html;
+}
+
+function reactInfoCard() {
+  return `<div style="margin-top:1rem;padding:1rem 1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">
+    <div style="font-size:0.82rem;font-weight:700;color:#475569;margin-bottom:0.5rem">💡 Ako to funguje</div>
+    <div style="font-size:0.8rem;color:#64748b;line-height:1.8">
+      1. Vyber lead → AI vygeneruje personalizovanú správu na základe ich konverzácie<br>
+      2. Prezri si návrh, uprav podľa potreby → odošli emailom jedným kliknutím<br>
+      3. Lead dostane osobnú správu, nie spam — konverzný rate výrazne vyšší
+    </div>
+  </div>`;
+}
+
+/* ── Reactivation Modal ─────────────────────────────────────────── */
+function openReactivationModal(leadId, leadName) {
+  document.getElementById('react-lead-id').value = leadId;
+  document.getElementById('react-modal-title').textContent = `✨ AI správa pre ${leadName}`;
+  document.getElementById('react-modal-meta').textContent = 'Generujem personalizovanú správu...';
+  document.getElementById('react-modal-loading').style.display = '';
+  document.getElementById('react-modal-body').style.display = 'none';
+  document.getElementById('modal-reactivation').style.display = 'flex';
+  fetchReactivationPreview(leadId);
+}
+
+function closeReactivationModal() {
+  document.getElementById('modal-reactivation').style.display = 'none';
+}
+
+async function fetchReactivationPreview(leadId) {
+  try {
+    const r = await apiFetch(`/api/reactivation/preview/${leadId}`, { method: 'POST' });
+    if (!r || !r.ok) throw new Error('Chyba');
+    const d = await r.json();
+    document.getElementById('react-message').value = d.message;
+    document.getElementById('react-modal-meta').textContent = 'AI správa vygenerovaná — môžeš upraviť pred odoslaním';
+    document.getElementById('react-modal-loading').style.display = 'none';
+    document.getElementById('react-modal-body').style.display = '';
+  } catch {
+    document.getElementById('react-modal-meta').textContent = 'Chyba pri generovaní — napíš správu manuálne';
+    document.getElementById('react-modal-loading').style.display = 'none';
+    document.getElementById('react-modal-body').style.display = '';
+    document.getElementById('react-message').value = '';
+  }
+}
+
+function regenerateReactivation() {
+  const leadId = document.getElementById('react-lead-id').value;
+  document.getElementById('react-modal-loading').style.display = '';
+  document.getElementById('react-modal-body').style.display = 'none';
+  fetchReactivationPreview(leadId);
+}
+
+async function sendReactivation() {
+  const leadId = document.getElementById('react-lead-id').value;
+  const message = document.getElementById('react-message').value.trim();
+  if (!message) { showToast('Napíšte správu.', 'error'); return; }
+  const btn = document.getElementById('react-send-btn');
+  btn.disabled = true; btn.textContent = 'Odosiela...';
+  try {
+    const r = await apiFetch(`/api/reactivation/send/${leadId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    if (!r || !r.ok) throw new Error('Chyba');
+    closeReactivationModal();
+    showToast('📧 Reaktivačná správa odoslaná!', 'success');
+    loadColdLeads(_coldLeadsHours);
+  } catch { showToast('Chyba pri odosielaní.', 'error'); }
+  btn.disabled = false; btn.textContent = '📧 Odoslať email';
 }

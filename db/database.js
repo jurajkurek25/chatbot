@@ -409,6 +409,10 @@ function initDatabase() {
     `ALTER TABLE users ADD COLUMN password_reset_token TEXT`,
     `ALTER TABLE users ADD COLUMN password_reset_expires INTEGER`,
     `ALTER TABLE shopify_connections RENAME COLUMN neuradesk_user_id TO neoworkly_user_id`,
+    `ALTER TABLE leads ADD COLUMN deal_value REAL`,
+    `ALTER TABLE leads ADD COLUMN converted_at INTEGER`,
+    `ALTER TABLE leads ADD COLUMN last_reactivation_at INTEGER`,
+    `ALTER TABLE leads ADD COLUMN reactivation_count INTEGER NOT NULL DEFAULT 0`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }
