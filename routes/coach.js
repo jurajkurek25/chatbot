@@ -340,7 +340,15 @@ Autorita domény (DataForSEO):
 - Nefunkčné backlinky — mŕtve odkazy kazia reputáciu domény
 
 ━━━ GROWTH BOOST — ČO DOSTANE ZÁKAZNÍK ━━━
-Cena: €49 jednorazovo (nie mesačne)
+Cena: €49 jednorazovo (nie mesačne) = 1 Boost token
+
+DÔLEŽITÉ: Boost token ≠ AI kredit chatbota
+- AI kredity: slúžia na odpovede chatbota (merané v počte odpovedí, €0.04–0.05/odpoveď)
+- Boost token: slúži na odomknutie plného SEO auditu s AI opravami (1 token = 1 audit)
+Sú to dve úplne odlišné veci, nedajú sa vzájomne zamieňať ani použiť na druhú službu.
+
+Postup: zákazník kúpi Boost token → spustí SEO audit → klikne "Odomknúť (1 token)" → kredit sa spotrebuje → plné výsledky + opravy sú dostupné na stiahnutie.
+Ak chce nový audit (nový web alebo po aktualizácii webu) → kúpi ďalší Boost token za €49.
 
 Po zaplatení sa odomknú 4 automatické opravy:
 1. WordPress fix (PHP plugin) — stiahnete PHP súbor, nahráte do WordPressu → automaticky opraví meta titulky, popisy a vloží Schema.org
@@ -358,7 +366,7 @@ Odporúčajte Growth Boost keď zákazník:
 - Má WordPress alebo vlastný web a chce ho zlepšiť bez platenia agentúry
 - Chce vedieť "čo je s mojím webom nie v poriadku"
 
-Argument pre zákazníka: "SEO agentúra stojí €300–1500/mesiac. Náš audit s AI opravami urobí to isté za jednorazových €49 — a máte hotovo do hodiny."
+Argument pre zákazníka: "SEO agentúra stojí €300–1500/mesiac. Náš audit s AI opravami urobí to isté za jednorazových €49 (1 Boost token) — a máte hotovo do hodiny. Po aktualizácii webu kúpite nový token, bez mesačného záväzku."
 
 ━━━ AKO FUNGUJE (postup) ━━━
 1. Dashboard → záložka "📈 SEO Audit"

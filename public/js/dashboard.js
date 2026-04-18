@@ -4004,12 +4004,13 @@ function renderSeoBoostBanner(hasBoost, credits) {
   banner.style.display = '';
   if (credits > 0) {
     banner.innerHTML = `
-      <div style="font-weight:700;font-size:1rem;margin-bottom:0.4rem">⚡ Máte ${credits} Growth Boost kredit${credits > 1 ? 'y' : ''}</div>
+      <div style="font-weight:700;font-size:1rem;margin-bottom:0.4rem">⚡ Máte ${credits} Boost token${credits > 1 ? 'y' : ''}</div>
       <div style="font-size:0.875rem;color:#475569;margin-bottom:0.75rem">
         Spustite audit a kliknite "Odomknúť" pre plné výsledky + hotové opravy (WordPress, HTML, Schema.org, llms.txt).
+        <br><span style="font-size:0.8rem;color:#94a3b8">1 token = 1 odomknutý audit. Nesúvisí s AI kreditmi chatbota.</span>
       </div>
-      <button class="btn btn-primary" onclick="unlockBoost()">🔓 Odomknúť tento audit (1 kredit)</button>
-      <button class="btn btn-secondary" onclick="buyBoost()" style="margin-left:0.5rem">+ Kúpiť ďalší kredit – €49</button>`;
+      <button class="btn btn-primary" onclick="unlockBoost()">🔓 Odomknúť tento audit (1 token)</button>
+      <button class="btn btn-secondary" onclick="buyBoost()" style="margin-left:0.5rem">+ Kúpiť ďalší token – €49</button>`;
   } else {
     banner.innerHTML = `
       <div style="font-weight:700;font-size:1rem;margin-bottom:0.4rem">⚡ Growth Boost – Kompletná SEO oprava za €49</div>
@@ -4020,8 +4021,8 @@ function renderSeoBoostBanner(hasBoost, credits) {
         <li><strong>Schema.org JSON-LD</strong> — AI vás správne opíše v Google a ChatGPT</li>
         <li><strong>llms.txt</strong> — nový štandard pre AI asistentov (Claude, Perplexity...)</li>
       </ul>
-      <div style="font-size:0.8rem;color:#64748b;margin-bottom:0.75rem">Každý kredit = 1 odomknutý audit. Kupujte keď aktualizujete web alebo skenujete nový.</div>
-      <button class="btn btn-primary" onclick="buyBoost()">💳 Kúpiť Growth Boost – €49</button>`;
+      <div style="font-size:0.8rem;color:#64748b;margin-bottom:0.75rem">1 Boost token = 1 odomknutý audit. Kupujte keď aktualizujete web alebo skenujete ďalší web.<br><span style="color:#94a3b8">Boost tokeny nesúvisia s AI kreditmi chatbota.</span></div>
+      <button class="btn btn-primary" onclick="buyBoost()">💳 Kúpiť Boost token – €49</button>`;
   }
 }
 
@@ -4097,7 +4098,7 @@ function renderSeoResult(audit, hasBoost, credits) {
           <div style="font-weight:700;font-size:1rem;margin-bottom:0.25rem">🔒 ${remaining > 0 ? `+ ďalších ${remaining} problémov` : 'Plné výsledky uzamknuté'}</div>
           <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.85rem">Odomknite plný audit vrátane AI opráv</div>
           ${(credits ?? 0) > 0
-            ? `<button class="btn btn-primary btn-sm" onclick="unlockBoost()">🔓 Odomknúť (1 kredit)</button>`
+            ? `<button class="btn btn-primary btn-sm" onclick="unlockBoost()">🔓 Odomknúť (1 token)</button>`
             : `<button class="btn btn-primary btn-sm" onclick="buyBoost()">💳 Growth Boost – €49</button>`}
         </div>
       </div>`;

@@ -146,7 +146,7 @@ router.post('/unlock', (req, res) => {
     if (user.growth_boost_paid) return res.json({ success: true, boost_credits: user.boost_credits });
 
     if ((user.boost_credits ?? 0) <= 0) {
-      return res.status(402).json({ error: 'Nemáte dostatok kreditov. Zakúpte Growth Boost.' });
+      return res.status(402).json({ error: 'Nemáte žiadny Boost token. Zakúpte Growth Boost (€49).' });
     }
 
     const audit = db.prepare(`
