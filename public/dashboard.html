@@ -144,6 +144,17 @@
 
       <!-- ── View: Widget List ─────────────────────────── -->
       <div id="view-widgets">
+
+        <!-- Feature discovery strip -->
+        <div id="feature-tips-strip" style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.25rem;padding:0.85rem 1rem;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid #bfdbfe;border-radius:12px;align-items:center">
+          <span style="font-size:0.78rem;font-weight:700;color:#1e40af;white-space:nowrap">💡 Objavte:</span>
+          <button onclick="showView('money')" style="background:#dbeafe;border:none;border-radius:8px;padding:0.3rem 0.75rem;font-size:0.78rem;font-weight:600;color:#1d4ed8;cursor:pointer">💰 Money Mode</button>
+          <button onclick="showTab('whatsapp')" style="background:#dcfce7;border:none;border-radius:8px;padding:0.3rem 0.75rem;font-size:0.78rem;font-weight:600;color:#166534;cursor:pointer">💬 WhatsApp Bot</button>
+          <button onclick="showTab('sequences')" style="background:#fef9c3;border:none;border-radius:8px;padding:0.3rem 0.75rem;font-size:0.78rem;font-weight:600;color:#854d0e;cursor:pointer">📨 Follow-up sekvencie</button>
+          <button onclick="showView('reactivation')" style="background:#fce7f3;border:none;border-radius:8px;padding:0.3rem 0.75rem;font-size:0.78rem;font-weight:600;color:#9d174d;cursor:pointer">🔄 Lead Reaktivácia</button>
+          <button onclick="showView('coach')" style="background:#f3e8ff;border:none;border-radius:8px;padding:0.3rem 0.75rem;font-size:0.78rem;font-weight:600;color:#6b21a8;cursor:pointer">🎓 AI Coach</button>
+        </div>
+
         <div id="widget-list-loading" class="empty-state">
           <div style="font-size:2rem">⏳</div>
           <p>Načítavam widgety...</p>
@@ -152,7 +163,7 @@
         <div id="widget-empty" class="empty-state" style="display:none">
           <div class="empty-state-icon">💬</div>
           <h3>Zatiaľ žiadne widgety</h3>
-          <p>Vytvorte svoj prvý AI chatbot widget!</p>
+          <p>Vytvorte svoj prvý AI chatbot widget a zachytávajte leady 24/7!</p>
           <br>
           <button class="btn btn-primary" onclick="openCreateWidgetModal()">+ Vytvoriť widget</button>
         </div>

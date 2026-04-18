@@ -461,7 +461,93 @@ Domain Rank je nízky — čo to znamená?
 WooCommerce import zlyhal:
 → Skontrolujte URL obchodu (musí byť https, bez lomítka na konci). Consumer Key a Secret nájdete v WooCommerce → Nastavenia → Pokročilé → REST API → Pridať kľúč (oprávnenie: Čítať). Firewall obchodu nesmie blokovať externé požiadavky.
 
-20. MONEY MODE — "Koľko vám Neoworkly zarobil"
+20. FOLLOW-UP SEKVENCIE (DRIP KAMPANE) — "Automatické emaily po zachytení leadu"
+Dashboard → váš widget → záložka "📨 Sekvencia emailov"
+
+ČO SÚ FOLLOW-UP SEKVENCIE:
+Automatické emailové sekvencie ktoré sa odošlú zákazníkovi po tom čo zanechá kontakt v chatbote. Každý krok má vlastný predmet, správu a oneskorenie (napr. hneď / po 24 hod / po 3 dňoch).
+
+NASTAVENIE:
+- Max 5 krokov v sekvencii
+- Každý krok: predmet emailu, text správy, oneskorenie v hodinách (0 = okamžite)
+- Použite {{name}} pre personalizáciu — nahradí sa menom zákazníka
+- Sekvencia sa aktivuje/deaktivuje prepínačom "Aktívna"
+- Uložiť kliknutím "Uložiť sekvenciu", zmazať cez "Zmazať"
+
+AKO TO FUNGUJE:
+1. Zákazník vyplní kontaktný formulár v chatbote → nový lead sa vytvorí
+2. Systém automaticky naplánuje všetky kroky sekvencie
+3. Každých 5 minút server skontroluje splatné joby a odošle emaily cez SMTP
+4. Email príde zákazníkovi s menom a textom z príslušného kroku
+
+TYPICKÉ OTÁZKY:
+"Ako nastavím follow-up po 24 hodinách?"
+→ Pridajte krok, nastavte delay_hours = 24 a napíšte text. Uložte sekvenciu.
+
+"Emaily sa neodosielajú"
+→ Vyžaduje nakonfigurovaný SMTP server (SMTP_HOST, SMTP_USER, SMTP_PASS). Ak SMTP chýba, joby sa hromadia a pošlú sa keď SMTP bude dostupný.
+
+---
+
+21. WHATSAPP BUSINESS BOT — "Bot na WhatsApp"
+Dashboard → váš widget → záložka "💬 WhatsApp"
+
+ČO JE WHATSAPP BOT:
+Rovnaký AI chatbot z vášho widgetu odpovedá automaticky na správy vo WhatsApp Business účte. Zákazníci píšu na vaše číslo — bot okamžite odpovie, odpovedá z rovnakej znalostnej bázy.
+
+POŽIADAVKY:
+- Meta for Developers účet + WhatsApp Business API
+- Phone Number ID (z Meta → WhatsApp → API Setup)
+- Access Token (Permanent Token zo System User alebo dočasný test token)
+- Verify Token — vlastný tajný reťazec (môžete generovať kliknutím "Generovať")
+
+POSTUP PREPOJENIA:
+1. Vytvorte aplikáciu na developers.facebook.com → pridajte WhatsApp produkt
+2. Skopírujte Phone Number ID a Access Token
+3. Vložte údaje do dashboardu → Pripojiť WhatsApp
+4. Skopírujte vygenerovanú Webhook URL a nastavte ju v Meta for Developers → WhatsApp → Configuration → Webhooks
+5. Zákazníci teraz môžu písať priamo na vaše WhatsApp číslo — bot odpovedá automaticky
+
+TYPICKÉ OTÁZKY:
+"Bot neodpovedá na WhatsApp správy"
+→ Skontrolujte Webhook URL v Meta Developers. Verify Token sa musí zhodovať. Access Token musí byť platný (permanent token nevyprší, dočasný vyprší po 24h).
+
+"Kde nájdem Webhook URL?"
+→ V dashboarde → záložka WhatsApp → sekcia "Prepojené" → Webhook URL. Formát: https://vasdomen.com/api/whatsapp/webhook
+
+---
+
+22. KONVERZNÝ LIEVIK (FUNNEL CHART) — v Money Mode
+Dashboard → ľavé menu → 💰 Money Mode → sekcia "📊 Konverzný lievik"
+
+ČO JE FUNNEL:
+Vizualizácia troch fáz predajného procesu:
+- Všetky leady: celkový počet zákazníkov ktorí chatovali
+- S emailom: koľko zanechalo kontakt (vyplnili formulár)
+- Konvertovaní: koľko sa stalo platiacimi zákazníkmi
+
+Zobrazuje percentá pre každú fázu — vidíte kde sa strácajú zákazníci.
+
+---
+
+23. VIDEO / GIF V CHATE — "Demo video priamo v chatbote"
+Dashboard → váš widget → záložka Integrácie → sekcia "🎥 Demo video / GIF"
+
+ČO TO JE:
+Chatbot môže zákazníkovi poslať video priamo v konverzácii — YouTube, Vimeo, MP4 alebo GIF. Video sa zobrazí ako vložený prehrávač priamo v bubline chatu — zákazník si ho pozrie bez opustenia stránky.
+
+NASTAVENIE:
+- Vložte URL videa do poľa "URL videa" (napr. https://youtu.be/xxxxx)
+- AI automaticky zdieľa video keď zákazník požiada o ukážku alebo demo
+- Podporované: YouTube, Vimeo, priame MP4/WebM súbory, GIF
+
+TYPICKÁ OTÁZKA:
+"Môžem poslať video zákazníkovi manuálne?"
+→ Áno — v Inboxe (Live Takeover) môžete napísať URL videa priamo ako správu a chatbot ho zobrazí ako vložený prehrávač.
+
+---
+
+24. MONEY MODE — "Koľko vám Neoworkly zarobil"
 Dashboard → ľavé menu → 💰 Money Mode
 
 ČO JE MONEY MODE:
@@ -498,7 +584,7 @@ TYPICKÉ OTÁZKY — Money Mode:
 
 ---
 
-21. LEAD REAKTIVÁCIA — "Reaktivuj leady čo ešte nekúpili"
+25. LEAD REAKTIVÁCIA — "Reaktivuj leady čo ešte nekúpili"
 Dashboard → ľavé menu → 🔁 Lead Reaktivácia
 
 ČO JE LEAD REAKTIVÁCIA:

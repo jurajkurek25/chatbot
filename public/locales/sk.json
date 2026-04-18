@@ -1812,5 +1812,42 @@
   "Generujem personalizovanú správu...": "Generujem personalizovanú správu...",
   "Napíšte správu.": "Napíšte správu.",
   "Odosiela...": "Odosiela...",
-  "Chyba pri odosielaní.": "Chyba pri odosielaní."
+  "Chyba pri odosielaní.": "Chyba pri odosielaní.",
+
+  "Sekvencia uložená!": "Sekvencia uložená!",
+  "Sekvencia vymazaná.": "Sekvencia vymazaná.",
+  "Chyba pri ukladaní sekvencie.": "Chyba pri ukladaní sekvencie.",
+  "Chyba pri mazaní sekvencie.": "Chyba pri mazaní sekvencie.",
+  "📨 Sekvencia emailov": "📨 Sekvencia emailov",
+  "Automatická emailová sekvencia po zachytení leadu": "Automatická emailová sekvencia po zachytení leadu",
+  "Aktívna": "Aktívna",
+  "Pridať krok": "Pridať krok",
+  "Predmet emailu": "Predmet emailu",
+  "Text správy (môžeš použiť {{name}})": "Text správy (môžeš použiť {{name}})",
+  "Oneskorenie (hodiny)": "Oneskorenie (hodiny)",
+  "Uložiť sekvenciu": "Uložiť sekvenciu",
+  "Zmazať": "Zmazať",
+
+  "✅ WhatsApp prepojený!": "✅ WhatsApp prepojený!",
+  "WhatsApp odpojený.": "WhatsApp odpojený.",
+  "Vyplňte Phone Number ID, Access Token a Verify Token.": "Vyplňte Phone Number ID, Access Token a Verify Token.",
+  "Chyba pri pripájaní WhatsApp.": "Chyba pri pripájaní WhatsApp.",
+  "💬 WhatsApp Business Bot": "💬 WhatsApp Business Bot",
+  "Generovať": "Generovať",
+  "💬 Pripojiť WhatsApp": "💬 Pripojiť WhatsApp",
+  "✅ Prepojené": "✅ Prepojené",
+  "Odpojiť": "Odpojiť",
+
+  "📊 Konverzný lievik": "📊 Konverzný lievik",
+  "Všetky leady": "Všetky leady",
+  "S emailom": "S emailom",
+  "Konvertovaní": "Konvertovaní",
+
+  "🎥 Demo video / GIF": "🎥 Demo video / GIF",
+  "URL videa": "URL videa",
+
+  "Audit odomknutý! Plné výsledky sú dostupné.": "Audit odomknutý! Plné výsledky sú dostupné.",
+  "Boost token je pripravený. Spustite audit a kliknite Odomknúť.": "Boost token je pripravený. Spustite audit a kliknite Odomknúť.",
+  "Growth Boost aktivovaný! Obnovte stránku ak nevidíte výsledky.": "Growth Boost aktivovaný! Obnovte stránku ak nevidíte výsledky.",
+  "Overujem platbu…": "Overujem platbu…"
 }
