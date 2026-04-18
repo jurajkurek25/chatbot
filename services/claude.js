@@ -252,9 +252,11 @@ async function streamChatResponse(widget, knowledgeItems, history, userMessage, 
   let fullResponse = '';
 
   const stream = await client.messages.stream({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1200,
-    system: systemPrompt,
+    // Prompt caching: system prompt is cached after first call per widget
+    // Saves ~70% on input tokens for repeat calls (same widget, same KB)
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
     messages,
   });
 
@@ -290,7 +292,7 @@ async function generateSuggestedQuestions(knowledgeItems, goals, ctaType) {
 
   try {
     const response = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 400,
       messages: [{
         role: 'user',
@@ -318,7 +320,7 @@ Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
   }
 }
 
-/* ── Non-streaming response (for Instagram DMs) ───────────────── */
+/* ── Non-streaming response (for Instagram / WhatsApp DMs) ────── */
 async function getChatResponseText(widget, knowledgeItems, history, userMessage) {
   const products = loadProducts(widget.id);
   const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products);
@@ -328,9 +330,9 @@ async function getChatResponseText(widget, knowledgeItems, history, userMessage)
   ];
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-4-6',
     max_tokens: 600,
-    system: systemPrompt,
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
     messages,
   });
 
@@ -347,7 +349,7 @@ async function summarizeConversation(messages) {
 
   try {
     const response = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 500,
       messages: [{
         role: 'user',
