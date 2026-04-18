@@ -73,8 +73,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   loadWidgets();
   loadUsageBar();
 
-  // Show toast if returning from credit purchase
+  // Show toast if returning from credit purchase or card setup
   const params = new URLSearchParams(location.search);
+  if (params.get('payment_setup') === '1') {
+    window.history.replaceState({}, '', '/dashboard');
+    showToast('Karta uložená! Skontrolujte nastavenia auto-reloadu.', 'success');
+    setTimeout(() => openCreditsModal(), 600);
+  }
   if (params.get('credits_added') === '1') {
     showToast('Kredity boli úspešne pridané!', 'success');
     window.history.replaceState({}, '', '/dashboard');
@@ -1842,6 +1847,134 @@ function openCreditsModal() {
     const eur = Math.floor(Number(input.value) || 0);
     preview.textContent = eur >= 1 ? `= ${eur * 20} odpovedí` : '= 0 odpovedí';
   };
+  loadAutoReloadSettings();
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Auto-reload
+══════════════════════════════════════════════════════════════ */
+let _arSelectedEur = 8;
+
+async function loadAutoReloadSettings() {
+  try {
+    const r = await apiFetch('/api/credits/auto-reload');
+    if (!r || !r.ok) return;
+    const d = await r.json();
+
+    const cb = document.getElementById('ar-enabled');
+    if (cb) cb.checked = !!d.enabled;
+    const thr = document.getElementById('ar-threshold');
+    if (thr) thr.value = d.threshold ?? 50;
+
+    _arSelectedEur = d.amount_eur ?? 8;
+    selectArAmount(_arSelectedEur, true);
+    _updateArToggleUI(!!d.enabled);
+    document.getElementById('ar-settings').style.display = d.enabled ? '' : 'none';
+
+    if (d.has_card) {
+      document.getElementById('ar-no-card').style.display = 'none';
+      document.getElementById('ar-has-card').style.display = 'flex';
+      const brand = d.card_brand ? d.card_brand.charAt(0).toUpperCase() + d.card_brand.slice(1) : 'Karta';
+      document.getElementById('ar-card-label').textContent = `✅ ${brand} •••• ${d.card_last4 || '****'}`;
+    } else {
+      document.getElementById('ar-no-card').style.display = 'flex';
+      document.getElementById('ar-has-card').style.display = 'none';
+    }
+  } catch { /* ignore */ }
+}
+
+function toggleAutoReload() {
+  const enabled = document.getElementById('ar-enabled').checked;
+  _updateArToggleUI(enabled);
+  document.getElementById('ar-settings').style.display = enabled ? '' : 'none';
+}
+
+function _updateArToggleUI(enabled) {
+  const label = document.getElementById('ar-status-label');
+  const track = document.getElementById('ar-toggle-track');
+  const thumb = document.getElementById('ar-toggle-thumb');
+  if (label) { label.textContent = enabled ? t('Zapnuté') : t('Vypnuté'); label.style.color = enabled ? '#16a34a' : '#94a3b8'; }
+  if (track) track.style.background = enabled ? '#16a34a' : '#e2e8f0';
+  if (thumb) thumb.style.transform = enabled ? 'translateX(18px)' : 'translateX(0)';
+}
+
+function selectArAmount(eur, silent) {
+  if (eur !== 'custom') _arSelectedEur = Number(eur);
+  document.querySelectorAll('.ar-amount-btn').forEach(btn => {
+    const selected = String(btn.dataset.eur) === String(eur);
+    btn.style.borderColor = selected ? '#2563eb' : '#e2e8f0';
+    btn.style.background  = selected ? '#eff6ff' : 'white';
+  });
+  const customRow = document.getElementById('ar-custom-row');
+  if (customRow) customRow.style.display = eur === 'custom' ? 'flex' : 'none';
+  if (eur !== 'custom' && !silent) {
+    const preview = document.getElementById('ar-custom-preview');
+    if (preview) preview.textContent = 'vlastné';
+  }
+}
+
+function updateArCustomPreview() {
+  const eur = Math.floor(Number(document.getElementById('ar-custom-eur').value) || 0);
+  _arSelectedEur = eur >= 1 ? eur : 0;
+  document.getElementById('ar-custom-label').textContent = eur >= 1 ? `= ${eur * 20} ${t('odpovedí')}` : `= 0 ${t('odpovedí')}`;
+}
+
+async function setupAutoReloadCard() {
+  try {
+    const r = await apiFetch('/api/credits/setup-payment', { method: 'POST' });
+    if (!r) return;
+    const d = await r.json();
+    if (d.url) window.location.href = d.url;
+    else showToast(d.error || t('Chyba.'), 'error');
+  } catch { showToast(t('Chyba.'), 'error'); }
+}
+
+async function removeAutoReloadCard() {
+  if (!confirm(t('Odstrániť uloženú kartu a vypnúť auto-reload?'))) return;
+  try {
+    const r = await apiFetch('/api/credits/remove-card', { method: 'POST' });
+    if (!r) return;
+    showToast(t('Karta odstránená.'), 'success');
+    loadAutoReloadSettings();
+  } catch { }
+}
+
+async function saveAutoReloadSettings() {
+  const enabled = document.getElementById('ar-enabled').checked;
+  const threshold = parseInt(document.getElementById('ar-threshold').value) || 50;
+
+  // If custom amount selected, read from input
+  const customRow = document.getElementById('ar-custom-row');
+  let amountEur = _arSelectedEur;
+  if (customRow && customRow.style.display !== 'none') {
+    amountEur = Math.floor(Number(document.getElementById('ar-custom-eur').value) || 0);
+  }
+
+  if (enabled && amountEur < 1) { showToast(t('Zadajte sumu dobíjania.'), 'error'); return; }
+
+  const btn = document.getElementById('ar-save-btn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ ' + t('Ukladám...');
+
+  try {
+    const r = await apiFetch('/api/credits/setup-reload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled, threshold, amount_eur: amountEur }),
+    });
+    if (!r) return;
+    const d = await r.json();
+    if (d.ok) {
+      showToast(t('Auto-reload nastavený!'), 'success');
+      loadAutoReloadSettings();
+    } else if (d.setup_url) {
+      window.location.href = d.setup_url;
+    } else {
+      showToast(d.error || t('Chyba.'), 'error');
+    }
+  } catch { showToast(t('Chyba.'), 'error'); }
+  finally { btn.disabled = false; btn.textContent = origText; }
 }
 
 async function buyCredits(packageId) {

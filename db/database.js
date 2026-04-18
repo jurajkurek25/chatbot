@@ -459,6 +459,13 @@ function initDatabase() {
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 )`,
     `ALTER TABLE widgets ADD COLUMN demo_video_url TEXT`,
+    `ALTER TABLE users ADD COLUMN auto_reload_enabled INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN auto_reload_threshold INTEGER NOT NULL DEFAULT 50`,
+    `ALTER TABLE users ADD COLUMN auto_reload_amount_eur INTEGER NOT NULL DEFAULT 8`,
+    `ALTER TABLE users ADD COLUMN stripe_payment_method_id TEXT`,
+    `ALTER TABLE users ADD COLUMN auto_reload_card_last4 TEXT`,
+    `ALTER TABLE users ADD COLUMN auto_reload_card_brand TEXT`,
+    `ALTER TABLE users ADD COLUMN auto_reload_last_at INTEGER`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

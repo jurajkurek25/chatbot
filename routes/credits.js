@@ -18,6 +18,36 @@ function getStripe() {
   return Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
+// Trigger auto-reload off-session charge for a user
+// Called from chat.js when credits drop below threshold
+async function triggerAutoReload(userId, user) {
+  const db = getDb();
+  const euros = user.auto_reload_amount_eur || 8;
+  const credits = euros * 20;
+  const now = Math.floor(Date.now() / 1000);
+
+  // Mark as in-progress immediately to prevent double-firing
+  db.prepare('UPDATE users SET auto_reload_last_at = ? WHERE id = ?').run(now, userId);
+
+  const stripe = getStripe();
+  try {
+    await stripe.paymentIntents.create({
+      amount: euros * 100,
+      currency: 'eur',
+      customer: user.stripe_customer_id,
+      payment_method: user.stripe_payment_method_id,
+      off_session: true,
+      confirm: true,
+      metadata: { type: 'auto_reload', userId, credits: String(credits) },
+      description: `Neoworkly auto-reload – ${credits} AI odpovedí`,
+    });
+    // Credits added by webhook (payment_intent.succeeded) — not here to avoid duplicates
+    console.log(`[auto_reload] PaymentIntent created for user ${userId}: €${euros} → ${credits} credits`);
+  } catch (err) {
+    console.error(`[auto_reload] Payment failed for user ${userId}:`, err.message);
+  }
+}
+
 function nextMonthReset() {
   const now = new Date();
   const next = new Date(now.getFullYear(), now.getMonth() + 1, 1, 0, 0, 0);
@@ -70,8 +100,9 @@ router.get('/status', requireAuth, (req, res) => {
 });
 
 // POST /api/credits/buy — create Stripe Checkout (one-time payment)
+// Optional: save_card:true → saves payment method for auto-reload
 router.post('/buy', requireAuth, async (req, res) => {
-  const { package_id, custom_eur } = req.body;
+  const { package_id, custom_eur, save_card } = req.body;
   const db = getDb();
   const user = db.prepare('SELECT id, email, name, stripe_customer_id FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
@@ -102,7 +133,7 @@ router.post('/buy', requireAuth, async (req, res) => {
       db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams = {
       customer: customerId,
       payment_method_types: ['card'],
       mode: 'payment',
@@ -117,12 +148,18 @@ router.post('/buy', requireAuth, async (req, res) => {
         },
         quantity: 1,
       }],
-      metadata: { type: 'credits', userId: user.id, credits: String(creditsToAdd) },
+      metadata: { type: 'credits', userId: user.id, credits: String(creditsToAdd), save_card: save_card ? '1' : '0' },
       success_url: `${baseUrl}/dashboard?credits_added=1`,
       cancel_url: `${baseUrl}/dashboard`,
       locale: 'sk',
-    });
+    };
 
+    // If save_card requested, tell Stripe to save the payment method for future off-session use
+    if (save_card) {
+      sessionParams.payment_intent_data = { setup_future_usage: 'off_session' };
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
     res.json({ url: session.url });
   } catch (err) {
     console.error('Credits checkout error:', err.message);
@@ -130,4 +167,128 @@ router.post('/buy', requireAuth, async (req, res) => {
   }
 });
 
-module.exports = { router, BASE_RESPONSES, nextMonthReset, maybeResetUsage };
+// GET /api/credits/auto-reload — get current auto-reload settings + card status
+router.get('/auto-reload', requireAuth, (req, res) => {
+  const db = getDb();
+  const user = db.prepare(
+    'SELECT auto_reload_enabled, auto_reload_threshold, auto_reload_amount_eur, stripe_payment_method_id, auto_reload_card_last4, auto_reload_card_brand FROM users WHERE id = ?'
+  ).get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+
+  res.json({
+    enabled:      !!user.auto_reload_enabled,
+    threshold:    user.auto_reload_threshold ?? 50,
+    amount_eur:   user.auto_reload_amount_eur ?? 8,
+    has_card:     !!user.stripe_payment_method_id,
+    card_last4:   user.auto_reload_card_last4 || null,
+    card_brand:   user.auto_reload_card_brand || null,
+  });
+});
+
+// POST /api/credits/setup-reload — save auto-reload settings
+// If enabled and no card saved, returns setup_url to save card via Stripe Checkout
+router.post('/setup-reload', requireAuth, async (req, res) => {
+  const { enabled, threshold, amount_eur } = req.body;
+  if (amount_eur !== undefined && (Number(amount_eur) < 1 || Number(amount_eur) > 500)) {
+    return res.status(400).json({ error: 'Suma musí byť medzi 1 € a 500 €.' });
+  }
+
+  const db = getDb();
+  const user = db.prepare(
+    'SELECT id, email, name, stripe_customer_id, stripe_payment_method_id FROM users WHERE id = ?'
+  ).get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+
+  db.prepare(
+    'UPDATE users SET auto_reload_enabled = ?, auto_reload_threshold = ?, auto_reload_amount_eur = ? WHERE id = ?'
+  ).run(enabled ? 1 : 0, Math.max(0, parseInt(threshold) || 50), Math.floor(Number(amount_eur) || 8), req.userId);
+
+  // If enabling but no card → redirect to Stripe card setup
+  if (enabled && !user.stripe_payment_method_id) {
+    try {
+      const stripe = getStripe();
+      const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
+      let customerId = user.stripe_customer_id;
+      if (!customerId) {
+        const customer = await stripe.customers.create({
+          email: user.email, name: user.name, metadata: { userId: user.id },
+        });
+        customerId = customer.id;
+        db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+      }
+
+      const session = await stripe.checkout.sessions.create({
+        customer: customerId,
+        mode: 'setup',
+        payment_method_types: ['card'],
+        metadata: { type: 'setup_payment_method', userId: req.userId },
+        success_url: `${baseUrl}/dashboard?payment_setup=1`,
+        cancel_url: `${baseUrl}/dashboard`,
+        locale: 'sk',
+      });
+      return res.json({ setup_url: session.url });
+    } catch (err) {
+      console.error('Setup payment error:', err.message);
+      return res.status(500).json({ error: 'Chyba pri nastavovaní karty.' });
+    }
+  }
+
+  res.json({ ok: true });
+});
+
+// POST /api/credits/setup-payment — create standalone Stripe setup session (save card without buying)
+router.post('/setup-payment', requireAuth, async (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+
+  const stripe = getStripe();
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
+  try {
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({
+        email: user.email, name: user.name, metadata: { userId: user.id },
+      });
+      customerId = customer.id;
+      db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      mode: 'setup',
+      payment_method_types: ['card'],
+      metadata: { type: 'setup_payment_method', userId: req.userId },
+      success_url: `${baseUrl}/dashboard?payment_setup=1`,
+      cancel_url: `${baseUrl}/dashboard`,
+      locale: 'sk',
+    });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Setup payment error:', err.message);
+    res.status(500).json({ error: 'Chyba pri nastavovaní karty.' });
+  }
+});
+
+// POST /api/credits/remove-card — remove saved payment method and disable auto-reload
+router.post('/remove-card', requireAuth, async (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT stripe_payment_method_id FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+
+  if (user.stripe_payment_method_id) {
+    try {
+      await getStripe().paymentMethods.detach(user.stripe_payment_method_id);
+    } catch { /* ignore if already detached */ }
+  }
+
+  db.prepare(
+    'UPDATE users SET stripe_payment_method_id = NULL, auto_reload_card_last4 = NULL, auto_reload_card_brand = NULL, auto_reload_enabled = 0 WHERE id = ?'
+  ).run(req.userId);
+
+  res.json({ ok: true });
+});
+
+module.exports = { router, BASE_RESPONSES, nextMonthReset, maybeResetUsage, triggerAutoReload };

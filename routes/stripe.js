@@ -188,6 +188,41 @@ router.post('/webhook', async (req, res) => {
           db.prepare('UPDATE users SET extra_response_credits = extra_response_credits + ? WHERE id = ?').run(credits, userId);
           console.log(`[credits] +${credits} credits added to user ${userId}`);
         }
+        // If save_card was requested, save the payment method for auto-reload
+        if (session.metadata?.save_card === '1' && session.payment_intent && userId) {
+          try {
+            const pi = await stripe.paymentIntents.retrieve(session.payment_intent);
+            if (pi.payment_method) {
+              const pm = await stripe.paymentMethods.retrieve(pi.payment_method);
+              db.prepare(
+                'UPDATE users SET stripe_payment_method_id = ?, auto_reload_card_last4 = ?, auto_reload_card_brand = ? WHERE id = ?'
+              ).run(pi.payment_method, pm.card?.last4 || '', pm.card?.brand || '', userId);
+              console.log(`[credits] Saved payment method ${pi.payment_method} for user ${userId}`);
+            }
+          } catch (e) {
+            console.error('[credits] Failed to save payment method:', e.message);
+          }
+        }
+        break;
+      }
+
+      // Card setup for auto-reload (mode: 'setup')
+      if (session.mode === 'setup' && session.metadata?.type === 'setup_payment_method') {
+        const userId = session.metadata.userId;
+        if (userId && session.setup_intent) {
+          try {
+            const si = await stripe.setupIntents.retrieve(session.setup_intent);
+            if (si.payment_method) {
+              const pm = await stripe.paymentMethods.retrieve(si.payment_method);
+              db.prepare(
+                'UPDATE users SET stripe_payment_method_id = ?, auto_reload_card_last4 = ?, auto_reload_card_brand = ? WHERE id = ?'
+              ).run(si.payment_method, pm.card?.last4 || '', pm.card?.brand || '', userId);
+              console.log(`[setup_pm] Saved payment method ${si.payment_method} for user ${userId}`);
+            }
+          } catch (e) {
+            console.error('[setup_pm] Failed to save payment method:', e.message);
+          }
+        }
         break;
       }
 
@@ -245,6 +280,18 @@ router.post('/webhook', async (req, res) => {
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('past_due', user.id);
         db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(user.id);
+      }
+      break;
+    }
+    case 'payment_intent.succeeded': {
+      const pi = event.data.object;
+      if (pi.metadata?.type === 'auto_reload') {
+        const credits = parseInt(pi.metadata.credits || '0', 10);
+        const userId = pi.metadata.userId;
+        if (credits > 0 && userId) {
+          db.prepare('UPDATE users SET extra_response_credits = extra_response_credits + ? WHERE id = ?').run(credits, userId);
+          console.log(`[auto_reload] +${credits} credits added to user ${userId} via auto-reload`);
+        }
       }
       break;
     }

@@ -2131,7 +2131,7 @@
 
 <!-- Credits Modal -->
 <div id="modal-credits" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:center;justify-content:center;padding:0.75rem;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-box" onclick="event.stopPropagation()">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:480px;max-height:90vh;overflow-y:auto">
     <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:0.25rem">Dobiť AI kredity</h2>
     <p style="font-size:0.875rem;color:#64748b;margin-bottom:1.5rem">Kredity sa neobnovia mesačne – spotrebúvajú sa postupne</p>
 
@@ -2166,6 +2166,61 @@
         </div>
         <span style="font-size:0.8rem;color:#94a3b8;white-space:nowrap" id="credits-custom-preview">= 0 odpovedí</span>
         <button class="btn btn-primary" onclick="buyCustomCredits()">Kúpiť</button>
+      </div>
+    </div>
+
+    <!-- Auto-reload section -->
+    <div style="border-top:1px solid #e2e8f0;padding-top:1.25rem;margin-top:1.25rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">
+        <div>
+          <div style="font-size:0.875rem;font-weight:700;color:#374151">🔄 Automatické dobíjanie</div>
+          <div style="font-size:0.75rem;color:#94a3b8;margin-top:1px">Dobí sa automaticky keď kredity klesnú pod limit</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+          <div style="position:relative;width:42px;height:24px">
+            <input type="checkbox" id="ar-enabled" onchange="toggleAutoReload()" style="position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1">
+            <div id="ar-toggle-track" style="width:42px;height:24px;border-radius:12px;background:#e2e8f0;transition:background 0.2s;position:absolute;top:0;left:0"></div>
+            <div id="ar-toggle-thumb" style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></div>
+          </div>
+          <span id="ar-status-label" style="font-size:0.78rem;font-weight:600;color:#94a3b8;min-width:52px">Vypnuté</span>
+        </label>
+      </div>
+
+      <div id="ar-settings" style="display:none">
+        <!-- Threshold -->
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.85rem;background:#f8fafc;border-radius:10px;padding:0.65rem 0.75rem">
+          <span style="font-size:0.82rem;color:#64748b;white-space:nowrap">Dobiť keď klesne pod</span>
+          <input type="number" id="ar-threshold" min="0" max="9999" step="10" value="50" class="form-control" style="width:75px;padding:0.35rem 0.5rem;font-size:0.875rem;text-align:center">
+          <span style="font-size:0.78rem;color:#94a3b8">odpovedí</span>
+        </div>
+
+        <!-- Amount -->
+        <div style="margin-bottom:0.85rem">
+          <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;font-weight:600">Suma dobíjania</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.4rem">
+            <button class="ar-amount-btn" data-eur="5" onclick="selectArAmount(5)" style="padding:0.5rem 0.3rem;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:0.78rem;font-weight:600;line-height:1.4">€5<br><span style="font-weight:400;font-size:0.7rem;color:#94a3b8">100 odp.</span></button>
+            <button class="ar-amount-btn" data-eur="8" onclick="selectArAmount(8)" style="padding:0.5rem 0.3rem;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:0.78rem;font-weight:600;line-height:1.4">€8<br><span style="font-weight:400;font-size:0.7rem;color:#94a3b8">200 odp.</span></button>
+            <button class="ar-amount-btn" data-eur="15" onclick="selectArAmount(15)" style="padding:0.5rem 0.3rem;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:0.78rem;font-weight:600;line-height:1.4">€15<br><span style="font-weight:400;font-size:0.7rem;color:#94a3b8">350 odp.</span></button>
+            <button class="ar-amount-btn" data-eur="custom" onclick="selectArAmount('custom')" style="padding:0.5rem 0.3rem;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:0.78rem;font-weight:600;line-height:1.4">Iné<br><span id="ar-custom-preview" style="font-weight:400;font-size:0.7rem;color:#94a3b8">vlastné</span></button>
+          </div>
+          <div id="ar-custom-row" style="display:none;margin-top:0.5rem;align-items:center;gap:0.5rem">
+            <span style="color:#64748b;font-size:0.82rem;font-weight:600">€</span>
+            <input type="number" id="ar-custom-eur" min="1" step="1" placeholder="napr. 10" class="form-control" style="width:80px;padding:0.35rem 0.5rem;font-size:0.875rem" oninput="updateArCustomPreview()">
+            <span id="ar-custom-label" style="font-size:0.78rem;color:#94a3b8">= 0 odpovedí</span>
+          </div>
+        </div>
+
+        <!-- Card status -->
+        <div id="ar-no-card" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.75rem;background:#fef9c3;border:1px solid #fde68a;border-radius:8px;margin-bottom:0.75rem">
+          <span style="font-size:0.82rem;color:#92400e;font-weight:500">⚠️ Uložte kartu pre auto-reload</span>
+          <button class="btn btn-primary" style="font-size:0.78rem;padding:0.3rem 0.7rem;white-space:nowrap" onclick="setupAutoReloadCard()">💳 Uložiť kartu</button>
+        </div>
+        <div id="ar-has-card" style="display:none;align-items:center;justify-content:space-between;padding:0.6rem 0.75rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:0.75rem">
+          <span id="ar-card-label" style="font-size:0.82rem;color:#15803d;font-weight:600">✅ Karta uložená</span>
+          <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.3rem 0.7rem" onclick="removeAutoReloadCard()">Odstrániť</button>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%" onclick="saveAutoReloadSettings()" id="ar-save-btn">Uložiť nastavenia</button>
       </div>
     </div>
 
@@ -2273,7 +2328,7 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=12"></script>
+<script src="/js/dashboard.js?v=13"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

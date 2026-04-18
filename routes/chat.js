@@ -202,6 +202,28 @@ router.post('/:widgetId/chat', async (req, res) => {
         db.prepare('UPDATE users SET extra_response_credits = extra_response_credits - 1 WHERE id = ?').run(owner.id);
       }
 
+      // Auto-reload: check if extra credits dropped below threshold
+      setImmediate(async () => {
+        try {
+          const u = db.prepare(
+            'SELECT extra_response_credits, auto_reload_enabled, auto_reload_threshold, auto_reload_amount_eur, stripe_payment_method_id, stripe_customer_id, auto_reload_last_at FROM users WHERE id = ?'
+          ).get(owner.id);
+          const now = Math.floor(Date.now() / 1000);
+          const recentlyTriggered = u.auto_reload_last_at && (now - u.auto_reload_last_at) < 600;
+          if (
+            u.auto_reload_enabled &&
+            !recentlyTriggered &&
+            (u.extra_response_credits ?? 0) <= (u.auto_reload_threshold ?? 50) &&
+            u.stripe_payment_method_id &&
+            u.stripe_customer_id &&
+            (u.auto_reload_amount_eur ?? 0) >= 1
+          ) {
+            const { triggerAutoReload } = require('./credits');
+            triggerAutoReload(owner.id, u).catch(() => {});
+          }
+        } catch { /* ignore */ }
+      });
+
       // Usage notifications (async)
       const newCount = currentMonth + 1;
       setImmediate(() => {
