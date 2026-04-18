@@ -3969,8 +3969,10 @@ async function loadSeoAudit() {
     const d = await r.json();
 
     document.getElementById('seo-locked-banner').style.display = d.has_boost ? 'none' : '';
-    document.getElementById('btn-dl-wp').style.display = d.has_boost ? '' : 'none';
-    document.getElementById('btn-dl-html').style.display = d.has_boost ? '' : 'none';
+    ['btn-dl-wp','btn-dl-html','btn-dl-schema','btn-dl-llms'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = d.has_boost ? '' : 'none';
+    });
 
     if (!d.audit) {
       document.getElementById('seo-no-audit').style.display = '';
@@ -4111,7 +4113,8 @@ async function downloadSeoFix(type) {
     const blob = await r.blob();
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = type === 'wordpress' ? 'neoworkly-seo-fix.php' : 'neoworkly-seo-fix.html';
+    const names = { wordpress: 'neoworkly-seo-fix.php', html: 'neoworkly-seo-fix.html', schema: 'neoworkly-schema.html', llms: 'llms.txt' };
+    a.download = names[type] || 'neoworkly-fix.txt';
     a.click();
   } catch {
     showToast('Chyba pri sťahovaní.', 'error');

@@ -38,6 +38,24 @@ function fetchHtml(rawUrl, redirects = 0) {
   });
 }
 
+/* ── Fetch plain text (for llms.txt check) ──────────────────── */
+function fetchText(rawUrl) {
+  return new Promise((resolve, reject) => {
+    let parsed;
+    try { parsed = new URL(rawUrl); } catch { return reject(new Error('Invalid URL')); }
+    const lib = parsed.protocol === 'https:' ? https : http;
+    const req = lib.get(rawUrl, { headers: { 'User-Agent': 'NeoworklyBot/1.0' }, timeout: 5000 }, (res) => {
+      if (res.statusCode !== 200) { res.resume(); return reject(new Error(`HTTP ${res.statusCode}`)); }
+      let body = '';
+      res.on('data', chunk => { body += chunk; });
+      res.on('end', () => resolve(body));
+      res.on('error', reject);
+    });
+    req.on('error', reject);
+    req.on('timeout', () => { req.destroy(); reject(new Error('Timeout')); });
+  });
+}
+
 /* ── Discover links ─────────────────────────────────────────── */
 function extractLinks(html, baseUrl) {
   const base = new URL(baseUrl);
@@ -55,6 +73,12 @@ function extractLinks(html, baseUrl) {
     } catch {}
   }
   return [...links];
+}
+
+/* ── Extract existing Schema.org JSON-LD ────────────────────── */
+function extractSchemaOrg(html) {
+  const matches = [...html.matchAll(/<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi)];
+  return matches.map(m => { try { return JSON.parse(m[1]); } catch { return null; } }).filter(Boolean);
 }
 
 /* ── Extract SEO metadata from raw HTML ─────────────────────── */
@@ -80,8 +104,9 @@ function extractSeoMeta(html, pageUrl) {
   const hasOgTitle   = /<meta[^>]+property=["']og:title["'][^>]*>/i.test(html);
   const hasOgDesc    = /<meta[^>]+property=["']og:description["'][^>]*>/i.test(html);
   const hasViewport  = /<meta[^>]+name=["']viewport["'][^>]*>/i.test(html);
+  const hasJsonLd    = extractSchemaOrg(html).length > 0;
+  const h2Questions  = h2s.filter(h => h.includes('?'));
 
-  // Extract visible text for AI context
   const text = html
     .replace(/<script[\s\S]*?<\/script>/gi, '')
     .replace(/<style[\s\S]*?<\/style>/gi, '')
@@ -91,7 +116,8 @@ function extractSeoMeta(html, pageUrl) {
     .slice(0, 800);
 
   return { title, titleLength: title.length, metaDesc, metaDescLength: metaDesc.length,
-           h1s, h2s, totalImages, imagesWithoutAlt, hasCanonical, hasOgTitle, hasOgDesc, hasViewport, text };
+           h1s, h2s, h2Questions, totalImages, imagesWithoutAlt,
+           hasCanonical, hasOgTitle, hasOgDesc, hasViewport, hasJsonLd, text };
 }
 
 /* ── Generate findings per page ─────────────────────────────── */
@@ -141,6 +167,10 @@ function generateFindings(meta, pageUrl) {
     findings.push({ type: 'mobile', severity: 'warning', issue: 'Chýba viewport meta tag (mobilné zariadenia)', suggestion: 'Pridajte <meta name="viewport" content="width=device-width, initial-scale=1">' });
   }
 
+  if (!meta.hasJsonLd) {
+    findings.push({ type: 'schema', severity: 'info', issue: 'Chýba Schema.org JSON-LD (štruktúrované dáta)', suggestion: 'Pridajte JSON-LD – AI agenti (ChatGPT, Claude, Perplexity) a Google ho čítajú prednostne' });
+  }
+
   return findings;
 }
 
@@ -151,7 +181,7 @@ function calculateScore(allFindings) {
   return Math.max(0, Math.min(100, 100 - penalty));
 }
 
-/* ── Claude Haiku: generate AI-optimized title + description ── */
+/* ── Claude Haiku: AI-optimized title + description ─────────── */
 async function generateAiFixes(pages) {
   const client = new Anthropic();
   const fixes = {};
@@ -186,6 +216,51 @@ Return ONLY valid JSON: {"title":"...","description":"..."}`
   return fixes;
 }
 
+/* ── Claude Haiku: Schema.org JSON-LD per page ──────────────── */
+async function generateSchemaFixes(pages) {
+  const client = new Anthropic();
+  const fixes = {};
+
+  for (const page of pages.slice(0, 8)) {
+    if (!page.html) continue;
+    try {
+      const hasFaqH2s = page.meta.h2Questions.length >= 2;
+      const msg = await client.messages.create({
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 600,
+        messages: [{
+          role: 'user',
+          content: `You are a Schema.org expert. Generate the most appropriate JSON-LD structured data for this webpage.
+
+URL: ${page.url}
+Title: "${page.meta.title || '(missing)'}"
+H1: "${page.meta.h1s[0] || '(missing)'}"
+H2 headings: ${JSON.stringify(page.meta.h2s.slice(0, 6))}
+${hasFaqH2s ? 'NOTE: H2s look like FAQ questions — prefer FAQPage type.' : ''}
+Page text: ${page.meta.text}
+
+Rules:
+- Choose the most specific @type: LocalBusiness, Organization, FAQPage, Product, Article, WebPage
+- For FAQPage include mainEntity array with Question/Answer pairs from H2s
+- Include @context "https://schema.org"
+- Use the page language for all text values
+- Only include fields you can confidently infer
+Return ONLY valid JSON.`
+        }],
+      });
+      const text = msg.content[0]?.text || '';
+      const m = text.match(/\{[\s\S]*\}/);
+      if (m) {
+        try {
+          const parsed = JSON.parse(m[0]);
+          if (parsed['@type'] && parsed['@context']) fixes[page.url] = parsed;
+        } catch {}
+      }
+    } catch { /* skip */ }
+  }
+  return fixes;
+}
+
 /* ── Main audit ─────────────────────────────────────────────── */
 async function runSeoAudit(startUrl, maxPages = 8) {
   const base = new URL(startUrl);
@@ -214,20 +289,32 @@ async function runSeoAudit(startUrl, maxPages = 8) {
 
   if (pages.length === 0) throw new Error('Nepodarilo sa načítať žiadnu stránku webu.');
 
-  const aiFixes = await generateAiFixes(pages).catch(() => ({}));
+  // Check if llms.txt already exists
+  let hasLlmsTxt = false;
+  try { await fetchText(`${base.origin}/llms.txt`); hasLlmsTxt = true; } catch {}
+
+  const [aiFixes, schemaFixes] = await Promise.all([
+    generateAiFixes(pages).catch(() => ({})),
+    generateSchemaFixes(pages).catch(() => ({})),
+  ]);
+
+  const allFindings = pages.flatMap(p => p.findings);
 
   const result = {
-    score: calculateScore(pages.flatMap(p => p.findings)),
+    score: calculateScore(allFindings),
+    has_llms_txt: hasLlmsTxt,
     summary: {
       total_pages: pages.length,
-      total_issues: pages.flatMap(p => p.findings).length,
-      critical: pages.flatMap(p => p.findings).filter(f => f.severity === 'critical').length,
-      warnings:  pages.flatMap(p => p.findings).filter(f => f.severity === 'warning').length,
-      info:      pages.flatMap(p => p.findings).filter(f => f.severity === 'info').length,
+      total_issues: allFindings.length,
+      critical: allFindings.filter(f => f.severity === 'critical').length,
+      warnings:  allFindings.filter(f => f.severity === 'warning').length,
+      info:      allFindings.filter(f => f.severity === 'info').length,
     },
+    schema_fixes: schemaFixes,
     pages: pages.map(p => ({
       url: p.url,
       title: p.meta.title,
+      meta: { metaDesc: p.meta.metaDesc, text: p.meta.text.slice(0, 200) },
       findings: p.findings,
       ai_fix: aiFixes[p.url] || null,
     })),
@@ -256,18 +343,28 @@ add_action( 'wp_head', function () {
   ];
 
   for (const page of auditResult.pages) {
-    if (!page.ai_fix) continue;
     try {
       const path = new URL(page.url).pathname;
-      const t = (page.ai_fix.title || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      const d = (page.ai_fix.description || '').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const fix  = page.ai_fix;
+      const schema = auditResult.schema_fixes?.[page.url];
+      if (!fix && !schema) continue;
       lines.push(`  // ${page.url}`);
       lines.push(`  if ( rtrim( parse_url( $url, PHP_URL_PATH ), '/' ) === '${path.replace(/\/$/, '')}' ) {`);
-      if (t) lines.push(`    echo '<title>${t}</title>\\n';`);
-      if (d) lines.push(`    echo '<meta name="description" content="${d}">\\n';`);
-      if (t) lines.push(`    echo '<meta property="og:title" content="${t}">\\n';`);
-      if (d) lines.push(`    echo '<meta property="og:description" content="${d}">\\n';`);
+      if (fix?.title) {
+        const t = fix.title.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        lines.push(`    echo '<title>${t}</title>\\n';`);
+        lines.push(`    echo '<meta property="og:title" content="${t}">\\n';`);
+      }
+      if (fix?.description) {
+        const d = fix.description.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        lines.push(`    echo '<meta name="description" content="${d}">\\n';`);
+        lines.push(`    echo '<meta property="og:description" content="${d}">\\n';`);
+      }
       lines.push(`    echo '<link rel="canonical" href="' . esc_url( $url ) . '">\\n';`);
+      if (schema) {
+        const json = JSON.stringify(schema).replace(/'/g, "\\'");
+        lines.push(`    echo '<script type="application/ld+json">${json}<\\/script>\\n';`);
+      }
       lines.push(`  }\n`);
     } catch {}
   }
@@ -286,8 +383,9 @@ function generateHtmlFix(auditResult) {
   ];
 
   for (const page of auditResult.pages) {
-    const fix = page.ai_fix;
-    if (!fix && page.findings.length === 0) continue;
+    const fix    = page.ai_fix;
+    const schema = auditResult.schema_fixes?.[page.url];
+    if (!fix && !schema && page.findings.length === 0) continue;
     parts.push(`\n<!-- ===== ${page.url} ===== -->`);
     if (fix?.title)       parts.push(`<title>${fix.title}</title>`);
     if (fix?.description) parts.push(`<meta name="description" content="${fix.description}">`);
@@ -296,9 +394,70 @@ function generateHtmlFix(auditResult) {
     parts.push(`<meta property="og:url" content="${page.url}">`);
     parts.push(`<link rel="canonical" href="${page.url}">`);
     parts.push(`<meta name="viewport" content="width=device-width, initial-scale=1">`);
+    if (schema) {
+      parts.push(`<script type="application/ld+json">`);
+      parts.push(JSON.stringify(schema, null, 2));
+      parts.push(`</script>`);
+    }
   }
 
   return parts.join('\n');
 }
 
-module.exports = { runSeoAudit, generateWordPressFix, generateHtmlFix };
+/* ── Generate Schema.org JSON-LD snippet (standalone) ──────── */
+function generateSchemaFix(auditResult) {
+  const date = new Date().toISOString().split('T')[0];
+  const parts = [
+    `<!-- Neoworkly Growth Boost – Schema.org JSON-LD (${date}) -->`,
+    `<!-- AEO/GEO optimalizácia pre AI agentov: ChatGPT, Claude, Perplexity, Google AI -->`,
+    `<!-- Vložte do sekcie <head> každej príslušnej stránky -->`,
+    '',
+  ];
+
+  const schemaFixes = auditResult.schema_fixes || {};
+  for (const page of auditResult.pages) {
+    const schema = schemaFixes[page.url];
+    if (!schema) continue;
+    parts.push(`\n<!-- ===== ${page.url} ===== -->`);
+    parts.push(`<script type="application/ld+json">`);
+    parts.push(JSON.stringify(schema, null, 2));
+    parts.push(`</script>`);
+  }
+
+  return parts.join('\n');
+}
+
+/* ── Generate llms.txt ──────────────────────────────────────── */
+function generateLlmsTxt(auditResult) {
+  const pages = auditResult.pages || [];
+  const firstPage = pages[0];
+  const siteName = firstPage?.title || (firstPage?.url ? new URL(firstPage.url).hostname : 'Website');
+  const siteDesc = firstPage?.meta?.metaDesc || firstPage?.ai_fix?.description || '';
+  const date = new Date().toISOString().split('T')[0];
+
+  const lines = [
+    `# ${siteName}`,
+    ``,
+    siteDesc ? `> ${siteDesc}` : `> AI-readable sitemap generated by Neoworkly Growth Boost`,
+    ``,
+    `## Pages`,
+    ``,
+  ];
+
+  for (const page of pages) {
+    const title = page.title || page.url;
+    const desc  = page.meta?.metaDesc || page.ai_fix?.description || '';
+    lines.push(`- [${title}](${page.url})${desc ? ': ' + desc : ''}`);
+  }
+
+  lines.push('');
+  lines.push('## Notes');
+  lines.push('');
+  lines.push(`- Generated: ${date}`);
+  lines.push(`- Source: Neoworkly Growth Boost SEO Audit`);
+  lines.push(`- This file follows the llms.txt standard (https://llmstxt.org)`);
+
+  return lines.join('\n');
+}
+
+module.exports = { runSeoAudit, generateWordPressFix, generateHtmlFix, generateSchemaFix, generateLlmsTxt };

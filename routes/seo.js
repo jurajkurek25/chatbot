@@ -4,7 +4,7 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
-const { runSeoAudit, generateWordPressFix, generateHtmlFix } = require('../services/seo-auditor');
+const { runSeoAudit, generateWordPressFix, generateHtmlFix, generateSchemaFix, generateLlmsTxt } = require('../services/seo-auditor');
 
 const router = express.Router();
 router.use(requireAuth);
@@ -140,6 +140,58 @@ router.get('/fix/html', (req, res) => {
     res.send(html);
   } catch (err) {
     console.error('[seo/fix/html]', err.message);
+    res.status(500).json({ error: 'Interná chyba servera.' });
+  }
+});
+
+/* ── GET /api/seo/fix/schema ─────────────────────────────────── */
+router.get('/fix/schema', (req, res) => {
+  try {
+    const db = getDb();
+    const user = db.prepare('SELECT growth_boost_paid FROM users WHERE id = ?').get(req.userId);
+    if (!user?.growth_boost_paid) return res.status(403).json({ error: 'Táto funkcia vyžaduje Growth Boost.' });
+
+    const audit = db.prepare(`
+      SELECT findings_json FROM seo_audits WHERE user_id = ? AND status = 'done'
+      ORDER BY completed_at DESC LIMIT 1
+    `).get(req.userId);
+    if (!audit) return res.status(404).json({ error: 'Žiadny dokončený audit.' });
+
+    let result = {};
+    try { result = JSON.parse(audit.findings_json); } catch {}
+
+    const html = generateSchemaFix(result);
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', 'attachment; filename="neoworkly-schema.html"');
+    res.send(html);
+  } catch (err) {
+    console.error('[seo/fix/schema]', err.message);
+    res.status(500).json({ error: 'Interná chyba servera.' });
+  }
+});
+
+/* ── GET /api/seo/fix/llms ───────────────────────────────────── */
+router.get('/fix/llms', (req, res) => {
+  try {
+    const db = getDb();
+    const user = db.prepare('SELECT growth_boost_paid FROM users WHERE id = ?').get(req.userId);
+    if (!user?.growth_boost_paid) return res.status(403).json({ error: 'Táto funkcia vyžaduje Growth Boost.' });
+
+    const audit = db.prepare(`
+      SELECT findings_json FROM seo_audits WHERE user_id = ? AND status = 'done'
+      ORDER BY completed_at DESC LIMIT 1
+    `).get(req.userId);
+    if (!audit) return res.status(404).json({ error: 'Žiadny dokončený audit.' });
+
+    let result = {};
+    try { result = JSON.parse(audit.findings_json); } catch {}
+
+    const txt = generateLlmsTxt(result);
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="llms.txt"');
+    res.send(txt);
+  } catch (err) {
+    console.error('[seo/fix/llms]', err.message);
     res.status(500).json({ error: 'Interná chyba servera.' });
   }
 });
