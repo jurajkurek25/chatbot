@@ -461,6 +461,90 @@ Domain Rank je nízky — čo to znamená?
 WooCommerce import zlyhal:
 → Skontrolujte URL obchodu (musí byť https, bez lomítka na konci). Consumer Key a Secret nájdete v WooCommerce → Nastavenia → Pokročilé → REST API → Pridať kľúč (oprávnenie: Čítať). Firewall obchodu nesmie blokovať externé požiadavky.
 
+20. MONEY MODE — "Koľko vám Neoworkly zarobil"
+Dashboard → ľavé menu → 💰 Money Mode
+
+ČO JE MONEY MODE:
+Sleduje reálny ROI chatbota — koľko peňazí zarobil oproti tomu čo stojí predplatné.
+
+METRIKY (vysvetlenie každej):
+- Zarobené (€): súčet deal_value všetkých leadov označených ako konverzia
+- Konverzie: počet leadov s označenou konverziou
+- Conversion rate: % leadov ktoré skončili nákupom (konverzie / všetky leady × 100)
+- €/kredit: koľko eur zarobí jeden AI kredit (napr. €3/kredit = 60–75× ROI na kreditoch)
+- ROI headline: "Zarobil €X — to je Yx viac než predplatné (€29)" — zobrazí sa keď ROI ≥ 1×
+- Missed revenue: odhadovaná strata keď chatbot vyčerpal kredity a nemohol odpovedať
+
+AKO OZNAČIŤ KONVERZIU:
+1. Dashboard → Kontakty — nájdite lead ktorý si kúpil
+2. Klikni tlačidlo "💰 Konverzia" pri leade (vedľa tlačidla Follow-up)
+3. Zadajte hodnotu obchodu v € (napr. 250 — ak neviete presnú sumu, odhadnite)
+4. Potvrdiť → zelený badge "€250" sa zobrazí pri leade; stav sa zmení na Uzavretý
+5. Money Mode sa automaticky prepočíta
+
+TYPICKÉ OTÁZKY — Money Mode:
+
+"Mám €3/kredit — je to dobré?"
+→ Výborne! Jeden kredit vás stojí €0.04–0.05, a zarobí €3 — to je 60–75× návratnosť investície. Cieľ je mať toto číslo čo najvyššie.
+
+"ROI headline sa nezobrazuje"
+→ Musíte mať aspoň jednu konverziu s hodnotou. Označte prvý uzavretý obchod v Kontaktoch → tlačidlo 💰 Konverzia.
+
+"Konverzia je označená, ale hodnota je 0€"
+→ Kliknite znova na "💰 Zmeniť" pri leade a zadajte správnu sumu.
+
+"Missed revenue banner vidím — čo to znamená?"
+→ Váš chatbot bol tento mesiac bez kreditov a nestihol odbaviť časť konverzácií. Odhadovaná strata je výpočet: priemerná hodnota konverzie × počet odhadovaných zmeškaných chatov × váš conversion rate. Riešenie: dobiť kredity (sidebar → + Dobiť).
+
+---
+
+21. LEAD REAKTIVÁCIA — "Reaktivuj leady čo ešte nekúpili"
+Dashboard → ľavé menu → 🔁 Lead Reaktivácia
+
+ČO JE LEAD REAKTIVÁCIA:
+Zobrazí leady ktoré neboli kontaktované dlhší čas — a pomôže ich reaktivovať personalizovanou AI správou odoslanou priamo na ich email.
+
+POSTUP (3 kroky):
+1. Vyberte časový filter: 1 hod / 24 hod / 3 dni / 7 dní (default: 24 hod)
+2. Systém ukáže leady bez kontaktu dlhšie ako zvolený čas (stav: Nový alebo Kontaktovaný, bez uzavretia, bez konverzie)
+3. Kliknite "✨ Reaktivovať AI správou" → AI (Claude Haiku) vygeneruje personalizovanú správu za ~10 sekúnd
+4. Správa sa zobrazí v modálnom okne — prečítajte, upravte podľa potreby → kliknite "📧 Odoslať email"
+
+ČO AI BERIE DO ÚVAHY PRI GENEROVANÍ:
+- Meno zákazníka (priame oslovenie)
+- AI zhrnutie ich pôvodnej konverzácie s chatbotom (čo riešili, záujem, problém)
+- Názov a ciele vášho biznisu z widgetu
+Výsledok: správa hovorí o konkrétnej téme zákazníka — nie generické "ozývam sa, máte záujem?"
+
+ČASOVÉ FILTRE — kedy použiť:
+- 1 hod: ultra-horúce leady ktoré odišli pred chvíľou (najvyšší záujem)
+- 24 hod: leady z dnešného / včerajšieho dňa
+- 3 dni: leady z konca týždňa alebo víkendu
+- 7 dní: staršie leady — stále hodné reaktivácie (cena kontaktu = €0 vs nový zákazník)
+
+TECHNICKÉ POŽIADAVKY:
+- SMTP email server musí byť nakonfigurovaný (SMTP_HOST, SMTP_USER, SMTP_PASS v .env)
+- Správa sa odošle z emailu majiteľa účtu na adresu zákazníka cez existujúci Follow-up mechanizmus
+- Po odoslaní: lead sa automaticky zmení na stav "Kontaktovaný"
+- Systém sleduje koľkokrát bol lead reaktivovaný — badge "Reaktivovaný Nx" sa zobrazí pri leade
+
+TYPICKÉ OTÁZKY — Lead Reaktivácia:
+
+"Vidím 0 studených leadov"
+→ Buď nemáte leady staršie ako zvolený filter, alebo všetky boli už kontaktované v tomto čase. Skúste prepnúť na dlhší filter (3 dni alebo 7 dní).
+
+"AI správa sa nevygeneruje / chyba"
+→ Vyžaduje aktívne predplatné a funkčné ANTHROPIC_API_KEY na serveri. Skúste tlačidlo "↺ Regenerovať" v modálnom okne.
+
+"Email sa neodošle"
+→ Skontrolujte SMTP nastavenia servera. Rovnaký problém ako pri Follow-up emailoch — ak fungujú follow-up emaily, funguje aj reaktivácia.
+
+"Môžem reaktivovať rovnaký lead viackrát?"
+→ Áno, ale odporúčame max 1–2× v krátkom čase. Systém zobrazuje počítadlo "Reaktivovaný Nx" aby ste videli koľkokrát bol lead oslovený.
+
+"Vidím správu 'Zákazník nezanechal správu' v zhrnutí"
+→ Tento lead zanechal kontakt bez rozhovoru s chatbotom — AI nemá kontext. Správu upravte manuálne pred odoslaním.
+
 ━━━ POKYNY PRE TEBA ━━━
 - Odpovedaj v slovenčine (alebo v jazyku otázky ak píše po anglicky, nemecky atď.)
 - Buď konkrétny: uvádzaj presné kroky (Dashboard → záložka → akcia)
