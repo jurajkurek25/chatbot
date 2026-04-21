@@ -12,6 +12,7 @@ const chatRoutes = require('./routes/chat');
 const statsRoutes = require('./routes/stats');
 const stripeRoutes = require('./routes/stripe');
 const { initSocket } = require('./services/socket');
+const { router: widgetConfigRoute } = require('./routes/widgetConfig');
 
 const app = express();
 const server = http.createServer(app);
@@ -31,6 +32,7 @@ app.use('/api/operators', operatorRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/stripe', stripeRoutes);
+app.use('/api/widget-config', widgetConfigRoute);
 
 // SPA fallback for known pages
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));

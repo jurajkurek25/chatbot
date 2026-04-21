@@ -27,4 +27,28 @@ router.get('/widget-key', authClient, (req, res) => {
   res.json({ widget_key: row.widget_key });
 });
 
+// Save widget visual config
+router.patch('/widget-config', authClient, (req, res) => {
+  const allowed = ['primaryColor','secondaryColor','bgColor','textColor','mutedColor','userBubbleColor','opBubbleColor','borderRadius','buttonShape','font','position'];
+  const incoming = req.body || {};
+  const safe = {};
+  allowed.forEach(k => { if (incoming[k] !== undefined) safe[k] = incoming[k]; });
+  const db = getDB();
+  const existing = db.prepare('SELECT widget_config FROM clients WHERE id = ?').get(req.clientId);
+  let current = {};
+  try { current = JSON.parse(existing.widget_config || '{}'); } catch {}
+  db.prepare('UPDATE clients SET widget_config = ? WHERE id = ?')
+    .run(JSON.stringify({ ...current, ...safe }), req.clientId);
+  res.json({ ok: true });
+});
+
+// Get widget config (for dashboard)
+router.get('/widget-config', authClient, (req, res) => {
+  const db = getDB();
+  const row = db.prepare('SELECT widget_config FROM clients WHERE id = ?').get(req.clientId);
+  let config = {};
+  try { config = JSON.parse(row.widget_config || '{}'); } catch {}
+  res.json(config);
+});
+
 module.exports = router;

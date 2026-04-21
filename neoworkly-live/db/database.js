@@ -86,6 +86,9 @@ function initDB() {
     CREATE INDEX IF NOT EXISTS idx_queue_client ON queue(client_id);
   `);
 
+  // Migration: add widget_config if not exists
+  try { db.exec("ALTER TABLE clients ADD COLUMN widget_config TEXT DEFAULT '{}'"); } catch {}
+
   console.log('Neoworkly Live DB initialized');
 }
 

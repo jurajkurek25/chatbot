@@ -123,13 +123,132 @@
         <p>Widget je dostupný pre platené plány. Vyberte si plán a začnite využívať live chat na vašom webe.</p>
         <button class="btn-primary" style="width:auto;margin-top:1rem;" onclick="showSection('plans', document.querySelector('[data-section=plans]'))">Zobraziť plány →</button>
       </div>
-      <div id="widget-content" class="widget-install-box">
-        <p>Skopírujte tento kód a vložte ho pred záver <code>&lt;/body&gt;</code> na vašom webe:</p>
-        <pre id="widget-code-block" class="code-block"></pre>
-        <button class="btn-primary btn-sm" onclick="copyWidgetCode()">Kopírovať kód</button>
-        <div class="widget-preview-note">
-          <strong>Ako to funguje:</strong> Widget sa zobrazí ako tlačidlo v pravom dolnom rohu. Návštevník si môže vybrať operátora alebo kliknúť AUTO.
-          Tlačidlo "Fullscreen" otvorí chat na celú obrazovku.
+      <div id="widget-content">
+        <div class="widget-install-box" style="margin-bottom:1.25rem;">
+          <p>Skopírujte tento kód a vložte ho pred záver <code>&lt;/body&gt;</code> na vašom webe:</p>
+          <pre id="widget-code-block" class="code-block"></pre>
+          <button class="btn-primary btn-sm" onclick="copyWidgetCode()">Kopírovať kód</button>
+        </div>
+
+        <!-- Designer -->
+        <div class="designer-wrap">
+          <div class="designer-panel">
+            <h2 class="designer-title">Dizajn widgetu</h2>
+
+            <div class="designer-section-label">Farby</div>
+            <div class="color-grid">
+              <div class="color-item">
+                <label>Primárna</label>
+                <div class="color-swatch-wrap"><input type="color" id="dc-primary" value="#0d9488" oninput="livePreview()"></div>
+              </div>
+              <div class="color-item">
+                <label>Sekundárna</label>
+                <div class="color-swatch-wrap"><input type="color" id="dc-secondary" value="#0891b2" oninput="livePreview()"></div>
+              </div>
+              <div class="color-item">
+                <label>Pozadie</label>
+                <div class="color-swatch-wrap"><input type="color" id="dc-bg" value="#0f172a" oninput="livePreview()"></div>
+              </div>
+              <div class="color-item">
+                <label>Text</label>
+                <div class="color-swatch-wrap"><input type="color" id="dc-text" value="#f1f5f9" oninput="livePreview()"></div>
+              </div>
+              <div class="color-item">
+                <label>Vedľajší text</label>
+                <div class="color-swatch-wrap"><input type="color" id="dc-muted" value="#94a3b8" oninput="livePreview()"></div>
+              </div>
+              <div class="color-item">
+                <label>Bublina – vy</label>
+                <div class="color-swatch-wrap"><input type="color" id="dc-user-bubble" value="#0d9488" oninput="livePreview()"></div>
+              </div>
+              <div class="color-item">
+                <label>Bublina – op.</label>
+                <div class="color-swatch-wrap"><input type="color" id="dc-op-bubble" value="#1e293b" oninput="livePreview()"></div>
+              </div>
+            </div>
+
+            <div class="designer-section-label">Zaoblenie rohov</div>
+            <div class="shape-grid" id="radius-grid">
+              <button class="shape-opt" data-val="sharp" onclick="selectOpt('radius',this)">
+                <div class="shape-demo" style="border-radius:3px;"></div><span>Ostré</span>
+              </button>
+              <button class="shape-opt active" data-val="normal" onclick="selectOpt('radius',this)">
+                <div class="shape-demo" style="border-radius:10px;"></div><span>Normálne</span>
+              </button>
+              <button class="shape-opt" data-val="rounded" onclick="selectOpt('radius',this)">
+                <div class="shape-demo" style="border-radius:18px;"></div><span>Zaoblené</span>
+              </button>
+              <button class="shape-opt" data-val="pill" onclick="selectOpt('radius',this)">
+                <div class="shape-demo" style="border-radius:999px;"></div><span>Pill</span>
+              </button>
+            </div>
+
+            <div class="designer-section-label">Tvar tlačidla chatu</div>
+            <div class="shape-grid" id="btnshape-grid">
+              <button class="shape-opt active" data-val="circle" onclick="selectOpt('btnshape',this)">
+                <div class="shape-demo shape-btn-demo" style="border-radius:50%;"></div><span>Kruh</span>
+              </button>
+              <button class="shape-opt" data-val="rounded" onclick="selectOpt('btnshape',this)">
+                <div class="shape-demo shape-btn-demo" style="border-radius:14px;"></div><span>Zaoblené</span>
+              </button>
+              <button class="shape-opt" data-val="square" onclick="selectOpt('btnshape',this)">
+                <div class="shape-demo shape-btn-demo" style="border-radius:6px;"></div><span>Štvorcové</span>
+              </button>
+            </div>
+
+            <div class="designer-section-label">Font</div>
+            <div class="font-grid" id="font-grid">
+              <button class="font-opt active" data-val="system" style="font-family:system-ui" onclick="selectOpt('font',this)">Systémový</button>
+              <button class="font-opt" data-val="inter" style="font-family:'Inter',sans-serif" onclick="selectOpt('font',this)">Inter</button>
+              <button class="font-opt" data-val="poppins" style="font-family:'Poppins',sans-serif" onclick="selectOpt('font',this)">Poppins</button>
+              <button class="font-opt" data-val="nunito" style="font-family:'Nunito',sans-serif" onclick="selectOpt('font',this)">Nunito</button>
+              <button class="font-opt" data-val="roboto" style="font-family:'Roboto',sans-serif" onclick="selectOpt('font',this)">Roboto</button>
+              <button class="font-opt" data-val="lato" style="font-family:'Lato',sans-serif" onclick="selectOpt('font',this)">Lato</button>
+            </div>
+
+            <div class="designer-section-label">Pozícia widgetu</div>
+            <div class="shape-grid" id="position-grid">
+              <button class="shape-opt" data-val="left" onclick="selectOpt('position',this)">
+                <div style="font-size:1.2rem;">◀</div><span>Vľavo</span>
+              </button>
+              <button class="shape-opt active" data-val="right" onclick="selectOpt('position',this)">
+                <div style="font-size:1.2rem;">▶</div><span>Vpravo</span>
+              </button>
+            </div>
+
+            <div id="designer-save-msg" class="form-success" style="margin-top:.5rem;"></div>
+            <button class="btn-primary" style="margin-top:1rem;" onclick="saveWidgetConfig()">Uložiť dizajn</button>
+          </div>
+
+          <!-- Live preview -->
+          <div class="designer-preview">
+            <div class="preview-label">Náhľad</div>
+            <div class="preview-scene">
+              <div class="preview-widget" id="preview-widget">
+                <div class="preview-header" id="preview-header">
+                  <div style="font-size:.75rem;font-weight:700;color:#fff;">Live chat podpora</div>
+                  <div style="font-size:.65rem;color:rgba(255,255,255,.7);margin-top:2px;">Vyberte operátora</div>
+                </div>
+                <div class="preview-body" id="preview-body">
+                  <div class="preview-op-card" id="preview-op">
+                    <div class="preview-avatar" id="preview-avatar">M</div>
+                    <div>
+                      <div style="font-size:.72rem;font-weight:600;" id="preview-op-name">Mária</div>
+                      <div style="font-size:.62rem;color:#34d399;">● Dostupná</div>
+                    </div>
+                  </div>
+                  <div class="preview-auto-btn" id="preview-auto">AUTO</div>
+                  <div class="preview-msgs">
+                    <div class="preview-msg preview-msg-in" id="preview-msg-in">Dobrý deň, pomôžem?</div>
+                    <div class="preview-msg preview-msg-out" id="preview-msg-out">Ďakujem!</div>
+                  </div>
+                </div>
+              </div>
+              <div class="preview-btn" id="preview-btn">
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="#fff"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>
@@ -385,6 +504,112 @@ async function loadWidget() {
   const origin = window.location.origin;
   const code = `<script src="${origin}/widget.js" data-key="${me.widget_key}" data-lang="${me.language || 'sk'}"><\/script>`;
   document.getElementById('widget-code-block').textContent = code;
+
+  // Load saved config into designer
+  const cfg = await api('/api/clients/widget-config');
+  if (cfg) applyDesignerConfig(cfg);
+}
+
+const GOOGLE_FONTS_LOAD = { inter:'Inter:wght@400;600;700', poppins:'Poppins:wght@400;600;700', nunito:'Nunito:wght@400;600;700', roboto:'Roboto:wght@400;500;700', lato:'Lato:wght@400;700' };
+
+function applyDesignerConfig(cfg) {
+  if (cfg.primaryColor) document.getElementById('dc-primary').value = cfg.primaryColor;
+  if (cfg.secondaryColor) document.getElementById('dc-secondary').value = cfg.secondaryColor;
+  if (cfg.bgColor) document.getElementById('dc-bg').value = cfg.bgColor;
+  if (cfg.textColor) document.getElementById('dc-text').value = cfg.textColor;
+  if (cfg.mutedColor) document.getElementById('dc-muted').value = cfg.mutedColor;
+  if (cfg.userBubbleColor) document.getElementById('dc-user-bubble').value = cfg.userBubbleColor;
+  if (cfg.opBubbleColor) {
+    try { document.getElementById('dc-op-bubble').value = cfg.opBubbleColor; } catch {}
+  }
+  if (cfg.borderRadius) selectOptByVal('radius', cfg.borderRadius);
+  if (cfg.buttonShape) selectOptByVal('btnshape', cfg.buttonShape);
+  if (cfg.font) selectOptByVal('font', cfg.font);
+  if (cfg.position) selectOptByVal('position', cfg.position);
+  livePreview();
+}
+
+function selectOpt(group, el) {
+  const grid = document.getElementById(`${group}-grid`);
+  grid.querySelectorAll('.shape-opt,.font-opt').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  livePreview();
+}
+function selectOptByVal(group, val) {
+  const grid = document.getElementById(`${group}-grid`);
+  if (!grid) return;
+  grid.querySelectorAll('[data-val]').forEach(b => {
+    b.classList.toggle('active', b.dataset.val === val);
+  });
+}
+function getOptVal(group) {
+  const grid = document.getElementById(`${group}-grid`);
+  const active = grid?.querySelector('.active');
+  return active?.dataset.val || null;
+}
+
+function livePreview() {
+  const p = document.getElementById('dc-primary').value;
+  const s = document.getElementById('dc-secondary').value;
+  const bg = document.getElementById('dc-bg').value;
+  const text = document.getElementById('dc-text').value;
+  const muted = document.getElementById('dc-muted').value;
+  const userBubble = document.getElementById('dc-user-bubble').value;
+  const opBubble = document.getElementById('dc-op-bubble').value;
+  const radius = getOptVal('radius') || 'normal';
+  const btnShape = getOptVal('btnshape') || 'circle';
+  const font = getOptVal('font') || 'system';
+
+  const RADIUS_MAP = { sharp:'6px', normal:'16px', rounded:'24px', pill:'999px' };
+  const BTN_MAP = { circle:'50%', rounded:'14px', square:'8px' };
+  const FONTS = { system:'system-ui,sans-serif', inter:"'Inter',sans-serif", poppins:"'Poppins',sans-serif", nunito:"'Nunito',sans-serif", roboto:"'Roboto',sans-serif", lato:"'Lato',sans-serif" };
+
+  const r = RADIUS_MAP[radius];
+  const fontFam = FONTS[font] || FONTS.system;
+
+  // Load font preview
+  if (font !== 'system' && GOOGLE_FONTS_LOAD[font]) {
+    let lnk = document.getElementById(`gf-${font}`);
+    if (!lnk) { lnk = document.createElement('link'); lnk.id=`gf-${font}`; lnk.rel='stylesheet'; lnk.href=`https://fonts.googleapis.com/css2?family=${encodeURIComponent(GOOGLE_FONTS_LOAD[font])}&display=swap`; document.head.appendChild(lnk); }
+  }
+
+  const pw = document.getElementById('preview-widget');
+  const pb = document.getElementById('preview-btn');
+  const ph = document.getElementById('preview-header');
+  const pAuto = document.getElementById('preview-auto');
+  const pMsgIn = document.getElementById('preview-msg-in');
+  const pMsgOut = document.getElementById('preview-msg-out');
+  const pAvatar = document.getElementById('preview-avatar');
+  const pOp = document.getElementById('preview-op');
+
+  pw.style.cssText = `background:${bg};border-radius:${r};font-family:${fontFam};color:${text};`;
+  ph.style.cssText = `background:linear-gradient(135deg,${p},${s});padding:10px 12px;`;
+  pb.style.cssText = `background:linear-gradient(135deg,${p},${s});border-radius:${BTN_MAP[btnShape]};width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3);`;
+  pAuto.style.cssText = `background:linear-gradient(135deg,${p},${s});border-radius:calc(${r} * .6);color:#fff;`;
+  pMsgOut.style.cssText = `background:${userBubble};color:#fff;border-radius:10px 10px 2px 10px;align-self:flex-end;`;
+  pMsgIn.style.cssText = `background:${opBubble};color:${text};border-radius:10px 10px 10px 2px;align-self:flex-start;`;
+  pAvatar.style.cssText = `background:${p}33;color:${p};`;
+  pOp.style.cssText = `background:rgba(255,255,255,.04);border-radius:calc(${r} * .5);border:1px solid rgba(255,255,255,.1);`;
+}
+
+async function saveWidgetConfig() {
+  const msg = document.getElementById('designer-save-msg');
+  const config = {
+    primaryColor: document.getElementById('dc-primary').value,
+    secondaryColor: document.getElementById('dc-secondary').value,
+    bgColor: document.getElementById('dc-bg').value,
+    textColor: document.getElementById('dc-text').value,
+    mutedColor: document.getElementById('dc-muted').value,
+    userBubbleColor: document.getElementById('dc-user-bubble').value,
+    opBubbleColor: document.getElementById('dc-op-bubble').value,
+    borderRadius: getOptVal('radius') || 'normal',
+    buttonShape: getOptVal('btnshape') || 'circle',
+    font: getOptVal('font') || 'system',
+    position: getOptVal('position') || 'right'
+  };
+  const r = await fetch('/api/clients/widget-config', { method:'PATCH', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body: JSON.stringify(config) });
+  msg.textContent = r.ok ? '✓ Uložené!' : 'Chyba ukladania.';
+  setTimeout(() => msg.textContent = '', 2500);
 }
 
 async function loadPlans() {
