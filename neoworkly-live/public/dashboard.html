@@ -135,6 +135,20 @@
           <div class="designer-panel">
             <h2 class="designer-title">Dizajn widgetu</h2>
 
+            <div class="designer-section-label">Logo spoločnosti</div>
+            <div class="logo-upload-area">
+              <div class="logo-preview-wrap" id="logo-preview-wrap" style="display:none;">
+                <img id="logo-preview-img" src="" alt="Logo">
+                <button class="logo-remove-btn" onclick="removeLogo()" title="Odstrániť logo">✕</button>
+              </div>
+              <label class="logo-upload-btn" id="logo-upload-label">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                <span id="logo-upload-text">Nahrať logo</span>
+                <input type="file" id="logo-file-input" accept="image/*" style="display:none" onchange="uploadLogo(this)">
+              </label>
+              <div id="logo-msg" class="form-success" style="font-size:.8rem;"></div>
+            </div>
+
             <div class="designer-section-label">Farby</div>
             <div class="color-grid">
               <div class="color-item">
@@ -505,9 +519,48 @@ async function loadWidget() {
   const code = `<script src="${origin}/widget.js" data-key="${me.widget_key}" data-lang="${me.language || 'sk'}"><\/script>`;
   document.getElementById('widget-code-block').textContent = code;
 
+  // Load logo preview
+  if (me.logo_url) setLogoPreview(origin + me.logo_url);
+
   // Load saved config into designer
   const cfg = await api('/api/clients/widget-config');
   if (cfg) applyDesignerConfig(cfg);
+}
+
+function setLogoPreview(url) {
+  const wrap = document.getElementById('logo-preview-wrap');
+  const img = document.getElementById('logo-preview-img');
+  const lbl = document.getElementById('logo-upload-label');
+  if (url) {
+    img.src = url;
+    wrap.style.display = 'flex';
+    lbl.querySelector('span').textContent = 'Zmeniť logo';
+  } else {
+    wrap.style.display = 'none';
+    lbl.querySelector('span').textContent = 'Nahrať logo';
+  }
+}
+
+async function uploadLogo(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const msg = document.getElementById('logo-msg');
+  msg.textContent = 'Nahrávam…';
+  msg.className = 'form-success';
+  const fd = new FormData();
+  fd.append('logo', file);
+  const r = await fetch('/api/clients/logo', { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: fd });
+  const d = await r.json();
+  if (!r.ok) { msg.textContent = d.error || 'Chyba'; msg.className = 'form-error'; return; }
+  setLogoPreview(window.location.origin + d.logo_url);
+  msg.textContent = 'Logo uložené!';
+  input.value = '';
+  setTimeout(() => msg.textContent = '', 3000);
+}
+
+async function removeLogo() {
+  const r = await fetch('/api/clients/logo', { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+  if (r.ok) setLogoPreview(null);
 }
 
 const GOOGLE_FONTS_LOAD = { inter:'Inter:wght@400;600;700', poppins:'Poppins:wght@400;600;700', nunito:'Nunito:wght@400;600;700', roboto:'Roboto:wght@400;500;700', lato:'Lato:wght@400;700' };

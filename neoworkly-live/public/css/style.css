@@ -262,6 +262,15 @@ code { background: rgba(13,148,136,.1); color: #0d9488; padding: 1px 5px; border
 
 .designer-save-row { display: flex; justify-content: flex-end; padding-top: .25rem; }
 
+/* Logo upload */
+.logo-upload-area { display: flex; flex-direction: column; gap: .6rem; }
+.logo-preview-wrap { display: flex; align-items: center; gap: .75rem; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: .5rem .75rem; width: fit-content; }
+.logo-preview-wrap img { max-height: 36px; max-width: 120px; object-fit: contain; border-radius: 3px; }
+.logo-remove-btn { background: rgba(239,68,68,.15); border: none; color: #f87171; width: 22px; height: 22px; border-radius: 50%; cursor: pointer; font-size: .75rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .15s; }
+.logo-remove-btn:hover { background: rgba(239,68,68,.3); }
+.logo-upload-btn { display: inline-flex; align-items: center; gap: .5rem; padding: .5rem 1rem; border-radius: 10px; border: 1.5px dashed rgba(255,255,255,.2); color: #94a3b8; font-size: .85rem; cursor: pointer; transition: all .15s; width: fit-content; }
+.logo-upload-btn:hover { border-color: #0d9488; color: #f1f5f9; background: rgba(13,148,136,.06); }
+
 /* Designer preview */
 .designer-preview { position: sticky; top: 1.5rem; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 16px; padding: 1.5rem; }
 .designer-preview h3 { font-size: .85rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .06em; margin: 0 0 1.25rem; }

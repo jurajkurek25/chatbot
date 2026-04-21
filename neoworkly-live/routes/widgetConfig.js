@@ -19,11 +19,11 @@ const DEFAULT_CONFIG = {
 // Public – widget fetches this by widget_key
 router.get('/:widget_key', (req, res) => {
   const db = getDB();
-  const client = db.prepare('SELECT widget_config, language FROM clients WHERE widget_key = ?').get(req.params.widget_key);
+  const client = db.prepare('SELECT widget_config, language, logo_url FROM clients WHERE widget_key = ?').get(req.params.widget_key);
   if (!client) return res.status(404).json({ error: 'Not found' });
   let config = DEFAULT_CONFIG;
   try { config = { ...DEFAULT_CONFIG, ...JSON.parse(client.widget_config || '{}') }; } catch {}
-  res.json({ config, language: client.language || 'sk' });
+  res.json({ config, language: client.language || 'sk', logoUrl: client.logo_url || null });
 });
 
 module.exports = { router, DEFAULT_CONFIG };

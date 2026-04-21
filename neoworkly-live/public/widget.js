@@ -171,7 +171,7 @@
   };
   const GOOGLE_FONTS = { inter: 'Inter:wght@400;600;700', poppins: 'Poppins:wght@400;600;700', nunito: 'Nunito:wght@400;600;700', roboto: 'Roboto:wght@400;500;700', lato: 'Lato:wght@400;700' };
 
-  function applyConfig(cfg) {
+  function applyConfig(cfg, logoUrl) {
     if (!cfg) return;
     const r = RADIUS_MAP[cfg.borderRadius] || RADIUS_MAP.normal;
     const btnR = BTN_SHAPE_MAP[cfg.buttonShape] || BTN_SHAPE_MAP.circle;
@@ -212,6 +212,18 @@
     const widgetEl = document.getElementById('nlive-widget');
     if (btnEl) btnEl.classList.toggle('nlive-left', pos === 'left');
     if (widgetEl) widgetEl.classList.toggle('nlive-left', pos === 'left');
+
+    // Apply logo
+    const logoWrap = document.getElementById('nlive-logo-wrap');
+    const logoImg = document.getElementById('nlive-logo-img');
+    if (logoWrap && logoImg) {
+      if (logoUrl) {
+        logoImg.src = logoUrl.startsWith('http') ? logoUrl : SERVER + logoUrl;
+        logoWrap.style.display = 'block';
+      } else {
+        logoWrap.style.display = 'none';
+      }
+    }
   }
 
   async function fetchConfig() {
@@ -219,7 +231,7 @@
       const r = await fetch(`${SERVER}/api/widget-config/${WIDGET_KEY}`);
       if (!r.ok) return;
       const data = await r.json();
-      applyConfig(data.config);
+      applyConfig(data.config, data.logoUrl);
     } catch {}
   }
 
@@ -239,6 +251,7 @@
   widget.innerHTML = `
     <div class="nlive-header">
       <div class="nlive-header-left">
+        <div id="nlive-logo-wrap" style="display:none;margin-bottom:6px;"><img id="nlive-logo-img" src="" alt="" style="max-height:30px;max-width:110px;object-fit:contain;border-radius:3px;"></div>
         <h3>${t.title}</h3>
         <p id="nlive-subtitle">${t.subtitle}</p>
       </div>
@@ -506,7 +519,7 @@
     const div = document.createElement('div');
     div.className = `nlive-msg ${isOut ? 'out' : 'in'}`;
     div.innerHTML = `
-      <div class="nlive-msg-bubble">${esc(msg.content)}</div>
+      <div class="nlive-msg-bubble">${linkify(esc(msg.content))}</div>
       <div class="nlive-msg-meta">${isOut ? t.you : esc(msg.sender_name || 'Operátor')} · ${fmtTime(msg.created_at)}</div>
     `;
     container.appendChild(div);
@@ -548,6 +561,10 @@
   }
 
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  function linkify(html) {
+    return html.replace(/(https?:\/\/[^\s<>"&]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer" style="color:inherit;text-decoration:underline;opacity:.85;word-break:break-all;">$1</a>');
+  }
   function fmtTime(dt) { try { return new Date(dt).toLocaleTimeString(LANG === 'sk' ? 'sk-SK' : 'en-US', { hour:'2-digit', minute:'2-digit' }); } catch { return ''; } }
   } // end init()
 
