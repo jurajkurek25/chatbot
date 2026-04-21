@@ -153,8 +153,10 @@
   `;
   const style = document.createElement('style');
   style.textContent = css;
-  document.head.appendChild(style);
+  (document.head || document.documentElement).appendChild(style);
 
+  // ── Init: deferred until DOM is ready ────────────────────────────────────────
+  function init() {
   // ── DOM ───────────────────────────────────────────────────────────────────────
   const btn = document.createElement('button');
   btn.id = 'nlive-btn';
@@ -455,4 +457,12 @@
 
   function esc(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function fmtTime(dt) { try { return new Date(dt).toLocaleTimeString(LANG === 'sk' ? 'sk-SK' : 'en-US', { hour:'2-digit', minute:'2-digit' }); } catch { return ''; } }
+  } // end init()
+
+  // Run init when DOM is ready — works whether script is in <head> or <body>
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
