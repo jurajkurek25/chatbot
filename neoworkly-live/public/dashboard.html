@@ -28,6 +28,10 @@
         <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 12H7v-2h8v2zm3-4H7v-2h11v2zm0-4H7V6h11v2z"/></svg>
         Widget
       </a>
+      <a href="#" class="nav-item" data-section="plans" onclick="showSection('plans',this)">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>
+        Plány
+      </a>
       <a href="#" class="nav-item" data-section="settings" onclick="showSection('settings',this)">
         <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
         Nastavenia
@@ -42,7 +46,16 @@
     <section id="section-overview" class="section active">
       <div class="section-header">
         <h1>Prehľad</h1>
-        <div id="company-name" class="company-badge"></div>
+        <div style="display:flex;align-items:center;gap:.75rem;">
+          <div id="plan-badge" class="plan-badge"></div>
+          <div id="company-name" class="company-badge"></div>
+        </div>
+      </div>
+      <div id="upgrade-banner" style="display:none" class="upgrade-banner">
+        <div>
+          <strong>Ste na bezplatnom pláne.</strong> Aktivujte predplatné pre prístup k widgetu a neobmedzený počet operátorov.
+        </div>
+        <button class="btn-primary btn-sm" onclick="showSection('plans', document.querySelector('[data-section=plans]'))">Zobraziť plány</button>
       </div>
       <div class="stats-grid" id="stats-cards"></div>
       <div class="chart-row">
@@ -104,13 +117,71 @@
     <!-- Widget -->
     <section id="section-widget" class="section" style="display:none">
       <div class="section-header"><h1>Vložiť widget</h1></div>
-      <div class="widget-install-box">
+      <div id="widget-paywall" style="display:none" class="paywall-box">
+        <div class="paywall-icon">🔒</div>
+        <h2>Potrebujete aktívne predplatné</h2>
+        <p>Widget je dostupný pre platené plány. Vyberte si plán a začnite využívať live chat na vašom webe.</p>
+        <button class="btn-primary" style="width:auto;margin-top:1rem;" onclick="showSection('plans', document.querySelector('[data-section=plans]'))">Zobraziť plány →</button>
+      </div>
+      <div id="widget-content" class="widget-install-box">
         <p>Skopírujte tento kód a vložte ho pred záver <code>&lt;/body&gt;</code> na vašom webe:</p>
         <pre id="widget-code-block" class="code-block"></pre>
         <button class="btn-primary btn-sm" onclick="copyWidgetCode()">Kopírovať kód</button>
         <div class="widget-preview-note">
           <strong>Ako to funguje:</strong> Widget sa zobrazí ako tlačidlo v pravom dolnom rohu. Návštevník si môže vybrať operátora alebo kliknúť AUTO.
           Tlačidlo "Fullscreen" otvorí chat na celú obrazovku.
+        </div>
+      </div>
+    </section>
+
+    <!-- Plans -->
+    <section id="section-plans" class="section" style="display:none">
+      <div class="section-header">
+        <h1>Plány a predplatné</h1>
+        <div id="current-plan-badge" class="plan-badge"></div>
+      </div>
+      <div id="billing-portal-row" style="display:none;margin-bottom:1.5rem;">
+        <button class="btn-secondary btn-sm" onclick="openBillingPortal()">Spravovať predplatné / faktúry</button>
+      </div>
+      <div class="plans-grid">
+        <div class="plan-card">
+          <div class="plan-name">Starter</div>
+          <div class="plan-price">€19<span>/mes</span></div>
+          <ul class="plan-features">
+            <li>✓ Až 3 operátori</li>
+            <li>✓ Live chat widget</li>
+            <li>✓ Fronta návštevníkov</li>
+            <li>✓ História chatov</li>
+            <li>✓ Štatistiky</li>
+          </ul>
+          <button class="btn-primary plan-btn" data-plan="starter" onclick="subscribe('starter')">Začať</button>
+        </div>
+        <div class="plan-card plan-card--featured">
+          <div class="plan-badge-top">Najpopulárnejší</div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-price">€49<span>/mes</span></div>
+          <ul class="plan-features">
+            <li>✓ Až 10 operátorov</li>
+            <li>✓ Live chat widget</li>
+            <li>✓ Fronta návštevníkov</li>
+            <li>✓ História chatov</li>
+            <li>✓ Štatistiky + AI zhrnutie</li>
+            <li>✓ Prioritná podpora</li>
+          </ul>
+          <button class="btn-primary plan-btn" data-plan="pro" onclick="subscribe('pro')">Začať</button>
+        </div>
+        <div class="plan-card">
+          <div class="plan-name">Agency</div>
+          <div class="plan-price">€99<span>/mes</span></div>
+          <ul class="plan-features">
+            <li>✓ Neobmedzení operátori</li>
+            <li>✓ Live chat widget</li>
+            <li>✓ Fronta návštevníkov</li>
+            <li>✓ História chatov</li>
+            <li>✓ Štatistiky + AI zhrnutie</li>
+            <li>✓ Dedikovaná podpora</li>
+          </ul>
+          <button class="btn-primary plan-btn" data-plan="agency" onclick="subscribe('agency')">Začať</button>
         </div>
       </div>
     </section>
@@ -169,13 +240,21 @@ function showSection(name, el) {
   if (name === 'stats') loadStats();
   if (name === 'widget') loadWidget();
   if (name === 'settings') loadSettings();
+  if (name === 'plans') loadPlans();
 }
+
+const PLAN_LABELS = { free: 'Bezplatný', starter: 'Starter', pro: 'Pro', agency: 'Agency' };
 
 async function loadOverview() {
   const [me, stats] = await Promise.all([api('/api/clients/me'), api('/api/stats')]);
   if (!me || !stats) return;
   clientData = me;
   document.getElementById('company-name').textContent = me.company_name || me.email;
+
+  const planLabel = PLAN_LABELS[me.plan] || me.plan;
+  document.getElementById('plan-badge').textContent = planLabel;
+  document.getElementById('plan-badge').className = `plan-badge plan-badge--${me.plan}`;
+  document.getElementById('upgrade-banner').style.display = me.plan === 'free' ? 'flex' : 'none';
 
   document.getElementById('stats-cards').innerHTML = `
     <div class="stat-card"><div class="stat-val">${stats.totalChats}</div><div class="stat-lbl">Celkom chatov</div></div>
@@ -289,9 +368,48 @@ async function loadAISummary() {
 async function loadWidget() {
   const me = await api('/api/clients/me');
   if (!me) return;
+  const isPaid = me.plan && me.plan !== 'free';
+  document.getElementById('widget-paywall').style.display = isPaid ? 'none' : 'block';
+  document.getElementById('widget-content').style.display = isPaid ? 'block' : 'none';
+  if (!isPaid) return;
   const origin = window.location.origin;
   const code = `<script src="${origin}/widget.js" data-key="${me.widget_key}" data-lang="${me.language || 'sk'}"><\/script>`;
   document.getElementById('widget-code-block').textContent = code;
+}
+
+async function loadPlans() {
+  const me = await api('/api/clients/me');
+  if (!me) return;
+  const planLabel = PLAN_LABELS[me.plan] || me.plan;
+  document.getElementById('current-plan-badge').textContent = `Aktuálny plán: ${planLabel}`;
+  document.getElementById('current-plan-badge').className = `plan-badge plan-badge--${me.plan}`;
+  document.getElementById('billing-portal-row').style.display = me.plan !== 'free' ? 'block' : 'none';
+
+  // Highlight current plan card
+  document.querySelectorAll('.plan-btn').forEach(btn => {
+    const plan = btn.dataset.plan;
+    if (plan === me.plan) {
+      btn.textContent = 'Aktuálny plán';
+      btn.disabled = true;
+      btn.style.opacity = '.6';
+    }
+  });
+}
+
+async function subscribe(plan) {
+  const btn = document.querySelector(`.plan-btn[data-plan="${plan}"]`);
+  btn.disabled = true; btn.textContent = 'Presmerovávam…';
+  const r = await fetch('/api/stripe/checkout', { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body: JSON.stringify({ plan }) });
+  const d = await r.json();
+  btn.disabled = false; btn.textContent = 'Začať';
+  if (d.url) window.location.href = d.url;
+  else alert(d.error || 'Chyba');
+}
+
+async function openBillingPortal() {
+  const r = await fetch('/api/stripe/portal', { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'} });
+  const d = await r.json();
+  if (d.url) window.location.href = d.url;
 }
 
 function copyWidgetCode() {
@@ -328,7 +446,18 @@ function timeAgo(dt) {
   return `${Math.floor(diff/3600)}h`;
 }
 
-loadOverview();
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('plan_success')) {
+  history.replaceState({}, '', '/dashboard');
+  showSection('plans', document.querySelector('[data-section=plans]'));
+  const banner = document.createElement('div');
+  banner.style.cssText = 'background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.25);color:#34d399;border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.25rem;font-size:.88rem;';
+  banner.textContent = '✓ Predplatné bolo úspešne aktivované!';
+  document.getElementById('section-plans').insertBefore(banner, document.getElementById('section-plans').firstChild);
+  setTimeout(() => banner.remove(), 5000);
+} else {
+  loadOverview();
+}
 </script>
 </body>
 </html>
