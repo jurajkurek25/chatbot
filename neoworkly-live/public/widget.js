@@ -145,6 +145,9 @@
     .nlive-send-btn:hover{opacity:.9;}
     .nlive-send-btn svg{width:18px;height:18px;fill:#fff;}
     .nlive-end-btn{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#f87171;font-size:.75rem;border-radius:8px;padding:4px 10px;cursor:pointer;white-space:nowrap;}
+    .nlive-poweredby{text-align:center;padding:6px 12px;font-size:.7rem;color:rgba(255,255,255,.25);border-top:1px solid rgba(255,255,255,.05);flex-shrink:0;}
+    .nlive-poweredby a{color:rgba(255,255,255,.35);text-decoration:none;}
+    .nlive-poweredby a:hover{color:rgba(255,255,255,.6);}
     .nlive-end-btn:hover{background:rgba(239,68,68,.2);}
     .nlive-chat-header-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
   `;
@@ -261,6 +264,7 @@
       </div>
     </div>
     <div class="nlive-body" id="nlive-body"></div>
+    <div class="nlive-poweredby">Tento chat používa technológiu <a href="https://neoworkly.live" target="_blank" rel="noopener noreferrer">Neoworkly.live</a></div>
   `;
   document.body.appendChild(widget);
 
