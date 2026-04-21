@@ -245,7 +245,10 @@ code { background: rgba(13,148,136,.1); color: #0d9488; padding: 1px 5px; border
 .color-item label { font-size: .8rem; color: #94a3b8; }
 .color-swatch-wrap { display: flex; align-items: center; gap: .6rem; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: .45rem .75rem; cursor: pointer; transition: border-color .15s; }
 .color-swatch-wrap:hover { border-color: #0d9488; }
-.color-swatch-wrap input[type=color] { width: 26px; height: 26px; border: none; background: none; padding: 0; cursor: pointer; border-radius: 6px; }
+.color-swatch-wrap input[type=color] { width: 32px; height: 32px; border: none; background: none; padding: 0; cursor: pointer; border-radius: 6px; }
+.color-swatch-wrap input[type=color]::-webkit-color-swatch-wrapper { padding: 0; border-radius: 6px; }
+.color-swatch-wrap input[type=color]::-webkit-color-swatch { border: none; border-radius: 6px; }
+.color-swatch-wrap input[type=color]::-moz-color-swatch { border: none; border-radius: 6px; }
 .color-swatch-wrap span { font-size: .82rem; font-family: monospace; color: #f1f5f9; letter-spacing: .04em; }
 
 .shape-grid, .font-grid { display: flex; flex-wrap: wrap; gap: .5rem; }

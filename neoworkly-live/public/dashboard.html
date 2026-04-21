@@ -139,31 +139,31 @@
             <div class="color-grid">
               <div class="color-item">
                 <label>Primárna</label>
-                <div class="color-swatch-wrap"><input type="color" id="dc-primary" value="#0d9488" oninput="livePreview()"></div>
+                <div class="color-swatch-wrap"><input type="color" id="dc-primary" value="#0d9488" oninput="syncHex(this);livePreview()"><span id="dc-primary-hex">#0d9488</span></div>
               </div>
               <div class="color-item">
                 <label>Sekundárna</label>
-                <div class="color-swatch-wrap"><input type="color" id="dc-secondary" value="#0891b2" oninput="livePreview()"></div>
+                <div class="color-swatch-wrap"><input type="color" id="dc-secondary" value="#0891b2" oninput="syncHex(this);livePreview()"><span id="dc-secondary-hex">#0891b2</span></div>
               </div>
               <div class="color-item">
                 <label>Pozadie</label>
-                <div class="color-swatch-wrap"><input type="color" id="dc-bg" value="#0f172a" oninput="livePreview()"></div>
+                <div class="color-swatch-wrap"><input type="color" id="dc-bg" value="#0f172a" oninput="syncHex(this);livePreview()"><span id="dc-bg-hex">#0f172a</span></div>
               </div>
               <div class="color-item">
                 <label>Text</label>
-                <div class="color-swatch-wrap"><input type="color" id="dc-text" value="#f1f5f9" oninput="livePreview()"></div>
+                <div class="color-swatch-wrap"><input type="color" id="dc-text" value="#f1f5f9" oninput="syncHex(this);livePreview()"><span id="dc-text-hex">#f1f5f9</span></div>
               </div>
               <div class="color-item">
                 <label>Vedľajší text</label>
-                <div class="color-swatch-wrap"><input type="color" id="dc-muted" value="#94a3b8" oninput="livePreview()"></div>
+                <div class="color-swatch-wrap"><input type="color" id="dc-muted" value="#94a3b8" oninput="syncHex(this);livePreview()"><span id="dc-muted-hex">#94a3b8</span></div>
               </div>
               <div class="color-item">
                 <label>Bublina – vy</label>
-                <div class="color-swatch-wrap"><input type="color" id="dc-user-bubble" value="#0d9488" oninput="livePreview()"></div>
+                <div class="color-swatch-wrap"><input type="color" id="dc-user-bubble" value="#0d9488" oninput="syncHex(this);livePreview()"><span id="dc-user-bubble-hex">#0d9488</span></div>
               </div>
               <div class="color-item">
                 <label>Bublina – op.</label>
-                <div class="color-swatch-wrap"><input type="color" id="dc-op-bubble" value="#1e293b" oninput="livePreview()"></div>
+                <div class="color-swatch-wrap"><input type="color" id="dc-op-bubble" value="#1e293b" oninput="syncHex(this);livePreview()"><span id="dc-op-bubble-hex">#1e293b</span></div>
               </div>
             </div>
 
@@ -512,16 +512,23 @@ async function loadWidget() {
 
 const GOOGLE_FONTS_LOAD = { inter:'Inter:wght@400;600;700', poppins:'Poppins:wght@400;600;700', nunito:'Nunito:wght@400;600;700', roboto:'Roboto:wght@400;500;700', lato:'Lato:wght@400;700' };
 
+function setColor(id, val) {
+  if (!val) return;
+  const el = document.getElementById(id);
+  if (!el) return;
+  try { el.value = val; } catch {}
+  const span = document.getElementById(id + '-hex');
+  if (span) span.textContent = val;
+}
+
 function applyDesignerConfig(cfg) {
-  if (cfg.primaryColor) document.getElementById('dc-primary').value = cfg.primaryColor;
-  if (cfg.secondaryColor) document.getElementById('dc-secondary').value = cfg.secondaryColor;
-  if (cfg.bgColor) document.getElementById('dc-bg').value = cfg.bgColor;
-  if (cfg.textColor) document.getElementById('dc-text').value = cfg.textColor;
-  if (cfg.mutedColor) document.getElementById('dc-muted').value = cfg.mutedColor;
-  if (cfg.userBubbleColor) document.getElementById('dc-user-bubble').value = cfg.userBubbleColor;
-  if (cfg.opBubbleColor) {
-    try { document.getElementById('dc-op-bubble').value = cfg.opBubbleColor; } catch {}
-  }
+  setColor('dc-primary', cfg.primaryColor);
+  setColor('dc-secondary', cfg.secondaryColor);
+  setColor('dc-bg', cfg.bgColor);
+  setColor('dc-text', cfg.textColor);
+  setColor('dc-muted', cfg.mutedColor);
+  setColor('dc-user-bubble', cfg.userBubbleColor);
+  setColor('dc-op-bubble', cfg.opBubbleColor);
   if (cfg.borderRadius) selectOptByVal('radius', cfg.borderRadius);
   if (cfg.buttonShape) selectOptByVal('btnshape', cfg.buttonShape);
   if (cfg.font) selectOptByVal('font', cfg.font);
@@ -546,6 +553,11 @@ function getOptVal(group) {
   const grid = document.getElementById(`${group}-grid`);
   const active = grid?.querySelector('.active');
   return active?.dataset.val || null;
+}
+
+function syncHex(input) {
+  const span = document.getElementById(input.id + '-hex');
+  if (span) span.textContent = input.value;
 }
 
 function livePreview() {
@@ -582,14 +594,32 @@ function livePreview() {
   const pAvatar = document.getElementById('preview-avatar');
   const pOp = document.getElementById('preview-op');
 
-  pw.style.cssText = `background:${bg};border-radius:${r};font-family:${fontFam};color:${text};`;
-  ph.style.cssText = `background:linear-gradient(135deg,${p},${s});padding:10px 12px;`;
-  pb.style.cssText = `background:linear-gradient(135deg,${p},${s});border-radius:${BTN_MAP[btnShape]};width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 14px rgba(0,0,0,.3);`;
-  pAuto.style.cssText = `background:linear-gradient(135deg,${p},${s});border-radius:calc(${r} * .6);color:#fff;`;
-  pMsgOut.style.cssText = `background:${userBubble};color:#fff;border-radius:10px 10px 2px 10px;align-self:flex-end;`;
-  pMsgIn.style.cssText = `background:${opBubble};color:${text};border-radius:10px 10px 10px 2px;align-self:flex-start;`;
-  pAvatar.style.cssText = `background:${p}33;color:${p};`;
-  pOp.style.cssText = `background:rgba(255,255,255,.04);border-radius:calc(${r} * .5);border:1px solid rgba(255,255,255,.1);`;
+  pw.style.background = bg;
+  pw.style.borderRadius = r;
+  pw.style.fontFamily = fontFam;
+  pw.style.color = text;
+
+  ph.style.background = `linear-gradient(135deg,${p},${s})`;
+
+  pb.style.background = `linear-gradient(135deg,${p},${s})`;
+  pb.style.borderRadius = BTN_MAP[btnShape];
+
+  pAuto.style.background = `linear-gradient(135deg,${p},${s})`;
+  pAuto.style.borderRadius = `calc(${r} * .6)`;
+
+  pMsgOut.style.background = userBubble;
+  pMsgOut.style.borderRadius = '10px 10px 2px 10px';
+  pMsgOut.style.alignSelf = 'flex-end';
+
+  pMsgIn.style.background = opBubble;
+  pMsgIn.style.color = text;
+  pMsgIn.style.borderRadius = '10px 10px 10px 2px';
+  pMsgIn.style.alignSelf = 'flex-start';
+
+  pAvatar.style.background = `${p}33`;
+  pAvatar.style.color = p;
+
+  pOp.style.borderRadius = `calc(${r} * .5)`;
 }
 
 async function saveWidgetConfig() {
