@@ -35,7 +35,7 @@ app.use('/api/stripe', stripeRoutes);
 // SPA fallback for known pages
 app.get('/dashboard', (req, res) => res.sendFile(path.join(__dirname, 'public', 'dashboard.html')));
 app.get('/operator', (req, res) => res.sendFile(path.join(__dirname, 'public', 'operator.html')));
-app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'public', 'login.html')));
 
 initDB();
 initSocket(io);

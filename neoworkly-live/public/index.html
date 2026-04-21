@@ -3,145 +3,372 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Neoworkly Live</title>
-<link rel="stylesheet" href="/css/style.css">
+<title>Neoworkly Live – Live chat s ľudskými operátormi</title>
+<meta name="description" content="Krízový live chat pre váš web. Vaši operátori odpovedajú v reálnom čase. Bez AI, len ľudia.">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --teal: #0d9488;
+  --teal-light: #14b8a6;
+  --blue: #0891b2;
+  --bg: #0a1628;
+  --surface: #0f1f38;
+  --border: rgba(255,255,255,.07);
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --subtle: #475569;
+}
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+
+/* ── NAV ── */
+nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; padding: 1rem 2rem; display: flex; align-items: center; justify-content: space-between; background: rgba(10,22,40,.85); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); }
+.nav-logo { font-size: 1.25rem; font-weight: 900; color: var(--text); text-decoration: none; }
+.nav-logo span { color: var(--teal); }
+.nav-links { display: flex; align-items: center; gap: 2rem; }
+.nav-links a { color: var(--muted); text-decoration: none; font-size: .9rem; transition: color .15s; }
+.nav-links a:hover { color: var(--text); }
+.nav-cta { display: flex; gap: .75rem; }
+.btn-nav { padding: .5rem 1.1rem; border-radius: 9px; font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .15s; text-decoration: none; border: none; font-family: inherit; }
+.btn-nav-outline { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
+.btn-nav-outline:hover { border-color: var(--teal); color: var(--teal); }
+.btn-nav-fill { background: linear-gradient(135deg, var(--teal), var(--blue)); color: #fff; }
+.btn-nav-fill:hover { opacity: .9; }
+
+/* ── HERO ── */
+.hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 8rem 1.5rem 5rem; position: relative; overflow: hidden; }
+.hero::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse 80% 60% at 50% 0%, rgba(13,148,136,.18) 0%, transparent 70%); pointer-events: none; }
+.hero-badge { display: inline-flex; align-items: center; gap: .4rem; background: rgba(13,148,136,.1); border: 1px solid rgba(13,148,136,.3); color: var(--teal-light); font-size: .78rem; font-weight: 700; padding: .35rem 1rem; border-radius: 20px; margin-bottom: 1.75rem; letter-spacing: .04em; text-transform: uppercase; }
+.hero-badge::before { content: ''; width: 6px; height: 6px; background: var(--teal-light); border-radius: 50%; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+.hero h1 { font-size: clamp(2.2rem, 6vw, 4rem); font-weight: 900; line-height: 1.12; letter-spacing: -1.5px; margin-bottom: 1.25rem; max-width: 780px; }
+.hero h1 em { font-style: normal; background: linear-gradient(135deg, var(--teal-light), var(--blue)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.hero p { font-size: 1.15rem; color: var(--muted); max-width: 520px; line-height: 1.7; margin-bottom: 2.5rem; }
+.hero-btns { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; margin-bottom: 3.5rem; }
+.btn-hero-primary { padding: .9rem 2rem; background: linear-gradient(135deg, var(--teal), var(--blue)); border: none; border-radius: 12px; color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; transition: opacity .15s; text-decoration: none; display: inline-flex; align-items: center; gap: .5rem; font-family: inherit; }
+.btn-hero-primary:hover { opacity: .9; }
+.btn-hero-secondary { padding: .9rem 2rem; background: rgba(255,255,255,.05); border: 1.5px solid var(--border); border-radius: 12px; color: var(--muted); font-size: 1rem; font-weight: 600; cursor: pointer; transition: all .15s; text-decoration: none; display: inline-flex; align-items: center; gap: .5rem; font-family: inherit; }
+.btn-hero-secondary:hover { border-color: var(--teal); color: var(--teal); }
+.hero-note { font-size: .8rem; color: var(--subtle); }
+
+/* Widget preview */
+.widget-preview { position: relative; max-width: 340px; margin: 0 auto; }
+.wp-bubble { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 1.5rem; box-shadow: 0 24px 60px rgba(0,0,0,.5); }
+.wp-header { display: flex; align-items: center; gap: .75rem; margin-bottom: 1rem; }
+.wp-dot { width: 10px; height: 10px; background: #34d399; border-radius: 50%; animation: pulse 2s infinite; }
+.wp-title { font-weight: 700; font-size: .95rem; }
+.wp-ops { display: flex; flex-direction: column; gap: .6rem; margin-bottom: 1rem; }
+.wp-op { display: flex; align-items: center; gap: .6rem; background: rgba(255,255,255,.04); border: 1px solid var(--border); border-radius: 10px; padding: .6rem .8rem; }
+.wp-avatar { width: 34px; height: 34px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: .8rem; font-weight: 700; flex-shrink: 0; }
+.wp-auto { width: 100%; padding: .7rem; background: linear-gradient(135deg, var(--teal), var(--blue)); border: none; border-radius: 10px; color: #fff; font-weight: 700; font-size: .88rem; cursor: default; }
+
+/* ── FEATURES ── */
+.section { padding: 6rem 1.5rem; }
+.section-label { text-align: center; color: var(--teal); font-size: .78rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .75rem; }
+.section-title { text-align: center; font-size: clamp(1.75rem, 4vw, 2.5rem); font-weight: 900; letter-spacing: -1px; margin-bottom: 1rem; }
+.section-sub { text-align: center; color: var(--muted); font-size: 1rem; max-width: 500px; margin: 0 auto 3.5rem; line-height: 1.7; }
+
+.features-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; max-width: 1100px; margin: 0 auto; }
+.feat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 1.75rem; transition: border-color .2s; }
+.feat-card:hover { border-color: rgba(13,148,136,.3); }
+.feat-icon { width: 44px; height: 44px; background: rgba(13,148,136,.12); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; margin-bottom: 1rem; }
+.feat-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: .5rem; }
+.feat-card p { font-size: .875rem; color: var(--muted); line-height: 1.6; }
+
+/* ── HOW IT WORKS ── */
+.how-section { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem; max-width: 1000px; margin: 0 auto; }
+.step { text-align: center; }
+.step-num { width: 48px; height: 48px; background: linear-gradient(135deg, var(--teal), var(--blue)); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; font-weight: 900; margin: 0 auto 1rem; }
+.step h3 { font-size: .95rem; font-weight: 700; margin-bottom: .4rem; }
+.step p { font-size: .85rem; color: var(--muted); line-height: 1.6; }
+
+/* ── PRICING ── */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 1.25rem; max-width: 900px; margin: 0 auto; }
+.price-card { background: var(--surface); border: 1px solid var(--border); border-radius: 18px; padding: 2rem 1.75rem; display: flex; flex-direction: column; position: relative; }
+.price-card--featured { border-color: var(--teal); background: rgba(13,148,136,.05); }
+.price-popular { position: absolute; top: -13px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, var(--teal), var(--blue)); color: #fff; font-size: .72rem; font-weight: 700; padding: 3px 14px; border-radius: 12px; white-space: nowrap; }
+.price-name { font-size: 1rem; font-weight: 700; color: var(--muted); margin-bottom: .5rem; }
+.price-amount { font-size: 2.5rem; font-weight: 900; line-height: 1; margin-bottom: .25rem; }
+.price-amount span { font-size: 1rem; color: var(--muted); font-weight: 400; }
+.price-desc { font-size: .82rem; color: var(--subtle); margin-bottom: 1.5rem; }
+.price-features { list-style: none; display: flex; flex-direction: column; gap: .5rem; flex: 1; margin-bottom: 1.75rem; }
+.price-features li { font-size: .85rem; color: var(--muted); display: flex; align-items: center; gap: .5rem; }
+.price-features li::before { content: '✓'; color: var(--teal); font-weight: 700; flex-shrink: 0; }
+.btn-price { display: block; width: 100%; padding: .8rem; background: linear-gradient(135deg, var(--teal), var(--blue)); border: none; border-radius: 10px; color: #fff; font-size: .9rem; font-weight: 700; cursor: pointer; text-align: center; text-decoration: none; font-family: inherit; transition: opacity .15s; }
+.btn-price:hover { opacity: .9; }
+.btn-price-outline { background: transparent; border: 1.5px solid var(--border); color: var(--muted); }
+.btn-price-outline:hover { border-color: var(--teal); color: var(--teal); background: transparent; opacity: 1; }
+
+/* ── FAQ ── */
+.faq-list { max-width: 680px; margin: 0 auto; display: flex; flex-direction: column; gap: .75rem; }
+.faq-item { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+.faq-q { width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 1rem 1.25rem; background: none; border: none; color: var(--text); font-size: .9rem; font-weight: 600; cursor: pointer; text-align: left; font-family: inherit; gap: 1rem; }
+.faq-q .faq-arrow { color: var(--muted); transition: transform .2s; flex-shrink: 0; }
+.faq-item.open .faq-arrow { transform: rotate(180deg); }
+.faq-a { display: none; padding: 0 1.25rem 1rem; color: var(--muted); font-size: .88rem; line-height: 1.7; }
+.faq-item.open .faq-a { display: block; }
+
+/* ── FOOTER ── */
+footer { border-top: 1px solid var(--border); padding: 2.5rem 2rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+.footer-logo { font-size: 1rem; font-weight: 900; }
+.footer-logo span { color: var(--teal); }
+footer p { color: var(--subtle); font-size: .82rem; }
+.footer-links { display: flex; gap: 1.5rem; }
+.footer-links a { color: var(--subtle); font-size: .82rem; text-decoration: none; transition: color .15s; }
+.footer-links a:hover { color: var(--teal); }
+
+@media (max-width: 640px) {
+  nav { padding: .75rem 1rem; }
+  .nav-links { display: none; }
+  .hero { padding: 7rem 1rem 4rem; }
+  footer { flex-direction: column; text-align: center; }
+}
+</style>
 </head>
 <body>
-<div class="auth-wrap">
-  <div class="auth-box">
-    <div class="auth-logo">Neoworkly<span>.live</span></div>
-    <p class="auth-subtitle" id="auth-subtitle">Prihlásenie do vášho účtu</p>
 
-    <div class="tab-row">
-      <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Prihlásenie</button>
-      <button class="tab-btn" id="tab-register" onclick="switchTab('register')">Registrácia</button>
-    </div>
+<!-- NAV -->
+<nav>
+  <a href="/" class="nav-logo">Neoworkly<span>.live</span></a>
+  <div class="nav-links">
+    <a href="#features">Funkcie</a>
+    <a href="#how">Ako to funguje</a>
+    <a href="#pricing">Ceny</a>
+    <a href="#faq">FAQ</a>
+  </div>
+  <div class="nav-cta">
+    <a href="/login" class="btn-nav btn-nav-outline">Prihlásiť sa</a>
+    <a href="/login" class="btn-nav btn-nav-fill">Začať zadarmo →</a>
+  </div>
+</nav>
 
-    <!-- Login form -->
-    <form id="form-login" onsubmit="doLogin(event)">
-      <div class="form-group">
-        <label>E-mail</label>
-        <input type="email" id="login-email" placeholder="vas@email.com" required>
-      </div>
-      <div class="form-group">
-        <label>Heslo</label>
-        <input type="password" id="login-password" placeholder="••••••••" required>
-      </div>
-      <div id="login-error" class="form-error"></div>
-      <button type="submit" class="btn-primary" id="login-btn">Prihlásiť sa</button>
-      <div class="auth-divider">alebo</div>
-      <button type="button" class="btn-secondary" onclick="switchTab('operator')">Som operátor</button>
-    </form>
-
-    <!-- Register form -->
-    <form id="form-register" style="display:none" onsubmit="doRegister(event)">
-      <div class="form-group">
-        <label>Názov firmy / organizácie</label>
-        <input type="text" id="reg-company" placeholder="Krízové centrum XY">
-      </div>
-      <div class="form-group">
-        <label>E-mail</label>
-        <input type="email" id="reg-email" placeholder="vas@email.com" required>
-      </div>
-      <div class="form-group">
-        <label>Heslo</label>
-        <input type="password" id="reg-password" placeholder="min. 8 znakov" required minlength="8">
-      </div>
-      <div id="reg-error" class="form-error"></div>
-      <button type="submit" class="btn-primary" id="reg-btn">Vytvoriť účet</button>
-    </form>
-
-    <!-- Operator login form -->
-    <form id="form-operator" style="display:none" onsubmit="doOperatorLogin(event)">
-      <div class="auth-back" onclick="switchTab('login')">← Späť</div>
-      <div class="form-group">
-        <label>Váš e-mail</label>
-        <input type="email" id="op-email" placeholder="operator@email.com" required>
-      </div>
-      <div class="form-group">
-        <label>Heslo</label>
-        <input type="password" id="op-password" placeholder="••••••••" required>
-      </div>
-      <div id="op-error" class="form-error"></div>
-      <button type="submit" class="btn-primary" id="op-btn">Prihlásiť sa ako operátor</button>
-    </form>
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">Krízový live chat</div>
+  <h1>Live chat s <em>ľudskými operátormi</em> pre váš web</h1>
+  <p>Žiadna AI. Len skutoční ľudia, ktorí odpovedajú v reálnom čase. Vložte widget na váš web za 2 minúty.</p>
+  <div class="hero-btns">
+    <a href="/login" class="btn-hero-primary">Začať zadarmo →</a>
+    <a href="#how" class="btn-hero-secondary">Ako to funguje</a>
   </div>
 
-  <p class="auth-footer">© 2025 Neoworkly.live — Live chat pre krízové situácie</p>
-</div>
+  <div class="widget-preview">
+    <div class="wp-bubble">
+      <div class="wp-header">
+        <div class="wp-dot"></div>
+        <div class="wp-title">Live chat podpora</div>
+      </div>
+      <div class="wp-ops">
+        <div class="wp-op">
+          <div class="wp-avatar" style="background:rgba(13,148,136,.2);color:#0d9488;">M</div>
+          <div>
+            <div style="font-size:.82rem;font-weight:600;">Mária</div>
+            <div style="font-size:.72rem;color:#34d399;">● Dostupná</div>
+          </div>
+        </div>
+        <div class="wp-op">
+          <div class="wp-avatar" style="background:rgba(139,92,246,.2);color:#a78bfa;">J</div>
+          <div>
+            <div style="font-size:.82rem;font-weight:600;">Ján</div>
+            <div style="font-size:.72rem;color:#34d399;">● Dostupný</div>
+          </div>
+        </div>
+      </div>
+      <button class="wp-auto">AUTO – Automaticky priradiť</button>
+    </div>
+  </div>
+  <p class="hero-note" style="margin-top:1.5rem;">Bez kreditnej karty · Zrušiť kedykoľvek</p>
+</section>
+
+<!-- FEATURES -->
+<section class="section" id="features">
+  <p class="section-label">Funkcie</p>
+  <h2 class="section-title">Všetko čo potrebujete</h2>
+  <p class="section-sub">Kompletná platforma pre krízové live chaty — od embeddu widgetu až po štatistiky.</p>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">💬</div>
+      <h3>Embeddovateľný widget</h3>
+      <p>Jeden riadok kódu a live chat beží na vašom webe. Funguje na každej stránke, podporuje fullscreen mód.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">👤</div>
+      <h3>Výber operátora</h3>
+      <p>Návštevník si vyberie konkrétneho operátora alebo klikne AUTO. Uvidí meno, foto a bio operátora.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🕐</div>
+      <h3>Fronta čakateľov</h3>
+      <p>Ak sú všetci operátori zaneprázdnení, návštevník sa zaradí do fronty a automaticky mu pridelíme niekoho hneď ako bude voľný.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔒</div>
+      <h3>Plná anonymita</h3>
+      <p>Návštevníci nemusia zadávať žiadne osobné údaje. Ideálne pre citlivé a krízové situácie.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <h3>Štatistiky</h3>
+      <p>Prehľad aktívnych chatov, priemernej dĺžky rozhovoru, vyťaženosti operátorov a histórie.</p>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">🤖</div>
+      <h3>AI zhrnutie (voliteľné)</h3>
+      <p>Claude analyzuje témy rozhovorov a dá vám zhrnutie. Funkciu môžete kedykoľvek vypnúť pre maximálnu súkromnosť.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="section how-section" id="how">
+  <p class="section-label">Postup</p>
+  <h2 class="section-title">Spustíte za 5 minút</h2>
+  <p class="section-sub">Bez technických znalostí. Od registrácie po funkčný live chat v pár krokoch.</p>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Registrujte sa</h3>
+      <p>Vytvorte účet, zadajte názov organizácie a nastavte jazyk widgetu.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Pridajte operátorov</h3>
+      <p>Pridajte zamestnancov s e-mailom a heslom. Môžu si nastaviť foto a bio.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Vložte widget</h3>
+      <p>Skopírujte jeden riadok kódu a vložte ho na váš web pred záver &lt;/body&gt;.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <h3>Odpovedajte</h3>
+      <p>Operátori sa prihlásia, zapnú sa ako Online a začnú odpovedať návštevníkom v reálnom čase.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="section" id="pricing">
+  <p class="section-label">Ceny</p>
+  <h2 class="section-title">Jasné, transparentné ceny</h2>
+  <p class="section-sub">Bez skrytých poplatkov. Zrušiť môžete kedykoľvek.</p>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-name">Starter</div>
+      <div class="price-amount">€19<span>/mes</span></div>
+      <div class="price-desc">Pre menšie tímy a organizácie</div>
+      <ul class="price-features">
+        <li>Až 3 operátori</li>
+        <li>Live chat widget</li>
+        <li>Fronta návštevníkov</li>
+        <li>História chatov</li>
+        <li>Štatistiky</li>
+      </ul>
+      <a href="/login" class="btn-price btn-price-outline">Začať →</a>
+    </div>
+    <div class="price-card price-card--featured">
+      <div class="price-popular">Najpopulárnejší</div>
+      <div class="price-name">Pro</div>
+      <div class="price-amount">€49<span>/mes</span></div>
+      <div class="price-desc">Pre väčšie krízové centrá</div>
+      <ul class="price-features">
+        <li>Až 10 operátorov</li>
+        <li>Live chat widget</li>
+        <li>Fronta návštevníkov</li>
+        <li>História chatov</li>
+        <li>Štatistiky + AI zhrnutie</li>
+        <li>Prioritná podpora</li>
+      </ul>
+      <a href="/login" class="btn-price">Začať →</a>
+    </div>
+    <div class="price-card">
+      <div class="price-name">Agency</div>
+      <div class="price-amount">€99<span>/mes</span></div>
+      <div class="price-desc">Pre agentúry a väčšie siete</div>
+      <ul class="price-features">
+        <li>Neobmedzení operátori</li>
+        <li>Live chat widget</li>
+        <li>Fronta návštevníkov</li>
+        <li>História chatov</li>
+        <li>Štatistiky + AI zhrnutie</li>
+        <li>Dedikovaná podpora</li>
+      </ul>
+      <a href="/login" class="btn-price btn-price-outline">Začať →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="section" id="faq" style="padding-top:0;">
+  <p class="section-label">FAQ</p>
+  <h2 class="section-title">Časté otázky</h2>
+  <div class="faq-list">
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Je chat naozaj bez AI?
+        <svg class="faq-arrow" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
+      <div class="faq-a">Áno. Všetky správy píšu skutoční operátori — vaši zamestnanci. AI zhrnutie je voliteľná analytická funkcia, ktorá spracúva históriu chatov pre štatistické účely a je možné ju úplne vypnúť.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Sú návštevníci anonymní?
+        <svg class="faq-arrow" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
+      <div class="faq-a">Áno. Návštevník nemusí zadávať žiadne osobné údaje. Môže si zvoliť prezývku alebo zostať ako „Anonym". Nie sú vyžadované e-mail ani telefón.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Ako funguje widget na mojom webe?
+        <svg class="faq-arrow" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
+      <div class="faq-a">Stačí vložiť jeden riadok JavaScript kódu pred záver &lt;/body&gt; tagu. Widget sa automaticky zobrazí ako tlačidlo v pravom dolnom rohu stránky. Podporuje fullscreen mód a je plne responzívny.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Čo sa stane keď sú všetci operátori zaneprázdnení?
+        <svg class="faq-arrow" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
+      <div class="faq-a">Návštevníkovi sa zobrazí informácia, že nikto nie je dostupný, a môže kliknúť na tlačidlo "Vstúpiť do fronty". Akonáhle sa operátor uvoľní, bude automaticky spojený s ďalším čakateľom vo fronte.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-q" onclick="toggleFaq(this)">
+        Môžem zrušiť predplatné kedykoľvek?
+        <svg class="faq-arrow" viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+      </button>
+      <div class="faq-a">Áno, bez záväzkov. Predplatné môžete zrušiť priamo z dashboardu v sekcii Plány → Spravovať predplatné. Prístup ostáva aktívny do konca zaplateného obdobia.</div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA BANNER -->
+<section style="padding:4rem 1.5rem;text-align:center;background:linear-gradient(135deg,rgba(13,148,136,.12),rgba(8,145,178,.08));border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+  <h2 style="font-size:clamp(1.5rem,4vw,2.2rem);font-weight:900;letter-spacing:-1px;margin-bottom:.75rem;">Začnite ešte dnes</h2>
+  <p style="color:var(--muted);font-size:1rem;margin-bottom:2rem;">Registrácia zadarmo. Prvých 14 dní bez poplatku.</p>
+  <a href="/login" class="btn-hero-primary" style="display:inline-flex;">Vytvoriť účet zadarmo →</a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Neoworkly<span>.live</span></div>
+  <p>© 2025 Neoworkly.live — Live chat pre krízové situácie</p>
+  <div class="footer-links">
+    <a href="/login">Prihlásiť sa</a>
+    <a href="#pricing">Ceny</a>
+    <a href="mailto:info@neoworkly.live">Kontakt</a>
+  </div>
+</footer>
 
 <script>
-function switchTab(tab) {
-  ['login','register','operator'].forEach(t => {
-    document.getElementById(`form-${t}`).style.display = 'none';
-    const btn = document.getElementById(`tab-${t}`);
-    if (btn) btn.classList.remove('active');
-  });
-  document.getElementById(`form-${tab}`).style.display = 'block';
-  const btn = document.getElementById(`tab-${tab}`);
-  if (btn) btn.classList.add('active');
-
-  const subtitles = { login: 'Prihlásenie do vášho účtu', register: 'Vytvorte nový účet', operator: 'Prihlásenie operátora' };
-  document.getElementById('auth-subtitle').textContent = subtitles[tab] || '';
+function toggleFaq(btn) {
+  const item = btn.closest('.faq-item');
+  item.classList.toggle('open');
 }
-
-async function doLogin(e) {
-  e.preventDefault();
-  const btn = document.getElementById('login-btn');
-  const err = document.getElementById('login-error');
-  btn.disabled = true; btn.textContent = 'Prihlasovanie…';
-  err.textContent = '';
-  try {
-    const r = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }) });
-    const d = await r.json();
-    if (!r.ok) { err.textContent = d.error || 'Chyba prihlásenia'; return; }
-    localStorage.setItem('nlive_token', d.token);
-    localStorage.setItem('nlive_role', 'client');
-    window.location.href = '/dashboard';
-  } catch { err.textContent = 'Chyba siete'; }
-  finally { btn.disabled = false; btn.textContent = 'Prihlásiť sa'; }
-}
-
-async function doRegister(e) {
-  e.preventDefault();
-  const btn = document.getElementById('reg-btn');
-  const err = document.getElementById('reg-error');
-  btn.disabled = true; btn.textContent = 'Registrujem…';
-  err.textContent = '';
-  try {
-    const r = await fetch('/api/auth/register', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ email: document.getElementById('reg-email').value, password: document.getElementById('reg-password').value, company_name: document.getElementById('reg-company').value }) });
-    const d = await r.json();
-    if (!r.ok) { err.textContent = d.error || 'Chyba registrácie'; return; }
-    localStorage.setItem('nlive_token', d.token);
-    localStorage.setItem('nlive_role', 'client');
-    window.location.href = '/dashboard';
-  } catch { err.textContent = 'Chyba siete'; }
-  finally { btn.disabled = false; btn.textContent = 'Vytvoriť účet'; }
-}
-
-async function doOperatorLogin(e) {
-  e.preventDefault();
-  const btn = document.getElementById('op-btn');
-  const err = document.getElementById('op-error');
-  btn.disabled = true; btn.textContent = 'Prihlasovanie…';
-  err.textContent = '';
-  try {
-    const r = await fetch('/api/auth/operator/login', { method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ email: document.getElementById('op-email').value, password: document.getElementById('op-password').value }) });
-    const d = await r.json();
-    if (!r.ok) { err.textContent = d.error || 'Chyba prihlásenia'; return; }
-    localStorage.setItem('nlive_token', d.token);
-    localStorage.setItem('nlive_role', 'operator');
-    localStorage.setItem('nlive_operator', JSON.stringify(d.operator));
-    window.location.href = '/operator';
-  } catch { err.textContent = 'Chyba siete'; }
-  finally { btn.disabled = false; btn.textContent = 'Prihlásiť sa ako operátor'; }
-}
-
 // Redirect if already logged in
-if (localStorage.getItem('nlive_token')) {
+const token = localStorage.getItem('nlive_token');
+if (token) {
   const role = localStorage.getItem('nlive_role');
   window.location.href = role === 'operator' ? '/operator' : '/dashboard';
 }
