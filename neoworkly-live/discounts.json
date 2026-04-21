@@ -1,0 +1,27 @@
+{
+  "_comment": "Typy kódov: 'free' = plán zadarmo bez Stripe | 'stripe_coupon' = zľava cez Stripe kupón (ID z Stripe dashboardu)",
+  "_example_free": {
+    "type": "free",
+    "plan": "pro",
+    "active": true,
+    "maxUses": null,
+    "uses": 0,
+    "description": "Pro plán zadarmo"
+  },
+  "_example_coupon": {
+    "type": "stripe_coupon",
+    "stripeCouponId": "COUPON_ID_ZO_STRIPE",
+    "active": true,
+    "maxUses": 50,
+    "uses": 0,
+    "description": "50% zľava"
+  },
+  "WELCOME2025": {
+    "type": "free",
+    "plan": "starter",
+    "active": true,
+    "maxUses": null,
+    "uses": 0,
+    "description": "Starter plán zadarmo"
+  }
+}

@@ -140,6 +140,16 @@
         <h1>Plány a predplatné</h1>
         <div id="current-plan-badge" class="plan-badge"></div>
       </div>
+      <!-- Discount code box -->
+      <div class="discount-box" id="discount-box">
+        <div class="discount-label">Máte zľavový kód?</div>
+        <div class="discount-row">
+          <input type="text" id="discount-input" placeholder="Zadajte kód (napr. WELCOME2025)" autocomplete="off" style="text-transform:uppercase;">
+          <button class="btn-primary btn-sm" onclick="applyDiscountCode()">Použiť</button>
+        </div>
+        <div id="discount-msg" class="discount-msg"></div>
+      </div>
+
       <div id="billing-portal-row" style="display:none;margin-bottom:1.5rem;">
         <button class="btn-secondary btn-sm" onclick="openBillingPortal()">Spravovať predplatné / faktúry</button>
       </div>
@@ -396,10 +406,74 @@ async function loadPlans() {
   });
 }
 
+let validatedDiscountCode = null;
+let validatedDiscountType = null;
+
+async function applyDiscountCode() {
+  const input = document.getElementById('discount-input');
+  const msg = document.getElementById('discount-msg');
+  const code = input.value.trim().toUpperCase();
+  if (!code) return;
+
+  msg.className = 'discount-msg';
+  msg.textContent = 'Overujem…';
+
+  const r = await fetch('/api/stripe/validate-code', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code })
+  });
+  const d = await r.json();
+
+  if (!r.ok) {
+    msg.className = 'discount-msg error';
+    msg.textContent = d.error || 'Neplatný kód';
+    validatedDiscountCode = null;
+    return;
+  }
+
+  validatedDiscountCode = code;
+  validatedDiscountType = d.type;
+  msg.className = 'discount-msg success';
+  msg.textContent = `✓ ${d.description}`;
+
+  // If free code — apply immediately without showing plan cards
+  if (d.type === 'free') {
+    msg.textContent = `✓ ${d.description} — aktivujem…`;
+    const r2 = await fetch('/api/stripe/apply-code', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+    const d2 = await r2.json();
+    if (r2.ok) {
+      msg.textContent = `✓ Aktivované! Plán: ${d2.plan}`;
+      input.value = '';
+      validatedDiscountCode = null;
+      setTimeout(() => loadPlans(), 800);
+    } else {
+      msg.className = 'discount-msg error';
+      msg.textContent = d2.error || 'Chyba aktivácie';
+    }
+    return;
+  }
+
+  // Stripe coupon — highlight that it'll be applied on checkout
+  msg.textContent = `✓ ${d.description} — zľava sa aplikuje pri platbe`;
+}
+
 async function subscribe(plan) {
   const btn = document.querySelector(`.plan-btn[data-plan="${plan}"]`);
   btn.disabled = true; btn.textContent = 'Presmerovávam…';
-  const r = await fetch('/api/stripe/checkout', { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body: JSON.stringify({ plan }) });
+  const body = { plan };
+  if (validatedDiscountCode && validatedDiscountType === 'stripe_coupon') {
+    body.discountCode = validatedDiscountCode;
+  }
+  const r = await fetch('/api/stripe/checkout', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
   const d = await r.json();
   btn.disabled = false; btn.textContent = 'Začať';
   if (d.url) window.location.href = d.url;

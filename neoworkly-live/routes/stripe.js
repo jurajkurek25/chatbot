@@ -1,18 +1,91 @@
 const express = require('express');
 const router = express.Router();
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+const path = require('path');
+const fs = require('fs');
 const { getDB } = require('../db/database');
 const { authClient } = require('../middleware/auth');
 
 const PLANS = {
-  starter: { priceId: process.env.STRIPE_PRICE_STARTER, operators: 3 },
-  pro:     { priceId: process.env.STRIPE_PRICE_PRO,     operators: 10 },
-  agency:  { priceId: process.env.STRIPE_PRICE_AGENCY,  operators: 999 }
+  starter: { priceId: process.env.STRIPE_PRICE_STARTER },
+  pro:     { priceId: process.env.STRIPE_PRICE_PRO },
+  agency:  { priceId: process.env.STRIPE_PRICE_AGENCY }
 };
 
-// Create checkout session
+const DISCOUNTS_PATH = path.join(__dirname, '../discounts.json');
+
+function loadDiscounts() {
+  try {
+    return JSON.parse(fs.readFileSync(DISCOUNTS_PATH, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function saveDiscounts(data) {
+  fs.writeFileSync(DISCOUNTS_PATH, JSON.stringify(data, null, 2), 'utf8');
+}
+
+// Validate discount code (public – no auth needed so landing page can use it too)
+router.post('/validate-code', authClient, (req, res) => {
+  const { code } = req.body;
+  if (!code?.trim()) return res.status(400).json({ error: 'Zadajte kód' });
+
+  const discounts = loadDiscounts();
+  const key = code.trim().toUpperCase();
+  const entry = discounts[key];
+
+  if (!entry || entry.active === false || key.startsWith('_')) {
+    return res.status(404).json({ error: 'Neplatný zľavový kód' });
+  }
+  if (entry.maxUses !== null && entry.uses >= entry.maxUses) {
+    return res.status(410).json({ error: 'Tento kód bol already použitý príliš veľakrát' });
+  }
+
+  res.json({
+    valid: true,
+    type: entry.type,
+    plan: entry.plan || null,
+    description: entry.description
+  });
+});
+
+// Apply a FREE discount code (sets plan directly, no Stripe)
+router.post('/apply-code', authClient, (req, res) => {
+  const { code } = req.body;
+  if (!code?.trim()) return res.status(400).json({ error: 'Zadajte kód' });
+
+  const discounts = loadDiscounts();
+  const key = code.trim().toUpperCase();
+  const entry = discounts[key];
+
+  if (!entry || entry.active === false || key.startsWith('_')) {
+    return res.status(404).json({ error: 'Neplatný zľavový kód' });
+  }
+  if (entry.maxUses !== null && entry.uses >= entry.maxUses) {
+    return res.status(410).json({ error: 'Kód bol použitý príliš veľakrát' });
+  }
+  if (entry.type !== 'free') {
+    return res.status(400).json({ error: 'Tento kód nie je bezplatný — použite platobný formulár' });
+  }
+  if (!PLANS[entry.plan]) {
+    return res.status(400).json({ error: 'Neplatný plán v kóde' });
+  }
+
+  const db = getDB();
+  db.prepare("UPDATE clients SET plan = ?, stripe_subscription_id = ? WHERE id = ?")
+    .run(entry.plan, `free_code_${key}`, req.clientId);
+
+  // Increment usage counter
+  entry.uses = (entry.uses || 0) + 1;
+  saveDiscounts(discounts);
+
+  res.json({ ok: true, plan: entry.plan, description: entry.description });
+});
+
+// Create checkout session (with optional Stripe coupon code)
 router.post('/checkout', authClient, async (req, res) => {
-  const { plan } = req.body;
+  const { plan, discountCode } = req.body;
   if (!PLANS[plan]) return res.status(400).json({ error: 'Invalid plan' });
 
   const db = getDB();
@@ -26,7 +99,7 @@ router.post('/checkout', authClient, async (req, res) => {
       db.prepare('UPDATE clients SET stripe_customer_id = ? WHERE id = ?').run(customerId, req.clientId);
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams = {
       customer: customerId,
       mode: 'subscription',
       payment_method_types: ['card'],
@@ -34,8 +107,19 @@ router.post('/checkout', authClient, async (req, res) => {
       success_url: `${process.env.LIVE_APP_URL}/dashboard?plan_success=1`,
       cancel_url: `${process.env.LIVE_APP_URL}/dashboard?plan_cancel=1`,
       metadata: { clientId: req.clientId, plan }
-    });
+    };
 
+    // Apply Stripe coupon if provided
+    if (discountCode) {
+      const discounts = loadDiscounts();
+      const key = discountCode.trim().toUpperCase();
+      const entry = discounts[key];
+      if (entry?.type === 'stripe_coupon' && entry.stripeCouponId && entry.active !== false) {
+        sessionParams.discounts = [{ coupon: entry.stripeCouponId }];
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
     res.json({ url: session.url });
   } catch (e) {
     console.error(e);
@@ -72,7 +156,7 @@ router.post('/webhook', async (req, res) => {
   res.json({ received: true });
 });
 
-// Get billing portal
+// Billing portal
 router.post('/portal', authClient, async (req, res) => {
   const db = getDB();
   const client = db.prepare('SELECT stripe_customer_id FROM clients WHERE id = ?').get(req.clientId);

@@ -217,6 +217,16 @@ code { background: rgba(13,148,136,.1); color: #0d9488; padding: 1px 5px; border
 .plan-badge--pro { background: rgba(139,92,246,.15); color: #a78bfa; }
 .plan-badge--agency { background: rgba(245,158,11,.15); color: #fbbf24; }
 
+.discount-box { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 1.25rem 1.5rem; margin-bottom: 1.5rem; }
+.discount-label { font-size: .82rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .04em; margin-bottom: .65rem; }
+.discount-row { display: flex; gap: .75rem; }
+.discount-row input { flex: 1; background: rgba(255,255,255,.06); border: 1.5px solid rgba(255,255,255,.1); border-radius: 10px; color: #f1f5f9; font-size: .9rem; padding: .65rem 1rem; outline: none; font-family: inherit; letter-spacing: .08em; font-weight: 600; transition: border-color .15s; }
+.discount-row input:focus { border-color: #0d9488; }
+.discount-row input::placeholder { font-weight: 400; letter-spacing: 0; color: #475569; }
+.discount-msg { font-size: .82rem; margin-top: .6rem; min-height: 1em; }
+.discount-msg.success { color: #34d399; }
+.discount-msg.error { color: #f87171; }
+
 .upgrade-banner { display: flex; align-items: center; justify-content: space-between; gap: 1rem; background: rgba(245,158,11,.08); border: 1px solid rgba(245,158,11,.25); border-radius: 12px; padding: 1rem 1.25rem; margin-bottom: 1.25rem; font-size: .88rem; color: #fbbf24; }
 
 .paywall-box { text-align: center; padding: 3rem 2rem; background: rgba(255,255,255,.03); border: 1px dashed rgba(255,255,255,.1); border-radius: 16px; }
