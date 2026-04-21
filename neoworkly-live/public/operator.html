@@ -28,8 +28,8 @@
 
     <!-- Queue -->
     <div class="op-queue-box">
-      <h4>Fronta <span class="badge-count" id="queue-badge">0</span></h4>
-      <div id="op-queue-list"><p class="empty-hint small">Fronta je prázdna</p></div>
+      <h4>Rad <span class="badge-count" id="queue-badge">0</span></h4>
+      <div id="op-queue-list"><p class="empty-hint small">Rad je prázdny</p></div>
     </div>
 
     <!-- Profile edit -->
@@ -188,7 +188,7 @@ function renderQueue(queue) {
   const badge = document.getElementById('queue-badge');
   const list = document.getElementById('op-queue-list');
   badge.textContent = queue.length;
-  if (!queue.length) { list.innerHTML = '<p class="empty-hint small">Fronta je prázdna</p>'; return; }
+  if (!queue.length) { list.innerHTML = '<p class="empty-hint small">Rad je prázdny</p>'; return; }
   list.innerHTML = queue.map(q => `
     <div class="queue-item-op">
       <div class="queue-item-name">${q.visitor_name}</div>

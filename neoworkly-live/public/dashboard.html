@@ -60,8 +60,8 @@
       <div class="stats-grid" id="stats-cards"></div>
       <div class="chart-row">
         <div class="chart-box" id="queue-box">
-          <h3>Aktuálna fronta <span class="badge-count" id="queue-count">0</span></h3>
-          <div id="queue-list"><p class="empty-hint">Fronta je prázdna.</p></div>
+          <h3>Aktuálny rad <span class="badge-count" id="queue-count">0</span></h3>
+          <div id="queue-list"><p class="empty-hint">Rad je prázdny.</p></div>
         </div>
         <div class="chart-box">
           <h3>Chaty za posledných 7 dní</h3>
@@ -293,7 +293,7 @@
           <ul class="plan-features">
             <li>✓ Až 3 operátori</li>
             <li>✓ Live chat widget</li>
-            <li>✓ Fronta návštevníkov</li>
+            <li>✓ Rad návštevníkov</li>
             <li>✓ História chatov</li>
             <li>✓ Štatistiky</li>
           </ul>
@@ -306,7 +306,7 @@
           <ul class="plan-features">
             <li>✓ Až 10 operátorov</li>
             <li>✓ Live chat widget</li>
-            <li>✓ Fronta návštevníkov</li>
+            <li>✓ Rad návštevníkov</li>
             <li>✓ História chatov</li>
             <li>✓ Štatistiky + AI zhrnutie</li>
             <li>✓ Prioritná podpora</li>
@@ -319,7 +319,7 @@
           <ul class="plan-features">
             <li>✓ Neobmedzení operátori</li>
             <li>✓ Live chat widget</li>
-            <li>✓ Fronta návštevníkov</li>
+            <li>✓ Rad návštevníkov</li>
             <li>✓ História chatov</li>
             <li>✓ Štatistiky + AI zhrnutie</li>
             <li>✓ Dedikovaná podpora</li>
@@ -414,7 +414,7 @@ async function loadOverview() {
 async function loadQueue() {
   const q = await api('/api/chat/queue');
   const el = document.getElementById('queue-list');
-  if (!q || q.length === 0) { el.innerHTML = '<p class="empty-hint">Fronta je prázdna.</p>'; return; }
+  if (!q || q.length === 0) { el.innerHTML = '<p class="empty-hint">Rad je prázdny.</p>'; return; }
   el.innerHTML = q.map((item, i) => `
     <div class="queue-item">
       <span class="queue-pos">${i + 1}</span>
@@ -482,7 +482,7 @@ async function loadStats() {
     <div class="stat-card"><div class="stat-val">${stats.totalChats}</div><div class="stat-lbl">Celkom chatov</div></div>
     <div class="stat-card"><div class="stat-val">${stats.endedChats}</div><div class="stat-lbl">Ukončených</div></div>
     <div class="stat-card"><div class="stat-val">${formatDuration(stats.avgDurationSeconds)}</div><div class="stat-lbl">Priem. dĺžka</div></div>
-    <div class="stat-card"><div class="stat-val">${stats.queueCount}</div><div class="stat-lbl">Vo fronte teraz</div></div>
+    <div class="stat-card"><div class="stat-val">${stats.queueCount}</div><div class="stat-lbl">V rade teraz</div></div>
   `;
 
   const me = await api('/api/clients/me');
