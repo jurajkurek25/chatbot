@@ -327,16 +327,26 @@
     }
   }
 
+  function opPhotoUrl(photo_url) {
+    if (!photo_url) return null;
+    if (photo_url.startsWith('http')) return photo_url;
+    return SERVER + photo_url;
+  }
+
+  function opAvatarHTML(op, size) {
+    const sz = size || 40;
+    const url = opPhotoUrl(op.photo_url);
+    const initial = (op.nickname || op.full_name || '?')[0].toUpperCase();
+    return `<div class="nlive-op-avatar" style="width:${sz}px;height:${sz}px;font-size:${Math.round(sz*0.4)}px">${url ? `<img src="${url}" alt="">` : `<span>${initial}</span>`}</div>`;
+  }
+
   function opCardHTML(op) {
-    const avatarContent = op.photo_url
-      ? `<img src="${op.photo_url}" alt="">`
-      : `<span>${(op.nickname || op.full_name || '?')[0].toUpperCase()}</span>`;
     const statusCls = op.is_busy ? 'busy' : 'online';
     const statusLabel = op.is_busy ? 'Zaneprázdnený' : (LANG === 'en' ? 'Available' : 'Dostupný');
     const hasBio = op.bio?.trim();
     return `
       <div class="nlive-op-card" data-id="${op.id}">
-        <div class="nlive-op-avatar">${avatarContent}</div>
+        ${opAvatarHTML(op, 40)}
         <div class="nlive-op-info">
           <div class="nlive-op-name">${esc(op.nickname || op.full_name || 'Operátor')}</div>
           <div class="nlive-op-status ${statusCls}">
@@ -366,12 +376,24 @@
 
   function renderChat(operator, messages) {
     const opName = operator?.nickname || operator?.full_name || 'Operátor';
+    const photoUrl = opPhotoUrl(operator?.photo_url);
+    const initial = (opName)[0].toUpperCase();
+    const avatarHtml = photoUrl
+      ? `<img src="${photoUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`
+      : `<span style="font-weight:700;font-size:.9rem;color:#0d9488;">${initial}</span>`;
+
     const body = document.getElementById('nlive-body');
     document.getElementById('nlive-subtitle').textContent = '';
     body.innerHTML = `
       <div class="nlive-chat">
         <div class="nlive-chat-header-row">
-          <span class="nlive-chat-with">Chat s <strong>${esc(opName)}</strong></span>
+          <div style="display:flex;align-items:center;gap:.6rem;">
+            <div style="width:36px;height:36px;border-radius:50%;background:rgba(13,148,136,.2);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;">${avatarHtml}</div>
+            <div>
+              <div style="font-size:.88rem;font-weight:700;color:#f1f5f9;">${esc(opName)}</div>
+              <div style="font-size:.72rem;color:#34d399;display:flex;align-items:center;gap:3px;"><span style="width:5px;height:5px;background:#34d399;border-radius:50%;display:inline-block;"></span>Online</div>
+            </div>
+          </div>
           <button class="nlive-end-btn" id="nlive-end-chat">${t.end_chat}</button>
         </div>
         <div class="nlive-chat-messages" id="nlive-msgs"></div>
