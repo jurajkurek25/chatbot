@@ -1,0 +1,23 @@
+{
+  "name": "neoworkly-live",
+  "version": "1.0.0",
+  "description": "Neoworkly Live – human-operated live chat platform for crisis support",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "bcrypt": "^5.1.1",
+    "better-sqlite3": "^9.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.18.3",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^1.4.5-lts.1",
+    "socket.io": "^4.7.5",
+    "stripe": "^16.0.0",
+    "uuid": "^9.0.1"
+  }
+}

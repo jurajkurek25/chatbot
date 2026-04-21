@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Operátor – Neoworkly Live</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="op-wrap">
+  <!-- Operator sidebar -->
+  <aside class="op-sidebar">
+    <div class="op-logo">Neoworkly<span>.live</span></div>
+
+    <!-- Operator profile -->
+    <div class="op-profile" id="op-profile">
+      <div class="op-avatar-big" id="op-avatar">?</div>
+      <div class="op-profile-name" id="op-display-name">Načítavam…</div>
+      <div class="op-profile-email" id="op-email-display"></div>
+      <div class="status-toggle">
+        <label class="toggle">
+          <input type="checkbox" id="status-toggle" onchange="toggleStatus(this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+        <span id="status-label">Offline</span>
+      </div>
+    </div>
+
+    <!-- Queue -->
+    <div class="op-queue-box">
+      <h4>Fronta <span class="badge-count" id="queue-badge">0</span></h4>
+      <div id="op-queue-list"><p class="empty-hint small">Fronta je prázdna</p></div>
+    </div>
+
+    <!-- Profile edit -->
+    <button class="btn-secondary btn-sm sidebar-edit-btn" onclick="showProfileEdit()">Upraviť profil</button>
+    <button class="sidebar-logout" onclick="logout()">Odhlásiť sa</button>
+  </aside>
+
+  <!-- Chat area -->
+  <main class="op-main">
+    <!-- Waiting state -->
+    <div id="op-waiting" class="op-waiting">
+      <div class="op-waiting-icon">💬</div>
+      <h2>Čakáte na návštevníka</h2>
+      <p>Zapnite sa ako <strong>Online</strong> a čakajte, kým vás niekto kontaktuje.</p>
+    </div>
+
+    <!-- Active chat -->
+    <div id="op-chat" class="op-chat-area" style="display:none">
+      <div class="op-chat-header">
+        <div class="op-chat-visitor">
+          <span class="visitor-dot"></span>
+          <span id="chat-visitor-name">Návštevník</span>
+        </div>
+        <button class="btn-danger btn-sm" onclick="endChat()">Ukončiť chat</button>
+      </div>
+      <div class="chat-messages" id="op-messages"></div>
+      <div class="chat-input-row">
+        <textarea id="op-input" placeholder="Napíšte správu…" rows="2" onkeydown="handleKey(event)"></textarea>
+        <button class="btn-primary send-btn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- Profile edit modal -->
+<div id="modal-profile" class="modal" style="display:none">
+  <div class="modal-box">
+    <h2>Upraviť profil</h2>
+    <form onsubmit="saveProfile(event)" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>Prezývka (zobrazí sa návštevníkovi)</label>
+        <input type="text" id="prof-nick">
+      </div>
+      <div class="form-group">
+        <label>Celé meno</label>
+        <input type="text" id="prof-name">
+      </div>
+      <div class="form-group">
+        <label>Bio (krátky popis)</label>
+        <textarea id="prof-bio" rows="3" placeholder="Pracujem ako krízový poradca…"></textarea>
+      </div>
+      <div class="form-group">
+        <label>Profilová fotka</label>
+        <input type="file" id="prof-photo" accept="image/*">
+      </div>
+      <div class="form-group">
+        <label>Nové heslo (nechajte prázdne ak nemeníte)</label>
+        <input type="password" id="prof-pass" minlength="6">
+      </div>
+      <div id="prof-error" class="form-error"></div>
+      <div id="prof-success" class="form-success"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-profile')">Zavrieť</button>
+        <button type="submit" class="btn-primary">Uložiť</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const token = localStorage.getItem('nlive_token');
+if (!token || localStorage.getItem('nlive_role') !== 'operator') window.location.href = '/';
+
+let opData = JSON.parse(localStorage.getItem('nlive_operator') || '{}');
+let socket;
+let currentChatId = null;
+
+function initSocket() {
+  socket = io('/operators', { auth: { token } });
+
+  socket.on('connect', () => {
+    console.log('Socket connected');
+    loadProfile();
+  });
+
+  socket.on('connect_error', (e) => {
+    if (e.message === 'Unauthorized' || e.message === 'Invalid token') logout();
+  });
+
+  socket.on('chat:started', ({ chatId, visitorName, messages }) => {
+    currentChatId = chatId;
+    document.getElementById('chat-visitor-name').textContent = visitorName;
+    document.getElementById('op-waiting').style.display = 'none';
+    document.getElementById('op-chat').style.display = 'flex';
+    const container = document.getElementById('op-messages');
+    container.innerHTML = '';
+    (messages || []).forEach(appendMessage);
+    container.scrollTop = container.scrollHeight;
+  });
+
+  socket.on('chat:message', (msg) => {
+    appendMessage(msg);
+    document.getElementById('op-messages').scrollTop = 99999;
+  });
+
+  socket.on('chat:ended', ({ chatId, reason }) => {
+    if (chatId !== currentChatId) return;
+    currentChatId = null;
+    document.getElementById('op-chat').style.display = 'none';
+    document.getElementById('op-waiting').style.display = 'flex';
+    if (reason === 'visitor_left') showToast('Návštevník opustil chat.');
+  });
+
+  socket.on('queue:updated', (queue) => {
+    renderQueue(queue);
+  });
+
+  socket.on('operators:list', () => {});
+}
+
+async function loadProfile() {
+  const r = await fetch('/api/operators/me', { headers: { 'Authorization': `Bearer ${token}` } });
+  if (!r.ok) return;
+  opData = await r.json();
+  localStorage.setItem('nlive_operator', JSON.stringify(opData));
+  renderProfile();
+}
+
+function renderProfile() {
+  const name = opData.nickname || opData.full_name || opData.email || 'Operátor';
+  document.getElementById('op-display-name').textContent = name;
+  document.getElementById('op-email-display').textContent = opData.email || '';
+  const avatar = document.getElementById('op-avatar');
+  if (opData.photo_url) {
+    avatar.innerHTML = `<img src="${opData.photo_url}" alt="">`;
+  } else {
+    avatar.textContent = (name[0] || '?').toUpperCase();
+  }
+  const toggle = document.getElementById('status-toggle');
+  toggle.checked = !!opData.is_online;
+  document.getElementById('status-label').textContent = opData.is_online ? 'Online' : 'Offline';
+}
+
+function toggleStatus(online) {
+  document.getElementById('status-label').textContent = online ? 'Online' : 'Offline';
+  socket.emit('operator:status', { online });
+}
+
+function renderQueue(queue) {
+  const badge = document.getElementById('queue-badge');
+  const list = document.getElementById('op-queue-list');
+  badge.textContent = queue.length;
+  if (!queue.length) { list.innerHTML = '<p class="empty-hint small">Fronta je prázdna</p>'; return; }
+  list.innerHTML = queue.map(q => `
+    <div class="queue-item-op">
+      <div class="queue-item-name">${q.visitor_name}</div>
+      <button class="btn-primary btn-xs" onclick="acceptQueue('${q.id}')">Prijať</button>
+    </div>
+  `).join('');
+}
+
+function acceptQueue(queueId) {
+  if (currentChatId) return showToast('Máte aktívny chat.');
+  socket.emit('operator:accept_queue', { queueId });
+}
+
+function sendMessage() {
+  const input = document.getElementById('op-input');
+  const content = input.value.trim();
+  if (!content || !currentChatId) return;
+  socket.emit('operator:message', { chatId: currentChatId, content });
+  input.value = '';
+  input.focus();
+}
+
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+}
+
+function endChat() {
+  if (!currentChatId || !confirm('Ukončiť tento chat?')) return;
+  socket.emit('operator:end_chat', { chatId: currentChatId });
+}
+
+function appendMessage(msg) {
+  const container = document.getElementById('op-messages');
+  const div = document.createElement('div');
+  div.className = `msg ${msg.sender_type === 'operator' ? 'msg-out' : 'msg-in'}`;
+  div.innerHTML = `
+    <div class="msg-bubble">${escHtml(msg.content)}</div>
+    <div class="msg-meta">${msg.sender_name || ''} · ${formatTime(msg.created_at)}</div>
+  `;
+  container.appendChild(div);
+}
+
+async function showProfileEdit() {
+  document.getElementById('prof-nick').value = opData.nickname || '';
+  document.getElementById('prof-name').value = opData.full_name || '';
+  document.getElementById('prof-bio').value = opData.bio || '';
+  document.getElementById('modal-profile').style.display = 'flex';
+}
+
+async function saveProfile(e) {
+  e.preventDefault();
+  const err = document.getElementById('prof-error');
+  const suc = document.getElementById('prof-success');
+  err.textContent = ''; suc.textContent = '';
+
+  const fd = new FormData();
+  fd.append('nickname', document.getElementById('prof-nick').value);
+  fd.append('full_name', document.getElementById('prof-name').value);
+  fd.append('bio', document.getElementById('prof-bio').value);
+  const pass = document.getElementById('prof-pass').value;
+  if (pass) fd.append('password', pass);
+  const photo = document.getElementById('prof-photo').files[0];
+  if (photo) fd.append('photo', photo);
+
+  const r = await fetch('/api/operators/me', { method:'PATCH', headers:{'Authorization':`Bearer ${token}`}, body: fd });
+  const d = await r.json();
+  if (!r.ok) { err.textContent = d.error || 'Chyba'; return; }
+  opData = d;
+  localStorage.setItem('nlive_operator', JSON.stringify(opData));
+  renderProfile();
+  suc.textContent = 'Uložené!';
+  setTimeout(() => closeModal('modal-profile'), 1000);
+}
+
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function logout() { if (socket) socket.disconnect(); localStorage.clear(); window.location.href = '/'; }
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function formatTime(dt) { return new Date(dt).toLocaleTimeString('sk-SK', { hour:'2-digit', minute:'2-digit' }); }
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+initSocket();
+</script>
+</body>
+</html>

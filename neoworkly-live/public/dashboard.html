@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard – Neoworkly Live</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="app-wrap">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">Neoworkly<span>.live</span></div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active" data-section="overview" onclick="showSection('overview',this)">
+        <svg viewBox="0 0 24 24"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
+        Prehľad
+      </a>
+      <a href="#" class="nav-item" data-section="operators" onclick="showSection('operators',this)">
+        <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+        Operátori
+      </a>
+      <a href="#" class="nav-item" data-section="stats" onclick="showSection('stats',this)">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        Štatistiky
+      </a>
+      <a href="#" class="nav-item" data-section="widget" onclick="showSection('widget',this)">
+        <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 12H7v-2h8v2zm3-4H7v-2h11v2zm0-4H7V6h11v2z"/></svg>
+        Widget
+      </a>
+      <a href="#" class="nav-item" data-section="settings" onclick="showSection('settings',this)">
+        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94c0-0.32-0.02-0.64-0.07-0.94l2.03-1.58c0.18-0.14,0.23-0.41,0.12-0.61 l-1.92-3.32c-0.12-0.22-0.37-0.29-0.59-0.22l-2.39,0.96c-0.5-0.38-1.03-0.7-1.62-0.94L14.4,2.81c-0.04-0.24-0.24-0.41-0.48-0.41 h-3.84c-0.24,0-0.43,0.17-0.47,0.41L9.25,5.35C8.66,5.59,8.12,5.92,7.63,6.29L5.24,5.33c-0.22-0.08-0.47,0-0.59,0.22L2.74,8.87 C2.62,9.08,2.66,9.34,2.86,9.48l2.03,1.58C4.84,11.36,4.8,11.69,4.8,12s0.02,0.64,0.07,0.94l-2.03,1.58 c-0.18,0.14-0.23,0.41-0.12,0.61l1.92,3.32c0.12,0.22,0.37,0.29,0.59,0.22l2.39-0.96c0.5,0.38,1.03,0.7,1.62,0.94l0.36,2.54 c0.05,0.24,0.24,0.41,0.48,0.41h3.84c0.24,0,0.44-0.17,0.47-0.41l0.36-2.54c0.59-0.24,1.13-0.56,1.62-0.94l2.39,0.96 c0.22,0.08,0.47,0,0.59-0.22l1.92-3.32c0.12-0.22,0.07-0.47-0.12-0.61L19.14,12.94z M12,15.6c-1.98,0-3.6-1.62-3.6-3.6 s1.62-3.6,3.6-3.6s3.6,1.62,3.6,3.6S13.98,15.6,12,15.6z"/></svg>
+        Nastavenia
+      </a>
+    </nav>
+    <button class="sidebar-logout" onclick="logout()">Odhlásiť sa</button>
+  </aside>
+
+  <!-- Main content -->
+  <main class="main-content">
+    <!-- Overview -->
+    <section id="section-overview" class="section active">
+      <div class="section-header">
+        <h1>Prehľad</h1>
+        <div id="company-name" class="company-badge"></div>
+      </div>
+      <div class="stats-grid" id="stats-cards"></div>
+      <div class="chart-row">
+        <div class="chart-box" id="queue-box">
+          <h3>Aktuálna fronta <span class="badge-count" id="queue-count">0</span></h3>
+          <div id="queue-list"><p class="empty-hint">Fronta je prázdna.</p></div>
+        </div>
+        <div class="chart-box">
+          <h3>Chaty za posledných 7 dní</h3>
+          <div id="chart-bar" class="bar-chart"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Operators -->
+    <section id="section-operators" class="section" style="display:none">
+      <div class="section-header">
+        <h1>Operátori</h1>
+        <button class="btn-primary btn-sm" onclick="showAddOperator()">+ Pridať operátora</button>
+      </div>
+      <div id="operators-list" class="operators-grid"></div>
+
+      <!-- Add operator modal -->
+      <div id="modal-add-op" class="modal" style="display:none">
+        <div class="modal-box">
+          <h2>Pridať operátora</h2>
+          <form onsubmit="addOperator(event)">
+            <div class="form-group"><label>E-mail</label><input type="email" id="new-op-email" required></div>
+            <div class="form-group"><label>Heslo</label><input type="password" id="new-op-pass" required minlength="6"></div>
+            <div class="form-group"><label>Prezývka (voliteľné)</label><input type="text" id="new-op-nick"></div>
+            <div class="form-group"><label>Celé meno (voliteľné)</label><input type="text" id="new-op-name"></div>
+            <div id="add-op-error" class="form-error"></div>
+            <div class="modal-actions">
+              <button type="button" class="btn-secondary" onclick="closeModal('modal-add-op')">Zrušiť</button>
+              <button type="submit" class="btn-primary">Pridať</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section id="section-stats" class="section" style="display:none">
+      <div class="section-header">
+        <h1>Štatistiky</h1>
+        <button class="btn-secondary btn-sm" id="ai-summary-btn" onclick="loadAISummary()">AI zhrnutie</button>
+      </div>
+      <div class="stats-grid" id="stats-detail-cards"></div>
+      <div class="operator-stats-table" id="op-stats-table"></div>
+      <div id="ai-summary-box" class="ai-box" style="display:none">
+        <div class="ai-box-header">
+          <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+          AI Zhrnutie rozhovorov
+        </div>
+        <div id="ai-summary-content" class="ai-box-content"></div>
+      </div>
+    </section>
+
+    <!-- Widget -->
+    <section id="section-widget" class="section" style="display:none">
+      <div class="section-header"><h1>Vložiť widget</h1></div>
+      <div class="widget-install-box">
+        <p>Skopírujte tento kód a vložte ho pred záver <code>&lt;/body&gt;</code> na vašom webe:</p>
+        <pre id="widget-code-block" class="code-block"></pre>
+        <button class="btn-primary btn-sm" onclick="copyWidgetCode()">Kopírovať kód</button>
+        <div class="widget-preview-note">
+          <strong>Ako to funguje:</strong> Widget sa zobrazí ako tlačidlo v pravom dolnom rohu. Návštevník si môže vybrať operátora alebo kliknúť AUTO.
+          Tlačidlo "Fullscreen" otvorí chat na celú obrazovku.
+        </div>
+      </div>
+    </section>
+
+    <!-- Settings -->
+    <section id="section-settings" class="section" style="display:none">
+      <div class="section-header"><h1>Nastavenia</h1></div>
+      <div class="settings-box">
+        <form onsubmit="saveSettings(event)">
+          <div class="form-group">
+            <label>Názov organizácie</label>
+            <input type="text" id="set-company">
+          </div>
+          <div class="form-group">
+            <label>Jazyk widgetu</label>
+            <select id="set-language">
+              <option value="sk">Slovenčina</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <div class="form-group toggle-row">
+            <label>AI zhrnutie rozhovorov</label>
+            <label class="toggle">
+              <input type="checkbox" id="set-ai">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <p class="hint-text">AI zhrnutie analyzuje obsah chatov. Vypnite, ak pracujete s mimoriadne citlivými údajmi.</p>
+          <div id="settings-msg" class="form-success"></div>
+          <button type="submit" class="btn-primary">Uložiť</button>
+        </form>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+const token = localStorage.getItem('nlive_token');
+if (!token || localStorage.getItem('nlive_role') !== 'client') window.location.href = '/';
+
+let clientData = {};
+
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...(opts.headers || {}) } });
+  if (r.status === 401) { logout(); return null; }
+  return r.json();
+}
+
+function showSection(name, el) {
+  document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`section-${name}`).style.display = 'block';
+  el.classList.add('active');
+  if (name === 'overview') loadOverview();
+  if (name === 'operators') loadOperators();
+  if (name === 'stats') loadStats();
+  if (name === 'widget') loadWidget();
+  if (name === 'settings') loadSettings();
+}
+
+async function loadOverview() {
+  const [me, stats] = await Promise.all([api('/api/clients/me'), api('/api/stats')]);
+  if (!me || !stats) return;
+  clientData = me;
+  document.getElementById('company-name').textContent = me.company_name || me.email;
+
+  document.getElementById('stats-cards').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${stats.totalChats}</div><div class="stat-lbl">Celkom chatov</div></div>
+    <div class="stat-card green"><div class="stat-val">${stats.activeChats}</div><div class="stat-lbl">Aktívnych</div></div>
+    <div class="stat-card"><div class="stat-val">${stats.onlineOperators}/${stats.totalOperators}</div><div class="stat-lbl">Operátori online</div></div>
+    <div class="stat-card"><div class="stat-val">${formatDuration(stats.avgDurationSeconds)}</div><div class="stat-lbl">Priem. dĺžka chatu</div></div>
+  `;
+
+  document.getElementById('queue-count').textContent = stats.queueCount;
+  loadQueue();
+  renderBarChart(stats.chatsPerDay);
+}
+
+async function loadQueue() {
+  const q = await api('/api/chat/queue');
+  const el = document.getElementById('queue-list');
+  if (!q || q.length === 0) { el.innerHTML = '<p class="empty-hint">Fronta je prázdna.</p>'; return; }
+  el.innerHTML = q.map((item, i) => `
+    <div class="queue-item">
+      <span class="queue-pos">${i + 1}</span>
+      <span class="queue-name">${item.visitor_name}</span>
+      <span class="queue-time">${timeAgo(item.joined_at)}</span>
+    </div>
+  `).join('');
+}
+
+function renderBarChart(data) {
+  const el = document.getElementById('chart-bar');
+  if (!data || data.length === 0) { el.innerHTML = '<p class="empty-hint">Žiadne dáta.</p>'; return; }
+  const last7 = [...data].reverse().slice(0, 7);
+  const max = Math.max(...last7.map(d => d.n), 1);
+  el.innerHTML = last7.map(d => `
+    <div class="bar-col">
+      <div class="bar-fill" style="height:${Math.round((d.n / max) * 100)}%"><span>${d.n}</span></div>
+      <div class="bar-lbl">${d.day?.slice(5)}</div>
+    </div>
+  `).join('');
+}
+
+async function loadOperators() {
+  const ops = await api('/api/operators');
+  if (!ops) return;
+  const el = document.getElementById('operators-list');
+  if (ops.length === 0) { el.innerHTML = '<p class="empty-hint">Žiadni operátori. Pridajte prvého.</p>'; return; }
+  el.innerHTML = ops.map(op => `
+    <div class="op-card">
+      <div class="op-avatar">${op.photo_url ? `<img src="${op.photo_url}">` : initials(op.nickname || op.full_name || op.email)}</div>
+      <div class="op-info">
+        <div class="op-name">${op.nickname || op.full_name || '–'}</div>
+        <div class="op-email">${op.email}</div>
+        <div class="op-status ${op.is_online ? (op.is_busy ? 'busy' : 'online') : 'offline'}">
+          ${op.is_online ? (op.is_busy ? 'Zaneprázdnený' : 'Online') : 'Offline'}
+        </div>
+      </div>
+      <button class="btn-icon btn-danger" onclick="removeOperator('${op.id}')" title="Odstrániť">✕</button>
+    </div>
+  `).join('');
+}
+
+async function addOperator(e) {
+  e.preventDefault();
+  const err = document.getElementById('add-op-error');
+  err.textContent = '';
+  const data = { email: document.getElementById('new-op-email').value, password: document.getElementById('new-op-pass').value, nickname: document.getElementById('new-op-nick').value, full_name: document.getElementById('new-op-name').value };
+  const r = await fetch('/api/operators', { method:'POST', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'}, body: JSON.stringify(data) });
+  const d = await r.json();
+  if (!r.ok) { err.textContent = d.error || 'Chyba'; return; }
+  closeModal('modal-add-op');
+  loadOperators();
+}
+
+async function removeOperator(id) {
+  if (!confirm('Odstrániť operátora?')) return;
+  await fetch(`/api/operators/${id}`, { method:'DELETE', headers:{'Authorization':`Bearer ${token}`} });
+  loadOperators();
+}
+
+async function loadStats() {
+  const stats = await api('/api/stats');
+  if (!stats) return;
+  document.getElementById('stats-detail-cards').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${stats.totalChats}</div><div class="stat-lbl">Celkom chatov</div></div>
+    <div class="stat-card"><div class="stat-val">${stats.endedChats}</div><div class="stat-lbl">Ukončených</div></div>
+    <div class="stat-card"><div class="stat-val">${formatDuration(stats.avgDurationSeconds)}</div><div class="stat-lbl">Priem. dĺžka</div></div>
+    <div class="stat-card"><div class="stat-val">${stats.queueCount}</div><div class="stat-lbl">Vo fronte teraz</div></div>
+  `;
+
+  const me = await api('/api/clients/me');
+  document.getElementById('ai-summary-btn').style.display = me?.ai_summary_enabled ? 'inline-flex' : 'none';
+
+  if (stats.operatorStats?.length) {
+    document.getElementById('op-stats-table').innerHTML = `
+      <h3>Štatistiky operátorov</h3>
+      <table class="data-table">
+        <thead><tr><th>Operátor</th><th>Počet chatov</th></tr></thead>
+        <tbody>${stats.operatorStats.map(o => `<tr><td>${o.nickname || o.full_name || '–'}</td><td>${o.chat_count}</td></tr>`).join('')}</tbody>
+      </table>
+    `;
+  }
+}
+
+async function loadAISummary() {
+  const box = document.getElementById('ai-summary-box');
+  const content = document.getElementById('ai-summary-content');
+  box.style.display = 'block';
+  content.textContent = 'Generujem zhrnutie…';
+  const r = await api('/api/stats/ai-summary');
+  content.textContent = r?.summary || r?.error || 'Žiadne dáta.';
+}
+
+async function loadWidget() {
+  const me = await api('/api/clients/me');
+  if (!me) return;
+  const origin = window.location.origin;
+  const code = `<script src="${origin}/widget.js" data-key="${me.widget_key}" data-lang="${me.language || 'sk'}"><\/script>`;
+  document.getElementById('widget-code-block').textContent = code;
+}
+
+function copyWidgetCode() {
+  navigator.clipboard.writeText(document.getElementById('widget-code-block').textContent);
+}
+
+async function loadSettings() {
+  const me = await api('/api/clients/me');
+  if (!me) return;
+  document.getElementById('set-company').value = me.company_name || '';
+  document.getElementById('set-language').value = me.language || 'sk';
+  document.getElementById('set-ai').checked = !!me.ai_summary_enabled;
+}
+
+async function saveSettings(e) {
+  e.preventDefault();
+  const msg = document.getElementById('settings-msg');
+  const r = await fetch('/api/clients/me', { method:'PATCH', headers:{'Authorization':`Bearer ${token}`,'Content-Type':'application/json'},
+    body: JSON.stringify({ company_name: document.getElementById('set-company').value, language: document.getElementById('set-language').value, ai_summary_enabled: document.getElementById('set-ai').checked ? 1 : 0 }) });
+  msg.textContent = r.ok ? 'Uložené!' : 'Chyba ukladania.';
+  setTimeout(() => msg.textContent = '', 2000);
+}
+
+function showAddOperator() { document.getElementById('modal-add-op').style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+function logout() { localStorage.clear(); window.location.href = '/'; }
+function initials(str) { if (!str) return '?'; return str.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase(); }
+function formatDuration(s) { if (!s) return '0s'; if (s < 60) return `${s}s`; return `${Math.floor(s/60)}m ${s%60}s`; }
+function timeAgo(dt) {
+  const diff = Math.floor((Date.now() - new Date(dt)) / 1000);
+  if (diff < 60) return `${diff}s`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m`;
+  return `${Math.floor(diff/3600)}h`;
+}
+
+loadOverview();
+</script>
+</body>
+</html>

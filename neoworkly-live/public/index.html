@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neoworkly Live</title>
+<link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+<div class="auth-wrap">
+  <div class="auth-box">
+    <div class="auth-logo">Neoworkly<span>.live</span></div>
+    <p class="auth-subtitle" id="auth-subtitle">Prihlásenie do vášho účtu</p>
+
+    <div class="tab-row">
+      <button class="tab-btn active" id="tab-login" onclick="switchTab('login')">Prihlásenie</button>
+      <button class="tab-btn" id="tab-register" onclick="switchTab('register')">Registrácia</button>
+    </div>
+
+    <!-- Login form -->
+    <form id="form-login" onsubmit="doLogin(event)">
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="login-email" placeholder="vas@email.com" required>
+      </div>
+      <div class="form-group">
+        <label>Heslo</label>
+        <input type="password" id="login-password" placeholder="••••••••" required>
+      </div>
+      <div id="login-error" class="form-error"></div>
+      <button type="submit" class="btn-primary" id="login-btn">Prihlásiť sa</button>
+      <div class="auth-divider">alebo</div>
+      <button type="button" class="btn-secondary" onclick="switchTab('operator')">Som operátor</button>
+    </form>
+
+    <!-- Register form -->
+    <form id="form-register" style="display:none" onsubmit="doRegister(event)">
+      <div class="form-group">
+        <label>Názov firmy / organizácie</label>
+        <input type="text" id="reg-company" placeholder="Krízové centrum XY">
+      </div>
+      <div class="form-group">
+        <label>E-mail</label>
+        <input type="email" id="reg-email" placeholder="vas@email.com" required>
+      </div>
+      <div class="form-group">
+        <label>Heslo</label>
+        <input type="password" id="reg-password" placeholder="min. 8 znakov" required minlength="8">
+      </div>
+      <div id="reg-error" class="form-error"></div>
+      <button type="submit" class="btn-primary" id="reg-btn">Vytvoriť účet</button>
+    </form>
+
+    <!-- Operator login form -->
+    <form id="form-operator" style="display:none" onsubmit="doOperatorLogin(event)">
+      <div class="auth-back" onclick="switchTab('login')">← Späť</div>
+      <div class="form-group">
+        <label>Váš e-mail</label>
+        <input type="email" id="op-email" placeholder="operator@email.com" required>
+      </div>
+      <div class="form-group">
+        <label>Heslo</label>
+        <input type="password" id="op-password" placeholder="••••••••" required>
+      </div>
+      <div id="op-error" class="form-error"></div>
+      <button type="submit" class="btn-primary" id="op-btn">Prihlásiť sa ako operátor</button>
+    </form>
+  </div>
+
+  <p class="auth-footer">© 2025 Neoworkly.live — Live chat pre krízové situácie</p>
+</div>
+
+<script>
+function switchTab(tab) {
+  ['login','register','operator'].forEach(t => {
+    document.getElementById(`form-${t}`).style.display = 'none';
+    const btn = document.getElementById(`tab-${t}`);
+    if (btn) btn.classList.remove('active');
+  });
+  document.getElementById(`form-${tab}`).style.display = 'block';
+  const btn = document.getElementById(`tab-${tab}`);
+  if (btn) btn.classList.add('active');
+
+  const subtitles = { login: 'Prihlásenie do vášho účtu', register: 'Vytvorte nový účet', operator: 'Prihlásenie operátora' };
+  document.getElementById('auth-subtitle').textContent = subtitles[tab] || '';
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  btn.disabled = true; btn.textContent = 'Prihlasovanie…';
+  err.textContent = '';
+  try {
+    const r = await fetch('/api/auth/login', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email: document.getElementById('login-email').value, password: document.getElementById('login-password').value }) });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error || 'Chyba prihlásenia'; return; }
+    localStorage.setItem('nlive_token', d.token);
+    localStorage.setItem('nlive_role', 'client');
+    window.location.href = '/dashboard';
+  } catch { err.textContent = 'Chyba siete'; }
+  finally { btn.disabled = false; btn.textContent = 'Prihlásiť sa'; }
+}
+
+async function doRegister(e) {
+  e.preventDefault();
+  const btn = document.getElementById('reg-btn');
+  const err = document.getElementById('reg-error');
+  btn.disabled = true; btn.textContent = 'Registrujem…';
+  err.textContent = '';
+  try {
+    const r = await fetch('/api/auth/register', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email: document.getElementById('reg-email').value, password: document.getElementById('reg-password').value, company_name: document.getElementById('reg-company').value }) });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error || 'Chyba registrácie'; return; }
+    localStorage.setItem('nlive_token', d.token);
+    localStorage.setItem('nlive_role', 'client');
+    window.location.href = '/dashboard';
+  } catch { err.textContent = 'Chyba siete'; }
+  finally { btn.disabled = false; btn.textContent = 'Vytvoriť účet'; }
+}
+
+async function doOperatorLogin(e) {
+  e.preventDefault();
+  const btn = document.getElementById('op-btn');
+  const err = document.getElementById('op-error');
+  btn.disabled = true; btn.textContent = 'Prihlasovanie…';
+  err.textContent = '';
+  try {
+    const r = await fetch('/api/auth/operator/login', { method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email: document.getElementById('op-email').value, password: document.getElementById('op-password').value }) });
+    const d = await r.json();
+    if (!r.ok) { err.textContent = d.error || 'Chyba prihlásenia'; return; }
+    localStorage.setItem('nlive_token', d.token);
+    localStorage.setItem('nlive_role', 'operator');
+    localStorage.setItem('nlive_operator', JSON.stringify(d.operator));
+    window.location.href = '/operator';
+  } catch { err.textContent = 'Chyba siete'; }
+  finally { btn.disabled = false; btn.textContent = 'Prihlásiť sa ako operátor'; }
+}
+
+// Redirect if already logged in
+if (localStorage.getItem('nlive_token')) {
+  const role = localStorage.getItem('nlive_role');
+  window.location.href = role === 'operator' ? '/operator' : '/dashboard';
+}
+</script>
+</body>
+</html>
