@@ -30,6 +30,9 @@ function initSocket(io) {
     broadcastOperatorList(io, socket.clientId);
     socket.join(`client:${socket.clientId}`);
 
+    // Send current queue immediately so operator sees waiting visitors on connect
+    socket.emit('queue:updated', getQueueList(db, socket.clientId));
+
     // Operator goes offline manually
     socket.on('operator:status', ({ online }) => {
       db.prepare('UPDATE operators SET is_online = ? WHERE id = ?').run(online ? 1 : 0, socket.operatorId);

@@ -316,11 +316,12 @@
       if (!currentChatId && !inQueue) renderOpSelection();
     });
 
-    socket.on('operator:busy', ({ message }) => {
-      showError(message);
+    socket.on('operator:busy', () => {
+      // Operator is busy — re-render so queue button appears
+      renderOpSelection();
     });
 
-    socket.on('no_operators', () => renderNoOperators());
+    socket.on('no_operators', () => renderOpSelection());
 
     socket.on('chat:started', ({ chatId, operator, messages }) => {
       currentChatId = chatId;
@@ -347,6 +348,15 @@
   }
 
   // ── Views ─────────────────────────────────────────────────────────────────────
+  function bindQueueBtn() {
+    const btn = document.getElementById('nlive-queue-btn');
+    if (!btn) return;
+    btn.addEventListener('click', () => {
+      visitorName = document.getElementById('nlive-name-input').value.trim() || 'Anonym';
+      socket.emit('visitor:join_queue', { visitor_name: visitorName });
+    });
+  }
+
   function renderOpSelection() {
     const body = document.getElementById('nlive-body');
     document.getElementById('nlive-subtitle').textContent = t.subtitle;
@@ -359,30 +369,37 @@
         <input type="text" id="nlive-name-input" placeholder="${t.name_placeholder}" maxlength="40">
         <div class="nlive-name-hint">${t.name_hint}</div>
       </div>
-      ${availableOps.length > 0 ? `
-        <div class="nlive-ops-title">Operátori</div>
-        <div class="nlive-ops-list" id="nlive-ops-list">
-          ${availableOps.map(op => opCardHTML(op)).join('')}
-        </div>
-        <button class="nlive-auto-btn" id="nlive-auto">${t.auto} – Automaticky priradiť</button>
-        <button class="nlive-start-btn" id="nlive-start" disabled>${t.start_chat}</button>
-      ` : `
+      ${availableOps.length === 0 ? `
         <div class="nlive-no-ops">
           <div class="nlive-no-ops-icon">😔</div>
           <p>${t.no_operators}</p>
           <button class="nlive-queue-btn" id="nlive-queue-btn">${t.join_queue}</button>
         </div>
+      ` : `
+        <div class="nlive-ops-title">Operátori</div>
+        <div class="nlive-ops-list" id="nlive-ops-list">
+          ${availableOps.map(op => opCardHTML(op)).join('')}
+        </div>
+        ${anyFree ? `
+          <button class="nlive-auto-btn" id="nlive-auto">${t.auto} – Automaticky priradiť</button>
+          <button class="nlive-start-btn" id="nlive-start" disabled>${t.start_chat}</button>
+        ` : `
+          <div style="font-size:.82rem;color:var(--nlive-muted,#94a3b8);margin:.5rem 0 .25rem;">Všetci operátori sú momentálne zaneprázdnení.</div>
+          <button class="nlive-queue-btn" id="nlive-queue-btn">${t.join_queue}</button>
+        `}
       `}
     `;
 
-    // Bind events
+    // Bind operator cards (always, whether free or busy)
     if (availableOps.length > 0) {
       document.querySelectorAll('.nlive-op-card').forEach(card => {
         card.addEventListener('click', () => {
+          if (!anyFree) return; // can't select when all busy
           document.querySelectorAll('.nlive-op-card').forEach(c => c.classList.remove('selected'));
           card.classList.add('selected');
           selectedOpId = card.dataset.id;
-          document.getElementById('nlive-start').disabled = false;
+          const startBtn = document.getElementById('nlive-start');
+          if (startBtn) startBtn.disabled = false;
         });
       });
       document.querySelectorAll('.nlive-op-bio-toggle').forEach(btn => {
@@ -393,21 +410,19 @@
           btn.textContent = bio.classList.contains('open') ? '▲ ' + t.bio_label : '▼ ' + t.bio_label;
         });
       });
-      document.getElementById('nlive-auto').addEventListener('click', () => {
-        visitorName = document.getElementById('nlive-name-input').value.trim() || 'Anonym';
-        socket.emit('visitor:auto', { visitor_name: visitorName });
-      });
-      document.getElementById('nlive-start').addEventListener('click', () => {
-        if (!selectedOpId) return;
-        visitorName = document.getElementById('nlive-name-input').value.trim() || 'Anonym';
-        socket.emit('visitor:select_operator', { operator_id: selectedOpId, visitor_name: visitorName });
-      });
-    } else {
-      document.getElementById('nlive-queue-btn').addEventListener('click', () => {
-        visitorName = document.getElementById('nlive-name-input').value.trim() || 'Anonym';
-        socket.emit('visitor:join_queue', { visitor_name: visitorName });
-      });
+      if (anyFree) {
+        document.getElementById('nlive-auto').addEventListener('click', () => {
+          visitorName = document.getElementById('nlive-name-input').value.trim() || 'Anonym';
+          socket.emit('visitor:auto', { visitor_name: visitorName });
+        });
+        document.getElementById('nlive-start').addEventListener('click', () => {
+          if (!selectedOpId) return;
+          visitorName = document.getElementById('nlive-name-input').value.trim() || 'Anonym';
+          socket.emit('visitor:select_operator', { operator_id: selectedOpId, visitor_name: visitorName });
+        });
+      }
     }
+    bindQueueBtn();
   }
 
   function opPhotoUrl(photo_url) {
