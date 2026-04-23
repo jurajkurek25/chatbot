@@ -1952,15 +1952,53 @@
           </div>
 
           <!-- Embed code -->
+          <!-- Embed options -->
           <div class="panel">
-            <div class="panel-header" style="margin-bottom:0.75rem">
+            <div class="panel-header" style="margin-bottom:1rem">
               <div>
-                <div class="panel-title">Embed kód pre Person widget</div>
-                <div class="panel-subtitle">Vložte na web kde chcete mať Person – odlišný od štandardného chatbota</div>
+                <div class="panel-title">Vloženie Person widgetu</div>
+                <div class="panel-subtitle">Vyberte spôsob integrácie podľa vášho use-case</div>
               </div>
             </div>
-            <div id="person-embed-code" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem;font-family:monospace;font-size:0.75rem;color:#374151;white-space:pre-wrap;word-break:break-all;margin-bottom:0.75rem"></div>
-            <button onclick="copyPersonEmbed()" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer">📋 Kopírovať kód</button>
+
+            <!-- Tab switcher -->
+            <div style="display:flex;gap:0.4rem;margin-bottom:1rem">
+              <button id="person-embed-tab-bubble" onclick="switchPersonEmbedTab('bubble')"
+                style="flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.45rem 0.75rem;font-size:0.8rem;font-weight:600;cursor:pointer">
+                💬 Floating bublina
+              </button>
+              <button id="person-embed-tab-inline" onclick="switchPersonEmbedTab('inline')"
+                style="flex:1;background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:8px;padding:0.45rem 0.75rem;font-size:0.8rem;font-weight:600;cursor:pointer">
+                🪟 Inline (do stránky)
+              </button>
+            </div>
+
+            <!-- Bubble embed -->
+            <div id="person-embed-bubble">
+              <p style="font-size:0.78rem;color:#64748b;margin-bottom:0.6rem">Klasická bublina v rohu stránky – rovnaká ako štandardný chatbot, len s Person režimom.</p>
+              <div id="person-embed-code-bubble" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem;font-family:monospace;font-size:0.72rem;color:#374151;white-space:pre-wrap;word-break:break-all;margin-bottom:0.6rem"></div>
+              <button onclick="copyPersonEmbed('bubble')" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer">📋 Kopírovať kód</button>
+            </div>
+
+            <!-- Inline embed -->
+            <div id="person-embed-inline" style="display:none">
+              <p style="font-size:0.78rem;color:#64748b;margin-bottom:0.6rem">Person sa vykreslí priamo do vášho elementu – ideálne pre SaaS dashboard, členskú sekciu kurzu alebo dedikovanú stránku.</p>
+
+              <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.85rem;margin-bottom:0.75rem;font-size:0.78rem;color:#92400e">
+                <strong>Ako to funguje:</strong> Vložte prázdny <code style="background:#fde68a;padding:1px 4px;border-radius:3px">&lt;div&gt;</code> s výškou na miesto kde chcete chat, pridajte kód nižšie a widget sa vyplní celý priestor.
+              </div>
+
+              <div style="margin-bottom:0.5rem;font-size:0.78rem;font-weight:600;color:#374151">Krok 1 — kontajner (HTML)</div>
+              <div id="person-embed-code-container" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem;font-family:monospace;font-size:0.72rem;color:#374151;white-space:pre-wrap;word-break:break-all;margin-bottom:0.75rem"></div>
+
+              <div style="margin-bottom:0.5rem;font-size:0.78rem;font-weight:600;color:#374151">Krok 2 — script (pred &lt;/body&gt;)</div>
+              <div id="person-embed-code-inline" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem;font-family:monospace;font-size:0.72rem;color:#374151;white-space:pre-wrap;word-break:break-all;margin-bottom:0.6rem"></div>
+
+              <div style="display:flex;gap:0.5rem">
+                <button onclick="copyPersonEmbed('container')" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer">📋 Kopírovať kontajner</button>
+                <button onclick="copyPersonEmbed('inline')" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer">📋 Kopírovať script</button>
+              </div>
+            </div>
           </div>
         </div>
 

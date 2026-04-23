@@ -5140,11 +5140,52 @@ function _updatePersonToggle() {
   thumb.style.transform = on ? 'translateX(18px)' : 'translateX(0)';
 }
 
+let _personEmbedTab = 'bubble';
+
+function switchPersonEmbedTab(tab) {
+  _personEmbedTab = tab;
+  const bubblePanel = document.getElementById('person-embed-bubble');
+  const inlinePanel = document.getElementById('person-embed-inline');
+  const btnBubble   = document.getElementById('person-embed-tab-bubble');
+  const btnInline   = document.getElementById('person-embed-tab-inline');
+  if (bubblePanel) bubblePanel.style.display = tab === 'bubble' ? '' : 'none';
+  if (inlinePanel) inlinePanel.style.display  = tab === 'inline' ? '' : 'none';
+  if (btnBubble) {
+    btnBubble.style.background = tab === 'bubble' ? '#2563eb' : '#f1f5f9';
+    btnBubble.style.color      = tab === 'bubble' ? 'white'   : '#374151';
+    btnBubble.style.border     = tab === 'bubble' ? 'none'    : '1px solid #e2e8f0';
+  }
+  if (btnInline) {
+    btnInline.style.background = tab === 'inline' ? '#2563eb' : '#f1f5f9';
+    btnInline.style.color      = tab === 'inline' ? 'white'   : '#374151';
+    btnInline.style.border     = tab === 'inline' ? 'none'    : '1px solid #e2e8f0';
+  }
+}
+
 function _renderPersonEmbed() {
-  const el = document.getElementById('person-embed-code');
-  if (!el || !currentWidget) return;
+  if (!currentWidget) return;
   const origin = location.origin;
-  el.textContent = `<script>\nwindow.NeoworklyConfig = {\n  widgetId: '${currentWidget.id}',\n  mode: 'person'\n};\n<\/script>\n<script src="${origin}/widget.js" async><\/script>`;
+  const wid = currentWidget.id;
+
+  const bubbleEl = document.getElementById('person-embed-code-bubble');
+  if (bubbleEl)
+    bubbleEl.textContent = `<script>\nwindow.NeoworklyConfig = {\n  widgetId: '${wid}',\n  mode: 'person'\n};\n<\/script>\n<script src="${origin}/widget.js" async><\/script>`;
+
+  const containerEl = document.getElementById('person-embed-code-container');
+  if (containerEl)
+    containerEl.textContent = `<div id="neoworkly-person" style="height:600px;border-radius:12px;overflow:hidden;"></div>`;
+
+  const inlineEl = document.getElementById('person-embed-code-inline');
+  if (inlineEl)
+    inlineEl.textContent = `<script>\nwindow.NeoworklyConfig = {\n  widgetId: '${wid}',\n  mode: 'person',\n  inline: true,\n  container: '#neoworkly-person'\n};\n<\/script>\n<script src="${origin}/widget.js" async><\/script>`;
+}
+
+function copyPersonEmbed(which) {
+  let text = '';
+  if (which === 'bubble') text = document.getElementById('person-embed-code-bubble')?.textContent || '';
+  else if (which === 'container') text = document.getElementById('person-embed-code-container')?.textContent || '';
+  else if (which === 'inline') text = document.getElementById('person-embed-code-inline')?.textContent || '';
+  if (text) navigator.clipboard.writeText(text).then(() => showToast('Kód skopírovaný!', 'success'));
 }
 
 async function savePersonProfile() {
@@ -5170,12 +5211,6 @@ async function savePersonProfile() {
   });
   if (!r || !r.ok) { showToast('Chyba pri ukladaní.', 'error'); return; }
   showToast('✅ Person profil uložený!', 'success');
-}
-
-function copyPersonEmbed() {
-  const el = document.getElementById('person-embed-code');
-  if (!el) return;
-  navigator.clipboard.writeText(el.textContent).then(() => showToast('Kód skopírovaný!', 'success'));
 }
 
 /* ── Person Training ──────────────────────────────────────────────── */

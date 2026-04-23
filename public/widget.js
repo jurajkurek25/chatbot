@@ -25,6 +25,8 @@
   const cfg = window.NeoworklyConfig || {};
   const WIDGET_ID = cfg.widgetId;
   const WIDGET_MODE = cfg.mode || 'sales'; // 'sales' | 'person'
+  const INLINE_CONTAINER = cfg.container || null; // CSS selector, e.g. '#my-chat'
+  const INLINE_MODE = cfg.inline === true || !!INLINE_CONTAINER;
   if (!WIDGET_ID) { console.warn('[Neoworkly] Chýba widgetId v NeoworklyConfig.'); return; }
 
   /* ── Widget i18n (zero API cost) ─────────────────────────────── */
@@ -665,6 +667,31 @@
     }
   `;
 
+  /* ── Inline-mode CSS override ──────────────────────────────── */
+  const CSS_INLINE = `
+    :host {
+      display: block !important;
+      position: relative !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    #nd-window {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: none !important;
+      border-radius: 12px !important;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.10) !important;
+    }
+    #nd-window.nd-hidden {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      transform: none !important;
+    }
+    #nd-close { display: none !important; }
+  `;
+
   /* ── Icons ──────────────────────────────────────────────────── */
   const ICON_CHAT = `<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>`;
   const ICON_CLOSE = `<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
@@ -672,7 +699,7 @@
 
   /* ── State ──────────────────────────────────────────────────── */
   let config = null;
-  let isOpen = false;
+  let isOpen = INLINE_MODE; // inline widget is always open
   let isTyping = false;
   let sessionId = null;
   let history = [];          // [{role, content}, ...]
@@ -700,19 +727,22 @@
     const primary = config.primary_color || '#2563eb';
 
     shadow.host.style.setProperty('--nd-primary', primary);
-    styleEl.textContent = CSS.replace(/var\(--nd-primary\)/g, primary);
 
     shadow.innerHTML = '';
+    styleEl.textContent = CSS.replace(/var\(--nd-primary\)/g, primary)
+      + (INLINE_MODE ? CSS_INLINE : '');
     shadow.appendChild(styleEl);
 
-    // Launcher button
-    const launcher = elem('button', { id: 'nd-launcher', title: wt('open'), style: `background:${primary}` });
-    launcher.innerHTML = `<span id="nd-launcher-icon">${ICON_CHAT}</span>`;
-    launcher.addEventListener('click', toggleChat);
-    shadow.appendChild(launcher);
+    // Launcher button (floating mode only)
+    if (!INLINE_MODE) {
+      const launcher = elem('button', { id: 'nd-launcher', title: wt('open'), style: `background:${primary}` });
+      launcher.innerHTML = `<span id="nd-launcher-icon">${ICON_CHAT}</span>`;
+      launcher.addEventListener('click', toggleChat);
+      shadow.appendChild(launcher);
+    }
 
     // Chat window
-    const win = elem('div', { id: 'nd-window', class: 'nd-hidden' }, `
+    const win = elem('div', { id: 'nd-window', class: INLINE_MODE ? '' : 'nd-hidden' }, `
       <div id="nd-header" style="background:${primary}">
         <div id="nd-avatar">${config.avatar_url ? `<img src="${config.avatar_url}" alt="">` : '🤖'}</div>
         <div id="nd-header-info">
@@ -741,7 +771,7 @@
     shadow.appendChild(win);
 
     // Wire events
-    shadow.getElementById('nd-close').addEventListener('click', toggleChat);
+    if (!INLINE_MODE) shadow.getElementById('nd-close').addEventListener('click', toggleChat);
     shadow.getElementById('nd-send').addEventListener('click', handleSend);
     shadow.getElementById('nd-input').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
@@ -756,8 +786,8 @@
     // Render suggested questions
     renderSuggestions();
 
-    // Proactive bubble
-    if (config.proactive_enabled && config.proactive_message) {
+    // Proactive bubble (floating mode only)
+    if (!INLINE_MODE && config.proactive_enabled && config.proactive_message) {
       const delay = (config.proactive_delay || 4) * 1000;
       setTimeout(() => {
         if (isOpen || proactiveDismissed) return;
@@ -850,6 +880,7 @@
 
   /* ── Toggle ─────────────────────────────────────────────────── */
   function toggleChat() {
+    if (INLINE_MODE) return;
     isOpen = !isOpen;
     dismissBubble();
     const win = shadow.getElementById('nd-window');
@@ -1789,7 +1820,23 @@
     }
 
     sessionId = getSessionId();
-    document.body.appendChild(host);
+
+    if (INLINE_MODE) {
+      const containerEl = INLINE_CONTAINER ? document.querySelector(INLINE_CONTAINER) : null;
+      if (!containerEl) {
+        console.warn('[Neoworkly] Inline container nenájdený:', INLINE_CONTAINER);
+        return;
+      }
+      // Make container relative so the inline widget can use position:absolute inside shadow DOM
+      if (getComputedStyle(containerEl).position === 'static') {
+        containerEl.style.position = 'relative';
+      }
+      host.style.cssText = 'display:block;width:100%;height:100%;';
+      containerEl.appendChild(host);
+    } else {
+      document.body.appendChild(host);
+    }
+
     buildDOM();
   }
 
