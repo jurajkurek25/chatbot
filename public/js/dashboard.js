@@ -5177,3 +5177,270 @@ function copyPersonEmbed() {
   if (!el) return;
   navigator.clipboard.writeText(el.textContent).then(() => showToast('Kód skopírovaný!', 'success'));
 }
+
+/* ── Person Training ──────────────────────────────────────────────── */
+
+let _ptHistory = [];      // [{role:'customer'|'trainer', content}]
+let _ptTimer = null;
+let _ptSecsLeft = 1800;   // 30 min
+let _ptWaiting = false;   // waiting for AI question
+let _ptResults = null;    // extracted profile from analysis
+
+function openPersonTraining() {
+  if (!currentWidget) return;
+  _ptHistory = [];
+  _ptSecsLeft = 1800;
+  _ptWaiting = false;
+  _ptResults = null;
+
+  const modal = document.getElementById('modal-person-training');
+  modal.style.display = 'flex';
+  document.getElementById('pt-messages').innerHTML = '';
+  document.getElementById('pt-answer').value = '';
+  document.getElementById('pt-analyzing').style.display = 'none';
+  document.getElementById('pt-results').style.display = 'none';
+  document.getElementById('pt-input-area').style.display = 'flex';
+  document.getElementById('pt-finish-btn').style.display = '';
+  document.getElementById('pt-status-badge').textContent = '● Prebieha';
+  document.getElementById('pt-status-badge').style.background = '#dcfce7';
+  document.getElementById('pt-status-badge').style.color = '#166534';
+  _updatePtTimer();
+
+  _ptTimer = setInterval(() => {
+    _ptSecsLeft--;
+    _updatePtTimer();
+    if (_ptSecsLeft <= 0) {
+      clearInterval(_ptTimer);
+      _ptTimer = null;
+      finishPersonTraining();
+    }
+  }, 1000);
+
+  // Get first AI question
+  _ptAskNextQuestion();
+}
+
+function closePersonTraining() {
+  if (_ptTimer) { clearInterval(_ptTimer); _ptTimer = null; }
+  document.getElementById('modal-person-training').style.display = 'none';
+}
+
+function _updatePtTimer() {
+  const m = Math.floor(_ptSecsLeft / 60);
+  const s = _ptSecsLeft % 60;
+  const el = document.getElementById('pt-timer');
+  if (el) el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function _ptAddMessage(role, content) {
+  const msgs = document.getElementById('pt-messages');
+  if (!msgs) return;
+
+  const isCustomer = role === 'customer';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `display:flex;flex-direction:column;align-items:${isCustomer ? 'flex-start' : 'flex-end'}`;
+
+  const label = document.createElement('div');
+  label.textContent = isCustomer ? '🤔 Zákazník' : '🧑 Vy';
+  label.style.cssText = 'font-size:0.7rem;font-weight:600;color:#94a3b8;margin-bottom:0.2rem';
+
+  const bubble = document.createElement('div');
+  bubble.style.cssText = `max-width:82%;padding:0.65rem 0.9rem;border-radius:${isCustomer ? '4px 14px 14px 14px' : '14px 4px 14px 14px'};font-size:0.88rem;line-height:1.55;${isCustomer ? 'background:#f1f5f9;color:#1e293b' : 'background:#7c3aed;color:white'}`;
+  bubble.textContent = content;
+
+  wrap.appendChild(label);
+  wrap.appendChild(bubble);
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+function _ptAddTypingIndicator() {
+  const msgs = document.getElementById('pt-messages');
+  if (!msgs) return null;
+  const wrap = document.createElement('div');
+  wrap.id = 'pt-typing';
+  wrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-start';
+
+  const label = document.createElement('div');
+  label.textContent = '🤔 Zákazník';
+  label.style.cssText = 'font-size:0.7rem;font-weight:600;color:#94a3b8;margin-bottom:0.2rem';
+
+  const bubble = document.createElement('div');
+  bubble.style.cssText = 'background:#f1f5f9;padding:0.65rem 0.9rem;border-radius:4px 14px 14px 14px;display:flex;gap:4px;align-items:center';
+  bubble.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pt-pulse 1s infinite"></span><span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pt-pulse 1s 0.2s infinite"></span><span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pt-pulse 1s 0.4s infinite"></span>';
+
+  wrap.appendChild(label);
+  wrap.appendChild(bubble);
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  return wrap;
+}
+
+async function _ptAskNextQuestion() {
+  if (_ptWaiting) return;
+  _ptWaiting = true;
+
+  const sendBtn = document.getElementById('pt-send-btn');
+  const input = document.getElementById('pt-answer');
+  if (sendBtn) sendBtn.disabled = true;
+  if (input) input.disabled = true;
+
+  const typingEl = _ptAddTypingIndicator();
+
+  try {
+    const token = localStorage.getItem('neoworkly_token') || sessionStorage.getItem('neoworkly_token');
+    const response = await fetch(`/api/person/${currentWidget.id}/training/question`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ history: _ptHistory }),
+    });
+
+    if (typingEl) typingEl.remove();
+
+    if (!response.ok) throw new Error('Server error');
+
+    // Stream the answer
+    const label = document.createElement('div');
+    label.textContent = '🤔 Zákazník';
+    label.style.cssText = 'font-size:0.7rem;font-weight:600;color:#94a3b8;margin-bottom:0.2rem';
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText = 'max-width:82%;padding:0.65rem 0.9rem;border-radius:4px 14px 14px 14px;font-size:0.88rem;line-height:1.55;background:#f1f5f9;color:#1e293b';
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-start';
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+
+    const msgs = document.getElementById('pt-messages');
+    if (msgs) { msgs.appendChild(wrap); msgs.scrollTop = msgs.scrollHeight; }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const d = JSON.parse(line.slice(6));
+          if (d.text) { fullText += d.text; bubble.textContent = fullText; if (msgs) msgs.scrollTop = msgs.scrollHeight; }
+          if (d.done) fullText = d.fullText || fullText;
+        } catch {}
+      }
+    }
+
+    if (fullText) _ptHistory.push({ role: 'customer', content: fullText });
+
+  } catch (err) {
+    if (typingEl) typingEl.remove();
+    console.error('[training question]', err);
+  } finally {
+    _ptWaiting = false;
+    if (sendBtn) sendBtn.disabled = false;
+    if (input) { input.disabled = false; input.focus(); }
+  }
+}
+
+async function sendTrainingAnswer() {
+  if (_ptWaiting) return;
+  const input = document.getElementById('pt-answer');
+  const text = input?.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  _ptHistory.push({ role: 'trainer', content: text });
+  _ptAddMessage('trainer', text);
+
+  await _ptAskNextQuestion();
+}
+
+async function finishPersonTraining() {
+  if (_ptTimer) { clearInterval(_ptTimer); _ptTimer = null; }
+
+  const trainerTurns = _ptHistory.filter(h => h.role === 'trainer').length;
+  if (trainerTurns < 3) {
+    showToast('Odpovedajte aspoň na 3 otázky pred dokončením.', 'error');
+    return;
+  }
+
+  document.getElementById('pt-input-area').style.display = 'none';
+  document.getElementById('pt-finish-btn').style.display = 'none';
+  document.getElementById('pt-status-badge').textContent = '● Analyzujem';
+  document.getElementById('pt-status-badge').style.background = '#fef3c7';
+  document.getElementById('pt-status-badge').style.color = '#92400e';
+  document.getElementById('pt-analyzing').style.display = 'flex';
+
+  try {
+    const token = localStorage.getItem('neoworkly_token') || sessionStorage.getItem('neoworkly_token');
+    const r = await fetch(`/api/person/${currentWidget.id}/training/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ history: _ptHistory }),
+    });
+
+    document.getElementById('pt-analyzing').style.display = 'none';
+
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      showToast(e.error || 'Chyba pri analýze.', 'error');
+      return;
+    }
+
+    _ptResults = await r.json();
+
+    // Show results
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+    setText('pt-res-think',   _ptResults.how_i_think);
+    setText('pt-res-style',   _ptResults.my_style);
+    setText('pt-res-knowhow', _ptResults.know_how);
+    setText('pt-res-answers', _ptResults.real_answers);
+    setText('pt-res-never',   _ptResults.never_say);
+
+    document.getElementById('pt-results').style.display = 'block';
+    document.getElementById('pt-status-badge').textContent = '✅ Hotovo';
+    document.getElementById('pt-status-badge').style.background = '#dbeafe';
+    document.getElementById('pt-status-badge').style.color = '#1d4ed8';
+
+  } catch (err) {
+    document.getElementById('pt-analyzing').style.display = 'none';
+    showToast('Chyba pri analýze.', 'error');
+  }
+}
+
+function acceptTrainingResults() {
+  if (!_ptResults) return;
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  setVal('person-how-i-think', _ptResults.how_i_think);
+  setVal('person-my-style',    _ptResults.my_style);
+  setVal('person-know-how',    _ptResults.know_how);
+  setVal('person-real-answers',_ptResults.real_answers);
+  setVal('person-never-say',   _ptResults.never_say);
+
+  closePersonTraining();
+  showToast('✅ Profil bol naplnený z tréningu. Nezabudnite uložiť.', 'success');
+}
+
+function discardTrainingResults() {
+  _ptResults = null;
+  document.getElementById('pt-results').style.display = 'none';
+  document.getElementById('pt-analyzing').style.display = 'none';
+  document.getElementById('pt-input-area').style.display = 'flex';
+  document.getElementById('pt-finish-btn').style.display = '';
+  document.getElementById('pt-status-badge').textContent = '● Pokračovanie';
+  document.getElementById('pt-status-badge').style.background = '#dcfce7';
+  document.getElementById('pt-status-badge').style.color = '#166534';
+  _ptSecsLeft = Math.max(_ptSecsLeft, 60); // at least 1 min left
+  _ptTimer = setInterval(() => {
+    _ptSecsLeft--;
+    _updatePtTimer();
+    if (_ptSecsLeft <= 0) { clearInterval(_ptTimer); finishPersonTraining(); }
+  }, 1000);
+}

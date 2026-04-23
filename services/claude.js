@@ -550,4 +550,115 @@ Text musí byť zrozumiteľný pre bežného človeka, nie príliš dlhý (max 3
   return response.content[0]?.text?.trim() || '';
 }
 
-module.exports = { streamChatResponse, streamPersonResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };
+/* ── Person training: AI plays customer, asks questions ────────── */
+async function streamTrainingQuestion(widget, personProfile, history, res) {
+  const name = personProfile?.person_name?.trim() || widget.bot_name;
+  const context = widget.goals?.trim() ? `\nKontext biznisu: ${widget.goals}` : '';
+  const existing = personProfile
+    ? [
+        personProfile.know_how?.trim() ? `Expertíza: ${personProfile.know_how}` : '',
+        personProfile.how_i_think?.trim() ? `Myslenie: ${personProfile.how_i_think}` : '',
+      ].filter(Boolean).join('\n')
+    : '';
+
+  const exchangeCount = history.filter(h => h.role === 'trainer').length;
+  let depthHint = '';
+  if (exchangeCount < 4) {
+    depthHint = 'Začni ľahkými úvodnými otázkami – kto si, čo robíš, čo ťa k tomu priviedlo.';
+  } else if (exchangeCount < 10) {
+    depthHint = 'Pýtaj sa hlbšie – ako riešiš problémy, čo si myslíš o konkrétnych témach z tvojho odboru, aký máš prístup.';
+  } else {
+    depthHint = 'Použi aj trochu výzvy – pýtaj sa na hraničné situácie, nesúhlasné scenáre, nepríjemné otázky. Chceš vidieť ako reaguje pod tlakom.';
+  }
+
+  const systemPrompt = `Si zákazník/follower, ktorý sa práve zoznámil s osobou menom ${name}.${context}${existing ? `\n${existing}` : ''}
+
+Tvoja úloha je klásť prirodzené, konverzačné otázky – jednu naraz – aby si zistil ako ${name} rozmýšľa, aký má štýl komunikácie a čo vie.
+
+${depthHint}
+
+PRAVIDLÁ:
+- Vždy iba jedna otázka, max 2 vety.
+- Buď autentický zákazník/follower – žiadny interview formát.
+- Nadväzuj na predchádzajúce odpovede ak sú k dispozícii.
+- Odpovedaj v jazyku, v ktorom s tebou hovorí ${name}.`;
+
+  // Build messages: Claude=customer(assistant), trainer=user
+  const messages = [
+    { role: 'user', content: 'Začni rozhovor – polož svoju prvú otázku.' },
+    ...history.flatMap(h => {
+      if (h.role === 'customer') return [{ role: 'assistant', content: h.content }];
+      if (h.role === 'trainer')  return [{ role: 'user',      content: h.content }];
+      return [];
+    }),
+  ];
+
+  let fullResponse = '';
+  const stream = await client.messages.stream({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 200,
+    system: systemPrompt,
+    messages,
+  });
+
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      fullResponse += event.delta.text;
+      res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+    }
+  }
+  res.write(`data: ${JSON.stringify({ done: true, fullText: fullResponse })}\n\n`);
+  res.end();
+  return fullResponse;
+}
+
+/* ── Person training: analyze session, extract style DNA ─────── */
+async function analyzeTrainingSession(widget, history) {
+  const trainerTurns = history.filter(h => h.role === 'trainer').map(h => h.content);
+  if (trainerTurns.length < 2) throw new Error('Príliš krátky tréning.');
+
+  const conversationText = history
+    .map(h => `${h.role === 'customer' ? 'ZÁKAZNÍK' : 'OSOBA'}: ${h.content}`)
+    .join('\n\n');
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2000,
+    system: `Si expert na analýzu komunikačného štýlu. Analyzuješ rozhovor a extrahuješ DNA komunikácie skutočnej osoby.
+Vráť VÝHRADNE validný JSON (bez markdown, bez úvodu, bez komentárov) v tomto formáte:
+{
+  "how_i_think": "...",
+  "my_style": "...",
+  "know_how": "...",
+  "real_answers": "...",
+  "never_say": "..."
+}`,
+    messages: [{
+      role: 'user',
+      content: `Analyzuj nasledujúci tréningový rozhovor. Extrahuj komunikačné DNA osoby (nie zákazníka).
+
+KONVERZÁCIA:
+${conversationText}
+
+POKYNY PRE KAŽDÉ POLE:
+- how_i_think: Ako táto osoba rozmýšľa? Aké má hodnoty, princípy, filozofiu? Čo z jej odpovedí prezrádza jej worldview? (2-4 vety, osobná forma "Rozmýšľam tak, že...")
+- my_style: Aký je jej štýl komunikácie? Dĺžka viet, tón, formálnosť, humor, emócie, tempo? (2-3 vety, "Píšem/hovorím...")
+- know_how: V čom je expert? Aké témy ovláda, akú má hĺbku znalostí, z akej praxe vychádza? (3-5 viet)
+- real_answers: 3-4 ukážkové Q&A páry zachytávajúce jej štýl. Formát: "Otázka: ...\nOdpoveď: ...\n\n" (použiť reálne alebo blízko reálnych formulácií z rozhovoru)
+- never_say: Čo táto osoba nikdy nehovorí? Aké frázy, témy alebo postoje sa vyhýba? (na základe čoho NEpovedala, čoho sa zriekla, ako odpovedala opatrne)
+
+Vráť LEN JSON.`,
+    }],
+  });
+
+  const raw = response.content[0]?.text?.trim() || '{}';
+  try {
+    return JSON.parse(raw);
+  } catch {
+    // try to extract JSON from raw if model added text
+    const match = raw.match(/\{[\s\S]*\}/);
+    return match ? JSON.parse(match[0]) : {};
+  }
+}
+
+module.exports = { streamChatResponse, streamPersonResponse, streamTrainingQuestion, analyzeTrainingSession, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };
