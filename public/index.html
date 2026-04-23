@@ -378,6 +378,45 @@
       .bk-cta-row .btn-primary { display:inline-block; width:auto; }
     }
 
+    /* ── AI DVOJNÍK (Person) ── */
+    .person-section { padding: 72px var(--px); background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .person-inner { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 3rem; }
+    .person-content .section-label { text-align: left; color: #a78bfa; }
+    .person-content .section-h2 { text-align: left; }
+    .person-content > p { color: var(--muted2); line-height: 1.75; margin-bottom: .9rem; font-size: .96rem; }
+    .person-content > p strong { color: var(--text); }
+    .person-list { display: flex; flex-direction: column; gap: .85rem; margin-top: 1.25rem; }
+    .person-list-item { display: flex; gap: .9rem; align-items: flex-start; }
+    .person-list-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.22); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .person-list-item p { font-size: .88rem; color: var(--muted2); line-height: 1.6; margin: 0; }
+    .person-list-item p strong { color: var(--text); }
+    .person-addon-badge { display: inline-flex; align-items: center; gap: .5rem; background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3); border-radius: 100px; padding: .35rem 1rem; font-size: .8rem; font-weight: 700; color: #c4b5fd; margin-top: 1.5rem; }
+    .person-cta-row { display: flex; flex-direction: column; gap: .55rem; margin-top: 1.5rem; }
+    .btn-person { background: linear-gradient(135deg,#7c3aed,#a855f7); border: none; color: white; padding: .85rem 1.75rem; border-radius: 12px; font-size: .97rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .2s; box-shadow: 0 0 30px rgba(124,58,237,0.3); }
+    .btn-person:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(124,58,237,0.45); }
+    /* Person mockup */
+    .person-mockup { background: var(--bg3); border: 1px solid var(--border2); border-radius: 16px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+    .person-mockup-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: .55rem .85rem; display: flex; align-items: center; gap: .5rem; }
+    .person-mockup-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .person-mockup-title { font-size: .72rem; color: var(--muted); margin-left: .4rem; }
+    .person-mockup-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .person-mockup-tab { padding: .45rem .9rem; font-size: .72rem; color: var(--muted); border-bottom: 2px solid transparent; }
+    .person-mockup-tab.active { color: #a78bfa; border-bottom-color: #7c3aed; }
+    .person-mockup-chat { display: flex; flex-direction: column; height: 280px; }
+    .person-mockup-msgs { flex: 1; overflow: hidden; padding: .85rem; display: flex; flex-direction: column; gap: .6rem; background: #0a0a14; }
+    .pmsg { max-width: 80%; padding: .5rem .75rem; border-radius: 10px; font-size: .78rem; line-height: 1.5; }
+    .pmsg-bot { background: var(--surface); color: var(--muted2); align-self: flex-start; border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+    .pmsg-bot strong { color: #a78bfa; font-size: .68rem; display: block; margin-bottom: .15rem; }
+    .pmsg-user { background: linear-gradient(135deg,#7c3aed,#a855f7); color: white; align-self: flex-end; border-bottom-right-radius: 3px; }
+    .person-mockup-input { border-top: 1px solid var(--border); padding: .6rem .85rem; display: flex; gap: .5rem; align-items: center; background: var(--bg3); }
+    .person-mockup-inp { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .4rem .65rem; font-size: .75rem; color: var(--muted); }
+    @media(min-width:900px) {
+      .person-inner { flex-direction: row; align-items: center; gap: 5rem; }
+      .person-content, .person-mockup { flex: 1; }
+      .person-cta-row { flex-direction: row; }
+      .person-cta-row .btn-person { display: inline-block; width: auto; }
+    }
+
     /* ── FAQ ── */
     .faq-section { padding: 72px var(--px); background: var(--bg2); border-top: 1px solid var(--border); }
     .faq-list { margin-top: 2rem; display: flex; flex-direction: column; gap: .6rem; }
@@ -1119,6 +1158,83 @@
   </div>
 </section>
 
+<!-- AI DVOJNÍK -->
+<section class="person-section" id="person">
+  <div class="person-inner">
+    <div class="person-content">
+      <span class="section-label">Pre tvorcov &amp; osobné značky</span>
+      <h2 class="section-h2">Váš <span class="grad-text" style="background:linear-gradient(135deg,#7c3aed,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent">AI dvojník</span>,<br>ktorý odpovedá za vás 24/7</h2>
+      <p>Máte kurz, membership, SaaS produkt alebo osobnú značku? Vaši zákazníci majú otázky – aj keď spíte, natáčate alebo ste na dovolenke. <strong>AI dvojník odpovedá presne tak, ako by ste odpovedali vy.</strong></p>
+      <p>Nie generický chatbot. Trénujete ho na svojom štýle, know-how, reálnych odpovediach – a on preberá váš hlas. Zákazník hovorí s vami, nie s botom.</p>
+
+      <div class="person-list">
+        <div class="person-list-item">
+          <div class="person-list-icon">🎓</div>
+          <p><strong>Kurzy &amp; membership sekcie</strong> – vložíte priamo do členskej zóny. Žiaci sa pýtajú, AI dvojník odpovedá za vás ako mentor.</p>
+        </div>
+        <div class="person-list-item">
+          <div class="person-list-icon">📱</div>
+          <p><strong>SaaS dashboardy</strong> – nová záložka v produkte vášho klienta. AI dvojník odpovedá na onboarding otázky a pomáha s produktom.</p>
+        </div>
+        <div class="person-list-item">
+          <div class="person-list-icon">🧑‍💼</div>
+          <p><strong>Koučing &amp; konzultácie</strong> – klienti dostanú vašu odpoveď kedykoľvek. Šetríte hodiny na rovnakých otázkach, venujete sa práci s hodnotou.</p>
+        </div>
+        <div class="person-list-item">
+          <div class="person-list-icon">🪟</div>
+          <p><strong>Inline embed</strong> – nie bublina v rohu, ale súčasť vašej stránky. Jeden riadok kódu a chat sa vyplní do vášho elementu.</p>
+        </div>
+      </div>
+
+      <div class="person-addon-badge">
+        ✦ Add-on k Pro plánu · <span style="color:white">+€29/mesiac</span>
+      </div>
+
+      <div class="person-cta-row">
+        <button class="btn-person" onclick="showAuth('register')">Chcem AI dvojníka</button>
+      </div>
+    </div>
+
+    <!-- Mockup: SaaS dashboard with inline Person chat -->
+    <div class="person-mockup">
+      <div class="person-mockup-bar">
+        <div class="person-mockup-dot" style="background:#ff5f57"></div>
+        <div class="person-mockup-dot" style="background:#febc2e"></div>
+        <div class="person-mockup-dot" style="background:#28c840"></div>
+        <span class="person-mockup-title">MemberDashboard · Moja zóna</span>
+      </div>
+      <div class="person-mockup-tabs">
+        <div class="person-mockup-tab">📚 Kurzy</div>
+        <div class="person-mockup-tab">📊 Pokrok</div>
+        <div class="person-mockup-tab active">🧑 AI Mentor</div>
+        <div class="person-mockup-tab">⚙️ Nastavenia</div>
+      </div>
+      <div class="person-mockup-chat">
+        <div class="person-mockup-msgs">
+          <div class="pmsg pmsg-bot">
+            <strong>Juraj AI · Mentor</strong>
+            Ahoj! Som tu pre otázky ku kurzu. Kde sa práve nachádzaš – pri akej téme?
+          </div>
+          <div class="pmsg pmsg-user">V module 3, neviem ako nastaviť Facebook Ads pre cold traffic</div>
+          <div class="pmsg pmsg-bot">
+            <strong>Juraj AI · Mentor</strong>
+            Dobrá otázka. Pre cold traffic začni vždy broad audience – nech algoritmus nájde podobných ľudí sám. Daj budget min. €10/deň a nechaj bežať 3–5 dní bez zásahov. Potom pozri CPM – ak je nad €25, zmeň kreatívu.
+          </div>
+          <div class="pmsg pmsg-user">A čo retargeting, kedy naň prepnúť?</div>
+          <div class="pmsg pmsg-bot">
+            <strong>Juraj AI · Mentor</strong>
+            Retargeting má zmysel od 1000+ návštevníkov/mesiac. Pod tým nemáš dosť dát. Modul 5 to rozoberá detailne – skoč tam až keď bude cold traffic stabilný.
+          </div>
+        </div>
+        <div class="person-mockup-input">
+          <div class="person-mockup-inp">Napíšte otázku...</div>
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:white;flex-shrink:0">▶</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- PRICING -->
 <section class="pricing-section" id="pricing">
   <div class="inner" style="max-width:900px">
@@ -1179,6 +1295,32 @@
         </ul>
         <button class="btn-pricing" style="background:linear-gradient(90deg,#7c3aed,#a855f7);box-shadow:0 0 30px rgba(124,58,237,0.3)" onclick="showAuth('register')">Začať s White Label – €997/mesiac</button>
         <p class="pricing-fine">Zrušenie kedykoľvek · Žiadne skryté poplatky · Platba kartou cez Stripe</p>
+      </div>
+
+      <!-- AI DVOJNÍK ADD-ON -->
+      <div style="background:var(--bg3);border:1px solid rgba(124,58,237,0.35);border-radius:24px;padding:1.75rem 1.5rem;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c3aed,#a855f7,#c084fc)"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+          <div>
+            <div style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.25rem .8rem;border-radius:100px;margin-bottom:.75rem">Add-on</div>
+            <div style="font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:.2rem">🧑 AI dvojník <span style="font-size:.75rem;font-weight:400;color:var(--muted2)">(Person)</span></div>
+            <div style="font-size:.82rem;color:var(--muted2)">Pre koučov, tvorcov kurzov, SaaS produkty a osobné značky</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,#a78bfa,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent">+€29<span style="font-size:.85rem;font-weight:500;-webkit-text-fill-color:var(--muted2)">/mes</span></div>
+            <div style="font-size:.72rem;color:var(--muted)">k Pro plánu</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem .75rem;margin-bottom:1.25rem">
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> AI trénovaná na vašom štýle</div>
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> Inline embed do ľubovoľnej stránky</div>
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> 30-min interaktívny tréning</div>
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> Vlastná uvítacia správa &amp; meno</div>
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> Funguje v kurzoch, SaaS, webe</div>
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> Zdieľa kredity s Pro plánom</div>
+        </div>
+        <button onclick="showAuth('register')" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;color:white;padding:.85rem;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 0 24px rgba(124,58,237,0.3);transition:all .2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">Začať s AI dvojníkom</button>
+        <p style="font-size:.74rem;color:var(--muted);margin-top:.6rem;text-align:center">Vyžaduje aktívny Pro plán · Zrušenie kedykoľvek</p>
       </div>
 
     </div>
