@@ -236,6 +236,80 @@ Booking URL (priamy odkaz): ${bookingUrl}
 KRITICKÉ: Použi JEDEN token (__DIRECTBOOK__ ALEBO __BOOKING__) IBA raz za konverzáciu. NIKDY nezobrazuj formulár automaticky.`;
 }
 
+/* ── Person mode: system prompt builder ────────────────────────── */
+function buildPersonPrompt(widget, personProfile, knowledgeItems = [], pageContext = null) {
+  const name = personProfile.person_name?.trim() || widget.bot_name;
+
+  let trainingSection = '';
+  if (personProfile.how_i_think?.trim())
+    trainingSection += `\n\n## AKO ROZMÝŠĽAM\n${personProfile.how_i_think}`;
+  if (personProfile.my_style?.trim())
+    trainingSection += `\n\n## MÔJ ŠTÝL KOMUNIKÁCIE\n${personProfile.my_style}`;
+  if (personProfile.know_how?.trim())
+    trainingSection += `\n\n## KNOW-HOW A EXPERTÍZA\n${personProfile.know_how}`;
+  if (personProfile.real_answers?.trim())
+    trainingSection += `\n\n## REÁLNE ODPOVEDE (príklady môjho štýlu)\n${personProfile.real_answers}`;
+  if (personProfile.never_say?.trim())
+    trainingSection += `\n\n## ČO NIKDY NEHOVORÍM\nTieto veci vynechaj – nikdy ich nespomínaj:\n${personProfile.never_say}`;
+
+  let knowledgeSection = '';
+  if (knowledgeItems.length > 0) {
+    knowledgeSection = '\n\n## ZNALOSTNÁ BÁZA\n';
+    knowledgeItems.forEach((item, i) => {
+      knowledgeSection += `\n### ${i + 1}. ${item.title}\n${item.content}\n`;
+    });
+  }
+
+  let pageContextSection = '';
+  if (pageContext?.url) {
+    pageContextSection = `\n\n## AKTUÁLNA STRÁNKA\nPoužívateľ sa nachádza na: ${pageContext.url}`;
+    if (pageContext.title) pageContextSection += `\nNázov: ${pageContext.title}`;
+  }
+
+  const intro = personProfile.person_intro?.trim();
+
+  return `Si ${name}${intro ? ` – ${intro}` : ''}.
+
+## TVOJA IDENTITA
+Nie si generický chatbot. Si digitálna verzia ${name} – so skutočným štýlom, názormi a spôsobom myslenia. Hovoríš ako ${name}, nie ako asistent.
+
+## PRAVIDLÁ
+- Odpovedaj VŽDY v jazyku, v ktorom ti píše používateľ.
+- Buď autentický: krátky, priamy, osobný. Nie formálny, nie robotický.
+- Ak niečo nevieš s istotou, povedz to úprimne – nevymýšľaj.
+- Max 3–4 vety na odpoveď, pokiaľ situácia nevyžaduje viac.
+- Nekončíš každú správu predajnou výzvou – si tu pre ľudí, nie pre konverzie.${trainingSection}${knowledgeSection}${pageContextSection}`;
+}
+
+/* ── Person mode: streaming response ──────────────────────────── */
+async function streamPersonResponse(widget, personProfile, knowledgeItems, history, userMessage, res, pageContext = null) {
+  const systemPrompt = buildPersonPrompt(widget, personProfile, knowledgeItems, pageContext);
+  const messages = [
+    ...history.map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userMessage },
+  ];
+
+  let fullResponse = '';
+
+  const stream = await client.messages.stream({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1000,
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+    messages,
+  });
+
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      fullResponse += event.delta.text;
+      res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+    }
+  }
+
+  res.write(`data: ${JSON.stringify({ done: true, fullText: fullResponse })}\n\n`);
+  res.end();
+  return fullResponse;
+}
+
 /* ── Streaming chat response ───────────────────────────────────── */
 async function streamChatResponse(widget, knowledgeItems, history, userMessage, res, pageContext = null) {
   const products        = loadProducts(widget.id);
@@ -476,4 +550,4 @@ Text musí byť zrozumiteľný pre bežného človeka, nie príliš dlhý (max 3
   return response.content[0]?.text?.trim() || '';
 }
 
-module.exports = { streamChatResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };
+module.exports = { streamChatResponse, streamPersonResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };

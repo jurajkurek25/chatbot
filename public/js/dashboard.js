@@ -198,6 +198,7 @@ function showTab(tab) {
   if (tab === 'facebook') loadFacebookStatus();
   if (tab === 'sequences') loadSequences();
   if (tab === 'whatsapp') loadWaStatus();
+  if (tab === 'person') loadPersonProfile();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -5103,4 +5104,76 @@ async function disconnectWhatsApp() {
   if (!r || !r.ok) { showToast('Chyba pri odpájaní.', 'error'); return; }
   showToast('WhatsApp odpojený.', 'success');
   loadWaStatus();
+}
+
+
+/* ── Neoworkly Person ─────────────────────────────────────────────── */
+
+async function loadPersonProfile() {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/person/${currentWidget.id}`);
+  if (!r || !r.ok) return;
+  const d = await r.json();
+
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  setVal('person-name', d.person_name);
+  setVal('person-intro', d.person_intro);
+  setVal('person-how-i-think', d.how_i_think);
+  setVal('person-my-style', d.my_style);
+  setVal('person-know-how', d.know_how);
+  setVal('person-real-answers', d.real_answers);
+  setVal('person-never-say', d.never_say);
+
+  const cb = document.getElementById('person-active');
+  if (cb) { cb.checked = Boolean(d.active); _updatePersonToggle(); }
+
+  _renderPersonEmbed();
+}
+
+function _updatePersonToggle() {
+  const cb = document.getElementById('person-active');
+  const track = document.getElementById('person-toggle-track');
+  const thumb = document.getElementById('person-toggle-thumb');
+  if (!cb || !track || !thumb) return;
+  const on = cb.checked;
+  track.style.background = on ? '#2563eb' : '#e2e8f0';
+  thumb.style.transform = on ? 'translateX(18px)' : 'translateX(0)';
+}
+
+function _renderPersonEmbed() {
+  const el = document.getElementById('person-embed-code');
+  if (!el || !currentWidget) return;
+  const origin = location.origin;
+  el.textContent = `<script>\nwindow.NeoworklyConfig = {\n  widgetId: '${currentWidget.id}',\n  mode: 'person'\n};\n<\/script>\n<script src="${origin}/widget.js" async><\/script>`;
+}
+
+async function savePersonProfile() {
+  if (!currentWidget) return;
+  const getVal = id => document.getElementById(id)?.value || '';
+  const active = document.getElementById('person-active')?.checked ? 1 : 0;
+
+  const body = {
+    person_name: getVal('person-name'),
+    person_intro: getVal('person-intro'),
+    how_i_think: getVal('person-how-i-think'),
+    my_style: getVal('person-my-style'),
+    know_how: getVal('person-know-how'),
+    real_answers: getVal('person-real-answers'),
+    never_say: getVal('person-never-say'),
+    active,
+  };
+
+  const r = await apiFetch(`/api/person/${currentWidget.id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r || !r.ok) { showToast('Chyba pri ukladaní.', 'error'); return; }
+  showToast('✅ Person profil uložený!', 'success');
+}
+
+function copyPersonEmbed() {
+  const el = document.getElementById('person-embed-code');
+  if (!el) return;
+  navigator.clipboard.writeText(el.textContent).then(() => showToast('Kód skopírovaný!', 'success'));
 }

@@ -31,6 +31,7 @@ const ecomailRoutes     = require('./routes/ecomail');
 const seoRoutes         = require('./routes/seo');
 const moneyRoutes       = require('./routes/money');
 const reactivationRoutes = require('./routes/reactivation');
+const personRoutes       = require('./routes/person');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -77,6 +78,7 @@ app.use('/api/ecomail',     ecomailRoutes);
 app.use('/api/seo',         seoRoutes);
 app.use('/api/money',       moneyRoutes);
 app.use('/api/reactivation', reactivationRoutes);
+app.use('/api/person',      personRoutes);
 app.use('/api/team',        teamRoutes);
 app.use('/api/woocommerce', woocommerceRoutes);
 // Team invite accept (public, no auth needed on GET)

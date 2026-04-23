@@ -24,6 +24,7 @@
 
   const cfg = window.NeoworklyConfig || {};
   const WIDGET_ID = cfg.widgetId;
+  const WIDGET_MODE = cfg.mode || 'sales'; // 'sales' | 'person'
   if (!WIDGET_ID) { console.warn('[Neoworkly] Chýba widgetId v NeoworklyConfig.'); return; }
 
   /* ── Widget i18n (zero API cost) ─────────────────────────────── */
@@ -1011,6 +1012,7 @@
         sessionId,
         history: history.slice(-20).slice(0, -1), // all but current message
         pageContext: { url: window.location.href, title: document.title },
+        mode: WIDGET_MODE,
       };
 
       const response = await fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/chat`, {
@@ -1776,6 +1778,11 @@
       const res = await fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/config?lang=${encodeURIComponent(getLang())}`);
       if (!res.ok) { console.warn('[Neoworkly] Widget nenájdený alebo neaktívny.'); return; }
       config = await res.json();
+      // In Person mode, override bot_name and welcome_message with person profile data
+      if (WIDGET_MODE === 'person' && config.person?.active) {
+        if (config.person.name) config.bot_name = config.person.name;
+        if (config.person.intro) config.welcome_message = config.person.intro;
+      }
     } catch (err) {
       console.warn('[Neoworkly] Nepodarilo sa načítať konfiguráciu:', err.message);
       return;

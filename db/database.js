@@ -466,6 +466,20 @@ function initDatabase() {
     `ALTER TABLE users ADD COLUMN auto_reload_card_last4 TEXT`,
     `ALTER TABLE users ADD COLUMN auto_reload_card_brand TEXT`,
     `ALTER TABLE users ADD COLUMN auto_reload_last_at INTEGER`,
+    `CREATE TABLE IF NOT EXISTS person_profiles (
+  id TEXT PRIMARY KEY,
+  widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+  person_name TEXT NOT NULL DEFAULT '',
+  person_intro TEXT NOT NULL DEFAULT '',
+  how_i_think TEXT NOT NULL DEFAULT '',
+  my_style TEXT NOT NULL DEFAULT '',
+  know_how TEXT NOT NULL DEFAULT '',
+  real_answers TEXT NOT NULL DEFAULT '',
+  never_say TEXT NOT NULL DEFAULT '',
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  UNIQUE(widget_id)
+)`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

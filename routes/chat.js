@@ -3,7 +3,7 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb, searchKnowledge } = require('../db/database');
-const { streamChatResponse, summarizeConversation, analyzeConversationTrends } = require('../services/claude');
+const { streamChatResponse, streamPersonResponse, summarizeConversation, analyzeConversationTrends } = require('../services/claude');
 const { sendLeadNotification, sendUsageNotification } = require('../services/email');
 const { BASE_RESPONSES, nextMonthReset, maybeResetUsage } = require('./credits');
 
@@ -43,6 +43,8 @@ router.get('/:widgetId/config', (req, res) => {
   const owner = db.prepare('SELECT subscription_plan FROM users WHERE id = ?').get(widget.user_id);
   const isWhiteLabel = owner?.subscription_plan === 'white_label';
 
+  const personProfile = db.prepare('SELECT person_name, person_intro, active FROM person_profiles WHERE widget_id = ?').get(req.params.widgetId);
+
   res.json({
     id: widget.id,
     bot_name: widget.bot_name,
@@ -74,6 +76,11 @@ router.get('/:widgetId/config', (req, res) => {
     csat_enabled: Boolean(widget.csat_enabled),
     ab_variant: Math.random() < 0.5 ? 'a' : 'b',
     welcome_message_b: widget.welcome_message_b || '',
+    person: personProfile ? {
+      name: personProfile.person_name || '',
+      intro: personProfile.person_intro || '',
+      active: Boolean(personProfile.active),
+    } : null,
   });
 });
 
@@ -134,7 +141,7 @@ router.post('/:widgetId/chat', async (req, res) => {
     }
   }
 
-  const { message, sessionId, history = [], pageContext } = req.body;
+  const { message, sessionId, history = [], pageContext, mode } = req.body;
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'Správa je povinná.' });
   }
@@ -181,7 +188,17 @@ router.post('/:widgetId/chat', async (req, res) => {
       ? { url: pageContext.url.slice(0, 512), title: String(pageContext.title || '').slice(0, 200) }
       : null;
 
-    const fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+    let fullText;
+    if (mode === 'person') {
+      const personProfile = db.prepare('SELECT * FROM person_profiles WHERE widget_id = ? AND active = 1').get(widget.id);
+      if (personProfile) {
+        fullText = await streamPersonResponse(widget, personProfile, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+      } else {
+        fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+      }
+    } else {
+      fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+    }
 
     // Save assistant response + track usage
     if (fullText && owner) {
