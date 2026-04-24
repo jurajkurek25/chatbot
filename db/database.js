@@ -466,6 +466,8 @@ function initDatabase() {
     `ALTER TABLE users ADD COLUMN auto_reload_card_last4 TEXT`,
     `ALTER TABLE users ADD COLUMN auto_reload_card_brand TEXT`,
     `ALTER TABLE users ADD COLUMN auto_reload_last_at INTEGER`,
+    `ALTER TABLE users ADD COLUMN person_addon_active INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN person_addon_subscription_id TEXT`,
     `CREATE TABLE IF NOT EXISTS person_profiles (
   id TEXT PRIMARY KEY,
   widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,

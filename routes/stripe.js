@@ -231,6 +231,15 @@ router.post('/webhook', async (req, res) => {
 
         if (user) {
           const plan = session.metadata?.plan || 'pro';
+
+          // Person add-on subscription
+          if (plan === 'person_addon') {
+            db.prepare('UPDATE users SET person_addon_active = 1, person_addon_subscription_id = ? WHERE id = ?')
+              .run(session.subscription, user.id);
+            console.log(`[person] Add-on activated for user ${user.id}`);
+            break;
+          }
+
           db.prepare(`UPDATE users SET subscription_status = 'active', subscription_id = ?, subscription_plan = ? WHERE id = ?`)
             .run(session.subscription, plan, user.id);
           db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(user.id);
@@ -253,10 +262,21 @@ router.post('/webhook', async (req, res) => {
     case 'customer.subscription.updated': {
       const sub = event.data.object;
       const isActive = sub.status === 'active' || sub.status === 'trialing';
-      const status = isActive ? 'active' : 'inactive';
       const subPriceId = sub.items?.data?.[0]?.price?.id;
-      const plan = subPriceId === process.env.STRIPE_PRICE_ID_WHITE_LABEL ? 'white_label' : 'pro';
 
+      // Person add-on subscription
+      if (subPriceId === process.env.STRIPE_PRICE_ID_PERSON) {
+        const user = await resolveUser(sub.customer);
+        if (user) {
+          db.prepare('UPDATE users SET person_addon_active = ?, person_addon_subscription_id = ? WHERE id = ?')
+            .run(isActive ? 1 : 0, sub.id, user.id);
+          console.log(`[person] Add-on ${isActive ? 'active' : 'inactive'} for user ${user.id}`);
+        }
+        break;
+      }
+
+      const status = isActive ? 'active' : 'inactive';
+      const plan = subPriceId === process.env.STRIPE_PRICE_ID_WHITE_LABEL ? 'white_label' : 'pro';
       const user = await resolveUser(sub.customer);
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ?, subscription_id = ?, subscription_plan = ? WHERE id = ?')
@@ -267,6 +287,18 @@ router.post('/webhook', async (req, res) => {
     }
     case 'customer.subscription.deleted': {
       const sub = event.data.object;
+      const subPriceId = sub.items?.data?.[0]?.price?.id;
+
+      // Person add-on cancelled
+      if (subPriceId === process.env.STRIPE_PRICE_ID_PERSON) {
+        const user = await resolveUser(sub.customer);
+        if (user) {
+          db.prepare('UPDATE users SET person_addon_active = 0, person_addon_subscription_id = NULL WHERE id = ?').run(user.id);
+          console.log(`[person] Add-on cancelled for user ${user.id}`);
+        }
+        break;
+      }
+
       const user = await resolveUser(sub.customer);
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('inactive', user.id);
@@ -300,6 +332,51 @@ router.post('/webhook', async (req, res) => {
   res.json({ received: true });
 });
 
+// POST /api/stripe/checkout-person — subscribe to Person add-on (€29/mes)
+router.post('/checkout-person', requireAuth, async (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, person_addon_active FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+
+  if (user.subscription_status !== 'active') {
+    return res.status(402).json({ error: 'Person add-on vyžaduje aktívny Pro plán.' });
+  }
+  if (user.person_addon_active) {
+    return res.json({ url: '/dashboard' });
+  }
+
+  const priceId = process.env.STRIPE_PRICE_ID_PERSON;
+  if (!priceId) return res.status(500).json({ error: 'Person add-on price nie je nakonfigurovaná.' });
+
+  const stripe = getStripe();
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
+  try {
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
+      customerId = customer.id;
+      db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: 'subscription',
+      success_url: `${baseUrl}/dashboard?person_activated=1&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/dashboard`,
+      locale: 'sk',
+      metadata: { plan: 'person_addon', userId: user.id },
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('[person checkout]', err.message);
+    res.status(500).json({ error: 'Chyba pri vytváraní platby: ' + err.message });
+  }
+});
+
 // POST /api/stripe/portal — customer billing portal
 router.post('/portal', requireAuth, async (req, res) => {
   const db = getDb();
@@ -323,7 +400,7 @@ router.post('/portal', requireAuth, async (req, res) => {
 // If user has no stripe_customer_id yet, searches Stripe by email to auto-link
 router.get('/status', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until, person_addon_active FROM users WHERE id = ?').get(req.userId);
   const now = Math.floor(Date.now() / 1000);
   const inFreePeriod = user?.free_until && user.free_until > now;
 
@@ -356,6 +433,7 @@ router.get('/status', requireAuth, async (req, res) => {
     onboarding_done: Boolean(user?.onboarding_done),
     free_until: user?.free_until || null,
     in_free_period: !!inFreePeriod,
+    person_addon: Boolean(user?.person_addon_active),
   });
 });
 
