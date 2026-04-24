@@ -661,4 +661,53 @@ Vráť LEN JSON.`,
   }
 }
 
-module.exports = { streamChatResponse, streamPersonResponse, streamTrainingQuestion, analyzeTrainingSession, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };
+/* ── Person: analyze ingested content (article / video / PDF) ──── */
+async function analyzeIngestedContent(sourceTitle, extractedText, currentProfile) {
+  const existingCtx = currentProfile
+    ? [
+        currentProfile.how_i_think?.trim() ? `Ako rozmýšľam: ${currentProfile.how_i_think}` : '',
+        currentProfile.my_style?.trim()    ? `Môj štýl: ${currentProfile.my_style}` : '',
+        currentProfile.know_how?.trim()    ? `Know-how: ${currentProfile.know_how}` : '',
+      ].filter(Boolean).join('\n')
+    : '';
+
+  const profileCtx = existingCtx
+    ? `\nExistujúci profil (NEDUPLIKUJ, iba doplň nové poznatky):\n${existingCtx}\n`
+    : '';
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2500,
+    system: `Si expert na analýzu obsahu a extrakciu komunikačnej DNA autora.
+Analyzuješ texty (prepisy videí, články, PDF) a extrahuješ z nich expertízu a komunikačný štýl autora.
+Vráť VÝHRADNE validný JSON bez markdown blokov.`,
+    messages: [{
+      role: 'user',
+      content: `Analyzuj obsah zo zdroja "${sourceTitle}". Extrahuj z neho poznatky pre Person profil digitálneho dvojníka AUTORA tohto obsahu (nie poslucháča).
+${profileCtx}
+OBSAH:
+${extractedText.slice(0, 15000)}
+
+Vráť JSON (každé pole je STRING – nové poznatky na doplnenie, prázdny reťazec ak nič relevantné):
+{
+  "source_title": "${sourceTitle}",
+  "summary": "1-2 vety: o čom obsah je a čo z neho vyplýva o autorovi",
+  "how_i_think": "Nové poznatky o myšlienkovom štýle, hodnotách, filozofii autora z tohto obsahu",
+  "my_style": "Nové poznatky o komunikačnom štýle autora (tón, dĺžka, formálnosť, humor...)",
+  "know_how": "Expertné poznatky, skúsenosti a oblasti z tohto obsahu",
+  "real_answers": "2-3 ukážkové Q&A zachytávajúce hlas autora. Formát: Otázka: ...\\nOdpoveď: ...\\n\\n",
+  "never_say": "Čo z obsahu naznačuje čoho sa autor vyhýba alebo čo by nikdy nepovedal"
+}`,
+    }],
+  });
+
+  const raw = response.content[0]?.text?.trim() || '{}';
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    return match ? JSON.parse(match[0]) : {};
+  }
+}
+
+module.exports = { streamChatResponse, streamPersonResponse, streamTrainingQuestion, analyzeTrainingSession, analyzeIngestedContent, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };

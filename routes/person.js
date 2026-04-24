@@ -1,10 +1,14 @@
 'use strict';
 
 const express = require('express');
+const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
-const { streamTrainingQuestion, analyzeTrainingSession } = require('../services/claude');
+const { streamTrainingQuestion, analyzeTrainingSession, analyzeIngestedContent } = require('../services/claude');
+const { isYouTubeUrl, extractYouTubeTranscript, extractArticleText, extractPdfText } = require('../services/extractor');
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 const router = express.Router();
 
@@ -123,6 +127,65 @@ router.post('/:widgetId/training/analyze', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[training/analyze]', err.message);
     res.status(500).json({ error: 'Chyba pri analýze.' });
+  }
+});
+
+// POST /api/person/:widgetId/ingest/url — extract from YouTube or article URL
+router.post('/:widgetId/ingest/url', requireAuth, async (req, res) => {
+  const db = getDb();
+  if (!requirePersonAddon(db, req.userId, res)) return;
+  const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(req.params.widgetId, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const { url } = req.body;
+  if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Chýba URL.' });
+
+  let extracted;
+  try {
+    extracted = isYouTubeUrl(url)
+      ? await extractYouTubeTranscript(url)
+      : await extractArticleText(url);
+  } catch (err) {
+    return res.status(422).json({ error: err.message });
+  }
+
+  const currentProfile = db.prepare('SELECT * FROM person_profiles WHERE widget_id = ?').get(req.params.widgetId);
+
+  try {
+    const suggestions = await analyzeIngestedContent(extracted.title, extracted.text, currentProfile);
+    res.json({ ok: true, source_title: extracted.title, ...suggestions });
+  } catch (err) {
+    console.error('[ingest/url]', err.message);
+    res.status(500).json({ error: 'Chyba pri analýze obsahu.' });
+  }
+});
+
+// POST /api/person/:widgetId/ingest/pdf — extract from uploaded PDF
+router.post('/:widgetId/ingest/pdf', requireAuth, upload.single('file'), async (req, res) => {
+  const db = getDb();
+  if (!requirePersonAddon(db, req.userId, res)) return;
+  const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(req.params.widgetId, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  if (!req.file) return res.status(400).json({ error: 'Chýba PDF súbor.' });
+  if (req.file.mimetype !== 'application/pdf') return res.status(400).json({ error: 'Súbor musí byť PDF.' });
+
+  let extracted;
+  try {
+    extracted = await extractPdfText(req.file.buffer);
+    if (req.file.originalname) extracted.title = req.file.originalname.replace(/\.pdf$/i, '');
+  } catch (err) {
+    return res.status(422).json({ error: err.message });
+  }
+
+  const currentProfile = db.prepare('SELECT * FROM person_profiles WHERE widget_id = ?').get(req.params.widgetId);
+
+  try {
+    const suggestions = await analyzeIngestedContent(extracted.title, extracted.text, currentProfile);
+    res.json({ ok: true, source_title: extracted.title, ...suggestions });
+  } catch (err) {
+    console.error('[ingest/pdf]', err.message);
+    res.status(500).json({ error: 'Chyba pri analýze obsahu.' });
   }
 });
 

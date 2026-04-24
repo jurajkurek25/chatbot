@@ -5242,6 +5242,119 @@ async function savePersonProfile() {
   showToast('✅ Person profil uložený!', 'success');
 }
 
+/* ── Person Ingest (URL / PDF) ─────────────────────────────────────── */
+
+let _ingestSuggestions = null;
+
+function _setIngestLoading(on) {
+  document.getElementById('ingest-loading').style.display = on ? '' : 'none';
+  document.getElementById('ingest-url-btn').disabled = on;
+  document.getElementById('ingest-pdf-btn').disabled = on;
+  if (on) document.getElementById('ingest-results').style.display = 'none';
+}
+
+function _showIngestResults(data) {
+  _ingestSuggestions = data;
+
+  const sourceEl = document.getElementById('ingest-source-title');
+  if (sourceEl) sourceEl.textContent = data.source_title || '';
+
+  const summaryEl = document.getElementById('ingest-summary');
+  if (summaryEl) summaryEl.textContent = data.summary || '';
+
+  const fieldsEl = document.getElementById('ingest-fields');
+  if (fieldsEl) {
+    const FIELD_LABELS = {
+      how_i_think: '🧠 Ako rozmýšľam',
+      my_style: '✍️ Tvoj štýl',
+      know_how: '💡 Know-how',
+      real_answers: '💬 Reálne odpovede',
+      never_say: '🚫 Čo nikdy nehovoriť',
+    };
+    fieldsEl.innerHTML = '';
+    for (const [key, label] of Object.entries(FIELD_LABELS)) {
+      const val = (data[key] || '').trim();
+      if (!val) continue;
+      const div = document.createElement('div');
+      div.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.6rem 0.8rem';
+      div.innerHTML = `<div style="font-weight:600;color:#374151;margin-bottom:0.3rem">${label}</div><div style="color:#64748b;white-space:pre-wrap;font-size:0.8rem">${val.replace(/</g,'&lt;')}</div>`;
+      fieldsEl.appendChild(div);
+    }
+  }
+
+  document.getElementById('ingest-results').style.display = '';
+}
+
+async function ingestPersonUrl() {
+  if (!currentWidget) return;
+  const url = (document.getElementById('ingest-url')?.value || '').trim();
+  if (!url) { showToast('Zadajte URL.', 'error'); return; }
+  _setIngestLoading(true);
+  try {
+    const r = await apiFetch(`/api/person/${currentWidget.id}/ingest/url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    if (!r) return;
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Chyba pri spracovaní.', 'error'); return; }
+    _showIngestResults(data);
+    showToast('Obsah spracovaný!', 'success');
+  } catch (e) {
+    showToast('Chyba pri spracovaní.', 'error');
+  } finally {
+    _setIngestLoading(false);
+  }
+}
+
+async function ingestPersonPdf() {
+  if (!currentWidget) return;
+  const fileInput = document.getElementById('ingest-pdf');
+  if (!fileInput?.files?.length) { showToast('Vyberte PDF súbor.', 'error'); return; }
+  _setIngestLoading(true);
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  try {
+    const r = await fetch(`/api/person/${currentWidget.id}/ingest/pdf`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${localStorage.getItem('nd_token')}` },
+      body: fd,
+    });
+    if (r.status === 401) { logout(); return; }
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Chyba pri spracovaní.', 'error'); return; }
+    _showIngestResults(data);
+    showToast('PDF spracované!', 'success');
+  } catch (e) {
+    showToast('Chyba pri spracovaní.', 'error');
+  } finally {
+    _setIngestLoading(false);
+  }
+}
+
+function applyIngestResults() {
+  if (!_ingestSuggestions) return;
+  const append = (id, val) => {
+    if (!val?.trim()) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = el.value.trim() ? `${el.value.trim()}\n\n${val.trim()}` : val.trim();
+  };
+  append('person-how-i-think', _ingestSuggestions.how_i_think);
+  append('person-my-style',    _ingestSuggestions.my_style);
+  append('person-know-how',    _ingestSuggestions.know_how);
+  append('person-real-answers',_ingestSuggestions.real_answers);
+  append('person-never-say',   _ingestSuggestions.never_say);
+  discardIngestResults();
+  showToast('Poznatky doplnené do polí. Nezabudnite uložiť!', 'success');
+}
+
+function discardIngestResults() {
+  _ingestSuggestions = null;
+  document.getElementById('ingest-results').style.display = 'none';
+}
+
 /* ── Person Training ──────────────────────────────────────────────── */
 
 let _ptHistory = [];      // [{role:'customer'|'trainer', content}]
