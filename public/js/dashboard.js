@@ -85,6 +85,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.history.replaceState({}, '', '/dashboard');
     loadUsageBar();
   }
+  if (params.get('person_activated') === '1') {
+    window.history.replaceState({}, '', '/dashboard');
+    showToast('Person add-on aktivovaný!', 'success');
+    setTimeout(() => showTab('person'), 400);
+  }
 
   // Wire "add language" button via JS (not onclick attribute) to avoid scope issues
   const addLangBtn = document.getElementById('btn-add-welcome-lang');
@@ -5112,7 +5117,18 @@ async function disconnectWhatsApp() {
 async function loadPersonProfile() {
   if (!currentWidget) return;
   const r = await apiFetch(`/api/person/${currentWidget.id}`);
-  if (!r || !r.ok) return;
+  if (!r) return;
+
+  if (r.status === 403) {
+    document.getElementById('person-upsell-overlay').style.display = '';
+    document.getElementById('person-content').style.display = 'none';
+    return;
+  }
+
+  document.getElementById('person-upsell-overlay').style.display = 'none';
+  document.getElementById('person-content').style.display = '';
+
+  if (!r.ok) return;
   const d = await r.json();
 
   const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
@@ -5128,6 +5144,19 @@ async function loadPersonProfile() {
   if (cb) { cb.checked = Boolean(d.active); _updatePersonToggle(); }
 
   _renderPersonEmbed();
+}
+
+async function subscribePersonAddon() {
+  const btn = document.querySelector('#person-upsell-overlay button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Presmerovanie…'; }
+  try {
+    const r = await apiFetch('/api/stripe/checkout-person', { method: 'POST' });
+    if (!r || !r.ok) { showToast('Chyba pri vytváraní platby.', 'error'); return; }
+    const { url } = await r.json();
+    if (url) window.location.href = url;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Aktivovať Person add-on'; }
+  }
 }
 
 function _updatePersonToggle() {

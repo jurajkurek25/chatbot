@@ -8,9 +8,19 @@ const { streamTrainingQuestion, analyzeTrainingSession } = require('../services/
 
 const router = express.Router();
 
+function requirePersonAddon(db, userId, res) {
+  const user = db.prepare('SELECT person_addon_active FROM users WHERE id = ?').get(userId);
+  if (!user?.person_addon_active) {
+    res.status(403).json({ error: 'Person add-on nie je aktívny.', upsell: true });
+    return false;
+  }
+  return true;
+}
+
 // GET /api/person/:widgetId — load Person profile for dashboard
 router.get('/:widgetId', requireAuth, (req, res) => {
   const db = getDb();
+  if (!requirePersonAddon(db, req.userId, res)) return;
   const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(req.params.widgetId, req.userId);
   if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
 
@@ -31,6 +41,7 @@ router.get('/:widgetId', requireAuth, (req, res) => {
 // POST /api/person/:widgetId — save Person profile
 router.post('/:widgetId', requireAuth, (req, res) => {
   const db = getDb();
+  if (!requirePersonAddon(db, req.userId, res)) return;
   const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(req.params.widgetId, req.userId);
   if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
 
@@ -65,6 +76,7 @@ router.post('/:widgetId', requireAuth, (req, res) => {
 // POST /api/person/:widgetId/training/question — AI plays customer, streams next question (SSE)
 router.post('/:widgetId/training/question', requireAuth, async (req, res) => {
   const db = getDb();
+  if (!requirePersonAddon(db, req.userId, res)) return;
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(req.params.widgetId, req.userId);
   if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
 
@@ -94,6 +106,7 @@ router.post('/:widgetId/training/question', requireAuth, async (req, res) => {
 // POST /api/person/:widgetId/training/analyze — analyze full session, extract style DNA
 router.post('/:widgetId/training/analyze', requireAuth, async (req, res) => {
   const db = getDb();
+  if (!requirePersonAddon(db, req.userId, res)) return;
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(req.params.widgetId, req.userId);
   if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
 

@@ -1865,6 +1865,19 @@
 
         <!-- ── Person tab ──────────────────────────────────────── -->
         <div id="tab-person" class="tab-panel">
+
+          <!-- Upsell overlay — shown when person_addon_active = false -->
+          <div id="person-upsell-overlay" style="display:none;position:relative;z-index:10;background:white;border-radius:16px;padding:2.5rem 2rem;text-align:center;box-shadow:0 4px 24px rgba(124,58,237,0.10);border:2px solid #ede9fe;margin-bottom:1.5rem">
+            <div style="font-size:2.5rem;margin-bottom:0.75rem">🧑</div>
+            <h2 style="font-size:1.35rem;font-weight:700;color:#1e293b;margin:0 0 0.5rem">Neoworkly Person</h2>
+            <p style="color:#64748b;font-size:0.9rem;max-width:420px;margin:0 auto 1.25rem">Vytvorte AI digitálnu verziu seba – odpovedá presne tak, ako vy. Vyžaduje aktívny Pro plán.</p>
+            <div style="font-size:1.5rem;font-weight:800;color:#7c3aed;margin-bottom:1.25rem">+€29 <span style="font-size:0.9rem;font-weight:500;color:#94a3b8">/ mesiac</span></div>
+            <button onclick="subscribePersonAddon()" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;border-radius:10px;padding:0.75rem 2rem;font-size:1rem;font-weight:700;cursor:pointer">Aktivovať Person add-on</button>
+            <p style="font-size:0.75rem;color:#94a3b8;margin:0.75rem 0 0">Zrušiť môžete kedykoľvek. Fakturuje sa mesačne.</p>
+          </div>
+
+          <!-- Main content — hidden until add-on is active -->
+          <div id="person-content">
           <div class="tab-header" style="flex-wrap:wrap;gap:0.75rem">
             <div>
               <h2 class="tab-title">🧑 Neoworkly Person</h2>
@@ -2000,6 +2013,7 @@
               </div>
             </div>
           </div>
+          </div><!-- /#person-content -->
         </div>
 
       </div>
