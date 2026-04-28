@@ -5305,7 +5305,7 @@ function _renderEmailWorker() {
     const body = extractPlainText(raw);
     if (!body.trim()) return;
 
-    await fetch(\`\${env.NEOWORKLY_URL}/api/email/inbound\`, {
+    await fetch('https://neoworkly.com/api/email/inbound', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
