@@ -5120,8 +5120,10 @@ async function loadPersonProfile() {
   if (!r) return;
 
   if (r.status === 403) {
-    document.getElementById('person-upsell-overlay').style.display = '';
+    document.getElementById('person-upsell-overlay').style.display = 'block';
     document.getElementById('person-content').style.display = 'none';
+    _personBilling = 'monthly';
+    selectPersonBilling('monthly');
     return;
   }
 
