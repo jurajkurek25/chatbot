@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Darčeková karta – Neoworkly</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8f7ff;color:#1e293b;min-height:100vh}
+
+/* ── HEADER ── */
+.site-header{background:white;border-bottom:1px solid #ede9fe;padding:1rem 2rem;display:flex;align-items:center;gap:0.75rem}
+.logo-mark{width:36px;height:36px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem}
+.logo-text{font-weight:800;font-size:1.1rem;color:#1e293b}
+.logo-text span{color:#7c3aed}
+
+/* ── LAYOUT ── */
+.page{max-width:960px;margin:0 auto;padding:2.5rem 1.5rem}
+.page-title{font-size:2rem;font-weight:800;color:#1e293b;text-align:center;margin-bottom:0.5rem}
+.page-sub{text-align:center;color:#64748b;font-size:1rem;margin-bottom:2.5rem}
+
+/* ── PURCHASE CARD ── */
+.buy-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start}
+@media(max-width:680px){.buy-grid{grid-template-columns:1fr}}
+
+.panel{background:white;border-radius:16px;padding:1.75rem;box-shadow:0 2px 16px rgba(124,58,237,0.07);border:1px solid #ede9fe}
+.panel-title{font-size:1rem;font-weight:700;color:#1e293b;margin-bottom:1.25rem;display:flex;align-items:center;gap:0.5rem}
+
+/* Amount picker */
+.amount-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:1rem}
+.amt-btn{border:2px solid #e2e8f0;background:white;border-radius:10px;padding:0.6rem 0.5rem;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.15s;color:#1e293b;text-align:center}
+.amt-btn:hover{border-color:#7c3aed;color:#7c3aed}
+.amt-btn.active{border-color:#7c3aed;background:#7c3aed;color:white}
+.custom-amount-wrap{margin-bottom:1.25rem}
+.custom-amount-wrap label{font-size:0.82rem;font-weight:600;color:#64748b;display:block;margin-bottom:0.4rem}
+.inp-euro{display:flex;align-items:center;border:2px solid #e2e8f0;border-radius:10px;overflow:hidden;transition:border-color 0.15s}
+.inp-euro:focus-within{border-color:#7c3aed}
+.inp-euro span{padding:0.65rem 0.75rem;background:#f8f7ff;color:#64748b;font-weight:700;font-size:0.95rem;border-right:1px solid #e2e8f0}
+.inp-euro input{border:none;outline:none;padding:0.65rem 0.75rem;font-size:0.95rem;font-weight:700;color:#1e293b;width:100%;background:white}
+
+.form-group{margin-bottom:1rem}
+.form-group label{font-size:0.82rem;font-weight:600;color:#64748b;display:block;margin-bottom:0.4rem}
+.form-group input,.form-group textarea{width:100%;border:2px solid #e2e8f0;border-radius:10px;padding:0.65rem 0.85rem;font-size:0.9rem;color:#1e293b;outline:none;transition:border-color 0.15s;font-family:inherit}
+.form-group input:focus,.form-group textarea:focus{border-color:#7c3aed}
+.form-group textarea{resize:vertical;min-height:72px}
+.optional-tag{font-size:0.72rem;color:#94a3b8;font-weight:400;margin-left:0.3rem}
+
+.btn-buy{width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;border-radius:12px;padding:0.9rem 1.5rem;font-size:1rem;font-weight:700;cursor:pointer;margin-top:0.5rem;transition:opacity 0.15s}
+.btn-buy:hover{opacity:0.9}
+.btn-buy:disabled{opacity:0.6;cursor:default}
+
+/* ── GIFT CARD PREVIEW ── */
+.gift-card{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:1.6/1;background:linear-gradient(135deg,#1e0a3c 0%,#4c1d95 50%,#7c3aed 100%);color:white;padding:1.75rem;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 12px 40px rgba(124,58,237,0.35)}
+.gc-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.12) 0%,transparent 60%);pointer-events:none}
+.gc-circles{position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.05);pointer-events:none}
+.gc-circles::after{content:'';position:absolute;top:30px;left:30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.06)}
+.gc-top{display:flex;align-items:center;justify-content:space-between;position:relative}
+.gc-logo{display:flex;align-items:center;gap:0.5rem}
+.gc-logo-mark{width:30px;height:30px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.9rem}
+.gc-logo-text{font-weight:800;font-size:0.95rem;letter-spacing:0.02em}
+.gc-badge{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:20px;padding:0.25rem 0.75rem;font-size:0.7rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase}
+.gc-middle{position:relative;text-align:center}
+.gc-label{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;opacity:0.6;margin-bottom:0.25rem}
+.gc-amount{font-size:2.8rem;font-weight:900;letter-spacing:-0.02em;line-height:1}
+.gc-message{font-size:0.78rem;opacity:0.75;margin-top:0.4rem;font-style:italic;max-height:2.4em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gc-bottom{position:relative}
+.gc-code-label{font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;opacity:0.55;margin-bottom:0.2rem}
+.gc-code{font-family:'Courier New',monospace;font-size:1.1rem;font-weight:700;letter-spacing:0.18em;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:0.45rem 0.75rem;display:inline-block}
+.gc-recipient{font-size:0.72rem;opacity:0.6;margin-top:0.35rem}
+
+/* ── SUCCESS STATE ── */
+#view-success{display:none}
+.success-header{text-align:center;margin-bottom:2rem}
+.success-header .icon{font-size:3rem;margin-bottom:0.75rem}
+.success-header h2{font-size:1.5rem;font-weight:800;color:#1e293b;margin-bottom:0.4rem}
+.success-header p{color:#64748b;font-size:0.9rem}
+
+.success-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:2rem;align-items:start}
+@media(max-width:680px){.success-grid{grid-template-columns:1fr}}
+
+.card-actions{display:flex;flex-direction:column;gap:0.75rem;margin-top:1.5rem}
+.btn-action{display:flex;align-items:center;justify-content:center;gap:0.5rem;border:none;border-radius:10px;padding:0.7rem 1rem;font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.15s}
+.btn-print{background:#7c3aed;color:white}
+.btn-print:hover{background:#6d28d9}
+.btn-copy{background:#f1f5f9;color:#1e293b;border:1px solid #e2e8f0}
+.btn-copy:hover{background:#e2e8f0}
+
+.info-box{background:white;border-radius:16px;padding:1.5rem;box-shadow:0 2px 16px rgba(124,58,237,0.07);border:1px solid #ede9fe}
+.info-box h3{font-size:1rem;font-weight:700;color:#1e293b;margin-bottom:1rem}
+.info-step{display:flex;gap:0.75rem;margin-bottom:0.85rem;align-items:flex-start}
+.step-num{min-width:24px;height:24px;border-radius:50%;background:#7c3aed;color:white;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center}
+.step-text{font-size:0.85rem;color:#64748b;line-height:1.5}
+.step-text strong{color:#1e293b}
+
+.code-display{background:#f8f7ff;border:2px dashed #c4b5fd;border-radius:12px;padding:1rem;text-align:center;margin-top:1rem}
+.code-display .lbl{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;font-weight:700;margin-bottom:0.35rem}
+.code-display .code{font-family:'Courier New',monospace;font-size:1.3rem;font-weight:700;color:#4c1d95;letter-spacing:0.15em}
+
+/* ── PRINT STYLES ── */
+@media print{
+  body{background:white}
+  .site-header,.buy-section,.page-title,.page-sub,.card-actions,.info-box,.success-header{display:none!important}
+  .success-grid{display:block}
+  .gift-card{width:360px;margin:2rem auto;box-shadow:none;border:2px solid #e2e8f0}
+  #view-purchase{display:none!important}
+}
+
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle;margin-right:0.4rem}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1e293b;color:white;padding:0.75rem 1.25rem;border-radius:10px;font-size:0.875rem;font-weight:500;z-index:999;opacity:0;transform:translateY(8px);transition:all 0.25s}
+.toast.show{opacity:1;transform:translateY(0)}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="logo-mark">🤖</div>
+  <div class="logo-text">Neo<span>workly</span></div>
+</header>
+
+<div id="view-purchase" class="page">
+  <h1 class="page-title">🎁 Darčeková karta</h1>
+  <p class="page-sub">Darujte Neoworkly — AI chatbot, digitálny dvojník alebo AI kredity pre váš biznis alebo niekoho blízkeho.</p>
+
+  <div class="buy-grid">
+    <!-- LEFT: Form -->
+    <div class="panel">
+      <div class="panel-title">💳 Konfigurácia karty</div>
+
+      <!-- Preset amounts -->
+      <div style="margin-bottom:0.75rem">
+        <div style="font-size:0.82rem;font-weight:600;color:#64748b;margin-bottom:0.5rem">Hodnota karty</div>
+        <div class="amount-grid">
+          <button class="amt-btn" onclick="setAmount(19)">€19</button>
+          <button class="amt-btn active" onclick="setAmount(29)">€29</button>
+          <button class="amt-btn" onclick="setAmount(37)">€37</button>
+          <button class="amt-btn" onclick="setAmount(49)">€49</button>
+          <button class="amt-btn" onclick="setAmount(74)">€74</button>
+          <button class="amt-btn" onclick="setAmount(null)">Vlastná</button>
+        </div>
+      </div>
+
+      <div class="custom-amount-wrap" id="custom-wrap" style="display:none">
+        <label>Vlastná suma</label>
+        <div class="inp-euro">
+          <span>€</span>
+          <input type="number" id="custom-amount" min="5" max="500" step="1" placeholder="min. 5" oninput="onCustomAmount()">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Váš email <span style="color:#e11d48;font-size:0.8rem">*</span></label>
+        <input type="email" id="buyer-email" placeholder="vas@email.sk" oninput="updatePreview()">
+      </div>
+
+      <div class="form-group">
+        <label>Vaše meno <span class="optional-tag">voliteľné</span></label>
+        <input type="text" id="buyer-name" placeholder="Ján Novák" oninput="updatePreview()">
+      </div>
+
+      <div class="form-group">
+        <label>Email príjemcu <span class="optional-tag">voliteľné</span></label>
+        <input type="email" id="recipient-email" placeholder="pratel@email.sk" oninput="updatePreview()">
+      </div>
+
+      <div class="form-group">
+        <label>Správa <span class="optional-tag">voliteľné</span></label>
+        <textarea id="gift-message" placeholder="Prajeme veľa úspechu!" oninput="updatePreview()"></textarea>
+      </div>
+
+      <button class="btn-buy" id="btn-buy" onclick="startCheckout()">Prejsť na platbu →</button>
+      <div style="font-size:0.75rem;color:#94a3b8;text-align:center;margin-top:0.65rem">Bezpečná platba cez Stripe · Zrušenie kedykoľvek</div>
+    </div>
+
+    <!-- RIGHT: Preview -->
+    <div>
+      <div style="font-size:0.82rem;font-weight:600;color:#64748b;margin-bottom:0.65rem">Náhľad darčekovej karty</div>
+      <div class="gift-card" id="preview-card">
+        <div class="gc-shine"></div>
+        <div class="gc-circles"></div>
+        <div class="gc-top">
+          <div class="gc-logo">
+            <div class="gc-logo-mark">🤖</div>
+            <div class="gc-logo-text">Neoworkly</div>
+          </div>
+          <div class="gc-badge">Darčeková karta</div>
+        </div>
+        <div class="gc-middle">
+          <div class="gc-label">Hodnota</div>
+          <div class="gc-amount" id="preview-amount">€29</div>
+          <div class="gc-message" id="preview-message" style="display:none"></div>
+        </div>
+        <div class="gc-bottom">
+          <div class="gc-code-label">Kód</div>
+          <div class="gc-code">NEOW-XXXX-XXXX-XXXX</div>
+          <div class="gc-recipient" id="preview-recipient" style="display:none"></div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.25rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1rem">
+        <div style="font-size:0.82rem;font-weight:700;color:#166534;margin-bottom:0.5rem">Na čo sa dá karta použiť?</div>
+        <div style="font-size:0.8rem;color:#166534;line-height:1.6">
+          ✅ <strong>€37+</strong> — mesiac Neoworkly Pro zadarmo<br>
+          ✅ <strong>Ľubovoľná suma</strong> — AI odpovede v chatbote<br>
+          ✅ <strong>€29+</strong> — Person add-on (AI digitálny dvojník)
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ─────────────────────────────────── SUCCESS ─────────────────────────────────── -->
+<div id="view-success" class="page">
+  <div class="success-header">
+    <div class="icon">🎉</div>
+    <h2>Darčeková karta je pripravená!</h2>
+    <p>Platba prebehla úspešne. Nižšie nájdete darčekovú kartu s unikátnym kódom.</p>
+  </div>
+
+  <div class="success-grid">
+    <!-- Gift card visual -->
+    <div>
+      <div class="gift-card" id="success-card">
+        <div class="gc-shine"></div>
+        <div class="gc-circles"></div>
+        <div class="gc-top">
+          <div class="gc-logo">
+            <div class="gc-logo-mark">🤖</div>
+            <div class="gc-logo-text">Neoworkly</div>
+          </div>
+          <div class="gc-badge">Darčeková karta</div>
+        </div>
+        <div class="gc-middle">
+          <div class="gc-label">Hodnota</div>
+          <div class="gc-amount" id="success-amount">€0</div>
+          <div class="gc-message" id="success-message" style="display:none"></div>
+        </div>
+        <div class="gc-bottom">
+          <div class="gc-code-label">Kód</div>
+          <div class="gc-code" id="success-code">—</div>
+          <div class="gc-recipient" id="success-recipient" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="card-actions">
+        <button class="btn-action btn-print" onclick="window.print()">🖨️ Vytlačiť / Uložiť PDF</button>
+        <button class="btn-action btn-copy" id="btn-copy-code" onclick="copyCode()">📋 Skopírovať kód</button>
+      </div>
+    </div>
+
+    <!-- Instructions -->
+    <div>
+      <div class="code-display" style="margin-bottom:1.5rem">
+        <div class="lbl">Kód darčekovej karty</div>
+        <div class="code" id="success-code-display">—</div>
+      </div>
+
+      <div class="info-box">
+        <h3>Ako kartu uplatniť?</h3>
+        <div class="info-step">
+          <div class="step-num">1</div>
+          <div class="step-text">Prihlás sa na <strong>neoworkly.com</strong> (alebo sa zaregistruj — registrácia je rýchla)</div>
+        </div>
+        <div class="info-step">
+          <div class="step-num">2</div>
+          <div class="step-text">V dashboarde klikni na <strong>Affiliate & Kredity</strong> v ľavom menu</div>
+        </div>
+        <div class="info-step">
+          <div class="step-num">3</div>
+          <div class="step-text">Nájdi sekciu <strong>"Uplatniť darčekovú kartu"</strong> a zadaj kód</div>
+        </div>
+        <div class="info-step">
+          <div class="step-num">4</div>
+          <div class="step-text">Kredity sa pripíšu okamžite — <strong>€37+ = voľný mesiac</strong>, menej = AI odpovede</div>
+        </div>
+      </div>
+
+      <div style="margin-top:1rem;padding:0.85rem;background:#fef9c3;border:1px solid #fde047;border-radius:10px;font-size:0.8rem;color:#713f12">
+        💡 <strong>Tip:</strong> Kód je jednorazový a platí bez časového obmedzenia. Uchovajte ho na bezpečnom mieste.
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let _amount = 29;
+let _isCustom = false;
+
+function setAmount(val) {
+  _isCustom = val === null;
+  document.getElementById('custom-wrap').style.display = _isCustom ? 'block' : 'none';
+  document.querySelectorAll('.amt-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  if (!_isCustom) {
+    _amount = val;
+    updatePreview();
+  }
+}
+
+function onCustomAmount() {
+  const v = parseFloat(document.getElementById('custom-amount').value);
+  _amount = v && v >= 5 ? v : null;
+  updatePreview();
+}
+
+function updatePreview() {
+  const amountEl = document.getElementById('preview-amount');
+  amountEl.textContent = (_amount && _amount >= 5) ? `€${_amount}` : '€—';
+
+  const msg = document.getElementById('gift-message').value.trim();
+  const msgEl = document.getElementById('preview-message');
+  msgEl.style.display = msg ? 'block' : 'none';
+  msgEl.textContent = msg ? `"${msg}"` : '';
+
+  const rec = document.getElementById('recipient-email').value.trim();
+  const recEl = document.getElementById('preview-recipient');
+  recEl.style.display = rec ? 'block' : 'none';
+  recEl.textContent = rec ? `Pre: ${rec}` : '';
+}
+
+async function startCheckout() {
+  if (_isCustom) {
+    const v = parseFloat(document.getElementById('custom-amount').value);
+    _amount = v && v >= 5 && v <= 500 ? v : null;
+  }
+  if (!_amount || _amount < 5) { showToast('Zadajte sumu (min. €5)'); return; }
+
+  const email = document.getElementById('buyer-email').value.trim();
+  if (!email || !email.includes('@')) { showToast('Zadajte platný email'); return; }
+
+  const btn = document.getElementById('btn-buy');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>Presmerovanie…';
+
+  try {
+    const r = await fetch('/api/gift-cards/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amount: _amount,
+        buyer_email: email,
+        buyer_name: document.getElementById('buyer-name').value.trim(),
+        recipient_email: document.getElementById('recipient-email').value.trim(),
+        message: document.getElementById('gift-message').value.trim(),
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Chyba'); btn.disabled = false; btn.textContent = 'Prejsť na platbu →'; return; }
+    window.location.href = d.url;
+  } catch {
+    showToast('Sieťová chyba, skúste znova.');
+    btn.disabled = false;
+    btn.textContent = 'Prejsť na platbu →';
+  }
+}
+
+async function loadSuccess(sessionId) {
+  document.getElementById('view-purchase').style.display = 'none';
+  document.getElementById('view-success').style.display = 'block';
+
+  // Poll until webhook creates the card (max 20s)
+  for (let i = 0; i < 10; i++) {
+    try {
+      const r = await fetch(`/api/gift-cards/status?session=${encodeURIComponent(sessionId)}`);
+      if (r.ok) {
+        const d = await r.json();
+        renderSuccessCard(d);
+        return;
+      }
+    } catch {}
+    await new Promise(res => setTimeout(res, 2000));
+  }
+  document.getElementById('success-code').textContent = 'Chyba načítania — kontaktujte podporu';
+}
+
+function renderSuccessCard(d) {
+  document.getElementById('success-amount').textContent = `€${parseFloat(d.amount_eur).toFixed(0)}`;
+  document.getElementById('success-code').textContent = d.code;
+  document.getElementById('success-code-display').textContent = d.code;
+
+  if (d.message) {
+    const el = document.getElementById('success-message');
+    el.textContent = `"${d.message}"`;
+    el.style.display = 'block';
+  }
+  if (d.recipient_email) {
+    const el = document.getElementById('success-recipient');
+    el.textContent = `Pre: ${d.recipient_email}`;
+    el.style.display = 'block';
+  }
+}
+
+function copyCode() {
+  const code = document.getElementById('success-code').textContent;
+  navigator.clipboard.writeText(code).then(() => showToast('Kód skopírovaný!')).catch(() => {
+    prompt('Skopírujte kód:', code);
+  });
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Init
+(function() {
+  const params = new URLSearchParams(location.search);
+  if (params.get('success') === '1' && params.get('session')) {
+    loadSuccess(params.get('session'));
+  }
+})();
+</script>
+</body>
+</html>

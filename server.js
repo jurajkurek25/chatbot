@@ -33,6 +33,7 @@ const moneyRoutes       = require('./routes/money');
 const reactivationRoutes = require('./routes/reactivation');
 const personRoutes       = require('./routes/person');
 const emailRoutes        = require('./routes/email');
+const { router: giftCardRoutes } = require('./routes/gift-cards');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -81,6 +82,7 @@ app.use('/api/money',       moneyRoutes);
 app.use('/api/reactivation', reactivationRoutes);
 app.use('/api/person',      personRoutes);
 app.use('/api/email',       emailRoutes);
+app.use('/api/gift-cards',  giftCardRoutes);
 app.use('/api/team',        teamRoutes);
 app.use('/api/woocommerce', woocommerceRoutes);
 // Team invite accept (public, no auth needed on GET)
@@ -109,6 +111,9 @@ app.get('/onboarding', (req, res) =>
 );
 app.get('/demo', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'demo.html'))
+);
+app.get('/darcek', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'darcek.html'))
 );
 app.get('/book/:widgetId', (req, res) => {
   // Allow booking page to be embedded in iframes on any domain

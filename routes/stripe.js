@@ -157,6 +157,30 @@ router.post('/webhook', async (req, res) => {
     case 'checkout.session.completed': {
       const session = event.data.object;
 
+      // Gift card purchase — generate code and store in DB
+      if (session.mode === 'payment' && session.metadata?.type === 'gift_card') {
+        const { generateCode } = require('./gift-cards');
+        const amountEur = parseFloat(session.metadata.amount_eur || '0');
+        if (amountEur > 0) {
+          const { v4: uuidv4 } = require('uuid');
+          let code;
+          let attempts = 0;
+          do { code = generateCode(); attempts++; } while (
+            db.prepare('SELECT id FROM gift_cards WHERE code = ?').get(code) && attempts < 10
+          );
+          db.prepare(`INSERT INTO gift_cards (id, code, amount_eur, buyer_email, buyer_name, recipient_email, message, stripe_session_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+            .run(uuidv4(), code, amountEur,
+              session.metadata.buyer_email || session.customer_details?.email || '',
+              session.metadata.buyer_name || '',
+              session.metadata.recipient_email || '',
+              session.metadata.message || '',
+              session.id);
+          console.log(`[gift-card] Code ${code} generated (€${amountEur}, session ${session.id})`);
+        }
+        break;
+      }
+
       // Growth Boost one-time payment
       if (session.mode === 'payment' && session.metadata?.type === 'growth_boost') {
         const userId = session.metadata.userId;

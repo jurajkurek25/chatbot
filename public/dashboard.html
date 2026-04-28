@@ -347,6 +347,23 @@
           </div>
 
           <!-- How it works -->
+          <!-- Gift card redemption -->
+          <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #e2e8f0">
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.75rem">🎁 Uplatniť darčekovú kartu</div>
+            <div style="display:flex;gap:0.5rem;align-items:center">
+              <input id="gift-card-code" type="text" placeholder="NEOW-XXXX-XXXX-XXXX" maxlength="19"
+                style="flex:1;border:2px solid #e2e8f0;border-radius:8px;padding:0.55rem 0.85rem;font-size:0.9rem;font-family:'Courier New',monospace;letter-spacing:0.05em;outline:none"
+                oninput="this.value=this.value.toUpperCase()" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e2e8f0'">
+              <button onclick="redeemGiftCard()" id="btn-redeem-gc"
+                style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:0.55rem 1.1rem;font-size:0.875rem;font-weight:600;cursor:pointer;white-space:nowrap">
+                Uplatniť
+              </button>
+            </div>
+            <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.4rem">
+              Kód nájdete na darčekovej karte (formát NEOW-XXXX-XXXX-XXXX). Kredity sa pripíšu okamžite.
+            </div>
+          </div>
+
           <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #e2e8f0">
             <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.75rem">Ako funguje affiliate?</div>
             <div style="display:grid;gap:0.5rem;font-size:0.875rem;color:#374151">
@@ -2833,7 +2850,7 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=17"></script>
+<script src="/js/dashboard.js?v=18"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

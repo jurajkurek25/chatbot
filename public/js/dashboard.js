@@ -2064,6 +2064,32 @@ async function redeemCredits() {
   }
 }
 
+async function redeemGiftCard() {
+  const input = document.getElementById('gift-card-code');
+  const btn = document.getElementById('btn-redeem-gc');
+  const code = input.value.trim().toUpperCase();
+  if (!code) { showToast('Zadajte kód darčekovej karty.', 'error'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const r = await apiFetch('/api/gift-cards/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    if (!r) return;
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Chyba pri uplatňovaní.', 'error'); return; }
+    input.value = '';
+    showToast(`🎉 Karta uplatnená! +€${parseFloat(d.amount_eur).toFixed(0)} kreditov.`);
+    loadAffiliateStatus(); // refresh credit balance
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Uplatniť';
+  }
+}
+
 /* ── Products ───────────────────────────────────────────────────── */
 
 let products = [];

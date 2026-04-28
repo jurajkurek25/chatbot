@@ -497,6 +497,20 @@ function initDatabase() {
   last_reply_at INTEGER,
   UNIQUE(widget_id, thread_id)
 )`,
+    `CREATE TABLE IF NOT EXISTS gift_cards (
+  id TEXT PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  amount_eur REAL NOT NULL,
+  buyer_email TEXT,
+  buyer_name TEXT,
+  recipient_email TEXT,
+  message TEXT,
+  stripe_session_id TEXT,
+  used INTEGER NOT NULL DEFAULT 0,
+  used_by TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  redeemed_at TEXT
+)`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }
