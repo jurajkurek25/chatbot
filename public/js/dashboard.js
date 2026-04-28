@@ -5158,8 +5158,8 @@ function selectPersonBilling(billing) {
   document.getElementById('person-billing-yearly').style.cssText = monthly
     ? 'border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all 0.15s'
     : 'border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;background:#7c3aed;color:white;transition:all 0.15s';
-  document.getElementById('person-upsell-price-monthly').style.display = monthly ? '' : 'none';
-  document.getElementById('person-upsell-price-yearly').style.display = monthly ? 'none' : '';
+  document.getElementById('person-upsell-price-monthly').style.display = monthly ? 'block' : 'none';
+  document.getElementById('person-upsell-price-yearly').style.display = monthly ? 'none' : 'block';
   const note = document.getElementById('person-upsell-note');
   if (note) note.textContent = monthly ? 'Zrušiť môžete kedykoľvek. Fakturuje sa mesačne.' : 'Zrušiť môžete kedykoľvek. Fakturuje sa ročne — ušetríte 2 mesiace.';
 }
