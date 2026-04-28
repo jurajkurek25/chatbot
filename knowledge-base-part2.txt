@@ -1,0 +1,224 @@
+NEOWORKLY — ZNALOSTNÁ BÁZA PRE CHATBOTA (ČASŤ 2/3)
+
+━━━ BOOKING SYSTÉM (REZERVÁCIE) ━━━
+
+Kde nastavím rezervácie?
+Dashboard → váš widget → záložka "📅 Rezervácie".
+
+Základné nastavenia:
+— Časové pásmo, dĺžka slotu (napr. 30 min), prestávka medzi slotmi
+— Minimálna notifikácia: zákazník musí rezervovať aspoň X hodín/dní dopredu
+— Maximálny horizont: zákazník môže rezervovať max X dní dopredu
+— Potvrdzovacia správa po úspešnej rezervácii
+
+Typy služieb:
+Môžete pridať viacero typov služieb s rôznym trvaním a cenou. Zákazník si vyberie typ pred výberom termínu.
+
+Rozvrh dostupnosti:
+Nastavíte pracovné dni a hodiny (napr. Po–Pi 09:00–17:00). Každý deň v týždni zvlášť.
+
+Výnimky a sviatky:
+Pridáte konkrétny dátum ako "zatvorené" alebo nastavíte iné hodiny pre konkrétny deň.
+
+3 spôsoby ako zákazník môže rezervovať:
+
+A) Priamo cez chatbota (AI):
+Zákazník napíše "chcem sa objednať na utorok o 10" → AI si pýta meno, email, službu → potvrdí rezerváciu bez toho aby zákazník opustil konverzáciu.
+
+B) Interaktívny formulár v bubline widgetu:
+Zákazník klikne na CTA "Rezervovať termín" → priamo v buble sa zobrazí mini-kalendár → vyberie dátum, čas, vyplní kontakt → odošle.
+
+C) Samostatná rezervačná stránka:
+Každý widget má vlastnú stránku: neoworkly.com/book/WIDGET_ID
+Zdieľajte ako link (email, WhatsApp, bio na Instagrame) alebo vložte ako iframe na web.
+
+Dizajn rezervačnej stránky:
+Hlavná farba, farba pozadia, farba hlavičky, vlastné logo, vlastný názov kalendára, emoji avatar, písmo, zaoblenie rohov.
+
+Google Calendar integrácia:
+— Napojenie cez OAuth (tlačidlo "Pripojiť Google Calendar")
+— Nová rezervácia = nový event v Google Calendari, zákazník dostane email-pozvánku
+— Zrušenie = automatické vymazanie eventu
+— Konflikt check: systém blokuje sloty kde máte existujúcu udalosť v Google Calendari (aj súkromnú)
+— Celodenná udalosť = celý deň zablokovaný pre rezervácie
+
+Správa rezervácií:
+Dashboard → záložka Rezervácie → zoznam. Každá rezervácia: meno, email, telefón, dátum, čas, služba, stav (Potvrdená / Zrušená / No-show). Zmena stavu jedným klikom.
+
+Rezervácia neprejde / "Booking nie je povolený"?
+V záložke Rezervácie musíte najprv nakonfigurovať a uložiť nastavenia — booking_config sa vytvorí pri prvom uložení.
+
+Ako zmeniť logo alebo názov na rezervačnej stránke?
+Dashboard → záložka Rezervácie → sekcia "Dizajn" → Nahrať logo / Názov kalendára.
+
+━━━ TRENDY (ANALYTICS) ━━━
+
+Kde nájdem štatistiky?
+Dashboard → váš widget → záložka "📊 Trendy".
+
+Čo sa meria?
+— Zámer návštevníka (Intent): buying / researching / support / just_browsing
+— Naliehavosť (Urgency): immediate / soon / planning / just_browsing
+— Nálada (Sentiment): positive / neutral / negative
+— A/B test štatistiky: počet leadov cez verziu A vs. verziu B uvítacej správy
+
+Dôležité: trendy sa začnú zobrazovať po prvých konverzáciách s aspoň 3 výmenami správ. Sú anonymné — žiadne osobné údaje, len správanie.
+
+Časový filter: posledných 7 / 30 / 90 dní.
+
+━━━ INBOX (ŽIVÝ AGENT / LIVE TAKEOVER) ━━━
+
+Čo je Inbox?
+Dashboard → záložka "📥 Inbox". Zoznam všetkých prebiehajúcich a ukončených konverzácií.
+
+Čo môžem robiť v Inboxe?
+— Zobraziť celý prepis konverzácie zákazníka s chatbotom
+— Prevziať chat: vypnete AI a odpovedáte vy ako živý agent
+— Vaše správy sa doručia zákazníkovi priamo v chatbote
+— Odovzdať späť AI: druhým kliknutím vrátite chatbota do automatického režimu
+
+Ako zákazník vie, že čaká na živého agenta?
+Vidí správu "Agent odpovedá…" kým čaká na vašu odpoveď.
+
+Inbox sa neaktualizuje?
+Kliknite "↺ Obnoviť". Konverzácie sa zobrazujú len pre aktívny widget.
+
+━━━ FACEBOOK MESSENGER BOT ━━━
+
+Čo je Facebook Messenger bot?
+Dashboard → záložka "💬 Facebook Messenger". Bot automaticky odpovedá na správy cez Messenger vašej Facebook Stránky.
+
+Čo potrebujem?
+— Facebook Stránka (nie osobný profil)
+— Page Access Token z Facebook Developers (App → Messenger → Generate Token) s oprávneniami: pages_messaging, pages_read_engagement
+— Po prepojení nastavíte Webhook URL v Facebook Developers
+
+Bot nereaguje na správy?
+Skontrolujte Webhook URL v Meta Developers, Verify Token a oprávnenia Page Access Tokenu.
+
+━━━ LEAD MAGNETY ━━━
+
+Čo je lead magnet?
+Dashboard → záložka "🧲 Lead Magnety". Ponúknete zákazníkovi PDF, e-book alebo iný súbor výmenou za jeho email.
+
+Postup:
+Nahráte súbor (PDF/DOC/ZIP) → chatbot ho ponúkne zákazníkovi → zákazník zadá email → súbor sa mu odošle a kontakt sa uloží.
+
+AI extrakcia: po nahraní AI naskenuje obsah a pridá ho do znalostnej bázy.
+
+Zozbierané emaily: záložka "Zozbierané emaily" ukáže všetkých záujemcov. Export do CSV jedným kliknutím.
+
+━━━ INTEGRÁCIE ━━━
+
+Kde nájdem integrácie?
+Dashboard → váš widget → záložka "🔗 Integrácie".
+
+ECOMAIL (email marketing):
+Každý nový lead sa automaticky pridá do vášho email zoznamu v Ecomaile.
+Postup: účet na ecomail.app → vytvorte zoznam → skopírujte API kľúč → vložte do dashboardu → vyberte zoznam → Pripojiť.
+AI automaticky pridá tagy podľa zámeru zákazníka (intent-buying, urgency-immediate...).
+Ecomail sa nedá pripojiť? API kľúč nájdete v Ecomaile: Nastavenia → Integrácie → API kľúč. Skopírujte celý kľúč bez medzier.
+
+WEBHOOKS:
+— Webhook URL: pri každom novom leade systém pošle POST na vašu URL (Make.com, Zapier, vlastný server)
+— Slack Webhook: pri novom leade pošle správu do vášho Slack kanála
+— JSON obsahuje: meno, email, telefón, widget_id, ai_summary
+
+WHITE-LABEL & VZHĽAD:
+Skryje "Powered by Neoworkly" logo z widgetu (dostupné pre White Label plán alebo cez nastavenie).
+
+PRACOVNÉ HODINY:
+Nastavíte dni a hodiny kedy je chatbot "otvorený". Mimo nich zobrazí offline správu. Každý deň zvlášť.
+
+AUTOMATICKÁ ODPOVEĎ & CSAT:
+— Auto-reply: keď zákazník napíše a agent je preč, chatbot odošle vopred pripravenú správu
+— CSAT: zákazník ohodnotí konverzáciu hviezdičkami po 4 odpovediach chatbota
+
+A/B TEST UVÍTACEJ SPRÁVY:
+Dve verzie uvítacej správy, systém rozdeľuje 50/50. Výsledky v záložke Trendy.
+
+WOOCOMMERCE:
+Importuje produkty z WooCommerce do znalostnej bázy jedným kliknutím.
+Potrebuje: URL obchodu, Consumer Key a Consumer Secret (WooCommerce → Nastavenia → Pokročilé → REST API).
+
+TÍM:
+Pozvite ľubovoľný počet členov tímu k správe chatbota. Integrácie → Tím → Pozvať člena.
+
+VIDEO / GIF V CHATE:
+Chatbot môže zákazníkovi poslať YouTube, Vimeo, MP4 alebo GIF priamo v konverzácii. Vložte URL videa do poľa "URL videa" v Integráciách.
+
+━━━ SEO AUDIT & GROWTH BOOST ━━━
+
+Čo je SEO?
+SEO (Search Engine Optimization) je práca na tom, aby sa váš web zobrazoval na Googli keď zákazníci hľadajú vaše služby. Bez SEO máte skvelý chatbot, ale zákazníci k vám jednoducho nedôjdu.
+
+Kde nájdem SEO audit?
+Dashboard → ľavé menu → záložka "📈 SEO Audit".
+
+Čo audit kontroluje (15+ faktorov)?
+— HTTPS, robots.txt, sitemap.xml, rýchlosť načítania (Core Web Vitals)
+— Meta title, meta description, H1/H2 nadpisy, počet slov, duplikáty
+— Schema.org štruktúrované dáta, llms.txt, FAQ nadpisy
+— Domain Rank, počet backlinkov, nefunkčné backlinky
+
+Koľko stojí Growth Boost a čo dostanem?
+€49 jednorazovo (1 Boost token = 1 plný audit). Po zaplatení sa odomknú 4 automatické opravy:
+1. WordPress fix (PHP plugin) — automaticky opraví meta tagy na celom webe
+2. HTML fix — hotový HTML kód pre statické weby (Webflow, vlastný HTML)
+3. Schema.org snippet — JSON-LD kód pre akýkoľvek web
+4. llms.txt súbor — pre AI asistentov (ChatGPT, Claude, Perplexity)
+
+Ako spustiť audit?
+Dashboard → SEO Audit → zadajte URL → Spustiť audit. Trvá 2–5 minút (skenuje až 8 stránok).
+
+Aký je rozdiel medzi AI kreditmi a Boost tokenom?
+AI kredity slúžia na odpovede chatbota. Boost token slúži na odomknutie SEO auditu s opravami. Sú to dve úplne rozdielne veci, nedajú sa zameniť.
+
+SEO audit beží príliš dlho?
+Audit môže trvať 2–5 minút. Ak trvá viac ako 10 minút, stránka je pravdepodobne nedostupná alebo má neobvyklú štruktúru. Skúste spustiť nový audit.
+
+Stiahnutie opráv nefunguje?
+Opravy sú dostupné len po zakúpení Growth Boost (€49). Tlačidlo "Získať Growth Boost" sa zobrazí pod výsledkami auditu.
+
+Čo je Schema.org?
+"Štítok" pre váš web — hovorí Googlu aj AI asistentom presne kto ste, kde sídlite, čo predávate. Vďaka tomu vás Google môže zobrazovať v rozšírených výsledkoch a ChatGPT/Claude vás správne odporučí.
+
+Čo je llms.txt?
+Súbor špeciálne pre AI asistentov (ChatGPT, Claude, Perplexity) — hovorí im kto ste a čo ponúkate. Nahráte ho do root adresára webu (vasestranka.sk/llms.txt).
+
+PageSpeed skóre je nízke?
+Najčastejšie príčiny: veľké obrázky (komprimujte na WebP), zbytočné pluginy (WordPress), pomalý hosting. Odporúčame Cloudflare (zadarmo) alebo upgrade hostingu.
+
+━━━ FOLLOW-UP SEKVENCIE (DRIP KAMPANE) ━━━
+
+Čo sú follow-up sekvencie?
+Dashboard → záložka "📨 Sekvencia emailov". Automatické emaily ktoré sa odošlú zákazníkovi po tom čo zanechá kontakt v chatbote.
+
+Nastavenie:
+— Max 5 krokov v sekvencii
+— Každý krok: predmet emailu, text správy, oneskorenie v hodinách (0 = okamžite)
+— Personalizácia: {{name}} sa nahradí menom zákazníka
+— Sekvencia sa aktivuje/deaktivuje prepínačom
+
+Emaily sa neodosielajú?
+Vyžaduje nakonfigurovaný SMTP server (SMTP_HOST, SMTP_USER, SMTP_PASS). Kontaktujte technickú podporu Neoworkly ak SMTP nemáte nastavený.
+
+━━━ WHATSAPP BUSINESS BOT ━━━
+
+Čo je WhatsApp bot?
+Dashboard → záložka "💬 WhatsApp". Rovnaký AI chatbot odpovedá automaticky na správy vo WhatsApp Business.
+
+Čo potrebujem?
+— Meta for Developers účet + WhatsApp Business API
+— Phone Number ID (z Meta → WhatsApp → API Setup)
+— Access Token (odporúčame permanent token — dočasný vyprší po 24h)
+— Verify Token — vlastný tajný reťazec
+
+Postup prepojenia:
+1. Vytvorte aplikáciu na developers.facebook.com → pridajte WhatsApp produkt
+2. Skopírujte Phone Number ID a Access Token
+3. Vložte do dashboardu → Pripojiť WhatsApp
+4. Skopírujte Webhook URL a nastavte ju v Meta → WhatsApp → Configuration → Webhooks
+
+Bot neodpovedá?
+Skontrolujte Webhook URL v Meta Developers. Verify Token sa musí zhodovať. Access Token musí byť platný.
