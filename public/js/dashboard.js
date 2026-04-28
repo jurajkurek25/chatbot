@@ -5144,6 +5144,7 @@ async function loadPersonProfile() {
   if (cb) { cb.checked = Boolean(d.active); _updatePersonToggle(); }
 
   _renderPersonEmbed();
+  loadEmailConfig();
 }
 
 async function subscribePersonAddon() {
@@ -5240,6 +5241,149 @@ async function savePersonProfile() {
   });
   if (!r || !r.ok) { showToast('Chyba pri ukladaní.', 'error'); return; }
   showToast('✅ Person profil uložený!', 'success');
+}
+
+/* ── Person Email Channel ─────────────────────────────────────────── */
+
+let _emailSecret = '';
+
+async function loadEmailConfig() {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/person/${currentWidget.id}/email-config`);
+  if (!r || !r.ok) return;
+  const d = await r.json();
+
+  const cb = document.getElementById('email-channel-active');
+  if (cb) { cb.checked = Boolean(d.email_channel_active); _updateEmailToggle(); }
+
+  const addrEl = document.getElementById('email-channel-address');
+  if (addrEl) addrEl.value = d.email_address || '';
+
+  _emailSecret = d.email_webhook_secret || '';
+  _renderEmailSecret();
+  _renderEmailWorker();
+}
+
+function _updateEmailToggle() {
+  const cb = document.getElementById('email-channel-active');
+  const track = document.getElementById('email-toggle-track');
+  const thumb = document.getElementById('email-toggle-thumb');
+  if (!cb || !track || !thumb) return;
+  const on = cb.checked;
+  track.style.background = on ? '#7c3aed' : '#e2e8f0';
+  thumb.style.transform = on ? 'translateX(18px)' : 'translateX(0)';
+}
+
+function _renderEmailSecret() {
+  const el = document.getElementById('email-webhook-secret');
+  if (!el) return;
+  el.textContent = _emailSecret || '(uložte profil pre vygenerovanie secretu)';
+}
+
+function _renderEmailWorker() {
+  const el = document.getElementById('email-worker-code');
+  if (!el) return;
+  const baseUrl = location.origin;
+  el.textContent = `export default {
+  async email(message, env, ctx) {
+    const chunks = [];
+    const reader = message.raw.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    let len = 0; for (const c of chunks) len += c.length;
+    const combined = new Uint8Array(len);
+    let off = 0; for (const c of chunks) { combined.set(c, off); off += c.length; }
+    const raw = new TextDecoder('utf-8', { fatal: false }).decode(combined);
+
+    const subject = message.headers.get('subject') || '';
+    const messageId = message.headers.get('message-id') || '';
+    const inReplyTo = message.headers.get('in-reply-to')
+                   || message.headers.get('references') || '';
+    const body = extractPlainText(raw);
+    if (!body.trim()) return;
+
+    await fetch(\`\${env.NEOWORKLY_URL}/api/email/inbound\`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Neoworkly-Secret': env.NEOWORKLY_SECRET,
+      },
+      body: JSON.stringify({
+        from: message.from, to: message.to,
+        subject, messageId, inReplyTo, body,
+      }),
+    });
+  }
+};
+
+function extractPlainText(raw) {
+  const sep = raw.indexOf('\\r\\n\\r\\n');
+  if (sep === -1) return raw.slice(0, 4000);
+  const hdrs = raw.slice(0, sep).toLowerCase();
+  const bodyPart = raw.slice(sep + 4);
+  const ctMatch = hdrs.match(/content-type:\\s*([^\\r\\n;]+)/);
+  const ct = ctMatch ? ctMatch[1].trim() : 'text/plain';
+  if (ct.startsWith('text/plain')) return clean(bodyPart);
+  if (ct.startsWith('multipart/')) {
+    const bm = hdrs.match(/boundary="?([^"\\r\\n;]+)"?/);
+    if (!bm) return clean(bodyPart);
+    const boundary = '--' + bm[1].trim();
+    for (const part of raw.split(boundary)) {
+      const pe = part.indexOf('\\r\\n\\r\\n');
+      if (pe === -1) continue;
+      if (part.slice(0, pe).toLowerCase().includes('content-type: text/plain'))
+        return clean(part.slice(pe + 4));
+    }
+  }
+  return clean(bodyPart.replace(/<[^>]+>/g, ' '));
+}
+
+function clean(t) {
+  return t.split('\\n').filter(l => !l.trim().startsWith('>')).join('\\n').trim().slice(0, 4000);
+}`;
+}
+
+async function saveEmailConfig() {
+  if (!currentWidget) return;
+  _updateEmailToggle();
+  const active = document.getElementById('email-channel-active')?.checked ? 1 : 0;
+  const address = (document.getElementById('email-channel-address')?.value || '').trim();
+
+  const r = await apiFetch(`/api/person/${currentWidget.id}/email-config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email_channel_active: active, email_address: address }),
+  });
+  if (!r || !r.ok) { showToast('Chyba pri ukladaní.', 'error'); return; }
+  const d = await r.json();
+  _emailSecret = d.email_webhook_secret || _emailSecret;
+  _renderEmailSecret();
+  _renderEmailWorker();
+  showToast(active ? '📧 Email kanál zapnutý!' : 'Email kanál vypnutý.', 'success');
+}
+
+async function regenerateEmailSecret() {
+  if (!currentWidget) return;
+  if (!confirm('Obnová secretu zneplatní existujúci Cloudflare Worker. Pokračovať?')) return;
+  const r = await apiFetch(`/api/person/${currentWidget.id}/email-config/regenerate-secret`, { method: 'POST' });
+  if (!r || !r.ok) { showToast('Chyba.', 'error'); return; }
+  const d = await r.json();
+  _emailSecret = d.email_webhook_secret;
+  _renderEmailSecret();
+  showToast('Secret obnovený. Aktualizujte Worker premenné.', 'success');
+}
+
+function copyEmailSecret() {
+  if (!_emailSecret) return;
+  navigator.clipboard.writeText(_emailSecret).then(() => showToast('Secret skopírovaný!', 'success'));
+}
+
+function copyEmailWorker() {
+  const el = document.getElementById('email-worker-code');
+  if (el?.textContent) navigator.clipboard.writeText(el.textContent).then(() => showToast('Worker skript skopírovaný!', 'success'));
 }
 
 /* ── Person Ingest (URL / PDF) ─────────────────────────────────────── */

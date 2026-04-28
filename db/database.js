@@ -482,6 +482,21 @@ function initDatabase() {
   created_at INTEGER NOT NULL DEFAULT (unixepoch()),
   UNIQUE(widget_id)
 )`,
+    `ALTER TABLE person_profiles ADD COLUMN email_channel_active INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE person_profiles ADD COLUMN email_address TEXT`,
+    `ALTER TABLE person_profiles ADD COLUMN email_webhook_secret TEXT`,
+    `CREATE TABLE IF NOT EXISTS email_conversations (
+  id TEXT PRIMARY KEY,
+  widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+  thread_id TEXT NOT NULL,
+  from_email TEXT NOT NULL,
+  from_name TEXT,
+  subject TEXT NOT NULL DEFAULT '',
+  history TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  last_reply_at INTEGER,
+  UNIQUE(widget_id, thread_id)
+)`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

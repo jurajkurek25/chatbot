@@ -2067,6 +2067,78 @@
               </div>
             </div>
           </div>
+          <!-- Email channel -->
+          <div class="panel" style="margin-top:1rem">
+            <div class="panel-header" style="margin-bottom:1rem">
+              <div>
+                <div class="panel-title">📧 Email kanál</div>
+                <div class="panel-subtitle">Asistent odpovedá klientom e-mailom – rovnaká AI, nový kanál</div>
+              </div>
+              <div style="position:relative;width:42px;height:24px;flex-shrink:0">
+                <input type="checkbox" id="email-channel-active" onchange="saveEmailConfig()" style="position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1">
+                <div id="email-toggle-track" style="width:42px;height:24px;border-radius:12px;background:#e2e8f0;transition:background 0.2s;position:absolute;top:0;left:0"></div>
+                <div id="email-toggle-thumb" style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></div>
+              </div>
+            </div>
+
+            <!-- Email address input -->
+            <div class="form-group" style="margin-bottom:0.75rem">
+              <label>E-mailová adresa asistenta</label>
+              <div style="display:flex;gap:0.5rem">
+                <input type="email" id="email-channel-address" placeholder="asistent@vasadomena.sk" style="flex:1" onblur="saveEmailConfig()">
+              </div>
+              <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.3rem">Adresa, ktorú nastavíte v Cloudflare Email Routing. Klienti na ňu píšu, AI odpovedá.</div>
+            </div>
+
+            <!-- Setup guide -->
+            <details style="margin-bottom:1rem">
+              <summary style="font-size:0.85rem;font-weight:600;color:#374151;cursor:pointer;padding:0.5rem 0;border-top:1px solid #f1f5f9">⚙️ Návod na nastavenie (Cloudflare)</summary>
+              <div style="margin-top:0.75rem;display:flex;flex-direction:column;gap:0.6rem;font-size:0.82rem;color:#374151">
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">1</span>
+                  <span>Choďte na <strong>dash.cloudflare.com</strong> → vaša doména → <strong>Email → Email Routing → Email Workers</strong></span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">2</span>
+                  <span>Kliknite <strong>Create</strong> → vložte Worker skript nižšie → <strong>Save and Deploy</strong></span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">3</span>
+                  <span>V nastaveniach Workera pridajte <strong>Environment Variables</strong>: <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">NEOWORKLY_SECRET</code> (hodnota nižšie) a <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">NEOWORKLY_URL</code> = <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">https://neoworkly.com</code></span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">4</span>
+                  <span>Choďte na <strong>Email Routing → Routing Rules</strong> → pridajte pravidlo: <em>asistent@vasadomena.sk</em> → <em>Send to Worker</em></span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">5</span>
+                  <span>Zadajte e-mailovú adresu vyššie, uložte a zapnite kanál</span>
+                </div>
+              </div>
+            </details>
+
+            <!-- Worker script -->
+            <div style="margin-bottom:0.75rem">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+                <label style="font-weight:600;font-size:0.85rem;color:#374151;margin:0">Cloudflare Worker skript</label>
+                <button onclick="copyEmailWorker()" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.78rem;cursor:pointer">📋 Kopírovať</button>
+              </div>
+              <pre id="email-worker-code" style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:0.85rem;font-size:0.72rem;overflow-x:auto;margin:0;white-space:pre-wrap;word-break:break-all"></pre>
+            </div>
+
+            <!-- Webhook secret -->
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+                <label style="font-weight:600;font-size:0.85rem;color:#374151;margin:0">Webhook Secret <span style="font-size:0.75rem;color:#94a3b8">(NEOWORKLY_SECRET)</span></label>
+                <div style="display:flex;gap:0.4rem">
+                  <button onclick="copyEmailSecret()" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.78rem;cursor:pointer">📋 Kopírovať</button>
+                  <button onclick="regenerateEmailSecret()" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.78rem;cursor:pointer">🔄 Obnov</button>
+                </div>
+              </div>
+              <div id="email-webhook-secret" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.6rem 0.85rem;font-family:monospace;font-size:0.78rem;color:#374151;word-break:break-all">(uložte profil pre vygenerovanie secretu)</div>
+            </div>
+          </div>
+
           </div><!-- /#person-content -->
         </div>
 

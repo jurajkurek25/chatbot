@@ -394,6 +394,24 @@ Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
   }
 }
 
+/* ── Non-streaming Person response (for email channel) ────────── */
+async function getPersonResponseText(widget, personProfile, knowledgeItems, history, userMessage) {
+  const systemPrompt = buildPersonPrompt(widget, personProfile, knowledgeItems);
+  const messages = [
+    ...history.map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userMessage },
+  ];
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 800,
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+    messages,
+  });
+
+  return response.content.find(b => b.type === 'text')?.text?.trim() || '';
+}
+
 /* ── Non-streaming response (for Instagram / WhatsApp DMs) ────── */
 async function getChatResponseText(widget, knowledgeItems, history, userMessage) {
   const products = loadProducts(widget.id);
@@ -710,4 +728,4 @@ Vráť JSON (každé pole je STRING – nové poznatky na doplnenie, prázdny re
   }
 }
 
-module.exports = { streamChatResponse, streamPersonResponse, streamTrainingQuestion, analyzeTrainingSession, analyzeIngestedContent, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };
+module.exports = { streamChatResponse, streamPersonResponse, streamTrainingQuestion, analyzeTrainingSession, analyzeIngestedContent, getChatResponseText, getPersonResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };

@@ -189,4 +189,60 @@ router.post('/:widgetId/ingest/pdf', requireAuth, upload.single('file'), async (
   }
 });
 
+// GET /api/person/:widgetId/email-config — load email channel settings
+router.get('/:widgetId/email-config', requireAuth, (req, res) => {
+  const db = getDb();
+  if (!requirePersonAddon(db, req.userId, res)) return;
+  const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(req.params.widgetId, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const profile = db.prepare('SELECT email_channel_active, email_address, email_webhook_secret FROM person_profiles WHERE widget_id = ?').get(req.params.widgetId);
+  res.json({
+    email_channel_active: profile?.email_channel_active || 0,
+    email_address: profile?.email_address || '',
+    email_webhook_secret: profile?.email_webhook_secret || '',
+  });
+});
+
+// POST /api/person/:widgetId/email-config — save email channel settings
+router.post('/:widgetId/email-config', requireAuth, (req, res) => {
+  const db = getDb();
+  if (!requirePersonAddon(db, req.userId, res)) return;
+  const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(req.params.widgetId, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const { email_channel_active = 0, email_address = '' } = req.body;
+
+  const existing = db.prepare('SELECT id, email_webhook_secret FROM person_profiles WHERE widget_id = ?').get(req.params.widgetId);
+  const secret = existing?.email_webhook_secret || uuidv4();
+
+  if (existing) {
+    db.prepare('UPDATE person_profiles SET email_channel_active = ?, email_address = ?, email_webhook_secret = COALESCE(email_webhook_secret, ?) WHERE widget_id = ?')
+      .run(email_channel_active ? 1 : 0, email_address.trim(), secret, req.params.widgetId);
+  } else {
+    db.prepare('INSERT INTO person_profiles (id, widget_id, email_channel_active, email_address, email_webhook_secret) VALUES (?, ?, ?, ?, ?)')
+      .run(uuidv4(), req.params.widgetId, email_channel_active ? 1 : 0, email_address.trim(), secret);
+  }
+
+  const updated = db.prepare('SELECT email_channel_active, email_address, email_webhook_secret FROM person_profiles WHERE widget_id = ?').get(req.params.widgetId);
+  res.json({ ok: true, ...updated });
+});
+
+// POST /api/person/:widgetId/email-config/regenerate-secret — new webhook secret
+router.post('/:widgetId/email-config/regenerate-secret', requireAuth, (req, res) => {
+  const db = getDb();
+  if (!requirePersonAddon(db, req.userId, res)) return;
+  const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(req.params.widgetId, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const newSecret = uuidv4();
+  const existing = db.prepare('SELECT id FROM person_profiles WHERE widget_id = ?').get(req.params.widgetId);
+  if (existing) {
+    db.prepare('UPDATE person_profiles SET email_webhook_secret = ? WHERE widget_id = ?').run(newSecret, req.params.widgetId);
+  } else {
+    db.prepare('INSERT INTO person_profiles (id, widget_id, email_webhook_secret) VALUES (?, ?, ?)').run(uuidv4(), req.params.widgetId, newSecret);
+  }
+  res.json({ ok: true, email_webhook_secret: newSecret });
+});
+
 module.exports = router;
