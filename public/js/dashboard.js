@@ -5268,10 +5268,12 @@ function _updateEmailToggle() {
   const cb = document.getElementById('email-channel-active');
   const track = document.getElementById('email-toggle-track');
   const thumb = document.getElementById('email-toggle-thumb');
+  const label = document.getElementById('email-toggle-label');
   if (!cb || !track || !thumb) return;
   const on = cb.checked;
   track.style.background = on ? '#7c3aed' : '#e2e8f0';
   thumb.style.transform = on ? 'translateX(18px)' : 'translateX(0)';
+  if (label) label.textContent = on ? 'Zapnuté' : 'Vypnuté';
 }
 
 function _renderEmailSecret() {

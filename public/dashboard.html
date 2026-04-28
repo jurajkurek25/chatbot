@@ -2069,74 +2069,198 @@
           </div>
           <!-- Email channel -->
           <div class="panel" style="margin-top:1rem">
-            <div class="panel-header" style="margin-bottom:1rem">
-              <div>
-                <div class="panel-title">📧 Email kanál</div>
-                <div class="panel-subtitle">Asistent odpovedá klientom e-mailom – rovnaká AI, nový kanál</div>
-              </div>
-              <div style="position:relative;width:42px;height:24px;flex-shrink:0">
-                <input type="checkbox" id="email-channel-active" onchange="saveEmailConfig()" style="position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1">
-                <div id="email-toggle-track" style="width:42px;height:24px;border-radius:12px;background:#e2e8f0;transition:background 0.2s;position:absolute;top:0;left:0"></div>
-                <div id="email-toggle-thumb" style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></div>
+
+            <!-- Marketing header -->
+            <div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:12px;padding:1.25rem;margin-bottom:1.25rem">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+                <div>
+                  <div style="font-size:1.05rem;font-weight:700;color:#1e293b;margin-bottom:0.35rem">&#128231; Vaša AI na firemnom e-maile</div>
+                  <div style="font-size:0.85rem;color:#4b5563;margin-bottom:0.75rem">Klienti píšu na <strong>asistent@vasafirma.sk</strong> &ndash; AI odpovedá za sekundy, 24/7, bez vás.</div>
+                  <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                    <span style="background:white;border:1px solid #c4b5fd;color:#7c3aed;border-radius:20px;padding:0.2rem 0.65rem;font-size:0.75rem;font-weight:600">&#10003; Pôsobí profesionálne</span>
+                    <span style="background:white;border:1px solid #c4b5fd;color:#7c3aed;border-radius:20px;padding:0.2rem 0.65rem;font-size:0.75rem;font-weight:600">&#10003; Vaša doména, nie gmail</span>
+                    <span style="background:white;border:1px solid #c4b5fd;color:#7c3aed;border-radius:20px;padding:0.2rem 0.65rem;font-size:0.75rem;font-weight:600">&#10003; Rovnaká AI ako chatbot</span>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.6rem;flex-shrink:0">
+                  <span style="font-size:0.8rem;color:#6b7280" id="email-toggle-label">Vypnuté</span>
+                  <div style="position:relative;width:42px;height:24px">
+                    <input type="checkbox" id="email-channel-active" onchange="saveEmailConfig()" style="position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1">
+                    <div id="email-toggle-track" style="width:42px;height:24px;border-radius:12px;background:#e2e8f0;transition:background 0.2s;position:absolute;top:0;left:0"></div>
+                    <div id="email-toggle-thumb" style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></div>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <!-- Email address input -->
-            <div class="form-group" style="margin-bottom:0.75rem">
-              <label>E-mailová adresa asistenta</label>
-              <div style="display:flex;gap:0.5rem">
-                <input type="email" id="email-channel-address" placeholder="asistent@vasadomena.sk" style="flex:1" onblur="saveEmailConfig()">
-              </div>
-              <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.3rem">Adresa, ktorú nastavíte v Cloudflare Email Routing. Klienti na ňu píšu, AI odpovedá.</div>
+            <!-- Email address -->
+            <div class="form-group" style="margin-bottom:1.25rem">
+              <label style="font-weight:600">E-mailová adresa asistenta</label>
+              <input type="email" id="email-channel-address" placeholder="asistent@vasafirma.sk" style="width:100%" onblur="saveEmailConfig()">
+              <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.3rem">Adresu si vyberte ľubovoľne &ndash; nastavíte ju v 4. kroku nižšie.</div>
             </div>
 
-            <!-- Setup guide -->
-            <details style="margin-bottom:1rem">
-              <summary style="font-size:0.85rem;font-weight:600;color:#374151;cursor:pointer;padding:0.5rem 0;border-top:1px solid #f1f5f9">⚙️ Návod na nastavenie (Cloudflare)</summary>
-              <div style="margin-top:0.75rem;display:flex;flex-direction:column;gap:0.6rem;font-size:0.82rem;color:#374151">
-                <div style="display:flex;gap:0.75rem;align-items:flex-start">
-                  <span style="background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">1</span>
-                  <span>Choďte na <strong>dash.cloudflare.com</strong> → vaša doména → <strong>Email → Email Routing → Email Workers</strong></span>
+            <div style="font-size:0.8rem;font-weight:700;color:#94a3b8;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:0.75rem">Nastavenie (raz, cca 15 minút)</div>
+
+            <!-- STEP 1 -->
+            <details style="margin-bottom:0.5rem;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+              <summary style="display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;cursor:pointer;background:#f8fafc;list-style:none;user-select:none">
+                <span style="background:#7c3aed;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">1</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:0.9rem;color:#1e293b">Presunúť DNS na Cloudflare</div>
+                  <div style="font-size:0.75rem;color:#64748b">Bezplatné &bull; 5&ndash;10 minút &bull; doména bude fungovať rovnako</div>
                 </div>
-                <div style="display:flex;gap:0.75rem;align-items:flex-start">
-                  <span style="background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">2</span>
-                  <span>Kliknite <strong>Create</strong> → vložte Worker skript nižšie → <strong>Save and Deploy</strong></span>
+                <span style="color:#94a3b8;font-size:0.8rem">&#9660;</span>
+              </summary>
+              <div style="padding:1rem;background:white;font-size:0.85rem;color:#374151;display:flex;flex-direction:column;gap:0.85rem">
+                <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.85rem;font-size:0.82rem;color:#92400e">
+                  <strong>Prečo je to potrebné?</strong> Cloudflare spravuje DNS záznamy vašej domény a umožňuje príjem e-mailov. Je to <strong>bezplatná služba</strong> &ndash; nič neplatíte, doména funguje ďalej normálne.
                 </div>
-                <div style="display:flex;gap:0.75rem;align-items:flex-start">
-                  <span style="background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">3</span>
-                  <span>V nastaveniach Workera pridajte <strong>Environment Variable</strong>: <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">NEOWORKLY_SECRET</code> → skopírujte hodnotu zo sekcie nižšie</span>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.5rem">1a. Vytvorte bezplatný účet na cloudflare.com</div>
+                  <a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.4rem;background:#f97316;color:white;border-radius:8px;padding:0.45rem 1rem;font-size:0.82rem;font-weight:600;text-decoration:none">Otvoriť Cloudflare registráciu &#8594;</a>
                 </div>
-                <div style="display:flex;gap:0.75rem;align-items:flex-start">
-                  <span style="background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">4</span>
-                  <span>Choďte na <strong>Email Routing → Routing Rules</strong> → pridajte pravidlo: <em>asistent@vasadomena.sk</em> → <em>Send to Worker</em></span>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.5rem">1b. Pridajte vašu doménu</div>
+                  <div style="color:#64748b">V Cloudflare kliknite <strong>"Add a Site"</strong> &#8594; zadajte doménu (napr. <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px">vasafirma.sk</code>) &#8594; vyberte <strong>Free plán</strong>.<br><br>Cloudflare naskenuje existujúce DNS záznamy a ukáže vám <strong>2 nameservery</strong> (napr. <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px">aria.ns.cloudflare.com</code>). Tieto skopírujte.</div>
                 </div>
-                <div style="display:flex;gap:0.75rem;align-items:flex-start">
-                  <span style="background:#7c3aed;color:white;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">5</span>
-                  <span>Zadajte e-mailovú adresu vyššie, uložte a zapnite kanál</span>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.6rem">1c. Nastavte nameservery u svojho registrátora</div>
+                  <div style="color:#64748b;margin-bottom:0.65rem">Vyberte kde máte doménu registrovanú:</div>
+                  <div style="display:flex;flex-direction:column;gap:0.4rem">
+                    <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                      <summary style="padding:0.5rem 0.75rem;cursor:pointer;background:#f8fafc;font-weight:600;font-size:0.82rem">&#127480;&#127472; Wedos.sk / &#127464;&#127487; Wedos.cz</summary>
+                      <div style="padding:0.65rem 0.75rem;font-size:0.8rem;color:#374151">Prihláste sa &#8594; <strong>Domény</strong> &#8594; kliknite na vašu doménu &#8594; záložka <strong>DNS záznamy</strong> &#8594; sekcia <strong>Nameservery</strong> &#8594; Zmeniť na vlastné &#8594; vložte oba nameservery z Cloudflare.</div>
+                    </details>
+                    <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                      <summary style="padding:0.5rem 0.75rem;cursor:pointer;background:#f8fafc;font-weight:600;font-size:0.82rem">Forpsi.sk / Forpsi.cz</summary>
+                      <div style="padding:0.65rem 0.75rem;font-size:0.8rem;color:#374151">Prihláste sa &#8594; <strong>Môj účet &#8594; Domény</strong> &#8594; kliknite na doménu &#8594; <strong>Spravovať doménu &#8594; Zmena NS záznamov</strong> &#8594; vložte oba nameservery.</div>
+                    </details>
+                    <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                      <summary style="padding:0.5rem 0.75rem;cursor:pointer;background:#f8fafc;font-weight:600;font-size:0.82rem">Active24</summary>
+                      <div style="padding:0.65rem 0.75rem;font-size:0.8rem;color:#374151">Prihláste sa &#8594; <strong>Správa domény</strong> &#8594; <strong>Nameservery</strong> &#8594; zadajte oba nameservery z Cloudflare.</div>
+                    </details>
+                    <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                      <summary style="padding:0.5rem 0.75rem;cursor:pointer;background:#f8fafc;font-weight:600;font-size:0.82rem">GoDaddy</summary>
+                      <div style="padding:0.65rem 0.75rem;font-size:0.8rem;color:#374151">My Domains &#8594; kliknite na doménu &#8594; <strong>DNS &#8594; Nameservers &#8594; Change</strong> &#8594; vyberte "I'll use my own nameservers" &#8594; vložte oba.</div>
+                    </details>
+                    <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                      <summary style="padding:0.5rem 0.75rem;cursor:pointer;background:#f8fafc;font-weight:600;font-size:0.82rem">Iný registrátor</summary>
+                      <div style="padding:0.65rem 0.75rem;font-size:0.8rem;color:#374151">Hľadajte v nastaveniach domény sekciu <strong>"Nameservery"</strong>, <strong>"NS záznamy"</strong> alebo <strong>"DNS servers"</strong>. Vložte oba nameservery z Cloudflare. Pri problémoch kontaktujte podporu registrátora &ndash; zmena NS je štandardná požiadavka.</div>
+                    </details>
+                  </div>
+                </div>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.65rem 0.85rem;font-size:0.82rem;color:#166534">
+                  &#9203; Zmena NS sa prejaví do <strong>5&ndash;30 minút</strong> (výnimočne až 24 hodín). Dovtedy doména funguje normálne.
                 </div>
               </div>
             </details>
 
-            <!-- Worker script -->
-            <div style="margin-bottom:0.75rem">
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
-                <label style="font-weight:600;font-size:0.85rem;color:#374151;margin:0">Cloudflare Worker skript</label>
-                <button onclick="copyEmailWorker()" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.78rem;cursor:pointer">📋 Kopírovať</button>
-              </div>
-              <pre id="email-worker-code" style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:0.85rem;font-size:0.72rem;overflow-x:auto;margin:0;white-space:pre-wrap;word-break:break-all"></pre>
-            </div>
-
-            <!-- Webhook secret -->
-            <div>
-              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
-                <label style="font-weight:600;font-size:0.85rem;color:#374151;margin:0">Webhook Secret <span style="font-size:0.75rem;color:#94a3b8">(NEOWORKLY_SECRET)</span></label>
-                <div style="display:flex;gap:0.4rem">
-                  <button onclick="copyEmailSecret()" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.78rem;cursor:pointer">📋 Kopírovať</button>
-                  <button onclick="regenerateEmailSecret()" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;padding:0.3rem 0.75rem;font-size:0.78rem;cursor:pointer">🔄 Obnov</button>
+            <!-- STEP 2 -->
+            <details style="margin-bottom:0.5rem;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+              <summary style="display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;cursor:pointer;background:#f8fafc;list-style:none;user-select:none">
+                <span style="background:#7c3aed;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">2</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:0.9rem;color:#1e293b">Zapnúť Email Routing v Cloudflare</div>
+                  <div style="font-size:0.75rem;color:#64748b">2 kliknutia &bull; Cloudflare to nastaví automaticky</div>
+                </div>
+                <span style="color:#94a3b8;font-size:0.8rem">&#9660;</span>
+              </summary>
+              <div style="padding:1rem;background:white;font-size:0.85rem;color:#374151;display:flex;flex-direction:column;gap:0.6rem">
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">a</span>
+                  <span>V Cloudflare kliknite na vašu doménu &#8594; v ľavom menu <strong>Email &#8594; Email Routing</strong></span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">b</span>
+                  <span>Kliknite <strong>"Enable Email Routing"</strong> &#8594; Cloudflare automaticky pridá MX záznamy (nemusíte nič robiť)</span>
+                </div>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.6rem 0.85rem;font-size:0.82rem;color:#166534;margin-top:0.25rem">
+                  &#10003; Hotovo &ndash; Email Routing je aktívny.
                 </div>
               </div>
-              <div id="email-webhook-secret" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.6rem 0.85rem;font-family:monospace;font-size:0.78rem;color:#374151;word-break:break-all">(uložte profil pre vygenerovanie secretu)</div>
-            </div>
+            </details>
+
+            <!-- STEP 3 -->
+            <details style="margin-bottom:0.5rem;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+              <summary style="display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;cursor:pointer;background:#f8fafc;list-style:none;user-select:none">
+                <span style="background:#7c3aed;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">3</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:0.9rem;color:#1e293b">Nasadiť AI Worker skript</div>
+                  <div style="font-size:0.75rem;color:#64748b">Kopírovanie, nie programovanie &bull; 3 minúty</div>
+                </div>
+                <span style="color:#94a3b8;font-size:0.8rem">&#9660;</span>
+              </summary>
+              <div style="padding:1rem;background:white;font-size:0.85rem;color:#374151;display:flex;flex-direction:column;gap:0.85rem">
+                <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:0.6rem 0.85rem;font-size:0.82rem;color:#92400e">
+                  <strong>Nebojte sa &ndash; nekódujete nič.</strong> Skopírujete hotový kód a vložíte ho. Cloudflare Worker je jednoducho &ldquo;pravidlo&rdquo;, čo má Cloudflare urobiť s prijatým e-mailom.
+                </div>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.4rem">3a. Vytvorte Worker</div>
+                  <div style="color:#64748b">V Cloudflare kliknite v ľavom menu <strong>Workers &amp; Pages &#8594; Create</strong> &#8594; <strong>Create Worker</strong> &#8594; pomenujte ho napr. <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px">neoworkly-email</code> &#8594; kliknite <strong>Deploy</strong>.</div>
+                </div>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.4rem">3b. Vložte AI skript</div>
+                  <div style="color:#64748b;margin-bottom:0.5rem">Kliknite <strong>Edit code</strong> &#8594; zmažte všetok predvolený kód &#8594; skopírujte a vložte skript nižšie &#8594; <strong>Deploy</strong>.</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+                    <span style="font-size:0.78rem;color:#94a3b8">Hotový skript (len kopírovať):</span>
+                    <button onclick="copyEmailWorker()" style="background:#7c3aed;color:white;border:none;border-radius:6px;padding:0.35rem 0.85rem;font-size:0.78rem;font-weight:600;cursor:pointer">&#128203; Kopírovať skript</button>
+                  </div>
+                  <pre id="email-worker-code" style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:0.85rem;font-size:0.7rem;overflow-x:auto;margin:0;white-space:pre-wrap;word-break:break-all;max-height:180px;overflow-y:auto"></pre>
+                </div>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.4rem">3c. Pridajte tajný kľúč</div>
+                  <div style="color:#64748b;margin-bottom:0.5rem">V nastaveniach Workera kliknite <strong>Settings &#8594; Variables &#8594; Add variable</strong>:</div>
+                  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.65rem 0.85rem">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
+                      <div>
+                        <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.2rem">Variable name:</div>
+                        <code style="font-size:0.85rem;color:#7c3aed;font-weight:700">NEOWORKLY_SECRET</code>
+                      </div>
+                      <div style="flex:1;min-width:0;margin:0 0.75rem">
+                        <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.2rem">Value (váš unikátny kľúč):</div>
+                        <div id="email-webhook-secret" style="font-family:monospace;font-size:0.8rem;color:#1e293b;background:#f1f5f9;padding:0.3rem 0.5rem;border-radius:6px;word-break:break-all">(uložte profil pre vygenerovanie)</div>
+                      </div>
+                      <div style="display:flex;gap:0.4rem;flex-shrink:0">
+                        <button onclick="copyEmailSecret()" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.35rem 0.75rem;font-size:0.78rem;cursor:pointer">&#128203; Kopírovať</button>
+                        <button onclick="regenerateEmailSecret()" title="Vygeneruje nový kľúč" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;padding:0.35rem 0.6rem;font-size:0.78rem;cursor:pointer">&#128260;</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.4rem">Zaškrtnite <strong>"Encrypt"</strong> pre bezpečnejšie uloženie. Potom kliknite <strong>Save and Deploy</strong>.</div>
+                </div>
+              </div>
+            </details>
+
+            <!-- STEP 4 -->
+            <details style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+              <summary style="display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;cursor:pointer;background:#f8fafc;list-style:none;user-select:none">
+                <span style="background:#7c3aed;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">4</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:0.9rem;color:#1e293b">Prepojiť e-mailovú adresu s Workerom</div>
+                  <div style="font-size:0.75rem;color:#64748b">Posledný krok &ndash; 2 minúty</div>
+                </div>
+                <span style="color:#94a3b8;font-size:0.8rem">&#9660;</span>
+              </summary>
+              <div style="padding:1rem;background:white;font-size:0.85rem;color:#374151;display:flex;flex-direction:column;gap:0.6rem">
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">a</span>
+                  <span>V Cloudflare &#8594; vaša doména &#8594; <strong>Email &#8594; Email Routing &#8594; Routing Rules</strong></span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">b</span>
+                  <span>Kliknite <strong>"Create address"</strong> &#8594; zadajte prefix (napr. <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">asistent</code>) &#8594; ako akciu vyberte <strong>"Send to a Worker"</strong> &#8594; vyberte váš Worker</span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">c</span>
+                  <span>Zadajte výslednú e-mailovú adresu (napr. <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">asistent@vasafirma.sk</code>) do poľa vyššie &#8594; zapnite kanál &#8594; <strong>uložte</strong></span>
+                </div>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.65rem 0.85rem;font-size:0.82rem;color:#166534;margin-top:0.25rem">
+                  &#127881; <strong>Hotovo!</strong> Pošlite si testovací e-mail na vašu novú adresu a AI by mala odpovedať do 10 sekúnd.
+                </div>
+              </div>
+            </details>
+
           </div>
 
           </div><!-- /#person-content -->
