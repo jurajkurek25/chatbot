@@ -631,6 +631,126 @@ TYPICKÉ OTÁZKY — Lead Reaktivácia:
 "Vidím správu 'Zákazník nezanechal správu' v zhrnutí"
 → Tento lead zanechal kontakt bez rozhovoru s chatbotom — AI nemá kontext. Správu upravte manuálne pred odoslaním.
 
+
+26. NEOWORKLY PERSON — "AI digitálny dvojník"
+Dashboard → váš widget → záložka "🧑 Person"
+CENA: €29/mesiac add-on (vyžaduje aktívny Pro plán)
+
+ČO JE PERSON:
+Person je AI digitálny dvojník — chatbot ktorý odpovedá presne tak, ako by odpovedala skutočná osoba (majiteľ, expert, konzultant). Na rozdiel od štandardného chatbota, Person má identitu, štýl a konkrétne know-how daného človeka.
+
+POLIA PROFILU:
+- Meno osoby: kto je digitálny dvojník (napr. "Ján Novák, kouč a konzultant")
+- Úvod / Bio: krátky popis osoby a čo robí
+- Ako rozmýšľam: spôsob uvažovania, hodnoty, životná filozofia
+- Tvoj štýl: komunikačný štýl (formálny/neformálny, humor, priamosť...)
+- Know-how: odborné znalosti, skúsenosti, témy v ktorých je expert
+- Reálne odpovede: príklady typických odpovedí / frázy ktoré osoba používa
+- Čo nikdy nehovoriť: zakázané témy, slová, postoje
+
+TRÉNING (30-minútový mód):
+AI hrá zákazníka a kladie otázky — majiteľ odpovedá tak, ako by skutočne komunikoval. Po aspoň 3 odpovediach klikne "Analyzovať" — AI automaticky vyplní polia profilu na základe tréningového rozhovoru.
+
+NAHRÁVANIE KNOW-HOW ZO ZDROJOV:
+Panel "📥 Nahrať know-how zo zdrojov" umožňuje extrahovať štýl a know-how z:
+- YouTube video (vloží URL — AI získa prepis a analyzuje)
+- Článok / webová stránka (vloží URL — AI extrahuje text)
+- PDF súbor (nahrá súbor — AI extrahuje obsah)
+AI navrhne doplnky pre každé pole profilu — používateľ môže schváliť alebo zahodiť.
+
+AKTIVÁCIA OSOBY:
+Prepínač "Aktívny" v profile — keď je zapnutý, chatbot odpovedá s identitou a štýlom danej osoby namiesto generického AI.
+
+EMBED:
+Widget s Person funguje rovnako ako štandardný widget — bubble alebo inline embed.
+
+BILLING:
+- Vyžaduje aktívny Pro plán (€19/mes)
+- Add-on €29/mes → celkom €48/mes
+- Platba cez Stripe (tlačidlo "Aktivovať Person" v dashboarde)
+
+BEŽNÉ OTÁZKY:
+"Čo je to digitálny dvojník?"
+→ AI chatbot ktorý komunikuje vašim hlasom, štýlom a odbornosťou — zákazník komunikuje s vami 24/7 aj keď ste offline.
+
+"Môžem mať Person bez tréningu?"
+→ Áno — vyplňte polia ručne. Tréning je voliteľná pomôcka, nie podmienka.
+
+"Koľko trvá nastaviť Person?"
+→ Základné nastavenie 15–30 minút. S tréningom a zdrojmi hodina–dve.
+
+"Môžem trénovať Person viackrát?"
+→ Áno — každý tréning dopĺňa profil, nezmaže predchádzajúci.
+
+"Person nereflektuje môj štýl"
+→ Doplňte pole "Reálne odpovede" s konkrétnymi príkladmi vašich fráz a "Ako rozmýšľam" — to má najväčší vplyv na štýl odpovede.
+
+━━━
+
+27. EMAIL KANÁL — "AI asistent na e-mailovej adrese"
+Dashboard → váš widget → záložka "🧑 Person" → sekcia "📧 E-mailový kanál"
+CENA: zahrnuté v Person add-one (€29/mes) — žiadny príplatok
+
+ČO JE EMAIL KANÁL:
+Umožňuje napojiť vlastnú e-mailovú adresu (napr. asistent@vasadomena.sk) tak, aby na ňu odpovedal AI digitálny dvojník. Zákazník pošle e-mail → AI odpíše ako Person (alebo ako štandardný chatbot ak Person nie je aktívny).
+
+AKO TO FUNGUJE (technicky — pre výpomoc klientovi):
+1. Klient nasmeruje doménu do Cloudflare (zmena NS záznamov u registrátora)
+2. Cloudflare Email Routing presmeruje prichádzajúci e-mail na Worker
+3. Worker zavolá náš webhook s obsahom e-mailu
+4. Neoworkly vygeneruje AI odpoveď a odošle ju cez SMTP
+
+NASTAVENIE KROK ZA KROKOM (Dashboard → "📧 E-mailový kanál"):
+Krok 1 — Doména do Cloudflare:
+  Klient ide na cloudflare.com, pridá svoju doménu (zadarmo plán stačí).
+  Potom zmení NS záznamy u registrátora:
+  - Wedos: Doménový panel → DNS → Nameservery
+  - Forpsi: Správa domén → Detail domény → Nameservery  
+  - Active24: Správa DNS → Nameservery
+  - GoDaddy: My Products → DNS → Nameservers → Custom
+
+Krok 2 — Email Routing:
+  Cloudflare Dashboard → doména → Email → Email Routing → Enable Email Routing.
+
+Krok 3 — Worker (kód pre prepojenie):
+  V dashboarde sa zobrazí ready-to-use kód Worker-a s predvyplneným webhookom.
+  V Cloudflare: Workers & Pages → Create → Deploy. Pridať premennú NEOWORKLY_SECRET (hodnota zo dashboardu).
+  V Email Routing: Catch-all rule → Send to Worker → vybrať Worker.
+
+Krok 4 — Adresa v Neoworkly:
+  Do políčka zadá e-mailovú adresu (napr. asistent@vasadomena.sk) a uloží.
+
+WEBHOOK SECRET:
+Každý widget má unikátny tajný kľúč (UUID) — chráni webhook pred neautorizovaným prístupom.
+"Regenerovať secret" vydá nový kľúč (treba aktualizovať premennú v Cloudflare Worker).
+
+VLÁKNA A HISTÓRIA:
+AI si pamätá históriu e-mailovej konverzácie v rámci vlákna (threading cez Message-ID / In-Reply-To).
+
+BEŽNÉ OTÁZKY:
+"Musím mať doménu v Cloudflare?"
+→ Áno — Cloudflare Email Routing je kľúčová súčasť tohto riešenia (a je zadarmo).
+
+"Musím mať nejakú špeciálnu doménu?"
+→ Nie — akákoľvek vlastná doména (.sk, .com, .eu...) funguje.
+
+"Zmizne mi web keď presuniem doménu do Cloudflare?"
+→ Nie — Cloudflare prenesie existujúce DNS záznamy automaticky. Web ostane funkčný.
+
+"Čo je Worker a musím programovať?"
+→ Nie — kód Worker-a vygeneruje Neoworkly. Skopírujte a vložte, žiadne programovanie.
+
+"Ako dlho trvá propagácia NS záznamov?"
+→ Zvyčajne 1–24 hodín (väčšinou do 2 hodín).
+
+"AI neodpovedá na e-maily"
+→ Skontrolujte: (1) Email Routing je Enabled, (2) Catch-all rule smeruje na Worker, (3) NEOWORKLY_SECRET v Worker zodpovedá secretu v dashboarde, (4) Email kanál je zapnutý prepínačom v dashboarde.
+
+"Odpovede chodia z inej adresy"
+→ Replies idú z Neoworkly SMTP ale s Reply-To nastaveným na vašu adresu — zákazník odpovie na vašu adresu, nie na systémovú.
+
+━━━
+
 ━━━ POKYNY PRE TEBA ━━━
 - Odpovedaj v slovenčine (alebo v jazyku otázky ak píše po anglicky, nemecky atď.)
 - Buď konkrétny: uvádzaj presné kroky (Dashboard → záložka → akcia)
