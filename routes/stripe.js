@@ -264,8 +264,8 @@ router.post('/webhook', async (req, res) => {
       const isActive = sub.status === 'active' || sub.status === 'trialing';
       const subPriceId = sub.items?.data?.[0]?.price?.id;
 
-      // Person add-on subscription
-      if (subPriceId === process.env.STRIPE_PRICE_ID_PERSON) {
+      // Person add-on subscription (monthly or yearly)
+      if (subPriceId === process.env.STRIPE_PRICE_ID_PERSON || subPriceId === process.env.STRIPE_PRICE_ID_PERSON_YEARLY) {
         const user = await resolveUser(sub.customer);
         if (user) {
           db.prepare('UPDATE users SET person_addon_active = ?, person_addon_subscription_id = ? WHERE id = ?')
@@ -289,8 +289,8 @@ router.post('/webhook', async (req, res) => {
       const sub = event.data.object;
       const subPriceId = sub.items?.data?.[0]?.price?.id;
 
-      // Person add-on cancelled
-      if (subPriceId === process.env.STRIPE_PRICE_ID_PERSON) {
+      // Person add-on cancelled (monthly or yearly)
+      if (subPriceId === process.env.STRIPE_PRICE_ID_PERSON || subPriceId === process.env.STRIPE_PRICE_ID_PERSON_YEARLY) {
         const user = await resolveUser(sub.customer);
         if (user) {
           db.prepare('UPDATE users SET person_addon_active = 0, person_addon_subscription_id = NULL WHERE id = ?').run(user.id);
@@ -332,7 +332,7 @@ router.post('/webhook', async (req, res) => {
   res.json({ received: true });
 });
 
-// POST /api/stripe/checkout-person — subscribe to Person add-on (€29/mes)
+// POST /api/stripe/checkout-person — subscribe to Person add-on (monthly or yearly)
 router.post('/checkout-person', requireAuth, async (req, res) => {
   const db = getDb();
   const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, person_addon_active FROM users WHERE id = ?').get(req.userId);
@@ -345,7 +345,10 @@ router.post('/checkout-person', requireAuth, async (req, res) => {
     return res.json({ url: '/dashboard' });
   }
 
-  const priceId = process.env.STRIPE_PRICE_ID_PERSON;
+  const billing = req.body?.billing === 'yearly' ? 'yearly' : 'monthly';
+  const priceId = billing === 'yearly'
+    ? process.env.STRIPE_PRICE_ID_PERSON_YEARLY
+    : process.env.STRIPE_PRICE_ID_PERSON;
   if (!priceId) return res.status(500).json({ error: 'Person add-on price nie je nakonfigurovaná.' });
 
   const stripe = getStripe();
