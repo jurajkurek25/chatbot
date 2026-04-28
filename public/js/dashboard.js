@@ -5170,7 +5170,11 @@ async function subscribePersonAddon() {
   const btn = document.querySelector('#person-upsell-overlay button[onclick="subscribePersonAddon()"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Presmerovanie…'; }
   try {
-    const r = await apiFetch('/api/stripe/checkout-person', { method: 'POST', body: JSON.stringify({ billing: _personBilling }) });
+    const r = await apiFetch('/api/stripe/checkout-person', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ billing: _personBilling }),
+    });
     if (!r || !r.ok) { showToast('Chyba pri vytváraní platby.', 'error'); return; }
     const { url } = await r.json();
     if (url) window.location.href = url;
