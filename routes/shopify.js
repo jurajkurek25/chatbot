@@ -103,7 +103,9 @@ function verifyWebhookHmac(rawBody, signature) {
   const secret = apiSecret();
   if (!secret) return true;
   const hash = crypto.createHmac('sha256', secret).update(rawBody).digest('base64');
-  return hash === signature;
+  try {
+    return crypto.timingSafeEqual(Buffer.from(hash), Buffer.from(signature));
+  } catch { return false; }
 }
 
 // ── Sanitize shop domain ─────────────────────────────────────────

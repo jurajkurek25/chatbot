@@ -42,6 +42,18 @@ router.post('/start', async (req, res) => {
     try { parsed = new URL(url); } catch { return res.status(400).json({ error: 'Neplatná URL.' }); }
     if (!parsed.protocol.startsWith('http')) return res.status(400).json({ error: 'Len HTTP/HTTPS URL.' });
 
+    // SSRF protection: block private/loopback addresses
+    const hostname = parsed.hostname;
+    if (
+      hostname === 'localhost' || hostname === '::1' ||
+      /^127\./.test(hostname) ||
+      /^10\./.test(hostname) ||
+      /^192\.168\./.test(hostname) ||
+      /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname)
+    ) {
+      return res.status(400).json({ error: 'Privátne IP adresy nie sú povolené.' });
+    }
+
     const db = getDb();
     const user = db.prepare('SELECT boost_credits, growth_boost_paid FROM users WHERE id = ?').get(req.userId);
     if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });

@@ -132,8 +132,15 @@ router.delete('/:widgetId', requireAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-// POST /api/sequences/process — (no auth) process due jobs (called by cron)
+// POST /api/sequences/process — internal cron only; protected by secret or localhost
 router.post('/process', async (req, res) => {
+  const remoteIp = req.socket.remoteAddress || '';
+  const isLocal = remoteIp === '127.0.0.1' || remoteIp === '::1' || remoteIp === '::ffff:127.0.0.1';
+  const secret = process.env.INTERNAL_SECRET;
+  if (!isLocal && (!secret || req.headers['x-internal-secret'] !== secret)) {
+    return res.status(403).json({ error: 'Forbidden.' });
+  }
+
   const db = getDb();
   const now = Math.floor(Date.now() / 1000);
 

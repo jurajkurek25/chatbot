@@ -135,7 +135,7 @@ app.listen(PORT, () => {
 setInterval(async () => {
   try {
     const http = require('http');
-    const opts = { hostname: 'localhost', port: PORT, path: '/api/sequences/process', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': 0 } };
+    const opts = { hostname: 'localhost', port: PORT, path: '/api/sequences/process', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': 0, 'X-Internal-Secret': process.env.INTERNAL_SECRET || '' } };
     const req = http.request(opts);
     req.on('error', () => {});
     req.end();

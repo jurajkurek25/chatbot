@@ -12,6 +12,20 @@ const { sendPasswordReset } = require('../services/email');
 const router = express.Router();
 const SALT_ROUNDS = 12;
 
+// In-memory rate limiter (matches chat.js pattern)
+const _rl = new Map();
+function rateLimit(key, maxHits, windowMs) {
+  const now = Date.now();
+  let e = _rl.get(key);
+  if (!e || now > e.resetAt) e = { hits: 0, resetAt: now + windowMs };
+  e.hits++;
+  _rl.set(key, e);
+  return e.hits > maxHits;
+}
+function clientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || '';
+}
+
 function generateReferralCode(name) {
   const base = name.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase() || 'USR';
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -29,6 +43,10 @@ function uniqueReferralCode(db, name) {
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
+  if (rateLimit('reg:' + clientIp(req), 5, 60 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Príliš veľa pokusov. Skúste neskôr.' });
+  }
+
   const { email, password, name, referralCode } = req.body;
 
   if (!email || !password || !name) {
@@ -86,6 +104,10 @@ router.post('/register', async (req, res) => {
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
+  if (rateLimit('login:' + clientIp(req), 10, 10 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Príliš veľa pokusov. Skúste neskôr.' });
+  }
+
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -174,6 +196,10 @@ router.post('/change-email', requireAuth, async (req, res) => {
 
 // POST /api/auth/forgot-password
 router.post('/forgot-password', async (req, res) => {
+  if (rateLimit('fp:' + clientIp(req), 3, 10 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Príliš veľa pokusov. Skúste neskôr.' });
+  }
+
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email je povinný.' });
 
