@@ -24,15 +24,20 @@ router.post('/checkout', requireAuth, async (req, res) => {
   const stripe = getStripe();
   const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
-  const { plan } = req.body; // 'pro' (default) or 'white_label'
-  const isWhiteLabel = plan === 'white_label' && process.env.STRIPE_PRICE_ID_WHITE_LABEL;
+  const { plan, billing } = req.body; // plan: 'pro' | 'white_label'; billing: 'monthly' | 'yearly'
+  const isWhiteLabel = plan === 'white_label';
+  const wlYearly = isWhiteLabel && billing === 'yearly' && process.env.STRIPE_PRICE_ID_WHITE_LABEL_YEARLY;
 
   // White label plan takes precedence; otherwise use discounted price for referrals
-  const priceId = isWhiteLabel
-    ? process.env.STRIPE_PRICE_ID_WHITE_LABEL
-    : (user.referred_by && process.env.STRIPE_PRICE_ID_DISCOUNTED
-        ? process.env.STRIPE_PRICE_ID_DISCOUNTED
-        : process.env.STRIPE_PRICE_ID);
+  const priceId = wlYearly
+    ? process.env.STRIPE_PRICE_ID_WHITE_LABEL_YEARLY
+    : isWhiteLabel && process.env.STRIPE_PRICE_ID_WHITE_LABEL
+      ? process.env.STRIPE_PRICE_ID_WHITE_LABEL
+      : (user.referred_by && process.env.STRIPE_PRICE_ID_DISCOUNTED
+          ? process.env.STRIPE_PRICE_ID_DISCOUNTED
+          : process.env.STRIPE_PRICE_ID);
+
+  if (!priceId) return res.status(500).json({ error: 'Cenový plán nie je nakonfigurovaný.' });
 
   try {
     // Get or create Stripe customer
@@ -321,7 +326,8 @@ router.post('/webhook', async (req, res) => {
       }
 
       const status = isActive ? 'active' : 'inactive';
-      const plan = subPriceId === process.env.STRIPE_PRICE_ID_WHITE_LABEL ? 'white_label' : 'pro';
+      const isWLPrice = subPriceId === process.env.STRIPE_PRICE_ID_WHITE_LABEL || subPriceId === process.env.STRIPE_PRICE_ID_WHITE_LABEL_YEARLY;
+      const plan = isWLPrice ? 'white_label' : 'pro';
       const user = await resolveUser(sub.customer);
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ?, subscription_id = ?, subscription_plan = ? WHERE id = ?')
@@ -358,6 +364,17 @@ router.post('/webhook', async (req, res) => {
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('inactive', user.id);
         db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(user.id);
+
+        // Schedule win-back email 7 days later (skip if one already queued)
+        const { v4: uuidv4 } = require('uuid');
+        const sendAt = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
+        const userFull = db.prepare('SELECT email, name FROM users WHERE id = ?').get(user.id);
+        const existing = db.prepare('SELECT id FROM winback_jobs WHERE user_id = ? AND sent_at IS NULL AND failed = 0').get(user.id);
+        if (userFull && !existing) {
+          db.prepare('INSERT INTO winback_jobs (id, user_id, user_email, user_name, send_at) VALUES (?, ?, ?, ?, ?)')
+            .run(uuidv4(), user.id, userFull.email, userFull.name, sendAt);
+          console.log(`[winback] Scheduled email for user ${user.id} at ${new Date(sendAt * 1000).toISOString()}`);
+        }
       }
       break;
     }

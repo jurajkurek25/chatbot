@@ -1957,16 +1957,74 @@ async function loadUsageBar() {
 
 function openCreditsModal() {
   document.getElementById('modal-credits').style.display = 'flex';
-  // Live preview for custom amount
   const input = document.getElementById('credits-custom-eur');
   const preview = document.getElementById('credits-custom-preview');
+  const customLabel = document.getElementById('credits-custom-label');
+  const wlSection = document.getElementById('credits-wl-section');
   input.value = '';
   preview.textContent = '= 0 odpovedí';
-  input.oninput = () => {
-    const eur = Math.floor(Number(input.value) || 0);
-    preview.textContent = eur >= 1 ? `= ${eur * 20} odpovedí` : '= 0 odpovedí';
-  };
+
+  const isWL = _wlStatus !== null;
+  if (isWL) {
+    if (wlSection) wlSection.style.display = 'block';
+    if (customLabel) customLabel.innerHTML = 'Vlastná suma <span style="font-weight:400;color:#94a3b8">(≥€100 = 33 odp/€, ostatné = 20 odp/€)</span>';
+    input.oninput = () => {
+      const eur = Math.floor(Number(input.value) || 0);
+      const rate = eur >= 100 ? 33 : 20;
+      preview.textContent = eur >= 1 ? `= ${eur * rate} odpovedí${eur >= 100 ? ' ⭐' : ''}` : '= 0 odpovedí';
+    };
+    loadWLCreditsSection();
+  } else {
+    if (wlSection) wlSection.style.display = 'none';
+    if (customLabel) customLabel.innerHTML = 'Vlastná suma <span style="font-weight:400;color:#94a3b8">(1 € = 20 odpovedí)</span>';
+    input.oninput = () => {
+      const eur = Math.floor(Number(input.value) || 0);
+      preview.textContent = eur >= 1 ? `= ${eur * 20} odpovedí` : '= 0 odpovedí';
+    };
+  }
   loadAutoReloadSettings();
+}
+
+async function loadWLCreditsSection() {
+  const pkgContainer = document.getElementById('credits-wl-packages');
+  const usageContainer = document.getElementById('credits-wl-usage');
+  if (!pkgContainer) return;
+
+  // Render WL packages
+  const wlPkgs = [
+    { id: 'wl_p50',  eur: 50,  cr: 1000, label: 'Štandard' },
+    { id: 'wl_p100', eur: 100, cr: 3300, label: 'Volume -40%', highlight: true },
+    { id: 'wl_p250', eur: 250, cr: 8250, label: 'Volume -40%', highlight: true },
+  ];
+  pkgContainer.innerHTML = wlPkgs.map(p => `
+    <button onclick="buyCredits('${p.id}')" style="padding:0.85rem 0.6rem;border:2px solid ${p.highlight ? '#7c3aed' : '#e2e8f0'};border-radius:12px;background:${p.highlight ? 'rgba(124,58,237,0.04)' : 'white'};cursor:pointer;text-align:left;position:relative">
+      ${p.highlight ? `<div style="position:absolute;top:0.3rem;right:0.4rem;font-size:0.6rem;font-weight:700;color:#7c3aed;background:#ede9fe;padding:1px 5px;border-radius:99px">${p.label}</div>` : ''}
+      <div style="font-size:1rem;font-weight:700;color:#1e293b">€${p.eur}</div>
+      <div style="font-size:0.72rem;color:#64748b;margin-top:2px">${p.cr.toLocaleString()} odpovedí</div>
+      <div style="font-size:0.65rem;color:#94a3b8;margin-top:1px">€${(p.eur/p.cr).toFixed(3)}/odp.</div>
+    </button>`).join('');
+
+  // Load per-widget usage
+  if (usageContainer) {
+    usageContainer.innerHTML = '<div style="font-size:0.78rem;color:#94a3b8">Načítavam využitie...</div>';
+    try {
+      const r = await apiFetch('/api/credits/widget-usage');
+      if (!r || !r.ok) { usageContainer.innerHTML = ''; return; }
+      const { usage } = await r.json();
+      if (!usage || !usage.length) { usageContainer.innerHTML = ''; return; }
+      const total = usage.reduce((s, w) => s + (w.response_count || 0), 0);
+      usageContainer.innerHTML = `
+        <div style="font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.5rem">📊 Využitie tento mesiac (celkom: ${total})</div>
+        ${usage.map(w => {
+          const pct = total > 0 ? Math.round((w.response_count / total) * 100) : 0;
+          return `<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem">
+            <div style="flex:1;min-width:0;font-size:0.75rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${w.name || w.bot_name}</div>
+            <div style="width:80px;height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden"><div style="height:100%;background:#7c3aed;border-radius:3px;width:${pct}%"></div></div>
+            <div style="font-size:0.72rem;color:#64748b;white-space:nowrap;min-width:36px;text-align:right">${w.response_count}</div>
+          </div>`;
+        }).join('')}`;
+    } catch { usageContainer.innerHTML = ''; }
+  }
 }
 
 /* ──────────────────────────────────────────────────────────────

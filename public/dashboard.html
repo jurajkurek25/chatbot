@@ -1887,7 +1887,7 @@
           <div id="person-upsell-overlay" style="display:none;position:relative;z-index:10;background:white;border-radius:16px;padding:2.5rem 2rem;text-align:center;box-shadow:0 4px 24px rgba(124,58,237,0.10);border:2px solid #ede9fe;margin-bottom:1.5rem">
             <div style="font-size:2.5rem;margin-bottom:0.75rem">🧑</div>
             <h2 style="font-size:1.35rem;font-weight:700;color:#1e293b;margin:0 0 0.5rem">Neoworkly Person</h2>
-            <p style="color:#64748b;font-size:0.9rem;max-width:420px;margin:0 auto 1.25rem">Vytvorte AI digitálnu verziu seba – odpovedá presne tak, ako vy. Vyžaduje aktívny Pro plán.</p>
+            <p style="color:#64748b;font-size:0.9rem;max-width:420px;margin:0 auto 1.25rem">Vytvorte AI digitálnu verziu seba – odpovedá presne tak, ako vy. Dostupné pre Pro aj White Label plán.</p>
             <!-- Billing toggle -->
             <div style="display:inline-flex;background:#f1f5f9;border-radius:8px;padding:3px;margin-bottom:1.25rem;gap:2px">
               <button id="person-billing-monthly" onclick="selectPersonBilling('monthly')" style="border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;background:#7c3aed;color:white;transition:all 0.15s">Mesačne</button>
@@ -2678,9 +2678,16 @@
       </button>
     </div>
 
+    <!-- WL volume packages (shown only for WL users) -->
+    <div id="credits-wl-section" style="display:none;border-top:1px solid #e2e8f0;padding-top:1.25rem;margin-bottom:1.25rem">
+      <div style="font-size:0.875rem;font-weight:700;color:#7c3aed;margin-bottom:0.65rem">🏢 White Label – Hromadné balíky</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.65rem" id="credits-wl-packages"></div>
+      <div id="credits-wl-usage" style="margin-top:1rem"></div>
+    </div>
+
     <!-- Custom amount -->
     <div style="border-top:1px solid #e2e8f0;padding-top:1.25rem">
-      <label style="font-size:0.875rem;font-weight:600;color:#374151;display:block;margin-bottom:0.5rem">Vlastná suma <span style="font-weight:400;color:#94a3b8">(1 € = 20 odpovedí)</span></label>
+      <label id="credits-custom-label" style="font-size:0.875rem;font-weight:600;color:#374151;display:block;margin-bottom:0.5rem">Vlastná suma <span style="font-weight:400;color:#94a3b8">(1 € = 20 odpovedí)</span></label>
       <div style="display:flex;gap:0.5rem;align-items:center">
         <div style="position:relative;flex:1">
           <span style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:#64748b;font-weight:600">€</span>
@@ -2850,7 +2857,7 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=20"></script>
+<script src="/js/dashboard.js?v=21"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

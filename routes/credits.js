@@ -13,6 +13,12 @@ const PACKAGES = [
   { id: 'p8r', amount_eur: 8,  credits: 200 }, // auto-refill pack
   { id: 'p15', amount_eur: 15, credits: 350 },
 ];
+// White Label volume packages — 33 responses/€ (vs standard 20/€)
+const WL_PACKAGES = [
+  { id: 'wl_p50',  amount_eur: 50,  credits: 1000, note: 'Štandard' },
+  { id: 'wl_p100', amount_eur: 100, credits: 3300, note: 'Volume zľava -40%' },
+  { id: 'wl_p250', amount_eur: 250, credits: 8250, note: 'Volume zľava -40%' },
+];
 
 function getStripe() {
   return Stripe(process.env.STRIPE_SECRET_KEY);
@@ -74,7 +80,7 @@ function maybeResetUsage(db, userId, user) {
 router.get('/status', requireAuth, (req, res) => {
   const db = getDb();
   const user = db.prepare(
-    'SELECT ai_responses_this_month, ai_responses_reset_at, extra_response_credits FROM users WHERE id = ?'
+    'SELECT ai_responses_this_month, ai_responses_reset_at, extra_response_credits, subscription_plan FROM users WHERE id = ?'
   ).get(req.userId);
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
 
@@ -87,6 +93,7 @@ router.get('/status', requireAuth, (req, res) => {
   const baseUsed = Math.min(thisMonth, BASE_RESPONSES);
   const baseRemaining = Math.max(0, BASE_RESPONSES - thisMonth);
   const usagePct = Math.min(100, Math.round((thisMonth / BASE_RESPONSES) * 100));
+  const isWL = user.subscription_plan === 'white_label';
 
   res.json({
     base_responses: BASE_RESPONSES,
@@ -96,6 +103,8 @@ router.get('/status', requireAuth, (req, res) => {
     usage_pct: usagePct,
     reset_at: freshUser.ai_responses_reset_at,
     packages: PACKAGES,
+    wl_packages: isWL ? WL_PACKAGES : null,
+    is_white_label: isWL,
   });
 });
 
@@ -104,18 +113,27 @@ router.get('/status', requireAuth, (req, res) => {
 router.post('/buy', requireAuth, async (req, res) => {
   const { package_id, custom_eur, save_card } = req.body;
   const db = getDb();
-  const user = db.prepare('SELECT id, email, name, stripe_customer_id FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_plan FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
 
+  const isWL = user.subscription_plan === 'white_label';
   let amountEur, creditsToAdd;
 
+  // Check WL packages first
+  const wlPkg = isWL ? WL_PACKAGES.find(p => p.id === package_id) : null;
   const pkg = PACKAGES.find(p => p.id === package_id);
-  if (pkg) {
+
+  if (wlPkg) {
+    amountEur = wlPkg.amount_eur;
+    creditsToAdd = wlPkg.credits;
+  } else if (pkg) {
     amountEur = pkg.amount_eur;
     creditsToAdd = pkg.credits;
   } else if (custom_eur && Number(custom_eur) >= 1) {
     amountEur = Math.floor(Number(custom_eur));
-    creditsToAdd = amountEur * 20;
+    // WL volume discount: ≥€100 → 33 cr/€, otherwise standard 20 cr/€
+    const rate = (isWL && amountEur >= 100) ? 33 : 20;
+    creditsToAdd = amountEur * rate;
   } else {
     return res.status(400).json({ error: 'Neplatný balík alebo suma (min. 1 €).' });
   }
@@ -142,7 +160,7 @@ router.post('/buy', requireAuth, async (req, res) => {
           currency: 'eur',
           unit_amount: amountEur * 100,
           product_data: {
-            name: `Neoworkly – ${creditsToAdd} AI odpovedí`,
+            name: `Neoworkly – ${creditsToAdd} AI odpovedí${isWL && amountEur >= 100 ? ' (WL volume)' : ''}`,
             description: `Kredit pre AI chatbot`,
           },
         },
@@ -289,6 +307,29 @@ router.post('/remove-card', requireAuth, async (req, res) => {
   ).run(req.userId);
 
   res.json({ ok: true });
+});
+
+// GET /api/credits/widget-usage — per-widget AI response count this month (WL only)
+router.get('/widget-usage', requireAuth, (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT subscription_plan FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+  if (user.subscription_plan !== 'white_label') return res.status(403).json({ error: 'Len pre White Label plán.' });
+
+  const now = new Date();
+  const monthStart = Math.floor(new Date(now.getFullYear(), now.getMonth(), 1).getTime() / 1000);
+
+  const usage = db.prepare(`
+    SELECT w.id, w.name, w.bot_name, COUNT(m.id) as response_count
+    FROM widgets w
+    LEFT JOIN conversations c ON c.widget_id = w.id
+    LEFT JOIN messages m ON m.conversation_id = c.id AND m.role = 'assistant' AND m.created_at >= ?
+    WHERE w.user_id = ?
+    GROUP BY w.id, w.name, w.bot_name
+    ORDER BY response_count DESC
+  `).all(monthStart, req.userId);
+
+  res.json({ usage, month_start: monthStart });
 });
 
 module.exports = { router, BASE_RESPONSES, nextMonthReset, maybeResetUsage, triggerAutoReload };

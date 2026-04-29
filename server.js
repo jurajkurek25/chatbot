@@ -141,3 +141,26 @@ setInterval(async () => {
     req.end();
   } catch {}
 }, 5 * 60 * 1000);
+
+// Process win-back emails every hour
+setInterval(async () => {
+  try {
+    const { getDb } = require('./db/database');
+    const { sendWinbackEmail } = require('./services/email');
+    const db = getDb();
+    const now = Math.floor(Date.now() / 1000);
+    const jobs = db.prepare('SELECT * FROM winback_jobs WHERE sent_at IS NULL AND failed = 0 AND send_at <= ?').all(now);
+    for (const job of jobs) {
+      try {
+        await sendWinbackEmail({ toEmail: job.user_email, name: job.user_name });
+        db.prepare('UPDATE winback_jobs SET sent_at = ? WHERE id = ?').run(now, job.id);
+      } catch (e) {
+        console.error('[winback] Failed to send email for job', job.id, e.message);
+        db.prepare('UPDATE winback_jobs SET failed = 1 WHERE id = ?').run(job.id);
+      }
+    }
+    if (jobs.length > 0) console.log(`[winback] Processed ${jobs.length} win-back email(s)`);
+  } catch (e) {
+    console.error('[winback] Cron error:', e.message);
+  }
+}, 60 * 60 * 1000);

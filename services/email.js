@@ -272,4 +272,47 @@ async function sendPasswordReset({ toEmail, resetUrl }) {
   } catch (err) { console.error('[email] Password reset failed:', err.message); }
 }
 
-module.exports = { sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite, sendPasswordReset };
+async function sendWinbackEmail({ toEmail, name }) {
+  const transport = createTransport();
+  if (!transport) return;
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const baseUrl = process.env.BASE_URL || 'https://neoworkly.com';
+  const subject = 'Chýbate nám v Neoworkly – vráťte sa a získajte výhodu';
+  const html = `
+<!DOCTYPE html>
+<html lang="sk">
+<head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:24px 32px">
+      <div style="font-size:20px;font-weight:800;color:white">Neoworkly</div>
+      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">Váš AI chatbot na vás čaká</div>
+    </div>
+    <div style="padding:28px 32px">
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${name}</strong>,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 16px">
+        Všimli sme si, že ste zrušili predplatné Neoworkly. Úprimne nás to mrzí – a chceli by sme vás späť.
+      </p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px">
+        Váš chatbot vie zachytávať leady, odpovedať zákazníkom a predávať 24/7 — kým vy spíte. Stačí ho znova spustiť.
+      </p>
+      <a href="${baseUrl}/onboarding" style="display:inline-block;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;font-weight:700;font-size:15px;padding:13px 28px;border-radius:10px;text-decoration:none">
+        Obnoviť predplatné →
+      </a>
+      <p style="font-size:0.78rem;color:#94a3b8;margin:1.25rem 0 0">
+        Máte otázky? Odpovedzte na tento email — radi pomôžeme.
+      </p>
+    </div>
+    <div style="padding:16px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">
+      Neoworkly · <a href="${baseUrl}" style="color:#94a3b8">neoworkly.com</a>
+    </div>
+  </div>
+</body>
+</html>`;
+  try {
+    await transport.sendMail({ from: `"Neoworkly" <${from}>`, to: toEmail, subject, html });
+    console.log(`[email] Winback email sent to ${toEmail}`);
+  } catch (err) { console.error('[email] Winback email failed:', err.message); }
+}
+
+module.exports = { sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite, sendPasswordReset, sendWinbackEmail };

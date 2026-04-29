@@ -89,6 +89,25 @@ async function checkSubscription() {
   }
 }
 
+let _wlBilling = 'monthly';
+
+function selectWLBilling(billing) {
+  _wlBilling = billing;
+  const monthly = billing === 'monthly';
+  const activeStyle = 'flex:1;padding:0.35rem 0.6rem;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600;background:white;color:#1e293b;box-shadow:0 1px 3px rgba(0,0,0,0.1)';
+  const inactiveStyle = 'flex:1;padding:0.35rem 0.6rem;border:none;border-radius:6px;cursor:pointer;font-size:0.8rem;font-weight:600;background:transparent;color:#64748b;box-shadow:none';
+  const mBtn = document.getElementById('wl-toggle-monthly');
+  const yBtn = document.getElementById('wl-toggle-yearly');
+  if (mBtn) mBtn.style.cssText = monthly ? activeStyle : inactiveStyle;
+  if (yBtn) yBtn.style.cssText = monthly ? inactiveStyle : activeStyle;
+  const mPrice = document.getElementById('wl-price-monthly');
+  const yPrice = document.getElementById('wl-price-yearly');
+  if (mPrice) mPrice.style.display = monthly ? '' : 'none';
+  if (yPrice) yPrice.style.display = monthly ? 'none' : '';
+  const btn = document.getElementById('btn-checkout-wl');
+  if (btn) btn.textContent = monthly ? '💳 Vybrať White Label – €997/mesiac' : '💳 Vybrať White Label – €9 970/rok';
+}
+
 function selectPlan(plan) {
   document.getElementById('plan-pro').style.borderColor = plan === 'pro' ? 'var(--primary)' : 'rgba(255,255,255,0.1)';
   document.getElementById('plan-white-label').style.borderColor = plan === 'white_label' ? '#7c3aed' : 'rgba(255,255,255,0.1)';
@@ -97,14 +116,16 @@ function selectPlan(plan) {
 async function startCheckout(plan) {
   const btnId = plan === 'white_label' ? 'btn-checkout-wl' : 'btn-checkout-pro';
   const btn = document.getElementById(btnId);
-  const label = plan === 'white_label' ? '💳 Vybrať White Label – €997/mesiac' : '💳 Vybrať Pro – €37/mesiac';
+  const label = plan === 'white_label'
+    ? (_wlBilling === 'yearly' ? '💳 Vybrať White Label – €9 970/rok' : '💳 Vybrať White Label – €997/mesiac')
+    : '💳 Vybrať Pro – €37/mesiac';
   btn.disabled = true;
   btn.textContent = 'Presmerovávam...';
   try {
     const r = await fetch(`${API}/api/stripe/checkout`, {
       method: 'POST',
       headers: authHeaders(),
-      body: JSON.stringify({ plan: plan || 'pro' })
+      body: JSON.stringify({ plan: plan || 'pro', billing: plan === 'white_label' ? _wlBilling : 'monthly' })
     });
     const data = await r.json();
     if (data.url) {
