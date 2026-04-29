@@ -97,7 +97,7 @@ router.patch('/:leadId/convert', (req, res) => {
         .run(req.params.leadId);
     } else {
       const val = parseFloat(deal_value);
-      if (isNaN(val) || val < 0) return res.status(400).json({ error: 'Neplatná hodnota.' });
+      if (isNaN(val) || val < 0 || val > 1_000_000) return res.status(400).json({ error: 'Neplatná hodnota.' });
       db.prepare(
         'UPDATE leads SET deal_value = ?, converted_at = COALESCE(converted_at, unixepoch()), status = "closed" WHERE id = ?'
       ).run(val, req.params.leadId);

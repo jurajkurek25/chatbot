@@ -2,6 +2,15 @@
 
 const nodemailer = require('nodemailer');
 
+function esc(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+}
+
 function createTransport() {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM } = process.env;
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
@@ -36,12 +45,12 @@ async function sendLeadNotification({ toEmail, ownerName, widgetName, lead }) {
   const summaryBlock = lead.chat_summary
     ? `<div style="background:#f0f7ff;border-left:4px solid #2563eb;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14px;line-height:1.7;color:#1e293b;">
          <strong style="font-size:12px;color:#64748b;text-transform:uppercase;letter-spacing:0.05em">🤖 AI zhrnutie konverzácie</strong><br><br>
-         ${lead.chat_summary.replace(/\n/g, '<br>')}
+         ${esc(lead.chat_summary).replace(/\n/g, '<br>')}
        </div>`
     : '<p style="color:#94a3b8;font-style:italic;font-size:14px;">AI zhrnutie sa generuje, otvorte dashboard pre detail.</p>';
 
   const phoneRow = lead.phone
-    ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px">📞 Telefón</td><td style="padding:6px 0 6px 16px;font-size:14px;font-weight:600">${lead.phone}</td></tr>`
+    ? `<tr><td style="padding:6px 0;color:#64748b;font-size:14px">📞 Telefón</td><td style="padding:6px 0 6px 16px;font-size:14px;font-weight:600">${esc(lead.phone)}</td></tr>`
     : '';
 
   const html = `
@@ -57,13 +66,13 @@ async function sendLeadNotification({ toEmail, ownerName, widgetName, lead }) {
     </div>
 
     <div style="padding:28px 32px">
-      <p style="color:#374151;font-size:15px;margin:0 0 8px">Ahoj <strong>${ownerName}</strong>,</p>
-      <p style="color:#64748b;font-size:14px;margin:0 0 24px">Zákazník zanechal kontakt cez chatbot <strong>${widgetName}</strong>.</p>
+      <p style="color:#374151;font-size:15px;margin:0 0 8px">Ahoj <strong>${esc(ownerName)}</strong>,</p>
+      <p style="color:#64748b;font-size:14px;margin:0 0 24px">Zákazník zanechal kontakt cez chatbot <strong>${esc(widgetName)}</strong>.</p>
 
       <div style="background:#f8fafc;border-radius:12px;padding:20px 24px;margin-bottom:20px">
         <table style="width:100%;border-collapse:collapse">
-          <tr><td style="padding:6px 0;color:#64748b;font-size:14px">👤 Meno</td><td style="padding:6px 0 6px 16px;font-size:14px;font-weight:600">${lead.name}</td></tr>
-          <tr><td style="padding:6px 0;color:#64748b;font-size:14px">✉️ Email</td><td style="padding:6px 0 6px 16px;font-size:14px;font-weight:600"><a href="mailto:${lead.email}" style="color:#2563eb">${lead.email}</a></td></tr>
+          <tr><td style="padding:6px 0;color:#64748b;font-size:14px">👤 Meno</td><td style="padding:6px 0 6px 16px;font-size:14px;font-weight:600">${esc(lead.name)}</td></tr>
+          <tr><td style="padding:6px 0;color:#64748b;font-size:14px">✉️ Email</td><td style="padding:6px 0 6px 16px;font-size:14px;font-weight:600"><a href="mailto:${esc(lead.email)}" style="color:#2563eb">${esc(lead.email)}</a></td></tr>
           ${phoneRow}
         </table>
       </div>
@@ -133,7 +142,7 @@ async function sendUsageNotification({ toEmail, ownerName, pct, extra }) {
       <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">${is100 ? 'Limit AI odpovedí vyčerpaný' : '80 % mesačného limitu využité'}</div>
     </div>
     <div style="padding:28px 32px">
-      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${ownerName}</strong>,</p>
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${esc(ownerName)}</strong>,</p>
       <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px">${bodyMsg}</p>
       <a href="${dashboardUrl}" style="display:inline-block;background:#2563eb;color:white;font-weight:700;font-size:15px;padding:13px 28px;border-radius:10px;text-decoration:none">
         Dobiť kredity →
@@ -166,13 +175,13 @@ async function sendLeadAutoReply({ toEmail, leadName, widgetName, botName, custo
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
   <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
     <div style="background:linear-gradient(135deg,#2563eb,#7c3aed);padding:24px 32px">
-      <div style="font-size:20px;font-weight:800;color:white">${widgetName}</div>
+      <div style="font-size:20px;font-weight:800;color:white">${esc(widgetName)}</div>
       <div style="color:rgba(255,255,255,0.8);font-size:14px;margin-top:4px">Potvrdenie prijatia správy</div>
     </div>
     <div style="padding:28px 32px">
-      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${leadName}</strong>,</p>
-      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;white-space:pre-line">${msg.replace(/\n/g,'<br>')}</p>
-      <p style="color:#94a3b8;font-size:13px;margin:0">— Tím ${widgetName}</p>
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${esc(leadName)}</strong>,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;white-space:pre-line">${esc(msg).replace(/\n/g,'<br>')}</p>
+      <p style="color:#94a3b8;font-size:13px;margin:0">— Tím ${esc(widgetName)}</p>
     </div>
   </div>
 </body></html>`;
@@ -193,12 +202,12 @@ async function sendFollowUp({ toEmail, leadName, ownerName, widgetName, message 
 <body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
   <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
     <div style="background:linear-gradient(135deg,#0f172a,#1e293b);padding:24px 32px">
-      <div style="font-size:20px;font-weight:800;color:white">${widgetName}</div>
+      <div style="font-size:20px;font-weight:800;color:white">${esc(widgetName)}</div>
     </div>
     <div style="padding:28px 32px">
-      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${leadName}</strong>,</p>
-      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;white-space:pre-line">${message.replace(/\n/g,'<br>')}</p>
-      <p style="color:#64748b;font-size:13px;margin:0">S pozdravom,<br><strong>${ownerName}</strong></p>
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${esc(leadName)}</strong>,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;white-space:pre-line">${esc(message).replace(/\n/g,'<br>')}</p>
+      <p style="color:#64748b;font-size:13px;margin:0">S pozdravom,<br><strong>${esc(ownerName)}</strong></p>
     </div>
   </div>
 </body></html>`;
@@ -224,7 +233,7 @@ async function sendTeamInvite({ toEmail, ownerName, inviteUrl }) {
     </div>
     <div style="padding:28px 32px">
       <p style="color:#374151;font-size:15px;margin:0 0 16px">Dobrý deň,</p>
-      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px"><strong>${ownerName}</strong> vás pozýva do tímu na platforme Neoworkly.</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px"><strong>${esc(ownerName)}</strong> vás pozýva do tímu na platforme Neoworkly.</p>
       <a href="${inviteUrl}" style="display:inline-block;background:#2563eb;color:white;font-weight:700;font-size:15px;padding:13px 28px;border-radius:10px;text-decoration:none">Prijať pozvánku →</a>
     </div>
   </div>
@@ -289,7 +298,7 @@ async function sendWinbackEmail({ toEmail, name }) {
       <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">Váš AI chatbot na vás čaká</div>
     </div>
     <div style="padding:28px 32px">
-      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${name}</strong>,</p>
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${esc(name)}</strong>,</p>
       <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 16px">
         Všimli sme si, že ste zrušili predplatné Neoworkly. Úprimne nás to mrzí – a chceli by sme vás späť.
       </p>
@@ -332,7 +341,7 @@ async function sendPaymentFailedEmail({ toEmail, name, invoiceUrl, attemptNumber
       <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">Platba sa nepodarila</div>
     </div>
     <div style="padding:28px 32px">
-      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${name}</strong>,</p>
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${esc(name)}</strong>,</p>
       <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 16px">
         Nepodarilo sa nám zúčtovať váš Neoworkly účet. Ak kartu neopravíte, váš chatbot prestane fungovať.
       </p>
@@ -363,7 +372,7 @@ async function sendPaymentReceiptEmail({ toEmail, name, plan, amountFormatted })
       <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">Platba potvrdená ✓</div>
     </div>
     <div style="padding:28px 32px">
-      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${name}</strong>,</p>
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${esc(name)}</strong>,</p>
       <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px">
         Vaša platba za <strong>Neoworkly ${planLabel}</strong>${amountFormatted ? ` (${amountFormatted})` : ''} bola úspešne spracovaná. Váš chatbot beží naplno.
       </p>
@@ -392,7 +401,7 @@ async function sendAutoReloadFailedEmail({ toEmail, name, euros }) {
       <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">Auto-reload zlyhal</div>
     </div>
     <div style="padding:28px 32px">
-      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${name}</strong>,</p>
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${esc(name)}</strong>,</p>
       <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px">
         Automatické dobíjanie kreditov (€${euros}) zlyhalo — karta bola zamietnutá. Dobite kredity manuálne, aby váš chatbot neprerušil odpovedanie.
       </p>

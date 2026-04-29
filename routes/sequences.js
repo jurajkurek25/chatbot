@@ -69,8 +69,8 @@ router.put('/:widgetId', requireAuth, (req, res) => {
 
   // Validate each step
   for (const step of steps) {
-    if (typeof step.delay_hours !== 'number' || step.delay_hours < 0) {
-      return res.status(400).json({ error: 'Each step must have a non-negative delay_hours.' });
+    if (typeof step.delay_hours !== 'number' || step.delay_hours < 0 || step.delay_hours > 8760) {
+      return res.status(400).json({ error: 'Each step must have a delay_hours between 0 and 8760.' });
     }
     if (!step.subject || !step.message) {
       return res.status(400).json({ error: 'Each step must have subject and message.' });

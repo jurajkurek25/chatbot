@@ -16,8 +16,9 @@ const avatarStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-    cb(null, `avatar-${req.params.id}${ext}`);
+    const ALLOWED_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `avatar-${req.params.id}${ALLOWED_EXTS.has(ext) ? ext : '.jpg'}`);
   },
 });
 const uploadAvatar = multer({

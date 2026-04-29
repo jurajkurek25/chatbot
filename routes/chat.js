@@ -9,6 +9,17 @@ const { BASE_RESPONSES, nextMonthReset, maybeResetUsage } = require('./credits')
 
 const router = express.Router();
 
+// SSRF protection helper — shared with seo.js
+function isPrivateHost(hostname) {
+  return (
+    hostname === 'localhost' || hostname === '::1' ||
+    /^127\./.test(hostname) ||
+    /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname)
+  );
+}
+
 // Simple in-memory rate limiter: max 30 messages per IP per 10 minutes
 const rateLimitMap = new Map();
 const RATE_WINDOW_MS = 10 * 60 * 1000;
@@ -402,6 +413,7 @@ router.post('/:widgetId/leads', async (req, res) => {
         const https = require('https');
         const http = require('http');
         const wUrl = new URL(widget.webhook_url);
+        if (isPrivateHost(wUrl.hostname)) throw new Error('Private host blocked');
         const payload = JSON.stringify({ event: 'new_lead', widget_id: widgetRow.id, name: name.trim(), email: email.trim(), phone: phone?.trim()||null, created_at: new Date().toISOString() });
         const mod = wUrl.protocol === 'https:' ? https : http;
         const hReq = mod.request({ hostname: wUrl.hostname, path: wUrl.pathname + wUrl.search, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
@@ -417,6 +429,7 @@ router.post('/:widgetId/leads', async (req, res) => {
         const https = require('https');
         const http = require('http');
         const sUrl = new URL(widget.slack_webhook_url);
+        if (isPrivateHost(sUrl.hostname)) throw new Error('Private host blocked');
         const text = `🔔 Nový lead: *${name.trim()}* (${email.trim()})${phone ? ` | ${phone.trim()}` : ''} – widget *${widgetRow.name || widgetRow.bot_name}*`;
         const payload = JSON.stringify({ text });
         const mod = sUrl.protocol === 'https:' ? https : http;
