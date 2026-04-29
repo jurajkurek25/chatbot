@@ -243,8 +243,9 @@ router.post('/:widgetId/chat', async (req, res) => {
 
       if (currentMonth < BASE_RESPONSES) {
         db.prepare('UPDATE users SET ai_responses_this_month = ai_responses_this_month + 1 WHERE id = ?').run(owner.id);
-      } else if (currentExtra > 0) {
-        db.prepare('UPDATE users SET extra_response_credits = extra_response_credits - 1 WHERE id = ?').run(owner.id);
+      } else {
+        // Atomic decrement: only if > 0 to prevent race-condition underflow
+        db.prepare('UPDATE users SET extra_response_credits = extra_response_credits - 1 WHERE id = ? AND extra_response_credits > 0').run(owner.id);
       }
 
       // Auto-reload: check if extra credits dropped below threshold

@@ -156,6 +156,11 @@ router.get('/callback', async (req, res) => {
 
     // 6. Save / upsert connection
     const db = getDb();
+
+    // Verify widget ownership at callback time (prevents TOCTOU with state manipulation)
+    const ownedWidget = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(widgetId, userId);
+    if (!ownedWidget) return res.redirect('/dashboard?ig_error=invalid_widget');
+
     const existing = db.prepare('SELECT id FROM instagram_connections WHERE widget_id = ?').get(widgetId);
     const connId = existing?.id || uuidv4();
 
