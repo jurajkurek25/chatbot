@@ -513,6 +513,20 @@ function initDatabase() {
 )`,
     `ALTER TABLE users ADD COLUMN white_label_extra_slots INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN white_label_extra_sub_id TEXT`,
+    `ALTER TABLE users ADD COLUMN referral_bonus_count INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN dunning_sent_at INTEGER`,
+    `CREATE TABLE IF NOT EXISTS stripe_events (
+  event_id TEXT PRIMARY KEY,
+  processed_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `CREATE TABLE IF NOT EXISTS credit_transactions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  note TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
     `CREATE TABLE IF NOT EXISTS winback_jobs (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

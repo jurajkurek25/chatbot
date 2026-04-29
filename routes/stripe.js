@@ -4,6 +4,7 @@ const express = require('express');
 const Stripe = require('stripe');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
+const { sendPaymentFailedEmail, sendPaymentReceiptEmail } = require('../services/email');
 
 const router = express.Router();
 
@@ -135,6 +136,14 @@ router.post('/webhook', async (req, res) => {
   const db = getDb();
   const stripe = getStripe();
 
+  // Webhook idempotency: ignore duplicate deliveries from Stripe
+  try {
+    db.prepare('INSERT INTO stripe_events (event_id) VALUES (?)').run(event.id);
+  } catch {
+    // Unique constraint violation → already processed
+    return res.json({ received: true, duplicate: true });
+  }
+
   // Helper: find user by stripe_customer_id, with email fallback
   // If found via email, also saves the customer_id for future lookups
   async function resolveUser(customerId) {
@@ -215,6 +224,9 @@ router.post('/webhook', async (req, res) => {
         const userId = session.metadata.userId;
         if (credits > 0 && userId) {
           db.prepare('UPDATE users SET extra_response_credits = extra_response_credits + ? WHERE id = ?').run(credits, userId);
+          // Log credit transaction
+          db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+            .run(require('uuid').v4(), userId, 'purchase', credits, `Stripe session ${session.id}`);
           console.log(`[credits] +${credits} credits added to user ${userId}`);
         }
         // If save_card was requested, save the payment method for auto-reload
@@ -283,12 +295,25 @@ router.post('/webhook', async (req, res) => {
           db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(user.id);
           console.log(`[stripe] Subscription activated for user ${user.id}`);
 
-          // Award 15€ credit to referrer (only on first activation)
+          // Send receipt email
+          const userFull = db.prepare('SELECT email, name FROM users WHERE id = ?').get(user.id);
+          if (userFull) {
+            const amtFormatted = session.amount_total ? `€${(session.amount_total / 100).toFixed(2)}` : null;
+            sendPaymentReceiptEmail({ toEmail: userFull.email, name: userFull.name, plan, amountFormatted: amtFormatted }).catch(() => {});
+          }
+
+          // Award 15€ credit to referrer (only on first activation, with abuse guards)
           if (user.referred_by) {
-            const already = db.prepare('SELECT referral_credits FROM users WHERE id = ?').get(user.id);
-            if (!already?.referral_credits) {
-              db.prepare('UPDATE users SET referral_credits = referral_credits + 15 WHERE id = ?').run(user.referred_by);
-              console.log(`[affiliate] +15€ credit awarded to referrer ${user.referred_by}`);
+            const alreadyRewarded = db.prepare('SELECT referral_credits FROM users WHERE id = ?').get(user.id);
+            if (!alreadyRewarded?.referral_credits) {
+              const referrer = db.prepare('SELECT id, email, referral_bonus_count FROM users WHERE id = ?').get(user.referred_by);
+              const referred = db.prepare('SELECT email FROM users WHERE id = ?').get(user.id);
+              // Guard: cap at 200 lifetime referral bonuses per referrer
+              const bonusCount = referrer?.referral_bonus_count || 0;
+              if (referrer && bonusCount < 200 && referrer.id !== user.id) {
+                db.prepare('UPDATE users SET referral_credits = referral_credits + 15, referral_bonus_count = referral_bonus_count + 1 WHERE id = ?').run(user.referred_by);
+                console.log(`[affiliate] +15€ credit awarded to referrer ${user.referred_by} (bonus #${bonusCount + 1})`);
+              }
             }
           }
         } else {
@@ -365,6 +390,14 @@ router.post('/webhook', async (req, res) => {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('inactive', user.id);
         db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(user.id);
 
+        // If WL plan cancelled, reset hide_branding on all widgets so branding re-appears correctly
+        const cancelledUser = db.prepare('SELECT subscription_plan FROM users WHERE id = ?').get(user.id);
+        if (cancelledUser?.subscription_plan === 'white_label') {
+          db.prepare('UPDATE widgets SET hide_branding = 0 WHERE user_id = ?').run(user.id);
+          db.prepare("UPDATE users SET subscription_plan = 'pro' WHERE id = ?").run(user.id);
+          console.log(`[stripe] WL cancelled for user ${user.id} — hide_branding reset`);
+        }
+
         // Schedule win-back email 7 days later (skip if one already queued)
         const { v4: uuidv4 } = require('uuid');
         const sendAt = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
@@ -384,6 +417,20 @@ router.post('/webhook', async (req, res) => {
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('past_due', user.id);
         db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(user.id);
+
+        // Send dunning email (track attempt number via dunning_sent_at)
+        const userFull = db.prepare('SELECT email, name, dunning_sent_at FROM users WHERE id = ?').get(user.id);
+        if (userFull) {
+          const now = Math.floor(Date.now() / 1000);
+          const lastDunning = userFull.dunning_sent_at || 0;
+          // Send dunning email at most once per 3 days to avoid spam
+          if (now - lastDunning > 3 * 24 * 3600) {
+            db.prepare('UPDATE users SET dunning_sent_at = ? WHERE id = ?').run(now, user.id);
+            const invoiceUrl = inv.hosted_invoice_url || null;
+            const attemptNumber = inv.attempt_count || 1;
+            sendPaymentFailedEmail({ toEmail: userFull.email, name: userFull.name, invoiceUrl, attemptNumber }).catch(() => {});
+          }
+        }
       }
       break;
     }
@@ -516,6 +563,53 @@ router.post('/checkout-wl-slots', requireAuth, async (req, res) => {
   } catch (err) {
     console.error('[wl-slots checkout]', err.message);
     res.status(500).json({ error: 'Chyba pri vytváraní platby: ' + err.message });
+  }
+});
+
+// POST /api/stripe/change-plan — upgrade/downgrade between Pro and White Label (with proration)
+router.post('/change-plan', requireAuth, async (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_id, subscription_status, subscription_plan FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+  if (user.subscription_status !== 'active') {
+    return res.status(402).json({ error: 'Zmena plánu vyžaduje aktívne predplatné.' });
+  }
+
+  const { plan, billing } = req.body; // plan: 'pro' | 'white_label'; billing: 'monthly' | 'yearly'
+  if (!['pro', 'white_label'].includes(plan)) return res.status(400).json({ error: 'Neplatný plán.' });
+  if (plan === user.subscription_plan) return res.json({ ok: true, message: 'Ste už na tomto pláne.' });
+
+  const wlYearly = plan === 'white_label' && billing === 'yearly';
+  const newPriceId = wlYearly
+    ? process.env.STRIPE_PRICE_ID_WHITE_LABEL_YEARLY
+    : plan === 'white_label'
+      ? process.env.STRIPE_PRICE_ID_WHITE_LABEL
+      : process.env.STRIPE_PRICE_ID;
+
+  if (!newPriceId) return res.status(500).json({ error: 'Cenový plán nie je nakonfigurovaný.' });
+
+  const stripe = getStripe();
+  try {
+    const sub = await stripe.subscriptions.retrieve(user.subscription_id);
+    const itemId = sub.items.data[0]?.id;
+    if (!itemId) return res.status(500).json({ error: 'Chyba pri načítaní predplatného.' });
+
+    await stripe.subscriptions.update(user.subscription_id, {
+      items: [{ id: itemId, price: newPriceId }],
+      proration_behavior: 'create_prorations',
+    });
+
+    db.prepare("UPDATE users SET subscription_plan = ? WHERE id = ?").run(plan, user.id);
+    // If downgrading from WL, reset hide_branding
+    if (user.subscription_plan === 'white_label' && plan === 'pro') {
+      db.prepare('UPDATE widgets SET hide_branding = 0 WHERE user_id = ?').run(user.id);
+    }
+
+    console.log(`[stripe] Plan changed for user ${user.id}: ${user.subscription_plan} → ${plan}`);
+    res.json({ ok: true, plan });
+  } catch (err) {
+    console.error('[stripe] change-plan error:', err.message);
+    res.status(500).json({ error: 'Chyba pri zmene plánu: ' + err.message });
   }
 });
 

@@ -315,4 +315,96 @@ async function sendWinbackEmail({ toEmail, name }) {
   } catch (err) { console.error('[email] Winback email failed:', err.message); }
 }
 
-module.exports = { sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite, sendPasswordReset, sendWinbackEmail };
+async function sendPaymentFailedEmail({ toEmail, name, invoiceUrl, attemptNumber = 1 }) {
+  const transport = createTransport();
+  if (!transport) return;
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const baseUrl = process.env.BASE_URL || 'https://neoworkly.com';
+  const subject = attemptNumber === 1
+    ? '⚠️ Nepodarilo sa zaplatiť váš Neoworkly účet'
+    : `⚠️ Platba stále zlyhávala (pokus ${attemptNumber}) – aktualizujte kartu`;
+  const html = `
+<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:linear-gradient(135deg,#dc2626,#b91c1c);padding:24px 32px">
+      <div style="font-size:20px;font-weight:800;color:white">Neoworkly</div>
+      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">Platba sa nepodarila</div>
+    </div>
+    <div style="padding:28px 32px">
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${name}</strong>,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 16px">
+        Nepodarilo sa nám zúčtovať váš Neoworkly účet. Ak kartu neopravíte, váš chatbot prestane fungovať.
+      </p>
+      ${invoiceUrl ? `<a href="${invoiceUrl}" style="display:inline-block;background:#dc2626;color:white;font-weight:700;font-size:15px;padding:13px 28px;border-radius:10px;text-decoration:none;margin-bottom:16px">Zaplatiť faktúru →</a>` : ''}
+      <a href="${baseUrl}/dashboard" style="display:inline-block;background:#2563eb;color:white;font-weight:700;font-size:14px;padding:11px 24px;border-radius:10px;text-decoration:none">Aktualizovať platobnú kartu →</a>
+    </div>
+    <div style="padding:16px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">Neoworkly · <a href="${baseUrl}" style="color:#94a3b8">neoworkly.com</a></div>
+  </div>
+</body></html>`;
+  try {
+    await transport.sendMail({ from: `"Neoworkly" <${from}>`, to: toEmail, subject, html });
+    console.log(`[email] Payment failed email (attempt ${attemptNumber}) sent to ${toEmail}`);
+  } catch (err) { console.error('[email] Payment failed email error:', err.message); }
+}
+
+async function sendPaymentReceiptEmail({ toEmail, name, plan, amountFormatted }) {
+  const transport = createTransport();
+  if (!transport) return;
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const baseUrl = process.env.BASE_URL || 'https://neoworkly.com';
+  const planLabel = plan === 'white_label' ? 'White Label' : 'Pro';
+  const html = `
+<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:linear-gradient(135deg,#16a34a,#15803d);padding:24px 32px">
+      <div style="font-size:20px;font-weight:800;color:white">Neoworkly</div>
+      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">Platba potvrdená ✓</div>
+    </div>
+    <div style="padding:28px 32px">
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${name}</strong>,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px">
+        Vaša platba za <strong>Neoworkly ${planLabel}</strong>${amountFormatted ? ` (${amountFormatted})` : ''} bola úspešne spracovaná. Váš chatbot beží naplno.
+      </p>
+      <a href="${baseUrl}/dashboard" style="display:inline-block;background:linear-gradient(135deg,#2563eb,#7c3aed);color:white;font-weight:700;font-size:15px;padding:13px 28px;border-radius:10px;text-decoration:none">Otvoriť dashboard →</a>
+    </div>
+    <div style="padding:16px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">Neoworkly · <a href="${baseUrl}" style="color:#94a3b8">neoworkly.com</a></div>
+  </div>
+</body></html>`;
+  try {
+    await transport.sendMail({ from: `"Neoworkly" <${from}>`, to: toEmail, subject: `✅ Platba potvrdená – Neoworkly ${planLabel}`, html });
+    console.log(`[email] Receipt sent to ${toEmail}`);
+  } catch (err) { console.error('[email] Receipt email error:', err.message); }
+}
+
+async function sendAutoReloadFailedEmail({ toEmail, name, euros }) {
+  const transport = createTransport();
+  if (!transport) return;
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const baseUrl = process.env.BASE_URL || 'https://neoworkly.com';
+  const html = `
+<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:520px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:linear-gradient(135deg,#f59e0b,#d97706);padding:24px 32px">
+      <div style="font-size:20px;font-weight:800;color:white">Neoworkly</div>
+      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">Auto-reload zlyhal</div>
+    </div>
+    <div style="padding:28px 32px">
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${name}</strong>,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px">
+        Automatické dobíjanie kreditov (€${euros}) zlyhalo — karta bola zamietnutá. Dobite kredity manuálne, aby váš chatbot neprerušil odpovedanie.
+      </p>
+      <a href="${baseUrl}/dashboard" style="display:inline-block;background:#2563eb;color:white;font-weight:700;font-size:15px;padding:13px 28px;border-radius:10px;text-decoration:none">Dobiť kredity →</a>
+    </div>
+    <div style="padding:16px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">Neoworkly · <a href="${baseUrl}" style="color:#94a3b8">neoworkly.com</a></div>
+  </div>
+</body></html>`;
+  try {
+    await transport.sendMail({ from: `"Neoworkly" <${from}>`, to: toEmail, subject: '⚠️ Auto-reload kreditov zlyhal – dobite manuálne', html });
+    console.log(`[email] Auto-reload failed email sent to ${toEmail}`);
+  } catch (err) { console.error('[email] Auto-reload failed email error:', err.message); }
+}
+
+module.exports = { sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite, sendPasswordReset, sendWinbackEmail, sendPaymentFailedEmail, sendPaymentReceiptEmail, sendAutoReloadFailedEmail };

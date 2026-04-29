@@ -104,6 +104,11 @@ router.post('/redeem', async (req, res) => {
     WHERE id = ?
   `).run(creditsToUse, freeUntil, req.userId);
 
+  // Log credit transaction
+  const { v4: uuidv4 } = require('uuid');
+  db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+    .run(uuidv4(), req.userId, 'affiliate_redeem', -Math.round(creditsToUse * 100), `${freeMonths} free months`);
+
   res.json({
     ok: true,
     free_months: freeMonths,

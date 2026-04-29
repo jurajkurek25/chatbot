@@ -142,6 +142,28 @@ setInterval(async () => {
   } catch {}
 }, 5 * 60 * 1000);
 
+// Subscription safety sync every 4 hours: deactivate widgets for inactive subscriptions
+// Guards against missed webhooks
+setInterval(() => {
+  try {
+    const { getDb } = require('./db/database');
+    const db = getDb();
+    const result = db.prepare(`
+      UPDATE widgets SET active = 0
+      WHERE user_id IN (
+        SELECT id FROM users
+        WHERE subscription_status = 'inactive'
+          AND (free_until IS NULL OR free_until < unixepoch())
+      ) AND active = 1
+    `).run();
+    if (result.changes > 0) {
+      console.log(`[sync] Deactivated ${result.changes} widget(s) for inactive subscriptions`);
+    }
+  } catch (e) {
+    console.error('[sync] Subscription sync error:', e.message);
+  }
+}, 4 * 60 * 60 * 1000);
+
 // Process win-back emails every hour
 setInterval(async () => {
   try {

@@ -124,12 +124,23 @@ router.post('/:widgetId/chat', async (req, res) => {
     return res.status(404).json({ error: 'Widget nenájdený.' });
   }
 
-  // Check monthly usage limit
+  // Load owner and enforce subscription + credit limits
   const owner = db.prepare(
-    'SELECT id, email, name, ai_responses_this_month, ai_responses_reset_at, extra_response_credits, usage_notified_80, usage_notified_100 FROM users WHERE id = ?'
+    'SELECT id, email, name, ai_responses_this_month, ai_responses_reset_at, extra_response_credits, usage_notified_80, usage_notified_100, subscription_status, free_until, person_addon_active FROM users WHERE id = ?'
   ).get(widget.user_id);
 
   if (owner) {
+    // Enforce subscription: must be active or within free_until grace period
+    const now = Math.floor(Date.now() / 1000);
+    const subActive = owner.subscription_status === 'active' || owner.subscription_status === 'past_due' ||
+                      (owner.free_until && owner.free_until > now);
+    if (!subActive) {
+      return res.status(402).json({
+        error: 'Predplatné chatbota vypršalo.',
+        code: 'SUBSCRIPTION_INACTIVE',
+      });
+    }
+
     const thisMonth = maybeResetUsage(db, owner.id, owner);
     const extra = owner.extra_response_credits || 0;
 
@@ -190,6 +201,12 @@ router.post('/:widgetId/chat', async (req, res) => {
 
     let fullText;
     if (mode === 'person') {
+      // Person add-on requires active addon subscription + active base subscription
+      if (!owner?.person_addon_active) {
+        res.write(`data: ${JSON.stringify({ error: 'Person add-on nie je aktívny.', code: 'PERSON_ADDON_INACTIVE' })}\n\n`);
+        res.end();
+        return;
+      }
       const personProfile = db.prepare('SELECT * FROM person_profiles WHERE widget_id = ? AND active = 1').get(widget.id);
       if (personProfile) {
         fullText = await streamPersonResponse(widget, personProfile, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);

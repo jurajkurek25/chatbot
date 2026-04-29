@@ -48,11 +48,18 @@ router.post('/register', async (req, res) => {
   }
 
   // Validate referral code if provided
+  // Self-referral prevention: reject if referrer has same non-generic email domain
+  const GENERIC_DOMAINS = new Set(['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','protonmail.com','seznam.cz','centrum.cz','azet.sk','post.sk','me.com','live.com','msn.com','googlemail.com']);
   let referredById = null;
   if (referralCode) {
-    const referrer = db.prepare('SELECT id FROM users WHERE referral_code = ?').get(referralCode.toUpperCase().trim());
+    const referrer = db.prepare('SELECT id, email FROM users WHERE referral_code = ?').get(referralCode.toUpperCase().trim());
     if (referrer) {
-      referredById = referrer.id;
+      const newDomain = email.toLowerCase().split('@')[1] || '';
+      const refDomain = referrer.email.toLowerCase().split('@')[1] || '';
+      const isSameDomain = newDomain === refDomain && !GENERIC_DOMAINS.has(newDomain);
+      if (!isSameDomain) {
+        referredById = referrer.id;
+      }
     }
   }
 

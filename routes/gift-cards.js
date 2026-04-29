@@ -75,6 +75,9 @@ router.get('/status', (req, res) => {
   res.json(card);
 });
 
+// Allowed characters in a valid gift card code
+const CODE_REGEX = /^NEOW-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/;
+
 // POST /api/gift-cards/redeem — redeem a gift card code (requires auth)
 router.post('/redeem', requireAuth, (req, res) => {
   const db = getDb();
@@ -82,21 +85,38 @@ router.post('/redeem', requireAuth, (req, res) => {
   if (!code || typeof code !== 'string') return res.status(400).json({ error: 'Zadajte kód.' });
 
   const normalised = code.trim().toUpperCase();
+
+  // Validate code format before hitting DB
+  if (!CODE_REGEX.test(normalised)) {
+    return res.status(400).json({ error: 'Neplatný formát kódu.' });
+  }
+
   const card = db.prepare('SELECT * FROM gift_cards WHERE code = ?').get(normalised);
 
   if (!card) return res.status(404).json({ error: 'Kód neexistuje. Skontrolujte správnosť kódu.' });
   if (card.used) return res.status(409).json({ error: 'Tento kód bol už použitý.' });
 
-  // Credit goes to referral_credits — user applies it via existing affiliate UI
-  // (37€ = 1 free month, any amount = AI credits at 1€ = 100 responses)
-  const db2 = db;
-  db2.prepare('UPDATE users SET referral_credits = referral_credits + ? WHERE id = ?')
-    .run(card.amount_eur, req.userId);
-  db2.prepare('UPDATE gift_cards SET used = 1, used_by = ?, redeemed_at = datetime(\'now\') WHERE id = ?')
-    .run(req.userId, card.id);
+  // Security: card must have been created by a real Stripe webhook (not a manually inserted record)
+  if (!card.stripe_session_id) {
+    return res.status(403).json({ error: 'Táto darčeková karta nie je platná.' });
+  }
 
-  console.log(`[gift-card] Code ${card.code} redeemed by user ${req.userId} — €${card.amount_eur}`);
-  res.json({ ok: true, amount_eur: card.amount_eur });
+  // Validate amount (must be positive and within bounds)
+  const amount = parseFloat(card.amount_eur);
+  if (!amount || amount <= 0 || amount > 500) {
+    return res.status(403).json({ error: 'Neplatná hodnota darčekovej karty.' });
+  }
+
+  db.prepare('UPDATE users SET referral_credits = referral_credits + ? WHERE id = ?').run(amount, req.userId);
+  db.prepare('UPDATE gift_cards SET used = 1, used_by = ?, redeemed_at = datetime(\'now\') WHERE id = ?').run(req.userId, card.id);
+
+  // Log credit transaction
+  const { v4: uuidv4 } = require('uuid');
+  db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+    .run(uuidv4(), req.userId, 'gift_card', Math.round(amount * 100), `Gift card ${card.code}`);
+
+  console.log(`[gift-card] Code ${card.code} redeemed by user ${req.userId} — €${amount}`);
+  res.json({ ok: true, amount_eur: amount });
 });
 
 module.exports = { router, generateCode };

@@ -82,8 +82,17 @@ router.post('/', (req, res) => {
 
   const db = getDb();
 
+  const user = db.prepare('SELECT subscription_plan, subscription_status, free_until, white_label_extra_slots FROM users WHERE id = ?').get(req.userId);
+
+  // Block creation when subscription is not active
+  const nowTs = Math.floor(Date.now() / 1000);
+  const subActive = user?.subscription_status === 'active' || user?.subscription_status === 'past_due' ||
+                    (user?.free_until && user.free_until > nowTs);
+  if (!subActive) {
+    return res.status(403).json({ error: 'Vytvorenie widgetu vyžaduje aktívne predplatné.' });
+  }
+
   // Enforce widget limits per plan
-  const user = db.prepare('SELECT subscription_plan, white_label_extra_slots FROM users WHERE id = ?').get(req.userId);
   const widgetCount = db.prepare('SELECT COUNT(*) AS cnt FROM widgets WHERE user_id = ?').get(req.userId).cnt;
   const isWL = user?.subscription_plan === 'white_label';
   const limit = isWL ? (40 + (user.white_label_extra_slots || 0)) : 10;
@@ -134,6 +143,17 @@ router.put('/:id', (req, res) => {
           offline_message, business_hours, demo_video_url } = req.body;
 
   const db = getDb();
+
+  // Block manual reactivation when subscription is not active
+  if (active === true || active === 1 || active === '1') {
+    const subUser = db.prepare('SELECT subscription_status, free_until FROM users WHERE id = ?').get(req.userId);
+    const nowSub = Math.floor(Date.now() / 1000);
+    const subOk = subUser?.subscription_status === 'active' || subUser?.subscription_status === 'past_due' ||
+                  (subUser?.free_until && subUser.free_until > nowSub);
+    if (!subOk) {
+      return res.status(403).json({ error: 'Aktivácia widgetu vyžaduje aktívne predplatné.' });
+    }
+  }
 
   // White-label is only available on the White Label plan
   if (hide_branding) {

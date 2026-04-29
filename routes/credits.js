@@ -32,8 +32,11 @@ async function triggerAutoReload(userId, user) {
   const credits = euros * 20;
   const now = Math.floor(Date.now() / 1000);
 
-  // Mark as in-progress immediately to prevent double-firing
-  db.prepare('UPDATE users SET auto_reload_last_at = ? WHERE id = ?').run(now, userId);
+  // Atomic claim: only proceed if no other request triggered within last 600s
+  const result = db.prepare(
+    'UPDATE users SET auto_reload_last_at = ? WHERE id = ? AND (auto_reload_last_at IS NULL OR auto_reload_last_at < ?)'
+  ).run(now, userId, now - 600);
+  if (result.changes === 0) return; // Another concurrent call already claimed this reload
 
   const stripe = getStripe();
   try {
@@ -51,6 +54,14 @@ async function triggerAutoReload(userId, user) {
     console.log(`[auto_reload] PaymentIntent created for user ${userId}: €${euros} → ${credits} credits`);
   } catch (err) {
     console.error(`[auto_reload] Payment failed for user ${userId}:`, err.message);
+    // Notify user so they can fix card manually
+    try {
+      const { sendAutoReloadFailedEmail } = require('../services/email');
+      const userFull = db.prepare('SELECT email, name FROM users WHERE id = ?').get(userId);
+      if (userFull) {
+        sendAutoReloadFailedEmail({ toEmail: userFull.email, name: userFull.name, euros }).catch(() => {});
+      }
+    } catch { /* ignore */ }
   }
 }
 
