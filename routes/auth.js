@@ -135,7 +135,7 @@ router.post('/login', async (req, res) => {
 });
 
 function signToken(userId) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET || 'changeme', { expiresIn: '30d' });
+  return jwt.sign({ userId }, process.env.JWT_SECRET || 'changeme', { algorithm: 'HS256', expiresIn: '30d' });
 }
 
 // POST /api/auth/change-password

@@ -1,11 +1,21 @@
 'use strict';
 
 const express = require('express');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { requireAuth } = require('../middleware/auth');
 const { getDb, searchKnowledge } = require('../db/database');
 const { getChatResponseText } = require('../services/claude');
 const { sendTextMessage, markAsRead } = require('../services/whatsapp');
+
+function verifyMetaSignature(req) {
+  const secret = process.env.META_APP_SECRET || process.env.FB_APP_SECRET;
+  if (!secret || !req.rawBody) return true;
+  const sig = req.headers['x-hub-signature-256'] || '';
+  if (!sig.startsWith('sha256=')) return false;
+  const hash = 'sha256=' + crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
+  try { return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(hash)); } catch { return false; }
+}
 
 const router = express.Router();
 
@@ -92,6 +102,7 @@ router.get('/webhook', (req, res) => {
 
 /* ── POST /api/whatsapp/webhook — receive incoming messages ─────── */
 router.post('/webhook', async (req, res) => {
+  if (!verifyMetaSignature(req)) return res.sendStatus(403);
   // Respond immediately so Meta doesn't retry
   res.sendStatus(200);
 

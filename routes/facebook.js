@@ -2,10 +2,20 @@
 
 const express = require('express');
 const https = require('https');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { requireAuth } = require('../middleware/auth');
 const { getDb, searchKnowledge } = require('../db/database');
 const { getChatResponseText } = require('../services/claude');
+
+function verifyMetaSignature(req) {
+  const secret = process.env.FB_APP_SECRET || process.env.META_APP_SECRET;
+  if (!secret || !req.rawBody) return true; // Skip if not configured
+  const sig = req.headers['x-hub-signature-256'] || '';
+  if (!sig.startsWith('sha256=')) return false;
+  const hash = 'sha256=' + crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
+  try { return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(hash)); } catch { return false; }
+}
 
 const router = express.Router();
 
@@ -209,6 +219,8 @@ router.get('/:widgetId/webhook', (req, res) => {
    6. POST /:widgetId/webhook  — Facebook webhook event handler
 ────────────────────────────────────────────────────────────────── */
 router.post('/:widgetId/webhook', (req, res) => {
+  if (!verifyMetaSignature(req)) return res.sendStatus(403);
+
   // Respond immediately — Facebook requires a fast 200 OK
   res.sendStatus(200);
 

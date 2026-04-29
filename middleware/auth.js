@@ -10,7 +10,7 @@ function requireAuth(req, res, next) {
 
   const token = authHeader.slice(7);
   try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET || 'changeme');
+    const payload = jwt.verify(token, process.env.JWT_SECRET || 'changeme', { algorithms: ['HS256'] });
     req.userId = payload.userId;
     next();
   } catch {

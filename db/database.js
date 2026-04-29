@@ -334,6 +334,7 @@ function initDatabase() {
       email TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'readonly' CHECK(role IN ('readonly','editor')),
       invite_token TEXT,
+      invite_expires_at INTEGER,
       accepted INTEGER NOT NULL DEFAULT 0,
       member_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
@@ -515,6 +516,7 @@ function initDatabase() {
     `ALTER TABLE users ADD COLUMN white_label_extra_sub_id TEXT`,
     `ALTER TABLE users ADD COLUMN referral_bonus_count INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN dunning_sent_at INTEGER`,
+    `ALTER TABLE team_members ADD COLUMN invite_expires_at INTEGER`,
     `CREATE TABLE IF NOT EXISTS stripe_events (
   event_id TEXT PRIMARY KEY,
   processed_at INTEGER NOT NULL DEFAULT (unixepoch())
