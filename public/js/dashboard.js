@@ -106,51 +106,69 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (addProactiveLangBtn) addProactiveLangBtn.addEventListener('click', () => addProactiveLang());
 });
 
+let _wlStatus = null;
+
 function renderWLSlotsPanel(status) {
+  _wlStatus = status;
   const footer = document.getElementById('sidebar-footer');
   if (!footer || document.getElementById('wl-slots-panel')) return;
 
   const extraSlots = status.white_label_extra_slots || 0;
   const totalLimit = 40 + extraSlots;
+  const hasExtraSub = !!status.white_label_extra_sub_id;
 
   const panel = document.createElement('div');
   panel.id = 'wl-slots-panel';
   panel.style.cssText = 'background:#f8f7ff;border:1px solid #ede9fe;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;font-size:0.8rem';
   panel.innerHTML = `
     <div style="font-weight:700;color:#4c1d95;margin-bottom:0.35rem">👥 White Label klienti</div>
-    <div style="color:#64748b;margin-bottom:0.5rem">Limit: <strong style="color:#1e293b">${totalLimit} klientov</strong>${extraSlots ? ` (40 + ${extraSlots} extra)` : ''}</div>
-    <button onclick="openWLSlotsModal()" style="width:100%;background:#7c3aed;color:white;border:none;border-radius:7px;padding:0.4rem 0.75rem;font-size:0.78rem;font-weight:600;cursor:pointer">+ Pridať klientov (€15/klient)</button>
+    <div style="color:#64748b;margin-bottom:0.5rem">
+      Limit: <strong style="color:#1e293b">${totalLimit} klientov</strong>
+      ${extraSlots ? `<span style="color:#7c3aed"> (+${extraSlots} extra · €${extraSlots * 15}/mes)</span>` : ''}
+    </div>
+    ${hasExtraSub
+      ? `<button onclick="openBillingPortal()" style="width:100%;background:#f1f5f9;color:#1e293b;border:1px solid #e2e8f0;border-radius:7px;padding:0.4rem 0.75rem;font-size:0.78rem;font-weight:600;cursor:pointer">⚙️ Spravovať / zrušiť extra sloty</button>`
+      : `<button onclick="openWLSlotsModal()" style="width:100%;background:#7c3aed;color:white;border:none;border-radius:7px;padding:0.4rem 0.75rem;font-size:0.78rem;font-weight:600;cursor:pointer">+ Pridať klientov (€15/klient/mes)</button>`
+    }
   `;
   footer.insertBefore(panel, footer.firstChild);
 }
 
 function openWLSlotsModal() {
   const existing = document.getElementById('wl-slots-modal');
-  if (existing) { existing.style.display = 'flex'; return; }
+  if (existing) { existing.remove(); }
+
+  const currentExtra = _wlStatus?.white_label_extra_slots || 0;
+  const defaultSlots = currentExtra || 5;
+  const isUpdate = !!_wlStatus?.white_label_extra_sub_id;
+  const title = isUpdate ? 'Zmeniť počet extra klientov' : 'Pridať extra klientov';
+  const note = isUpdate
+    ? `Aktuálne máte <strong>${currentExtra} extra klientov</strong>. Nová hodnota nahradí existujúcu subscripciu (pomerné vyrovnanie cez Stripe).`
+    : `Každý extra klient stojí <strong>€15/mesiac</strong>. Sloty sa pripočítajú k základným 40 a fakturujú sa mesačne.`;
 
   const modal = document.createElement('div');
   modal.id = 'wl-slots-modal';
   modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem';
   modal.innerHTML = `
     <div style="background:white;border-radius:16px;padding:2rem;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.15)">
-      <h3 style="font-size:1.1rem;font-weight:700;color:#1e293b;margin-bottom:0.5rem">Pridať extra klientov</h3>
-      <p style="font-size:0.85rem;color:#64748b;margin-bottom:1.25rem">Každý extra klient stojí <strong>€15/mesiac</strong>. Sloty sa pripočítajú k základným 40.</p>
+      <h3 style="font-size:1.1rem;font-weight:700;color:#1e293b;margin-bottom:0.5rem">${title}</h3>
+      <p style="font-size:0.85rem;color:#64748b;margin-bottom:1.25rem">${note}</p>
       <div style="margin-bottom:1.25rem">
         <label style="font-size:0.82rem;font-weight:600;color:#64748b;display:block;margin-bottom:0.4rem">Počet extra klientov</label>
         <div style="display:flex;align-items:center;gap:0.75rem">
           <button onclick="changeWLSlots(-5)" style="border:1px solid #e2e8f0;background:white;border-radius:8px;width:36px;height:36px;font-size:1.1rem;cursor:pointer;font-weight:700">−</button>
-          <input id="wl-slots-input" type="number" value="5" min="1" max="200"
+          <input id="wl-slots-input" type="number" value="${defaultSlots}" min="1" max="200"
             style="flex:1;text-align:center;border:2px solid #e2e8f0;border-radius:8px;padding:0.5rem;font-size:1.1rem;font-weight:700;outline:none" oninput="updateWLSlotsPrice()">
           <button onclick="changeWLSlots(5)" style="border:1px solid #e2e8f0;background:white;border-radius:8px;width:36px;height:36px;font-size:1.1rem;cursor:pointer;font-weight:700">+</button>
         </div>
       </div>
       <div style="background:#f8f7ff;border-radius:10px;padding:0.85rem;margin-bottom:1.25rem;text-align:center">
-        <div style="font-size:0.78rem;color:#64748b">Celková suma</div>
-        <div id="wl-slots-price" style="font-size:1.75rem;font-weight:800;color:#7c3aed">€75</div>
-        <div style="font-size:0.75rem;color:#94a3b8">jednorazová platba</div>
+        <div style="font-size:0.78rem;color:#64748b">Mesačná platba</div>
+        <div id="wl-slots-price" style="font-size:1.75rem;font-weight:800;color:#7c3aed">€${defaultSlots * 15}</div>
+        <div style="font-size:0.75rem;color:#94a3b8">€15 × <span id="wl-slots-count">${defaultSlots}</span> klientov / mes</div>
       </div>
-      <button id="btn-buy-wl-slots" onclick="buyWLSlots()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;border-radius:10px;padding:0.8rem;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:0.5rem">Zaplatiť →</button>
-      <button onclick="document.getElementById('wl-slots-modal').style.display='none'" style="width:100%;background:none;border:none;color:#94a3b8;font-size:0.85rem;cursor:pointer;padding:0.4rem">Zrušiť</button>
+      <button id="btn-buy-wl-slots" onclick="buyWLSlots()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;border-radius:10px;padding:0.8rem;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:0.5rem">${isUpdate ? 'Aktualizovať' : 'Predplatiť mesačne'} →</button>
+      <button onclick="document.getElementById('wl-slots-modal').remove()" style="width:100%;background:none;border:none;color:#94a3b8;font-size:0.85rem;cursor:pointer;padding:0.4rem">Zrušiť</button>
     </div>
   `;
   document.body.appendChild(modal);
@@ -166,9 +184,11 @@ function changeWLSlots(delta) {
 function updateWLSlotsPrice() {
   const inp = document.getElementById('wl-slots-input');
   const priceEl = document.getElementById('wl-slots-price');
+  const countEl = document.getElementById('wl-slots-count');
   if (!inp || !priceEl) return;
   const n = Math.max(1, parseInt(inp.value) || 1);
   priceEl.textContent = `€${n * 15}`;
+  if (countEl) countEl.textContent = n;
 }
 
 async function buyWLSlots() {

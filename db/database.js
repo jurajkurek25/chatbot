@@ -512,6 +512,7 @@ function initDatabase() {
   redeemed_at TEXT
 )`,
     `ALTER TABLE users ADD COLUMN white_label_extra_slots INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN white_label_extra_sub_id TEXT`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

@@ -157,17 +157,6 @@ router.post('/webhook', async (req, res) => {
     case 'checkout.session.completed': {
       const session = event.data.object;
 
-      // White Label extra client slots
-      if (session.mode === 'payment' && session.metadata?.type === 'wl_slots') {
-        const userId = session.metadata.userId;
-        const slots = parseInt(session.metadata.slots || '0', 10);
-        if (userId && slots > 0) {
-          db.prepare('UPDATE users SET white_label_extra_slots = white_label_extra_slots + ? WHERE id = ?').run(slots, userId);
-          console.log(`[wl-slots] +${slots} extra slots for user ${userId}`);
-        }
-        break;
-      }
-
       // Gift card purchase — generate code and store in DB
       if (session.mode === 'payment' && session.metadata?.type === 'gift_card') {
         const { generateCode } = require('./gift-cards');
@@ -275,6 +264,15 @@ router.post('/webhook', async (req, res) => {
             break;
           }
 
+          // White Label extra client slots subscription
+          if (plan === 'wl_extra_slots') {
+            const slots = parseInt(session.metadata?.slots || '0', 10);
+            db.prepare('UPDATE users SET white_label_extra_slots = ?, white_label_extra_sub_id = ? WHERE id = ?')
+              .run(slots, session.subscription, user.id);
+            console.log(`[wl-slots] ${slots} extra slots activated for user ${user.id}`);
+            break;
+          }
+
           db.prepare(`UPDATE users SET subscription_status = 'active', subscription_id = ?, subscription_plan = ? WHERE id = ?`)
             .run(session.subscription, plan, user.id);
           db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(user.id);
@@ -310,6 +308,18 @@ router.post('/webhook', async (req, res) => {
         break;
       }
 
+      // White Label extra slots subscription — sync quantity
+      if (subPriceId === process.env.STRIPE_PRICE_ID_WL_EXTRA_SLOT) {
+        const user = await resolveUser(sub.customer);
+        if (user) {
+          const qty = isActive ? (sub.items?.data?.[0]?.quantity || 0) : 0;
+          db.prepare('UPDATE users SET white_label_extra_slots = ?, white_label_extra_sub_id = ? WHERE id = ?')
+            .run(qty, isActive ? sub.id : null, user.id);
+          console.log(`[wl-slots] Extra slots ${isActive ? `set to ${qty}` : 'deactivated'} for user ${user.id}`);
+        }
+        break;
+      }
+
       const status = isActive ? 'active' : 'inactive';
       const plan = subPriceId === process.env.STRIPE_PRICE_ID_WHITE_LABEL ? 'white_label' : 'pro';
       const user = await resolveUser(sub.customer);
@@ -330,6 +340,16 @@ router.post('/webhook', async (req, res) => {
         if (user) {
           db.prepare('UPDATE users SET person_addon_active = 0, person_addon_subscription_id = NULL WHERE id = ?').run(user.id);
           console.log(`[person] Add-on cancelled for user ${user.id}`);
+        }
+        break;
+      }
+
+      // White Label extra slots cancelled
+      if (subPriceId === process.env.STRIPE_PRICE_ID_WL_EXTRA_SLOT) {
+        const user = await resolveUser(sub.customer);
+        if (user) {
+          db.prepare('UPDATE users SET white_label_extra_slots = 0, white_label_extra_sub_id = NULL WHERE id = ?').run(user.id);
+          console.log(`[wl-slots] Extra slots cancelled for user ${user.id}`);
         }
         break;
       }
@@ -415,14 +435,17 @@ router.post('/checkout-person', requireAuth, async (req, res) => {
   }
 });
 
-// POST /api/stripe/checkout-wl-slots — buy extra White Label client slots (€15/slot)
+// POST /api/stripe/checkout-wl-slots — monthly subscription for extra White Label client slots (€15/slot/mes)
 router.post('/checkout-wl-slots', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, subscription_plan FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, subscription_plan, white_label_extra_sub_id FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
   if (user.subscription_plan !== 'white_label') {
     return res.status(403).json({ error: 'Extra sloty sú dostupné len pre White Label plán.' });
   }
+
+  const priceId = process.env.STRIPE_PRICE_ID_WL_EXTRA_SLOT;
+  if (!priceId) return res.status(500).json({ error: 'Extra slot price nie je nakonfigurovaná (STRIPE_PRICE_ID_WL_EXTRA_SLOT).' });
 
   const slots = parseInt(req.body?.slots || '1', 10);
   if (!slots || slots < 1 || slots > 200) {
@@ -431,7 +454,6 @@ router.post('/checkout-wl-slots', requireAuth, async (req, res) => {
 
   const stripe = getStripe();
   const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
-  const amountCents = slots * 1500; // €15 per slot
 
   try {
     let customerId = user.stripe_customer_id;
@@ -441,22 +463,36 @@ router.post('/checkout-wl-slots', requireAuth, async (req, res) => {
       db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
     }
 
+    // If user already has an extra-slots subscription, update its quantity instead of new checkout
+    if (user.white_label_extra_sub_id) {
+      try {
+        const existingSub = await stripe.subscriptions.retrieve(user.white_label_extra_sub_id);
+        if (existingSub.status === 'active' || existingSub.status === 'trialing') {
+          const itemId = existingSub.items.data[0]?.id;
+          if (itemId) {
+            await stripe.subscriptions.update(user.white_label_extra_sub_id, {
+              items: [{ id: itemId, quantity: slots }],
+              proration_behavior: 'create_prorations',
+            });
+            db.prepare('UPDATE users SET white_label_extra_slots = ? WHERE id = ?').run(slots, user.id);
+            console.log(`[wl-slots] Updated existing sub ${user.white_label_extra_sub_id} to ${slots} slots`);
+            return res.json({ updated: true, slots });
+          }
+        }
+      } catch (e) {
+        console.error('[wl-slots] Failed to update existing sub, creating new:', e.message);
+      }
+    }
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       payment_method_types: ['card'],
-      mode: 'payment',
-      line_items: [{
-        price_data: {
-          currency: 'eur',
-          product_data: { name: `White Label — ${slots} extra klient${slots === 1 ? '' : slots < 5 ? 'i' : 'ov'} (€15/klient/mes)` },
-          unit_amount: amountCents,
-        },
-        quantity: 1,
-      }],
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: slots }],
       success_url: `${baseUrl}/dashboard?wl_slots_added=${slots}`,
       cancel_url: `${baseUrl}/dashboard`,
       locale: 'sk',
-      metadata: { type: 'wl_slots', userId: user.id, slots: String(slots) },
+      metadata: { plan: 'wl_extra_slots', userId: user.id, slots: String(slots) },
     });
 
     res.json({ url: session.url });
@@ -489,7 +525,7 @@ router.post('/portal', requireAuth, async (req, res) => {
 // If user has no stripe_customer_id yet, searches Stripe by email to auto-link
 router.get('/status', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until, person_addon_active, white_label_extra_slots FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until, person_addon_active, white_label_extra_slots, white_label_extra_sub_id FROM users WHERE id = ?').get(req.userId);
   const now = Math.floor(Date.now() / 1000);
   const inFreePeriod = user?.free_until && user.free_until > now;
 
@@ -524,6 +560,7 @@ router.get('/status', requireAuth, async (req, res) => {
     in_free_period: !!inFreePeriod,
     person_addon: Boolean(user?.person_addon_active),
     white_label_extra_slots: user?.white_label_extra_slots || 0,
+    white_label_extra_sub_id: user?.white_label_extra_sub_id || null,
   });
 });
 
