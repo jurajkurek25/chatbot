@@ -157,6 +157,17 @@ router.post('/webhook', async (req, res) => {
     case 'checkout.session.completed': {
       const session = event.data.object;
 
+      // White Label extra client slots
+      if (session.mode === 'payment' && session.metadata?.type === 'wl_slots') {
+        const userId = session.metadata.userId;
+        const slots = parseInt(session.metadata.slots || '0', 10);
+        if (userId && slots > 0) {
+          db.prepare('UPDATE users SET white_label_extra_slots = white_label_extra_slots + ? WHERE id = ?').run(slots, userId);
+          console.log(`[wl-slots] +${slots} extra slots for user ${userId}`);
+        }
+        break;
+      }
+
       // Gift card purchase — generate code and store in DB
       if (session.mode === 'payment' && session.metadata?.type === 'gift_card') {
         const { generateCode } = require('./gift-cards');
@@ -404,6 +415,57 @@ router.post('/checkout-person', requireAuth, async (req, res) => {
   }
 });
 
+// POST /api/stripe/checkout-wl-slots — buy extra White Label client slots (€15/slot)
+router.post('/checkout-wl-slots', requireAuth, async (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, subscription_plan FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+  if (user.subscription_plan !== 'white_label') {
+    return res.status(403).json({ error: 'Extra sloty sú dostupné len pre White Label plán.' });
+  }
+
+  const slots = parseInt(req.body?.slots || '1', 10);
+  if (!slots || slots < 1 || slots > 200) {
+    return res.status(400).json({ error: 'Počet slotov musí byť medzi 1 a 200.' });
+  }
+
+  const stripe = getStripe();
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+  const amountCents = slots * 1500; // €15 per slot
+
+  try {
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
+      customerId = customer.id;
+      db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{
+        price_data: {
+          currency: 'eur',
+          product_data: { name: `White Label — ${slots} extra klient${slots === 1 ? '' : slots < 5 ? 'i' : 'ov'} (€15/klient/mes)` },
+          unit_amount: amountCents,
+        },
+        quantity: 1,
+      }],
+      success_url: `${baseUrl}/dashboard?wl_slots_added=${slots}`,
+      cancel_url: `${baseUrl}/dashboard`,
+      locale: 'sk',
+      metadata: { type: 'wl_slots', userId: user.id, slots: String(slots) },
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('[wl-slots checkout]', err.message);
+    res.status(500).json({ error: 'Chyba pri vytváraní platby: ' + err.message });
+  }
+});
+
 // POST /api/stripe/portal — customer billing portal
 router.post('/portal', requireAuth, async (req, res) => {
   const db = getDb();
@@ -427,7 +489,7 @@ router.post('/portal', requireAuth, async (req, res) => {
 // If user has no stripe_customer_id yet, searches Stripe by email to auto-link
 router.get('/status', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until, person_addon_active FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until, person_addon_active, white_label_extra_slots FROM users WHERE id = ?').get(req.userId);
   const now = Math.floor(Date.now() / 1000);
   const inFreePeriod = user?.free_until && user.free_until > now;
 
@@ -461,6 +523,7 @@ router.get('/status', requireAuth, async (req, res) => {
     free_until: user?.free_until || null,
     in_free_period: !!inFreePeriod,
     person_addon: Boolean(user?.person_addon_active),
+    white_label_extra_slots: user?.white_label_extra_slots || 0,
   });
 });
 

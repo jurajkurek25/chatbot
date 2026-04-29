@@ -81,6 +81,24 @@ router.post('/', (req, res) => {
   }
 
   const db = getDb();
+
+  // Enforce widget limits per plan
+  const user = db.prepare('SELECT subscription_plan, white_label_extra_slots FROM users WHERE id = ?').get(req.userId);
+  const widgetCount = db.prepare('SELECT COUNT(*) AS cnt FROM widgets WHERE user_id = ?').get(req.userId).cnt;
+  const isWL = user?.subscription_plan === 'white_label';
+  const limit = isWL ? (40 + (user.white_label_extra_slots || 0)) : 10;
+  if (widgetCount >= limit) {
+    return res.status(403).json({
+      error: isWL
+        ? `Dosiahli ste limit ${limit} klientov. Dokúpte ďalšie sloty (€15/klient).`
+        : 'Dosiahli ste limit 10 widgetov na Pro pláne.',
+      limit_reached: true,
+      is_white_label: isWL,
+      current: widgetCount,
+      limit,
+    });
+  }
+
   const id = uuidv4();
 
   db.prepare(`
