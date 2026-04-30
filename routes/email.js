@@ -42,7 +42,8 @@ router.post('/inbound', async (req, res) => {
   `).get(secret);
   if (!profile) return res.status(404).json({ error: 'No active email channel found.' });
 
-  const { from = '', to = '', subject = '', messageId = '', inReplyTo = '', body = '' } = req.body;
+  const { from = '', to = '', subject = '', messageId = '', inReplyTo = '' } = req.body;
+  const body = String(req.body.body || '').slice(0, 20000);
 
   if (!from || !body.trim()) return res.status(400).json({ error: 'Missing from or body.' });
 
