@@ -128,8 +128,8 @@ async function sendUsageNotification({ toEmail, ownerName, pct, extra }) {
     : '📊 Využili ste 80 % mesačných AI odpovedí';
 
   const bodyMsg = is100
-    ? `Vyčerpali ste všetkých <strong>1 500 AI odpovedí</strong> zahrnutých v mesačnom pláne. ${extra > 0 ? `Máte ešte <strong>${extra} extra kreditov</strong>.` : 'Chatbot na vašom webe <strong>prestáva odpovedať</strong>, kým si dobijete kredity.'}`
-    : `Využili ste <strong>80 % mesačného limitu</strong> (1 200 z 1 500 AI odpovedí). ${extra > 0 ? `Máte k dispozícii <strong>${extra} extra kreditov</strong>.` : 'Zvážte dobíjanie kreditov.'}`;
+    ? `Vyčerpali ste všetkých <strong>500 AI odpovedí</strong> zahrnutých v mesačnom pláne. ${extra > 0 ? `Máte ešte <strong>${extra} extra kreditov</strong>.` : 'Chatbot na vašom webe <strong>prestáva odpovedať</strong>, kým si dobijete kredity.'}`
+    : `Využili ste <strong>80 % mesačného limitu</strong> (400 z 500 AI odpovedí). ${extra > 0 ? `Máte k dispozícii <strong>${extra} extra kreditov</strong>.` : 'Zvážte dobíjanie kreditov.'}`;
 
   const html = `
 <!DOCTYPE html>

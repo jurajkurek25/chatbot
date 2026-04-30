@@ -7,7 +7,7 @@ const { requireAuth } = require('../middleware/auth');
 
 const router = express.Router();
 
-const BASE_RESPONSES = 1500;
+const BASE_RESPONSES = 500;
 const PACKAGES = [
   { id: 'p5',  amount_eur: 5,  credits: 100 },
   { id: 'p8r', amount_eur: 8,  credits: 200 }, // auto-refill pack
