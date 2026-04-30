@@ -16,7 +16,8 @@ function isPrivateHost(hostname) {
     /^127\./.test(hostname) ||
     /^10\./.test(hostname) ||
     /^192\.168\./.test(hostname) ||
-    /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname)
+    /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) ||
+    /^169\.254\./.test(hostname)
   );
 }
 
@@ -40,7 +41,7 @@ function checkRateLimit(ip) {
 router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
-    SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
+    SELECT id, user_id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
            suggested_questions_i18n, active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text,
            hide_branding, business_hours, offline_message, csat_enabled, welcome_message_b
     FROM widgets WHERE id = ?

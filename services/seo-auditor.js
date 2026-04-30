@@ -7,6 +7,16 @@ const Anthropic = require('@anthropic-ai/sdk');
 
 const TIMEOUT_MS     = 8000;
 const MAX_BODY_BYTES = 300 * 1024;
+
+function isPrivateHost(hostname) {
+  return (
+    hostname === 'localhost' || hostname === '::1' ||
+    /^127\./.test(hostname) || /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) ||
+    /^169\.254\./.test(hostname)
+  );
+}
 const CRAWL_DELAY_MS = 200;
 const SKIP_EXT = /\.(jpg|jpeg|png|gif|webp|svg|pdf|zip|doc|docx|xls|css|js|xml|json|ico|woff|woff2|ttf|mp4|mp3)(\?|$)/i;
 
@@ -22,8 +32,13 @@ function fetchHtml(rawUrl, redirects = 0) {
       timeout: TIMEOUT_MS,
     }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        try { resolve(fetchHtml(new URL(res.headers.location, rawUrl).href, redirects + 1)); } catch { reject(new Error('Bad redirect')); }
-        res.resume(); return;
+        try {
+          const nextUrl = new URL(res.headers.location, rawUrl);
+          if (isPrivateHost(nextUrl.hostname)) { res.resume(); return reject(new Error('Redirect to private host blocked')); }
+          res.resume();
+          resolve(fetchHtml(nextUrl.href, redirects + 1));
+        } catch { reject(new Error('Bad redirect')); }
+        return;
       }
       if (res.statusCode !== 200) { res.resume(); return reject(new Error(`HTTP ${res.statusCode}`)); }
       const ct = res.headers['content-type'] || '';
