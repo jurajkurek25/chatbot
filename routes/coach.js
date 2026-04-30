@@ -125,6 +125,12 @@ Neoworkly je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvoria 
 - Pri 100%: červený banner, chatbot prestane odpovedať, tlačidlo "Dobiť kredity"
 - Reset mesačných odpovedí: každý mesiac automaticky (extra kredity sa neobnovia)
 - Minuli sa odpovede: dokúpte kredity alebo zarobte cez affiliate program
+- AUTO-RELOAD KREDITOV: Dashboard → sidebar → "+ Dobiť" → záložka "🔄 Automatické dobíjanie"
+  • Uložte platobnú kartu jednorazovo (Stripe Checkout → setup mode)
+  • Nastavte prah: keď kredity klesnú pod X odpovedí (napr. 50), systém automaticky dobije
+  • Nastavte sumu: €8 (200 odp.) je predvolené, môžete zmeniť
+  • Karta zostane uložená — ďalšie dobíjania sú plne automatické (off-session Stripe charge)
+  • Kartu môžete kedykoľvek odstrániť tlačidlom "Odstrániť kartu"
 
 11. ONBOARDING (prvé nastavenie po registrácii)
 - Žiadny trial — platba prebehne hneď pri registrácii (Stripe)
@@ -558,7 +564,7 @@ METRIKY (vysvetlenie každej):
 - Konverzie: počet leadov s označenou konverziou
 - Conversion rate: % leadov ktoré skončili nákupom (konverzie / všetky leady × 100)
 - €/kredit: koľko eur zarobí jeden AI kredit (napr. €3/kredit = 60–75× ROI na kreditoch)
-- ROI headline: "Zarobil €X — to je Yx viac než predplatné (€29)" — zobrazí sa keď ROI ≥ 1×
+- ROI headline: "Zarobil €X — to je Yx viac než predplatné (€37)" — zobrazí sa keď ROI ≥ 1×
 - Missed revenue: odhadovaná strata keď chatbot vyčerpal kredity a nemohol odpovedať
 
 AKO OZNAČIŤ KONVERZIU:
@@ -665,8 +671,8 @@ EMBED:
 Widget s Person funguje rovnako ako štandardný widget — bubble alebo inline embed.
 
 BILLING:
-- Vyžaduje aktívny Pro plán (€19/mes)
-- Add-on €29/mes → celkom €48/mes
+- Vyžaduje aktívny Pro plán (€37/mes)
+- Add-on €29/mes → celkom €66/mes
 - Platba cez Stripe (tlačidlo "Aktivovať Person" v dashboarde)
 
 BEŽNÉ OTÁZKY:
@@ -689,7 +695,7 @@ BEŽNÉ OTÁZKY:
 
 27. EMAIL KANÁL — "AI asistent na e-mailovej adrese"
 Dashboard → váš widget → záložka "🧑 Person" → sekcia "📧 E-mailový kanál"
-CENA: zahrnuté v Person add-one (€29/mes) — žiadny príplatok
+CENA: zahrnuté v Person add-one (€37/mes) — žiadny príplatok
 
 ČO JE EMAIL KANÁL:
 Umožňuje napojiť vlastnú e-mailovú adresu (napr. asistent@vasadomena.sk) tak, aby na ňu odpovedal AI digitálny dvojník. Zákazník pošle e-mail → AI odpíše ako Person (alebo ako štandardný chatbot ak Person nie je aktívny).
@@ -748,6 +754,26 @@ BEŽNÉ OTÁZKY:
 
 "Odpovede chodia z inej adresy"
 → Replies idú z Neoworkly SMTP ale s Reply-To nastaveným na vašu adresu — zákazník odpovie na vašu adresu, nie na systémovú.
+
+━━━
+
+28. DARČEKOVÉ KARTY
+Stránka: neoworkly.com/darcek (verejná, nevyžaduje prihlásenie)
+- Zakúpte darčekovú kartu pre niekoho iného alebo pre seba — hodnoty: €5, €10, €15, €25, €50 alebo vlastná suma
+- Po zaplatení cez Stripe dostane kupujúci e-mailom kód vo formáte NEOW-XXXX-XXXX-XXXX
+- Uplatnenie: Dashboard → sidebar → "🎁 Uplatniť darčekovú kartu" → zadajte kód → kredity sa okamžite pripíšu
+- Kredity z darčekovej karty fungujú ako affiliate/referral kredity:
+  • Voľný mesiac: 37 kreditov = 1 mesiac zadarmo (môžete uplatniť cez "Affiliate" sekciu)
+  • AI odpovede: 1 kredit = 100 AI odpovedí
+- Jeden kód možno uplatniť len raz; platnosť karty sa nepremlčuje
+
+29. SHOPIFY INTEGRÁCIA
+Dashboard → váš widget → záložka "🛒 Shopify"
+- Prepojte Neoworkly s Shopify obchodom cez OAuth: Inštalácia cez neoworkly.com/shopify/install?shop=vasaadresa.myshopify.com
+- Po autorizácii jedným kliknutím naskenujte produkty, stránky a blogy do znalostnej bázy
+- Widget sa automaticky vloží do obchodu cez Shopify ScriptTag — zákazníci uvidia chatbota bez ručného kopírovania kódu
+- Aktualizácia obsahu: Re-scan tlačidlo v nastaveniach záložky
+- Odpojenie: záložka Shopify → "Odpojiť"; pri odinštalovaní Shopify aplikácie sa spojenie zruší automaticky cez uninstall webhook
 
 ━━━
 
