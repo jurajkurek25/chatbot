@@ -445,8 +445,18 @@ router.post('/webhook', async (req, res) => {
         const credits = parseInt(pi.metadata.credits || '0', 10);
         const userId = pi.metadata.userId;
         if (credits > 0 && userId) {
-          db.prepare('UPDATE users SET extra_response_credits = extra_response_credits + ? WHERE id = ?').run(credits, userId);
-          console.log(`[auto_reload] +${credits} credits added to user ${userId} via auto-reload`);
+          // Skip if credits were already added synchronously in triggerAutoReload
+          const noteKey = `auto_reload:${pi.id}`;
+          const already = db.prepare('SELECT id FROM credit_transactions WHERE note = ?').get(noteKey);
+          if (!already) {
+            const { v4: uuidv4 } = require('uuid');
+            db.prepare('UPDATE users SET extra_response_credits = extra_response_credits + ? WHERE id = ?').run(credits, userId);
+            db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+              .run(uuidv4(), userId, 'auto_reload', credits, noteKey);
+            console.log(`[auto_reload] +${credits} credits added to user ${userId} via webhook`);
+          } else {
+            console.log(`[auto_reload] Credits for PI ${pi.id} already added (sync), skipping webhook duplicate`);
+          }
         }
       }
       break;

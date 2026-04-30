@@ -40,7 +40,7 @@ async function triggerAutoReload(userId, user) {
 
   const stripe = getStripe();
   try {
-    await stripe.paymentIntents.create({
+    const pi = await stripe.paymentIntents.create({
       amount: euros * 100,
       currency: 'eur',
       customer: user.stripe_customer_id,
@@ -50,8 +50,21 @@ async function triggerAutoReload(userId, user) {
       metadata: { type: 'auto_reload', userId, credits: String(credits) },
       description: `Neoworkly auto-reload – ${credits} AI odpovedí`,
     });
-    // Credits added by webhook (payment_intent.succeeded) — not here to avoid duplicates
-    console.log(`[auto_reload] PaymentIntent created for user ${userId}: €${euros} → ${credits} credits`);
+
+    if (pi.status === 'succeeded') {
+      // Payment completed synchronously — add credits immediately so user isn't left waiting
+      // for the webhook. Webhook will skip if this note already exists (idempotency).
+      const { v4: uuidv4 } = require('uuid');
+      const already = db.prepare("SELECT id FROM credit_transactions WHERE note = ?").get(`auto_reload:${pi.id}`);
+      if (!already) {
+        db.prepare('UPDATE users SET extra_response_credits = extra_response_credits + ? WHERE id = ?').run(credits, userId);
+        db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+          .run(uuidv4(), userId, 'auto_reload', credits, `auto_reload:${pi.id}`);
+        console.log(`[auto_reload] +${credits} credits added immediately (sync) for user ${userId}`);
+      }
+    } else {
+      console.log(`[auto_reload] PaymentIntent ${pi.id} status=${pi.status} — waiting for webhook`);
+    }
   } catch (err) {
     console.error(`[auto_reload] Payment failed for user ${userId}:`, err.message);
     // Notify user so they can fix card manually
