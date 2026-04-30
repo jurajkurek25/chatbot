@@ -35,7 +35,7 @@ const LANG_NAMES = {
 // HTML files to scan (relative to /public)
 const HTML_FILES = [
   'index.html', 'dashboard.html', 'booking.html', 'onboarding.html',
-  'demo.html',  'shopify.html',   'wordpress.html', '404.html',
+  'demo.html',  'shopify.html',   'wordpress.html', '404.html', 'darcek.html',
 ];
 
 // Strings to unconditionally skip (exact match or startsWith)

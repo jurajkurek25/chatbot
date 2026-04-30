@@ -38,7 +38,7 @@ const LANGUAGES = {
 
 const HTML_FILES = [
   'index.html', 'dashboard.html', 'booking.html', 'onboarding.html',
-  'demo.html',  'shopify.html',   'wordpress.html', '404.html',
+  'demo.html',  'shopify.html',   'wordpress.html', '404.html', 'darcek.html',
 ];
 
 const SKIP_EXACT = new Set([
