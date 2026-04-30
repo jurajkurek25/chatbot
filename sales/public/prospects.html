@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neoworkly Sales — Prospekting</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 240px; min-height: 100vh;
+      background: #1e293b;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .logo-row { display: flex; align-items: center; gap: 10px; }
+    .logo-dot {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+    }
+    .logo-dot svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .logo-text { font-size: 14px; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+    .logo-text small { display: block; font-size: 11px; color: #64748b; font-weight: 400; margin-top: 1px; }
+    .nav { flex: 1; padding: 16px 12px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 9px;
+      color: #94a3b8; text-decoration: none;
+      font-size: 14px; font-weight: 500;
+      transition: all 0.18s; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+    .nav-item.active { background: rgba(37,99,235,0.18); color: #60a5fa; }
+    .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .user-avatar { width: 34px; height: 34px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+    .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .user-name { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+    .user-email { font-size: 11px; color: #475569; margin-top: 1px; }
+    .btn-logout { width: 100%; padding: 8px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; color: #f87171; font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 500; transition: background 0.2s; }
+    .btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+    /* ── MAIN ── */
+    .main { margin-left: 240px; flex: 1; display: flex; flex-direction: column; min-height: 100vh; }
+
+    .main-inner { display: flex; flex: 1; gap: 0; }
+
+    /* Left panel */
+    .panel-left {
+      width: 400px;
+      min-width: 360px;
+      padding: 36px 28px;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Right panel */
+    .panel-right {
+      flex: 1;
+      padding: 36px 32px;
+      overflow-y: auto;
+    }
+
+    .panel-title {
+      font-size: 18px; font-weight: 700; color: #f1f5f9;
+      margin-bottom: 20px; letter-spacing: -0.3px;
+    }
+
+    /* Analyze card */
+    .analyze-card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 24px;
+    }
+    .analyze-card h3 { font-size: 15px; font-weight: 600; color: #f1f5f9; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+    .analyze-card h3 svg { width: 16px; height: 16px; stroke: #60a5fa; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .input-group { display: flex; gap: 8px; }
+    .url-input {
+      flex: 1;
+      padding: 11px 14px;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: #f1f5f9;
+      font-size: 14px; outline: none;
+      font-family: inherit;
+      transition: border-color 0.2s;
+    }
+    .url-input:focus { border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,0.15); }
+    .url-input::placeholder { color: #475569; }
+    .btn-analyze {
+      padding: 11px 18px;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      border: none; border-radius: 10px;
+      color: white; font-size: 14px; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+      font-family: inherit;
+      transition: opacity 0.2s;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+    }
+    .btn-analyze:hover { opacity: 0.9; }
+    .btn-analyze:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* Loading state */
+    .loading-state {
+      text-align: center; padding: 28px 20px;
+      display: none;
+    }
+    .loading-state.visible { display: block; }
+    .spinner-large {
+      width: 40px; height: 40px;
+      border: 3px solid rgba(37,99,235,0.2);
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 14px;
+    }
+    .loading-text { font-size: 13px; color: #64748b; line-height: 1.5; }
+    .loading-dots::after { content: ''; animation: dots 1.5s steps(4, end) infinite; }
+    @keyframes dots { 0%, 20% { content: ''; } 40% { content: '.'; } 60% { content: '..'; } 80%, 100% { content: '...'; } }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Result card */
+    .result-card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 24px;
+      display: none;
+    }
+    .result-card.visible { display: block; }
+
+    .company-name { font-size: 20px; font-weight: 700; color: #f1f5f9; margin-bottom: 8px; }
+    .industry-badge {
+      display: inline-block;
+      padding: 3px 10px; border-radius: 20px;
+      background: rgba(37,99,235,0.15); color: #60a5fa;
+      font-size: 12px; font-weight: 500;
+      margin-bottom: 16px;
+    }
+    .fit-row { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .fit-number {
+      font-size: 42px; font-weight: 800; line-height: 1;
+    }
+    .fit-number.high { color: #34d399; }
+    .fit-number.mid  { color: #fbbf24; }
+    .fit-number.low  { color: #f87171; }
+    .fit-label { font-size: 12px; color: #64748b; font-weight: 500; }
+    .fit-label strong { display: block; font-size: 14px; color: #94a3b8; font-weight: 600; }
+
+    .company-desc { font-size: 13px; color: #94a3b8; line-height: 1.55; margin-bottom: 16px; }
+
+    .info-box {
+      padding: 12px 16px; border-radius: 10px;
+      margin-bottom: 12px; font-size: 13px; line-height: 1.5;
+    }
+    .info-box.blue { background: rgba(37,99,235,0.1); border: 1px solid rgba(37,99,235,0.2); color: #93c5fd; }
+    .info-box.yellow { background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); color: #fde68a; }
+    .info-box-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; opacity: 0.7; }
+
+    .contact-row { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .contact-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #94a3b8; }
+    .contact-item svg { width: 14px; height: 14px; stroke: #64748b; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .btn-save {
+      width: 100%; padding: 11px;
+      background: linear-gradient(135deg, #059669, #10b981);
+      border: none; border-radius: 10px;
+      color: white; font-size: 14px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s;
+      box-shadow: 0 4px 14px rgba(16,185,129,0.25);
+      margin-top: 8px;
+    }
+    .btn-save:hover { opacity: 0.9; }
+    .btn-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .error-msg { background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.25); color: #f87171; font-size: 13px; padding: 10px 14px; border-radius: 9px; display: none; }
+    .error-msg.visible { display: block; }
+
+    /* Right panel — prospects list */
+    .prospects-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .prospects-title { font-size: 18px; font-weight: 700; color: #f1f5f9; }
+    .count-badge { font-size: 12px; color: #64748b; background: rgba(255,255,255,0.06); padding: 3px 10px; border-radius: 20px; }
+
+    .filter-tabs { display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap; }
+    .filter-tab {
+      padding: 6px 14px; border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: transparent; color: #64748b;
+      font-size: 13px; font-weight: 500; cursor: pointer;
+      font-family: inherit; transition: all 0.18s;
+    }
+    .filter-tab.active { background: #2563eb; border-color: #2563eb; color: white; }
+    .filter-tab:not(.active):hover { border-color: rgba(255,255,255,0.2); color: #94a3b8; }
+
+    .prospect-card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 14px;
+      transition: border-color 0.18s;
+    }
+    .prospect-card:hover { border-color: rgba(255,255,255,0.12); }
+    .p-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; gap: 10px; }
+    .p-company { font-size: 15px; font-weight: 600; color: #f1f5f9; }
+    .p-url { font-size: 12px; color: #475569; margin-top: 2px; text-decoration: none; }
+    .p-url:hover { color: #60a5fa; }
+    .p-badges { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .fit-badge-sm {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+    }
+    .fb-high { background: rgba(16,185,129,0.15); color: #34d399; }
+    .fb-mid  { background: rgba(245,158,11,0.15);  color: #fbbf24; }
+    .fb-low  { background: rgba(239,68,68,0.15);   color: #f87171; }
+    .industry-tag { font-size: 12px; color: #64748b; background: rgba(255,255,255,0.05); padding: 3px 9px; border-radius: 5px; }
+
+    .p-card-controls { display: flex; gap: 10px; margin-bottom: 12px; align-items: center; flex-wrap: wrap; }
+    .status-select {
+      padding: 6px 10px;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #e2e8f0;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      outline: none;
+      flex: 1;
+      min-width: 140px;
+    }
+    .notes-input {
+      width: 100%; padding: 8px 12px;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px;
+      color: #94a3b8;
+      font-size: 13px; font-family: inherit;
+      resize: vertical; min-height: 60px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .notes-input:focus { border-color: rgba(37,99,235,0.3); }
+    .notes-input::placeholder { color: #334155; }
+
+    .p-card-footer { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
+    .btn-sm {
+      padding: 6px 12px; border-radius: 7px;
+      font-size: 12px; font-weight: 500;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.18s; border: 1px solid;
+    }
+    .btn-save-note { background: rgba(37,99,235,0.1); border-color: rgba(37,99,235,0.2); color: #60a5fa; }
+    .btn-save-note:hover { background: rgba(37,99,235,0.2); }
+    .btn-delete { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.2); color: #f87171; }
+    .btn-delete:hover { background: rgba(239,68,68,0.2); }
+
+    .empty-state { text-align: center; padding: 60px 20px; color: #475569; }
+    .empty-state svg { width: 48px; height: 48px; stroke: #334155; fill: none; stroke-width: 1.5; margin-bottom: 16px; }
+    .empty-state p { font-size: 15px; margin-bottom: 6px; color: #64748b; }
+    .empty-state span { font-size: 13px; }
+
+    .success-toast {
+      position: fixed; top: 20px; right: 20px;
+      background: rgba(16,185,129,0.9);
+      color: white; padding: 12px 20px;
+      border-radius: 10px; font-size: 14px; font-weight: 500;
+      z-index: 999; box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+      display: none; align-items: center; gap: 8px;
+      backdrop-filter: blur(10px);
+    }
+    .success-toast.visible { display: flex; }
+
+    .skeleton { background: linear-gradient(90deg, #1e293b 25%, #253047 50%, #1e293b 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    @media (max-width: 1100px) { .panel-left { width: 340px; min-width: 300px; } }
+    @media (max-width: 900px) {
+      .main-inner { flex-direction: column; }
+      .panel-left { width: 100%; border-right: none; border-bottom: 1px solid rgba(255,255,255,0.07); }
+      .panel-right { padding: 24px 20px; }
+    }
+    @media (max-width: 768px) { .sidebar { width: 0; overflow: hidden; } .main { margin-left: 0; } }
+  </style>
+</head>
+<body>
+  <div class="success-toast" id="toast">✓ <span id="toast-msg">Uložené!</span></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-row">
+        <div class="logo-dot">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="logo-text">Neoworkly Sales<small>Tréningová platforma</small></div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="/dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="/training.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        Tréning
+      </a>
+      <a href="/prospects.html" class="nav-item active">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Prospekting
+      </a>
+      <a href="/advisor.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        AI Poradca
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="sidebar-name">–</div>
+          <div class="user-email" id="sidebar-email">–</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Odhlásiť sa</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="main-inner">
+      <!-- Left panel: Analyzer -->
+      <div class="panel-left">
+        <div class="panel-title">Prospekting</div>
+
+        <div class="analyze-card">
+          <h3>
+            <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            Analyzovať web
+          </h3>
+          <div class="input-group">
+            <input type="url" class="url-input" id="url-input" placeholder="https://firma.sk" />
+            <button class="btn-analyze" id="analyze-btn" onclick="analyzeUrl()">Analyzovať</button>
+          </div>
+          <div class="error-msg" id="analyze-error" style="margin-top:12px"></div>
+        </div>
+
+        <!-- Loading -->
+        <div class="loading-state" id="loading-state">
+          <div class="spinner-large"></div>
+          <div class="loading-text">
+            <strong style="color:#f1f5f9">Analyzujeme web s AI</strong><br>
+            Scrapeujeme web a analyzujeme s AI<span class="loading-dots"></span>
+          </div>
+        </div>
+
+        <!-- Result -->
+        <div class="result-card" id="result-card">
+          <div class="company-name" id="r-company">–</div>
+          <div class="industry-badge" id="r-industry">–</div>
+          <div class="fit-row">
+            <div class="fit-number" id="r-fit">–</div>
+            <div>
+              <div class="fit-label"><strong>Fit skóre</strong>hodnotenie vhodnosti</div>
+            </div>
+          </div>
+          <div class="company-desc" id="r-desc"></div>
+          <div class="info-box blue" id="r-why">
+            <div class="info-box-label">Prečo potrebuje chatbot</div>
+            <div id="r-why-text"></div>
+          </div>
+          <div class="contact-row" id="r-contacts"></div>
+          <div class="info-box yellow" id="r-opener">
+            <div class="info-box-label">💬 Odporúčaný opener</div>
+            <div id="r-opener-text"></div>
+          </div>
+          <button class="btn-save" id="save-btn" onclick="saveProspect()">Uložiť prospekt</button>
+        </div>
+      </div>
+
+      <!-- Right panel: Saved prospects -->
+      <div class="panel-right">
+        <div class="prospects-header">
+          <div class="prospects-title">Moji prospekti</div>
+          <div class="count-badge" id="count-badge">0 prospektov</div>
+        </div>
+
+        <div class="filter-tabs">
+          <button class="filter-tab active" data-filter="all" onclick="setFilter('all', this)">Všetci</button>
+          <button class="filter-tab" data-filter="new" onclick="setFilter('new', this)">Nový</button>
+          <button class="filter-tab" data-filter="contacted" onclick="setFilter('contacted', this)">Kontaktovaný</button>
+          <button class="filter-tab" data-filter="converted" onclick="setFilter('converted', this)">Konvertovaný</button>
+        </div>
+
+        <div id="prospects-list">
+          <div class="skeleton" style="height:140px; margin-bottom:14px"></div>
+          <div class="skeleton" style="height:140px; margin-bottom:14px"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    async function apiFetch(path, options = {}) {
+      const token = localStorage.getItem('sales_token');
+      const res = await fetch('/api' + path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: 'Bearer ' + token } : {}),
+          ...(options.headers || {}),
+        },
+      });
+      if (res.status === 401) { localStorage.removeItem('sales_token'); window.location.href = '/'; return; }
+      return res;
+    }
+
+    function logout() { localStorage.removeItem('sales_token'); window.location.href = '/'; }
+
+    let allProspects = [];
+    let currentFilter = 'all';
+    let currentResult = null;
+
+    function showToast(msg, color = '#10b981') {
+      const t = document.getElementById('toast');
+      document.getElementById('toast-msg').textContent = msg;
+      t.style.background = color.includes('#') ? color + 'e6' : color;
+      t.classList.add('visible');
+      setTimeout(() => t.classList.remove('visible'), 3000);
+    }
+
+    function fitClass(s) { return s >= 7 ? 'high' : s >= 4 ? 'mid' : 'low'; }
+    function fitBadgeClass(s) { return s >= 7 ? 'fb-high' : s >= 4 ? 'fb-mid' : 'fb-low'; }
+    function statusLabel(s) { return s === 'contacted' ? 'Kontaktovaný' : s === 'converted' ? 'Konvertovaný' : 'Nový'; }
+
+    async function analyzeUrl() {
+      const url = document.getElementById('url-input').value.trim();
+      if (!url) { showError('analyze-error', 'Zadajte URL adresu.'); return; }
+      if (!/^https?:\/\/.+/.test(url)) { showError('analyze-error', 'Zadajte platnú URL (začínajúcu https://).'); return; }
+      hideError('analyze-error');
+
+      document.getElementById('analyze-btn').disabled = true;
+      document.getElementById('loading-state').classList.add('visible');
+      document.getElementById('result-card').classList.remove('visible');
+
+      try {
+        const res = await apiFetch('/prospects/analyze', {
+          method: 'POST',
+          body: JSON.stringify({ url })
+        });
+        if (!res) return;
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          showError('analyze-error', d.message || d.error || 'Analýza zlyhala.');
+          return;
+        }
+        const data = await res.json();
+        currentResult = { ...data, url };
+        showResult(data);
+      } catch (e) {
+        showError('analyze-error', 'Chyba pripojenia. Skúste znova.');
+      } finally {
+        document.getElementById('analyze-btn').disabled = false;
+        document.getElementById('loading-state').classList.remove('visible');
+      }
+    }
+
+    function showError(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.classList.add('visible'); }
+    function hideError(id) { document.getElementById(id).classList.remove('visible'); }
+
+    function showResult(d) {
+      const card = document.getElementById('result-card');
+      document.getElementById('r-company').textContent = d.companyName || 'Neznáma firma';
+      document.getElementById('r-industry').textContent = d.industry || 'Neznáme odvetvie';
+
+      const fitEl = document.getElementById('r-fit');
+      const score = d.fitScore || 0;
+      fitEl.textContent = score;
+      fitEl.className = 'fit-number ' + fitClass(score);
+
+      document.getElementById('r-desc').textContent = d.description || '';
+      document.getElementById('r-why-text').textContent = d.whyNeedsChatbot || '';
+
+      const contacts = document.getElementById('r-contacts');
+      let ctHTML = '';
+      if (d.email) ctHTML += `<div class="contact-item"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${d.email}</div>`;
+      if (d.phone) ctHTML += `<div class="contact-item"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.14 1.18 2 2 0 012.11 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>${d.phone}</div>`;
+      contacts.innerHTML = ctHTML;
+      if (d.email || d.phone) contacts.style.display = 'flex'; else contacts.style.display = 'none';
+
+      document.getElementById('r-opener-text').textContent = d.openingLine || '';
+
+      document.getElementById('save-btn').textContent = 'Uložiť prospekt';
+      document.getElementById('save-btn').disabled = false;
+
+      card.classList.add('visible');
+    }
+
+    async function saveProspect() {
+      if (!currentResult) return;
+      const btn = document.getElementById('save-btn');
+      btn.disabled = true; btn.textContent = 'Ukladám...';
+      try {
+        const res = await apiFetch('/prospects', {
+          method: 'POST',
+          body: JSON.stringify(currentResult)
+        });
+        if (!res || !res.ok) {
+          const d = await res?.json().catch(() => ({}));
+          showToast(d.message || 'Nepodarilo sa uložiť.', '#ef4444');
+          btn.disabled = false; btn.textContent = 'Uložiť prospekt';
+          return;
+        }
+        const saved = await res.json();
+        allProspects.unshift(saved.prospect || saved);
+        renderProspects();
+        showToast('Prospekt uložený!');
+        btn.textContent = '✓ Uložené';
+        setTimeout(() => { btn.disabled = false; btn.textContent = 'Uložiť znova'; }, 2000);
+      } catch (e) {
+        showToast('Chyba uloženia.', '#ef4444');
+        btn.disabled = false; btn.textContent = 'Uložiť prospekt';
+      }
+    }
+
+    function setFilter(filter, el) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t === el));
+      renderProspects();
+    }
+
+    function renderProspects() {
+      const filtered = currentFilter === 'all'
+        ? allProspects
+        : allProspects.filter(p => p.status === currentFilter);
+
+      document.getElementById('count-badge').textContent = `${allProspects.length} prospektov`;
+      const list = document.getElementById('prospects-list');
+
+      if (!filtered.length) {
+        list.innerHTML = `<div class="empty-state">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v3m0 3h.01"/></svg>
+          <p>${currentFilter === 'all' ? 'Žiadni prospekti' : 'Žiadni ' + statusLabel(currentFilter).toLowerCase() + ' prospekti'}</p>
+          <span>${currentFilter === 'all' ? 'Analyzujte web firmy a uložte prvý prospekt.' : 'Zmeňte filter alebo pridajte nových prospektov.'}</span>
+        </div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.map(p => `
+        <div class="prospect-card" id="pcard-${p.id}">
+          <div class="p-card-header">
+            <div>
+              <div class="p-company">${p.companyName || 'Neznáma firma'}</div>
+              <a href="${p.url || '#'}" target="_blank" class="p-url">${p.url || ''}</a>
+            </div>
+            <div class="p-badges">
+              <div class="fit-badge-sm ${fitBadgeClass(p.fitScore)}">${p.fitScore}</div>
+              <div class="industry-tag">${p.industry || '–'}</div>
+            </div>
+          </div>
+          <div class="p-card-controls">
+            <select class="status-select" id="status-${p.id}" onchange="updateStatus('${p.id}', this.value)">
+              <option value="new" ${p.status === 'new' ? 'selected' : ''}>Nový</option>
+              <option value="contacted" ${p.status === 'contacted' ? 'selected' : ''}>Kontaktovaný</option>
+              <option value="converted" ${p.status === 'converted' ? 'selected' : ''}>Konvertovaný</option>
+            </select>
+          </div>
+          <textarea class="notes-input" id="notes-${p.id}" placeholder="Poznámky k prospektu...">${p.notes || ''}</textarea>
+          <div class="p-card-footer">
+            <button class="btn-sm btn-save-note" onclick="saveNote('${p.id}')">Uložiť poznámku</button>
+            <button class="btn-sm btn-delete" onclick="deleteProspect('${p.id}')">Odstrániť</button>
+          </div>
+        </div>`).join('');
+    }
+
+    async function updateStatus(id, status) {
+      const res = await apiFetch(`/prospects/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status })
+      });
+      if (res && res.ok) {
+        const p = allProspects.find(x => String(x.id) === String(id));
+        if (p) p.status = status;
+        showToast('Stav aktualizovaný!');
+        if (currentFilter !== 'all') renderProspects();
+      }
+    }
+
+    async function saveNote(id) {
+      const notes = document.getElementById(`notes-${id}`).value;
+      const res = await apiFetch(`/prospects/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ notes })
+      });
+      if (res && res.ok) {
+        const p = allProspects.find(x => String(x.id) === String(id));
+        if (p) p.notes = notes;
+        showToast('Poznámka uložená!');
+      }
+    }
+
+    async function deleteProspect(id) {
+      if (!confirm('Naozaj chcete odstrániť tento prospekt?')) return;
+      const res = await apiFetch(`/prospects/${id}`, { method: 'DELETE' });
+      if (res && (res.ok || res.status === 204)) {
+        allProspects = allProspects.filter(x => String(x.id) !== String(id));
+        renderProspects();
+        showToast('Prospekt odstránený.');
+      }
+    }
+
+    async function init() {
+      const meRes = await apiFetch('/auth/me');
+      if (!meRes || !meRes.ok) return;
+      const me = await meRes.json();
+      document.getElementById('sidebar-name').textContent = me.name || 'Používateľ';
+      document.getElementById('sidebar-email').textContent = me.email || '';
+      document.getElementById('user-avatar').textContent = (me.name || me.email || '?')[0].toUpperCase();
+
+      const res = await apiFetch('/prospects');
+      if (res && res.ok) {
+        const d = await res.json();
+        allProspects = Array.isArray(d) ? d : (d.prospects || []);
+      }
+      renderProspects();
+    }
+
+    // Enter key on URL input
+    document.getElementById('url-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') analyzeUrl();
+    });
+
+    init();
+  </script>
+</body>
+</html>

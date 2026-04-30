@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neoworkly Sales — Tréning</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 240px; min-height: 100vh;
+      background: #1e293b;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .logo-row { display: flex; align-items: center; gap: 10px; }
+    .logo-dot {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+    }
+    .logo-dot svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .logo-text { font-size: 14px; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+    .logo-text small { display: block; font-size: 11px; color: #64748b; font-weight: 400; margin-top: 1px; }
+    .nav { flex: 1; padding: 16px 12px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 9px;
+      color: #94a3b8; text-decoration: none;
+      font-size: 14px; font-weight: 500;
+      transition: all 0.18s; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+    .nav-item.active { background: rgba(37,99,235,0.18); color: #60a5fa; }
+    .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .user-avatar { width: 34px; height: 34px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+    .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .user-name { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+    .user-email { font-size: 11px; color: #475569; margin-top: 1px; }
+    .btn-logout { width: 100%; padding: 8px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; color: #f87171; font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 500; transition: background 0.2s; }
+    .btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+    /* ── MAIN ── */
+    .main { margin-left: 240px; flex: 1; padding: 36px 40px; min-height: 100vh; }
+
+    .page-header { margin-bottom: 32px; display: flex; align-items: center; gap: 14px; }
+    .page-header h2 { font-size: 26px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.4px; }
+    .back-btn {
+      display: flex; align-items: center; gap: 6px;
+      color: #64748b; text-decoration: none; font-size: 14px;
+      padding: 7px 12px; border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.08);
+      transition: all 0.18s; cursor: pointer; background: transparent; font-family: inherit;
+    }
+    .back-btn:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+    .back-btn svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* Module list */
+    .modules-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+    .module-card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 24px;
+      transition: border-color 0.2s, transform 0.15s, box-shadow 0.2s;
+    }
+    .module-card.available { cursor: pointer; }
+    .module-card.available:hover { border-color: rgba(37,99,235,0.45); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+    .module-card.locked { opacity: 0.5; }
+    .module-num { font-size: 11px; color: #475569; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px; font-weight: 600; }
+    .module-title { font-size: 16px; font-weight: 600; color: #f1f5f9; margin-bottom: 10px; line-height: 1.35; }
+    .module-desc { font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 20px; }
+    .progress-bar { height: 5px; background: rgba(255,255,255,0.08); border-radius: 3px; overflow: hidden; margin-bottom: 10px; }
+    .progress-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, #2563eb, #7c3aed); transition: width 0.6s; }
+    .module-footer { display: flex; align-items: center; justify-content: space-between; }
+    .module-status-label { font-size: 12px; font-weight: 500; }
+    .s-locked { color: #475569; }
+    .s-available { color: #60a5fa; }
+    .s-done { color: #34d399; }
+    .btn-start {
+      padding: 8px 18px; background: linear-gradient(135deg, #2563eb, #4f46e5);
+      border: none; border-radius: 8px; color: white;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      font-family: inherit; transition: opacity 0.2s;
+    }
+    .btn-start:hover { opacity: 0.9; }
+
+    /* Content view */
+    .content-area {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 36px 40px;
+      max-width: 800px;
+      line-height: 1.7; color: #cbd5e1; font-size: 15px;
+    }
+    .content-area h2 { color: #f1f5f9; font-size: 20px; font-weight: 700; margin: 24px 0 10px; border-bottom: 1px solid rgba(255,255,255,0.07); padding-bottom: 10px; }
+    .content-area h2:first-child { margin-top: 0; }
+    .content-area p { margin-bottom: 14px; }
+    .content-area strong { color: #f1f5f9; font-weight: 600; }
+    .content-area ul { padding-left: 22px; margin-bottom: 14px; }
+    .content-area li { margin-bottom: 6px; }
+    .content-actions { margin-top: 32px; display: flex; gap: 12px; }
+
+    /* Quiz view */
+    .quiz-header { margin-bottom: 28px; }
+    .quiz-progress-text { font-size: 13px; color: #64748b; margin-bottom: 8px; }
+    .quiz-progress-bar { height: 4px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden; margin-bottom: 28px; }
+    .quiz-progress-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #7c3aed); border-radius: 2px; transition: width 0.4s; }
+    .question-card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; padding: 24px 28px;
+      margin-bottom: 16px;
+    }
+    .question-text { font-size: 15px; font-weight: 600; color: #f1f5f9; margin-bottom: 18px; line-height: 1.5; }
+    .question-num { font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px; color: #475569; font-weight: 600; margin-bottom: 10px; }
+    .option-label {
+      display: flex; align-items: flex-start; gap: 12px;
+      padding: 12px 16px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.08);
+      cursor: pointer; margin-bottom: 10px;
+      transition: all 0.18s; color: #cbd5e1; font-size: 14px; line-height: 1.4;
+    }
+    .option-label:hover { border-color: rgba(37,99,235,0.4); background: rgba(37,99,235,0.06); }
+    .option-label input[type="radio"] { appearance: none; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-radius: 50%; flex-shrink: 0; margin-top: 1px; cursor: pointer; transition: all 0.15s; position: relative; }
+    .option-label input[type="radio"]:checked { border-color: #2563eb; background: #2563eb; }
+    .option-label input[type="radio"]:checked::after { content: ''; position: absolute; width: 6px; height: 6px; background: white; border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+    .option-label:has(input:checked) { border-color: rgba(37,99,235,0.5); background: rgba(37,99,235,0.08); color: #f1f5f9; }
+
+    /* Results */
+    .results-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; padding: 40px; max-width: 700px; }
+    .score-display { text-align: center; margin-bottom: 32px; }
+    .score-number { font-size: 72px; font-weight: 800; line-height: 1; color: #f1f5f9; }
+    .score-pass { font-size: 22px; font-weight: 700; margin-top: 10px; }
+    .score-pass.pass { color: #34d399; }
+    .score-pass.fail { color: #f87171; }
+    .result-item {
+      padding: 14px 18px; border-radius: 11px;
+      border: 1px solid rgba(255,255,255,0.07);
+      margin-bottom: 10px;
+    }
+    .result-item.correct { border-color: rgba(16,185,129,0.25); background: rgba(16,185,129,0.05); }
+    .result-item.wrong { border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.05); }
+    .result-q { font-size: 14px; font-weight: 500; color: #f1f5f9; display: flex; gap: 10px; }
+    .result-q-icon { font-size: 16px; flex-shrink: 0; }
+    .result-explanation { font-size: 13px; color: #94a3b8; margin-top: 8px; padding: 10px 12px; background: rgba(37,99,235,0.07); border-radius: 8px; line-height: 1.5; }
+
+    /* Buttons */
+    .btn-primary {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      border: none; border-radius: 10px;
+      color: white; font-size: 15px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s, transform 0.15s;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+    }
+    .btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-secondary {
+      padding: 12px 24px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px; color: #e2e8f0;
+      font-size: 15px; font-weight: 500;
+      cursor: pointer; font-family: inherit;
+      transition: all 0.18s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.05); }
+
+    .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .skeleton { background: linear-gradient(90deg, #1e293b 25%, #253047 50%, #1e293b 75%); background-size: 200% 100%; animation: shimmer 1.5s infinite; border-radius: 12px; }
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    .error-banner { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #f87171; font-size: 14px; padding: 12px 16px; border-radius: 10px; margin-bottom: 20px; }
+
+    @media (max-width: 900px) { .modules-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 768px) { .sidebar { width: 0; overflow: hidden; } .main { margin-left: 0; padding: 24px 16px; } .modules-grid { grid-template-columns: 1fr; } .content-area { padding: 24px 20px; } }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-row">
+        <div class="logo-dot">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="logo-text">Neoworkly Sales<small>Tréningová platforma</small></div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="/dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="/training.html" class="nav-item active">
+        <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        Tréning
+      </a>
+      <a href="/prospects.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Prospekting
+      </a>
+      <a href="/advisor.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        AI Poradca
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="sidebar-name">–</div>
+          <div class="user-email" id="sidebar-email">–</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Odhlásiť sa</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main" id="main-content">
+    <div style="display:flex; gap:16px; margin-bottom:32px; align-items:center">
+      <div class="skeleton" style="height:32px; width:180px"></div>
+    </div>
+    <div class="modules-grid" id="skeleton-grid">
+      <div class="skeleton" style="height:200px"></div>
+      <div class="skeleton" style="height:200px"></div>
+      <div class="skeleton" style="height:200px"></div>
+    </div>
+  </main>
+
+  <script>
+    async function apiFetch(path, options = {}) {
+      const token = localStorage.getItem('sales_token');
+      const res = await fetch('/api' + path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: 'Bearer ' + token } : {}),
+          ...(options.headers || {}),
+        },
+      });
+      if (res.status === 401) { localStorage.removeItem('sales_token'); window.location.href = '/'; return; }
+      return res;
+    }
+
+    function logout() { localStorage.removeItem('sales_token'); window.location.href = '/'; }
+
+    // Minimal markdown parser
+    function parseMarkdown(text) {
+      if (!text) return '';
+      return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+        .replace(/^### (.+)$/gm, '<h3 style="color:#f1f5f9;font-size:17px;font-weight:600;margin:20px 0 8px;">$1</h3>')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, s => `<ul>${s}</ul>`)
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/^(?!<[hul])(.+)$/gm, (m) => m.startsWith('<') ? m : `<p>${m}</p>`)
+        .replace(/<p><\/p>/g, '');
+    }
+
+    let currentModules = [];
+    let currentModule = null;
+    let currentAnswers = {};
+    let submittedResults = null;
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const moduleId = urlParams.get('module');
+
+    async function init() {
+      const meRes = await apiFetch('/auth/me');
+      if (!meRes || !meRes.ok) return;
+      const me = await meRes.json();
+      document.getElementById('sidebar-name').textContent = me.name || 'Používateľ';
+      document.getElementById('sidebar-email').textContent = me.email || '';
+      document.getElementById('user-avatar').textContent = (me.name || me.email || '?')[0].toUpperCase();
+
+      const modRes = await apiFetch('/training/modules');
+      if (!modRes || !modRes.ok) { renderError('Nepodarilo sa načítať moduly.'); return; }
+      const d = await modRes.json();
+      currentModules = Array.isArray(d) ? d : (d.modules || []);
+
+      if (moduleId) {
+        const mod = currentModules.find(m => String(m.id) === String(moduleId));
+        if (mod && mod.status !== 'locked') {
+          await loadModuleContent(mod);
+        } else if (mod && mod.status === 'locked') {
+          renderModuleList();
+        } else {
+          renderModuleList();
+        }
+      } else {
+        renderModuleList();
+      }
+    }
+
+    function renderError(msg) {
+      document.getElementById('main-content').innerHTML = `
+        <div class="page-header"><h2>Tréning</h2></div>
+        <div class="error-banner">${msg}</div>`;
+    }
+
+    function renderModuleList() {
+      const main = document.getElementById('main-content');
+      main.innerHTML = `
+        <div class="page-header"><h2>Tréningové moduly</h2></div>
+        <div class="modules-grid">
+          ${currentModules.map(m => {
+            const locked = m.status === 'locked';
+            const done = m.status === 'completed';
+            const pct = done ? (m.score || 100) : 0;
+            return `<div class="module-card ${locked ? 'locked' : 'available'}" ${locked ? '' : `onclick="openModule('${m.id}')"`}>
+              <div class="module-num">Modul ${m.order || m.id}</div>
+              <div class="module-title">${m.title}</div>
+              <div class="module-desc">${m.description || ''}</div>
+              <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+              <div class="module-footer">
+                <div class="module-status-label ${locked ? 's-locked' : done ? 's-done' : 's-available'}">
+                  ${locked ? '🔒 Zamknuté' : done ? `✓ Dokončené (${pct}%)` : '● Dostupné'}
+                </div>
+                ${!locked && !done ? `<button class="btn-start" onclick="event.stopPropagation(); openModule('${m.id}')">Začať →</button>` : ''}
+                ${done ? `<button class="btn-start" onclick="event.stopPropagation(); openModule('${m.id}')" style="background:linear-gradient(135deg,#059669,#10b981)">Opakovať</button>` : ''}
+              </div>
+            </div>`;
+          }).join('')}
+        </div>`;
+    }
+
+    async function openModule(id) {
+      const mod = currentModules.find(m => String(m.id) === String(id));
+      if (!mod) return;
+      history.pushState({}, '', `/training.html?module=${id}`);
+      await loadModuleContent(mod);
+    }
+
+    async function loadModuleContent(mod) {
+      const main = document.getElementById('main-content');
+      main.innerHTML = `
+        <div class="page-header">
+          <button class="back-btn" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Späť</button>
+          <h2>${mod.title}</h2>
+        </div>
+        <div class="skeleton" style="height:400px; max-width:800px"></div>`;
+
+      const res = await apiFetch(`/training/modules/${mod.id}`);
+      if (!res || !res.ok) { main.innerHTML += '<div class="error-banner">Nepodarilo sa načítať obsah modulu.</div>'; return; }
+      const data = await res.json();
+      currentModule = data;
+      currentAnswers = {};
+      renderContent(data);
+    }
+
+    function renderContent(mod) {
+      const main = document.getElementById('main-content');
+      main.innerHTML = `
+        <div class="page-header">
+          <button class="back-btn" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Späť</button>
+          <h2>${mod.title}</h2>
+        </div>
+        <div class="content-area">
+          ${parseMarkdown(mod.content || '')}
+          <div class="content-actions">
+            <button class="btn-primary" onclick="startQuiz()">Začať kvíz →</button>
+          </div>
+        </div>`;
+    }
+
+    function startQuiz() {
+      const mod = currentModule;
+      if (!mod || !mod.questions || !mod.questions.length) {
+        alert('Tento modul nemá kvíz.'); return;
+      }
+      currentAnswers = {};
+      renderQuiz(mod);
+    }
+
+    function renderQuiz(mod) {
+      const main = document.getElementById('main-content');
+      const qs = mod.questions;
+      main.innerHTML = `
+        <div class="page-header">
+          <button class="back-btn" onclick="renderContent(currentModule)"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Späť</button>
+          <h2>Kvíz: ${mod.title}</h2>
+        </div>
+        <div class="quiz-header">
+          <div class="quiz-progress-text">${qs.length} otázok celkom</div>
+          <div class="quiz-progress-bar"><div class="quiz-progress-fill" style="width:0%"></div></div>
+        </div>
+        ${qs.map((q, qi) => `
+          <div class="question-card" id="qcard-${qi}">
+            <div class="question-num">Otázka ${qi + 1} z ${qs.length}</div>
+            <div class="question-text">${q.question}</div>
+            ${q.options.map((opt, oi) => `
+              <label class="option-label">
+                <input type="radio" name="q_${qi}" value="${oi}" onchange="selectAnswer(${qi}, ${oi})" />
+                ${opt}
+              </label>`).join('')}
+          </div>`).join('')}
+        <div style="margin-top:8px; display:flex; gap:12px; align-items:center">
+          <button class="btn-primary" id="submit-btn" onclick="submitQuiz()">Odoslať odpovede</button>
+          <span id="submit-hint" style="font-size:13px; color:#475569">Zodpovedajte všetky otázky pred odoslaním.</span>
+        </div>`;
+    }
+
+    function selectAnswer(qi, oi) {
+      currentAnswers[qi] = oi;
+      const card = document.getElementById(`qcard-${qi}`);
+      if (card) card.style.borderColor = 'rgba(37,99,235,0.3)';
+      // Update progress bar
+      const total = currentModule.questions.length;
+      const answered = Object.keys(currentAnswers).length;
+      const pct = (answered / total) * 100;
+      const bar = document.querySelector('.quiz-progress-fill');
+      if (bar) bar.style.width = pct + '%';
+      // Update hint
+      const hint = document.getElementById('submit-hint');
+      if (hint) hint.textContent = answered === total ? 'Môžete odoslať odpovede.' : `Zodpovedané: ${answered}/${total}`;
+    }
+
+    async function submitQuiz() {
+      const mod = currentModule;
+      const total = mod.questions.length;
+      if (Object.keys(currentAnswers).length < total) {
+        alert('Prosím zodpovedajte všetky otázky.'); return;
+      }
+      const answers = mod.questions.map((_, i) => currentAnswers[i]);
+      const btn = document.getElementById('submit-btn');
+      btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>Odosielam...';
+      try {
+        const res = await apiFetch(`/training/modules/${mod.id}/submit`, {
+          method: 'POST',
+          body: JSON.stringify({ answers })
+        });
+        if (!res || !res.ok) { btn.disabled = false; btn.textContent = 'Odoslať odpovede'; alert('Chyba odoslania. Skúste znova.'); return; }
+        const result = await res.json();
+        submittedResults = result;
+        // Update module status in local list
+        const idx = currentModules.findIndex(m => String(m.id) === String(mod.id));
+        if (idx !== -1) { currentModules[idx].status = result.passed ? 'completed' : 'available'; currentModules[idx].score = result.score; }
+        renderResults(result, mod);
+      } catch (e) {
+        btn.disabled = false; btn.textContent = 'Odoslať odpovede';
+        alert('Chyba pripojenia.');
+      }
+    }
+
+    function renderResults(result, mod) {
+      const main = document.getElementById('main-content');
+      const passed = result.passed;
+      const pct = typeof result.score === 'number' ? result.score : Math.round((result.correct / mod.questions.length) * 100);
+      const qs = mod.questions;
+
+      // Find next available module
+      const modIdx = currentModules.findIndex(m => String(m.id) === String(mod.id));
+      const nextMod = currentModules[modIdx + 1];
+
+      main.innerHTML = `
+        <div class="page-header">
+          <button class="back-btn" onclick="goBack()"><svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg> Späť na moduly</button>
+          <h2>Výsledky kvízu</h2>
+        </div>
+        <div class="results-card">
+          <div class="score-display">
+            <div class="score-number" style="color:${passed ? '#34d399' : '#f87171'}">${pct}%</div>
+            <div class="score-pass ${passed ? 'pass' : 'fail'}">${passed ? 'PREŠIEL ✓' : 'NEPREŠIEL ✗'}</div>
+            <div style="font-size:14px; color:#64748b; margin-top:8px">${result.correct || '–'} z ${qs.length} správnych odpovedí</div>
+          </div>
+          <div style="border-top:1px solid rgba(255,255,255,0.07); padding-top:24px; margin-bottom:24px;">
+            <div style="font-size:15px; font-weight:600; color:#f1f5f9; margin-bottom:14px;">Detailné výsledky</div>
+            ${qs.map((q, i) => {
+              const correct = result.results ? result.results[i]?.correct : (currentAnswers[i] === q.correctAnswer);
+              const explanation = result.results ? result.results[i]?.explanation : q.explanation;
+              return `<div class="result-item ${correct ? 'correct' : 'wrong'}">
+                <div class="result-q">
+                  <span class="result-q-icon">${correct ? '✅' : '❌'}</span>
+                  <span>${q.question}</span>
+                </div>
+                ${!correct && explanation ? `<div class="result-explanation">💡 ${explanation}</div>` : ''}
+              </div>`;
+            }).join('')}
+          </div>
+          <div style="display:flex; gap:12px; flex-wrap:wrap">
+            ${!passed ? `<button class="btn-primary" onclick="startQuiz()">Skúsiť znova</button>` : ''}
+            ${passed && nextMod && nextMod.status !== 'locked' ? `<button class="btn-primary" onclick="openModule('${nextMod.id}')">Ďalší modul →</button>` : ''}
+            <button class="btn-secondary" onclick="goBack()">Späť na moduly</button>
+          </div>
+        </div>`;
+    }
+
+    function goBack() {
+      history.pushState({}, '', '/training.html');
+      renderModuleList();
+    }
+
+    init();
+  </script>
+</body>
+</html>

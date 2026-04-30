@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neoworkly Sales — Prihlásenie</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #0f172a;
+      background-image:
+        radial-gradient(ellipse 80% 60% at 50% -10%, rgba(37,99,235,0.28) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 90%, rgba(99,102,241,0.15) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 5% 80%, rgba(37,99,235,0.1) 0%, transparent 60%);
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    /* Floating blobs */
+    body::before {
+      content: '';
+      position: fixed;
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, rgba(37,99,235,0.06) 0%, transparent 70%);
+      top: -150px; right: -150px;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      width: 350px; height: 350px;
+      background: radial-gradient(circle, rgba(124,58,237,0.07) 0%, transparent 70%);
+      bottom: -100px; left: -100px;
+      border-radius: 50%;
+      pointer-events: none;
+    }
+
+    .card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.09);
+      border-radius: 22px;
+      padding: 48px 42px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: 0 30px 70px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.03);
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 34px;
+    }
+    .logo-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 58px;
+      height: 58px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(37,99,235,0.4);
+    }
+    .logo-icon svg { width: 28px; height: 28px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .logo h1 { color: #f8fafc; font-size: 22px; font-weight: 700; letter-spacing: -0.4px; }
+    .logo p { color: #64748b; font-size: 13px; margin-top: 5px; }
+
+    .tabs {
+      display: flex;
+      background: #0f172a;
+      border-radius: 11px;
+      padding: 4px;
+      margin-bottom: 28px;
+      gap: 4px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 9px 0;
+      border: none;
+      border-radius: 8px;
+      background: transparent;
+      color: #64748b;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-family: inherit;
+    }
+    .tab-btn.active {
+      background: #2563eb;
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.4);
+    }
+    .tab-btn:not(.active):hover { color: #94a3b8; }
+
+    .form-panel { display: none; }
+    .form-panel.active { display: block; }
+
+    .form-group { margin-bottom: 18px; }
+    label {
+      display: block;
+      color: #94a3b8;
+      font-size: 13px;
+      font-weight: 500;
+      margin-bottom: 7px;
+      letter-spacing: 0.2px;
+    }
+    input[type="text"], input[type="email"], input[type="password"] {
+      width: 100%;
+      padding: 12px 16px;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      color: #f1f5f9;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: inherit;
+    }
+    input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.18);
+    }
+    input::placeholder { color: #475569; }
+
+    .btn-primary {
+      width: 100%;
+      padding: 13px;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      border: none;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      margin-top: 8px;
+      font-family: inherit;
+      box-shadow: 0 4px 15px rgba(37,99,235,0.35);
+    }
+    .btn-primary:hover { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(37,99,235,0.45); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    .error-msg {
+      background: rgba(239,68,68,0.12);
+      border: 1px solid rgba(239,68,68,0.3);
+      color: #f87171;
+      font-size: 13px;
+      padding: 10px 14px;
+      border-radius: 9px;
+      margin-top: 14px;
+      display: none;
+      line-height: 1.4;
+    }
+    .error-msg.visible { display: block; }
+
+    .spinner {
+      display: inline-block;
+      width: 15px; height: 15px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 480px) {
+      .card { padding: 32px 24px; border-radius: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+          <path d="M2 17l10 5 10-5"/>
+          <path d="M2 12l10 5 10-5"/>
+        </svg>
+      </div>
+      <h1>Neoworkly Sales</h1>
+      <p>Platforma pre predajný tréning</p>
+    </div>
+
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('login')">Prihlásiť sa</button>
+      <button class="tab-btn" onclick="switchTab('register')">Registrovať sa</button>
+    </div>
+
+    <!-- Login -->
+    <div class="form-panel active" id="panel-login">
+      <form id="form-login" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label for="login-email">E-mail</label>
+          <input type="email" id="login-email" placeholder="vas@email.com" autocomplete="email" required />
+        </div>
+        <div class="form-group">
+          <label for="login-pass">Heslo</label>
+          <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn-primary" id="btn-login">Prihlásiť sa</button>
+        <div class="error-msg" id="login-error"></div>
+      </form>
+    </div>
+
+    <!-- Register -->
+    <div class="form-panel" id="panel-register">
+      <form id="form-register" onsubmit="handleRegister(event)">
+        <div class="form-group">
+          <label for="reg-name">Celé meno</label>
+          <input type="text" id="reg-name" placeholder="Ján Novák" autocomplete="name" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-email">E-mail</label>
+          <input type="email" id="reg-email" placeholder="vas@email.com" autocomplete="email" required />
+        </div>
+        <div class="form-group">
+          <label for="reg-pass">Heslo</label>
+          <input type="password" id="reg-pass" placeholder="Min. 6 znakov" autocomplete="new-password" required minlength="6" />
+        </div>
+        <button type="submit" class="btn-primary" id="btn-register">Vytvoriť účet</button>
+        <div class="error-msg" id="register-error"></div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    async function apiFetch(path, options = {}) {
+      const token = localStorage.getItem('sales_token');
+      const res = await fetch('/api' + path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: 'Bearer ' + token } : {}),
+          ...(options.headers || {}),
+        },
+      });
+      if (res.status === 401) { localStorage.removeItem('sales_token'); return res; }
+      return res;
+    }
+
+    // Check if already logged in
+    (async function checkAuth() {
+      const token = localStorage.getItem('sales_token');
+      if (!token) return;
+      try {
+        const res = await fetch('/api/auth/me', { headers: { Authorization: 'Bearer ' + token } });
+        if (res.ok) window.location.href = '/dashboard.html';
+      } catch (e) { /* ignore */ }
+    })();
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach((b, i) => {
+        b.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'));
+      });
+      document.getElementById('panel-login').classList.toggle('active', tab === 'login');
+      document.getElementById('panel-register').classList.toggle('active', tab === 'register');
+    }
+
+    function showError(id, msg) {
+      const el = document.getElementById(id);
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+    function hideError(id) { document.getElementById(id).classList.remove('visible'); }
+
+    function setLoading(btnId, loading, label) {
+      const btn = document.getElementById(btnId);
+      if (loading) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Načítavam...';
+      } else {
+        btn.disabled = false;
+        btn.textContent = label;
+      }
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      hideError('login-error');
+      const email = document.getElementById('login-email').value.trim();
+      const password = document.getElementById('login-pass').value;
+      setLoading('btn-login', true, 'Prihlásiť sa');
+      try {
+        const res = await apiFetch('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { showError('login-error', data.message || data.error || 'Nesprávne prihlasovacie údaje.'); return; }
+        localStorage.setItem('sales_token', data.token);
+        window.location.href = '/dashboard.html';
+      } catch (err) {
+        showError('login-error', 'Chyba pripojenia. Skúste znova.');
+      } finally {
+        setLoading('btn-login', false, 'Prihlásiť sa');
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      hideError('register-error');
+      const name = document.getElementById('reg-name').value.trim();
+      const email = document.getElementById('reg-email').value.trim();
+      const password = document.getElementById('reg-pass').value;
+      if (password.length < 6) { showError('register-error', 'Heslo musí mať aspoň 6 znakov.'); return; }
+      setLoading('btn-register', true, 'Vytvoriť účet');
+      try {
+        const res = await apiFetch('/auth/register', {
+          method: 'POST',
+          body: JSON.stringify({ name, email, password })
+        });
+        const data = await res.json();
+        if (!res.ok) { showError('register-error', data.message || data.error || 'Registrácia zlyhala.'); return; }
+        localStorage.setItem('sales_token', data.token);
+        window.location.href = '/dashboard.html';
+      } catch (err) {
+        showError('register-error', 'Chyba pripojenia. Skúste znova.');
+      } finally {
+        setLoading('btn-register', false, 'Vytvoriť účet');
+      }
+    }
+  </script>
+</body>
+</html>
