@@ -7,7 +7,7 @@ const { getDb } = require('../db/database');
 const router = express.Router();
 router.use(requireAuth);
 
-const MONTHLY_PRICE = 29;       // € za 1 voľný mesiac
+const MONTHLY_PRICE = 37;       // € za 1 voľný mesiac (= cena Pro plánu)
 const AI_CREDITS_PER_EUR = 100; // AI odpovedí za 1 € (rovnaká sadzba ako platené balíky)
 
 // GET /api/affiliate/status

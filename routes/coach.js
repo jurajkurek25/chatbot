@@ -15,7 +15,7 @@ Neoworkly je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvoria 
 
 ━━━ CENNÍK ━━━
 • Pro plán: €37/mesiac
-  – ~500 AI odpovedí/mesiac, až 10 widgetov
+  – ~1 500 AI odpovedí/mesiac, až 10 widgetov
 • White Label plán: €997/mesiac
   – Rovnaké funkcie ako Pro, jediný rozdiel: bez "Powered by Neoworkly" loga vo widgete
   – Vhodné pre agentúry a firmy ktoré nechcú zobrazovať branding Neoworkly
