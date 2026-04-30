@@ -8,6 +8,16 @@ const { requireAuth } = require('../middleware/auth');
 const { streamTrainingQuestion, analyzeTrainingSession, analyzeIngestedContent } = require('../services/claude');
 const { isYouTubeUrl, extractYouTubeTranscript, extractArticleText, extractPdfText } = require('../services/extractor');
 
+function isPrivateHost(hostname) {
+  return (
+    hostname === 'localhost' || hostname === '::1' ||
+    /^127\./.test(hostname) || /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) ||
+    /^169\.254\./.test(hostname)
+  );
+}
+
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 20 * 1024 * 1024 } });
 
 const router = express.Router();
@@ -139,6 +149,14 @@ router.post('/:widgetId/ingest/url', requireAuth, async (req, res) => {
 
   const { url } = req.body;
   if (!url || typeof url !== 'string') return res.status(400).json({ error: 'Chýba URL.' });
+
+  try {
+    const parsed = new URL(url);
+    if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error();
+    if (isPrivateHost(parsed.hostname)) throw new Error();
+  } catch {
+    return res.status(400).json({ error: 'Neplatná alebo nepovolená URL.' });
+  }
 
   let extracted;
   try {
