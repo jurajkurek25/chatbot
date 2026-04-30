@@ -355,6 +355,11 @@ router.post('/webhook', async (req, res) => {
       const plan = isWLPrice ? 'white_label' : 'pro';
       const user = await resolveUser(sub.customer);
       if (user) {
+        // If downgrading from WL to Pro via Stripe, reset hide_branding on all widgets
+        if (user.subscription_plan === 'white_label' && plan === 'pro') {
+          db.prepare('UPDATE widgets SET hide_branding = 0 WHERE user_id = ?').run(user.id);
+          console.log(`[stripe] WL→Pro downgrade via webhook for user ${user.id} — hide_branding reset`);
+        }
         db.prepare('UPDATE users SET subscription_status = ?, subscription_id = ?, subscription_plan = ? WHERE id = ?')
           .run(status, sub.id, plan, user.id);
         db.prepare('UPDATE widgets SET active = ? WHERE user_id = ?').run(isActive ? 1 : 0, user.id);

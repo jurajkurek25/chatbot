@@ -107,8 +107,14 @@ router.post('/redeem', requireAuth, (req, res) => {
     return res.status(403).json({ error: 'Neplatná hodnota darčekovej karty.' });
   }
 
+  // Atomic redemption — WHERE used = 0 prevents double-spend under concurrent requests
+  const redeemResult = db.prepare(
+    "UPDATE gift_cards SET used = 1, used_by = ?, redeemed_at = datetime('now') WHERE id = ? AND used = 0"
+  ).run(req.userId, card.id);
+  if (redeemResult.changes === 0) {
+    return res.status(409).json({ error: 'Tento kód bol práve použitý.' });
+  }
   db.prepare('UPDATE users SET referral_credits = referral_credits + ? WHERE id = ?').run(amount, req.userId);
-  db.prepare('UPDATE gift_cards SET used = 1, used_by = ?, redeemed_at = datetime(\'now\') WHERE id = ?').run(req.userId, card.id);
 
   // Log credit transaction
   const { v4: uuidv4 } = require('uuid');
