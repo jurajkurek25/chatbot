@@ -100,6 +100,9 @@ router.post('/send/:leadId', async (req, res) => {
     if (!message || typeof message !== 'string' || !message.trim()) {
       return res.status(400).json({ error: 'Správa je povinná.' });
     }
+    if (message.length > 5000) {
+      return res.status(400).json({ error: 'Správa je príliš dlhá (max 5000 znakov).' });
+    }
 
     const db = getDb();
     const userData = db.prepare('SELECT name, email FROM users WHERE id = ?').get(req.userId);

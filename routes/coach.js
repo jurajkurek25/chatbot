@@ -761,9 +761,12 @@ BEŽNÉ OTÁZKY:
 // POST /api/coach/chat
 router.post('/chat', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT subscription_status, name FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT subscription_status, free_until, name FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
-  if (user.subscription_status !== 'active') {
+  const now = Math.floor(Date.now() / 1000);
+  const subOk = user.subscription_status === 'active' || user.subscription_status === 'past_due'
+    || (user.free_until && user.free_until > now);
+  if (!subOk) {
     return res.status(403).json({ error: 'AI Coach je dostupný iba pre aktívnych predplatiteľov.' });
   }
 
