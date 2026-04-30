@@ -304,14 +304,18 @@ router.post('/webhook', async (req, res) => {
 
           // Award 15€ credit to referrer (only on first activation, with abuse guards)
           if (user.referred_by) {
-            const alreadyRewarded = db.prepare('SELECT referral_credits FROM users WHERE id = ?').get(user.id);
-            if (!alreadyRewarded?.referral_credits) {
-              const referrer = db.prepare('SELECT id, email, referral_bonus_count FROM users WHERE id = ?').get(user.referred_by);
-              const referred = db.prepare('SELECT email FROM users WHERE id = ?').get(user.id);
-              // Guard: cap at 200 lifetime referral bonuses per referrer
+            // Check via credit_transactions — prevents double-reward if user resubscribes
+            const alreadyRewarded = db.prepare(
+              "SELECT id FROM credit_transactions WHERE note = ? AND type = 'affiliate_reward'"
+            ).get(`ref:${user.id}`);
+            if (!alreadyRewarded) {
+              const referrer = db.prepare('SELECT id, referral_bonus_count FROM users WHERE id = ?').get(user.referred_by);
+              // Guard: cap at 200 lifetime referral bonuses per referrer, no self-referral
               const bonusCount = referrer?.referral_bonus_count || 0;
               if (referrer && bonusCount < 200 && referrer.id !== user.id) {
                 db.prepare('UPDATE users SET referral_credits = referral_credits + 15, referral_bonus_count = referral_bonus_count + 1 WHERE id = ?').run(user.referred_by);
+                db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+                  .run(require('uuid').v4(), user.referred_by, 'affiliate_reward', 1500, `ref:${user.id}`);
                 console.log(`[affiliate] +15€ credit awarded to referrer ${user.referred_by} (bonus #${bonusCount + 1})`);
               }
             }

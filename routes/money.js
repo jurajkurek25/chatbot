@@ -7,7 +7,7 @@ const { requireAuth } = require('../middleware/auth');
 const router = express.Router();
 router.use(requireAuth);
 
-const SUBSCRIPTION_COST_EUR = 29;
+const SUBSCRIPTION_COST_EUR = 37;
 
 /* ── GET /api/money/stats ───────────────────────────────────────── */
 router.get('/stats', (req, res) => {

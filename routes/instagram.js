@@ -135,7 +135,7 @@ router.get('/callback', async (req, res) => {
     }
 
     if (pages.length === 0) {
-      console.error('[instagram] OAuth returned 0 pages. igFromUser:', JSON.stringify(igFromUser));
+      console.error('[instagram] OAuth returned 0 pages. pagesData:', JSON.stringify(pagesData).slice(0, 500));
       return res.redirect('/dashboard?ig_error=no_pages');
     }
 

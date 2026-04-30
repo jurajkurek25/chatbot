@@ -49,7 +49,8 @@ router.post('/start', async (req, res) => {
       /^127\./.test(hostname) ||
       /^10\./.test(hostname) ||
       /^192\.168\./.test(hostname) ||
-      /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname)
+      /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) ||
+      /^169\.254\./.test(hostname)
     ) {
       return res.status(400).json({ error: 'Privátne IP adresy nie sú povolené.' });
     }

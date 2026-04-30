@@ -198,6 +198,8 @@ router.post('/process', async (req, res) => {
       const message = (step.message || '').replace(/\{\{name\}\}/g, lead.name);
       const subject = (step.subject || '').replace(/\{\{name\}\}/g, lead.name);
 
+      const esc = s => String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
       const transport = createTransport(null); // use env SMTP settings
       if (!transport) {
         console.log('[sequences] SMTP not configured, skipping job', job.id);
@@ -215,9 +217,9 @@ router.post('/process', async (req, res) => {
       <div style="font-size:20px;font-weight:800;color:white">${widgetName}</div>
     </div>
     <div style="padding:28px 32px">
-      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${lead.name}</strong>,</p>
-      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;white-space:pre-line">${message.replace(/\n/g, '<br>')}</p>
-      <p style="color:#64748b;font-size:13px;margin:0">S pozdravom,<br><strong>${owner.name}</strong></p>
+      <p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${esc(lead.name)}</strong>,</p>
+      <p style="color:#374151;font-size:14px;line-height:1.7;margin:0 0 24px;white-space:pre-line">${esc(message).replace(/\n/g, '<br>')}</p>
+      <p style="color:#64748b;font-size:13px;margin:0">S pozdravom,<br><strong>${esc(owner.name)}</strong></p>
     </div>
     <div style="padding:16px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px">
       Neoworkly · <a href="https://neoworkly.com" style="color:#94a3b8">neoworkly.com</a>
