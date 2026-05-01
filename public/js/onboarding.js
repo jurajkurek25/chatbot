@@ -182,9 +182,87 @@ async function handleStripeReturn() {
 }
 
 function showSubscriptionActive() {
-  document.getElementById('btn-checkout').style.display = 'none';
-  document.querySelector('.pricing-box-note').style.display = 'none';
+  const gcSection = document.getElementById('gift-card-section');
+  if (gcSection) gcSection.style.display = 'none';
   document.getElementById('subscription-active-msg').style.display = 'block';
+}
+
+// ── Gift card onboarding redemption ─────────────────────────────
+async function redeemGiftCardOnboarding() {
+  const input = document.getElementById('gift-card-input');
+  const btn   = document.getElementById('btn-redeem-gift');
+  const result = document.getElementById('gift-card-result');
+  const code = input.value.trim().toUpperCase();
+
+  if (!code) { input.focus(); return; }
+
+  btn.disabled = true;
+  btn.textContent = '…';
+  result.style.display = 'none';
+
+  const showResult = (html, ok) => {
+    result.innerHTML = html;
+    result.style.cssText = `display:block;padding:0.7rem 0.9rem;border-radius:8px;font-size:0.85rem;${
+      ok
+        ? 'background:#f0fdf4;border:1px solid #86efac;color:#166534'
+        : 'background:#fef2f2;border:1px solid #fca5a5;color:#991b1b'
+    }`;
+  };
+
+  try {
+    // Step 1: redeem code → adds to referral_credits
+    const r1 = await fetch(`${API}/api/gift-cards/redeem`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ code }),
+    });
+    const d1 = await r1.json();
+    if (!r1.ok) {
+      showResult(`✗ ${d1.error || 'Neplatný kód.'}`, false);
+      return;
+    }
+
+    const amount = parseFloat(d1.amount_eur);
+    const PRO_PRICE = 37;
+
+    if (amount >= PRO_PRICE) {
+      // Step 2a: enough credit → activate subscription directly
+      const r2 = await fetch(`${API}/api/gift-cards/activate`, {
+        method: 'POST',
+        headers: authHeaders(),
+      });
+      const d2 = await r2.json();
+      if (r2.ok && d2.ok) {
+        const months = d2.months || 1;
+        const rem = parseFloat(d2.remaining_credits || 0);
+        showResult(
+          `✅ <strong>Predplatné aktivované na ${months} mesiac${months > 1 ? (months < 5 ? 'e' : 'ov') : ''}!</strong>` +
+          (rem > 0 ? ` Zostatok €${rem.toFixed(2)} na konte.` : ''),
+          true
+        );
+        // Close the details and show success box after short delay
+        setTimeout(() => showSubscriptionActive(), 1200);
+        return;
+      }
+    }
+
+    // Step 2b: partial credit — inform user, show top-up button
+    const remaining = Math.max(0, PRO_PRICE - amount).toFixed(2);
+    showResult(
+      `🎁 Kredit <strong>€${amount.toFixed(2)}</strong> pridaný na konto. ` +
+      `Pre Pro plán doplatiť ešte <strong>€${remaining}</strong> — ` +
+      `kliknite <em>"Vybrať Pro"</em> a zľava sa automaticky uplatní.`,
+      true
+    );
+    // Close the gift card section so plan buttons are visible
+    const details = document.getElementById('gift-card-details');
+    if (details) details.open = false;
+  } catch (err) {
+    showResult('Sieťová chyba. Skúste znovu.', false);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Uplatniť kartu';
+  }
 }
 
 // ════════════════════════════════════════════════════════════════

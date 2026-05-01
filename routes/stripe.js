@@ -15,7 +15,7 @@ function getStripe() {
 // POST /api/stripe/checkout — create Stripe Checkout Session
 router.post('/checkout', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, referred_by FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, referred_by, referral_credits FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
 
   if (user.subscription_status === 'active') {
@@ -40,6 +40,27 @@ router.post('/checkout', requireAuth, async (req, res) => {
 
   if (!priceId) return res.status(500).json({ error: 'Cenový plán nie je nakonfigurovaný.' });
 
+  // Apply gift card / referral credits as a one-time Stripe coupon (only for Pro, partial credit)
+  const credits = parseFloat(user.referral_credits || 0);
+  const PRO_PRICE = 37;
+  let discounts = [];
+  let creditApplied = 0;
+  if (!isWhiteLabel && credits > 0 && credits < PRO_PRICE) {
+    try {
+      const coupon = await stripe.coupons.create({
+        amount_off: Math.round(credits * 100),
+        currency: 'eur',
+        duration: 'once',
+        name: `Darčekový kredit €${credits.toFixed(2)}`,
+        max_redemptions: 1,
+      });
+      discounts = [{ coupon: coupon.id }];
+      creditApplied = credits;
+    } catch (couponErr) {
+      console.error('[stripe] Failed to create credit coupon:', couponErr.message);
+    }
+  }
+
   try {
     // Get or create Stripe customer
     let customerId = user.stripe_customer_id;
@@ -53,19 +74,24 @@ router.post('/checkout', requireAuth, async (req, res) => {
       db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams = {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       success_url: `${baseUrl}/onboarding?success=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/?canceled=1`,
-      allow_promotion_codes: true,
+      allow_promotion_codes: discounts.length === 0, // disable promo codes when coupon applied
       billing_address_collection: 'auto',
       locale: 'sk',
-      metadata: { plan: isWhiteLabel ? 'white_label' : 'pro' },
-    });
+      metadata: {
+        plan: isWhiteLabel ? 'white_label' : 'pro',
+        ...(creditApplied > 0 && { credit_applied: creditApplied.toFixed(2) }),
+      },
+    };
+    if (discounts.length > 0) sessionParams.discounts = discounts;
 
+    const session = await stripe.checkout.sessions.create(sessionParams);
     res.json({ url: session.url });
   } catch (err) {
     console.error('Stripe checkout error:', err.message);
@@ -303,6 +329,13 @@ router.post('/webhook', async (req, res) => {
             .run(session.subscription, plan, user.id);
           db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(user.id);
           console.log(`[stripe] Subscription activated for user ${user.id}`);
+
+          // Deduct gift card credits that were applied as a coupon discount
+          const creditApplied = parseFloat(session.metadata?.credit_applied || '0');
+          if (creditApplied > 0) {
+            db.prepare('UPDATE users SET referral_credits = MAX(0, referral_credits - ?) WHERE id = ?').run(creditApplied, user.id);
+            console.log(`[gift-card] Deducted €${creditApplied} credit after Stripe activation for user ${user.id}`);
+          }
 
           // Send receipt email
           const userFull = db.prepare('SELECT email, name FROM users WHERE id = ?').get(user.id);

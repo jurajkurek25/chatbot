@@ -146,6 +146,27 @@
 
       </div>
 
+      <!-- Gift card section -->
+      <div id="gift-card-section" style="max-width:640px;margin:1.5rem auto 0">
+        <details id="gift-card-details" style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border:1px solid #c4b5fd;border-radius:12px;padding:0">
+          <summary style="padding:0.85rem 1.1rem;cursor:pointer;font-weight:600;font-size:0.9rem;color:#5b21b6;list-style:none;display:flex;align-items:center;gap:0.5rem">
+            <span>🎁</span> Máte darčekovú kartu Neoworkly?
+          </summary>
+          <div style="padding:0 1.1rem 1.1rem">
+            <p style="font-size:0.85rem;color:#6d28d9;margin:0 0 0.75rem">Zadajte kód — ak pokrýva mesačné predplatné (€37), aktivujeme ho okamžite bez potreby platobnej karty.</p>
+            <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+              <input type="text" id="gift-card-input" class="ob-input" placeholder="NEOW-XXXX-XXXX-XXXX"
+                style="flex:1;min-width:200px;font-family:monospace;font-size:0.95rem;letter-spacing:0.04em;text-transform:uppercase"
+                oninput="this.value=this.value.toUpperCase()">
+              <button class="btn-ob-primary" id="btn-redeem-gift" onclick="redeemGiftCardOnboarding()" style="white-space:nowrap;background:linear-gradient(90deg,#7c3aed,#a855f7)">
+                Uplatniť kartu
+              </button>
+            </div>
+            <div id="gift-card-result" style="margin-top:0.75rem;display:none"></div>
+          </div>
+        </details>
+      </div>
+
       <div id="subscription-active-msg" style="display:none" class="success-box">
         <div class="success-icon">✅</div>
         <h3>Predplatné je aktívne!</h3>

@@ -125,4 +125,44 @@ router.post('/redeem', requireAuth, (req, res) => {
   res.json({ ok: true, amount_eur: amount });
 });
 
+const PRO_PRICE_EUR = 37;
+
+// POST /api/gift-cards/activate — convert referral_credits into subscription time (no Stripe needed)
+router.post('/activate', requireAuth, (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, referral_credits, free_until, subscription_status FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+
+  const credits = parseFloat(user.referral_credits || 0);
+  if (credits < PRO_PRICE_EUR) {
+    return res.status(400).json({
+      error: `Nedostatočný kredit (€${credits.toFixed(2)}). Potrebujete aspoň €${PRO_PRICE_EUR}.`,
+      credits,
+      needed: PRO_PRICE_EUR - credits,
+    });
+  }
+
+  // Already has active Stripe subscription — just keep credits for future billing
+  if (user.subscription_status === 'active') {
+    return res.json({ ok: true, already_active: true, credits });
+  }
+
+  const months = Math.floor(credits / PRO_PRICE_EUR);
+  const remainder = parseFloat((credits % PRO_PRICE_EUR).toFixed(2));
+  const nowSec = Math.floor(Date.now() / 1000);
+  const base = (user.free_until && user.free_until > nowSec) ? user.free_until : nowSec;
+  const newFreeUntil = base + months * 30 * 24 * 3600;
+
+  db.prepare('UPDATE users SET referral_credits = ?, free_until = ?, subscription_plan = ? WHERE id = ?')
+    .run(remainder, newFreeUntil, 'pro', req.userId);
+
+  db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+    .run(uuidv4(), req.userId, 'gift_card_activation',
+      Math.round((credits - remainder) * 100),
+      `Activated ${months} month(s) of Pro via gift card credits`);
+
+  console.log(`[gift-card] User ${req.userId} activated ${months} month(s) via credits. free_until=${newFreeUntil}, remainder=€${remainder}`);
+  res.json({ ok: true, months, free_until: newFreeUntil, remaining_credits: remainder });
+});
+
 module.exports = { router, generateCode };
