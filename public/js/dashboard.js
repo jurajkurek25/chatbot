@@ -820,6 +820,7 @@ function _addSeqLangRow(container, lang, msg) {
   container.appendChild(row);
   if (lang) row.querySelector('.sl-lang').value = lang;
   if (msg)  row.querySelector('.sl-msg').value  = msg;
+  window.i18n?.applyTranslations(row);
 }
 
 async function _autoTranslateSeqItem(itemDiv) {
