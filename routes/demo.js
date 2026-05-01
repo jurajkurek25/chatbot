@@ -9,13 +9,19 @@ const client = new Anthropic();
 
 // POST /api/demo/simulate
 // Generates a demo sales conversation for the user's business
+const DEMO_LANG_NAMES = {
+  sk: 'slovenčina', en: 'English', de: 'Deutsch', fr: 'français',
+  es: 'español', pl: 'polski', cs: 'čeština', hu: 'magyar', ro: 'română', hr: 'hrvatski',
+};
+
 router.post('/simulate', requireAuth, async (req, res) => {
-  const { business } = req.body;
+  const { business, lang = 'sk' } = req.body;
   if (!business || business.trim().length < 3) {
     return res.status(400).json({ error: 'Zadajte popis vášho biznisu.' });
   }
 
   const biz = business.trim().slice(0, 200);
+  const langName = DEMO_LANG_NAMES[lang] || 'slovenčina';
 
   try {
     const response = await client.messages.create({
@@ -23,28 +29,28 @@ router.post('/simulate', requireAuth, async (req, res) => {
       max_tokens: 900,
       messages: [{
         role: 'user',
-        content: `Vygeneruj realistický predajný chat rozhovor pre firmu/biznis: "${biz}".
+        content: `Generate a realistic sales chat conversation for this business: "${biz}".
 
-Ukáž 8 správ striedajúcich zákazníka a AI predajného bota.
+Show 8 messages alternating between a customer and an AI sales bot.
 
-Scenár:
-1. customer: napíše otázku o produkte/službe
-2. bot: teplý pozdrav + kvalifikačná otázka
-3. customer: odpovie a povie čo potrebuje
-4. bot: identifikuje potrebu, odporučí konkrétnu službu/produkt s benefitmi
-5. customer: prejaví záujem ale má námietku (cena alebo čas)
-6. bot: zvládne námietku, ponúkne hodnotu
-7. customer: hovorí "ok, zaujíma ma to" alebo podobne
-8. bot: požiada o kontakt (meno + email) a uzavrie konverzáciu
+Scenario:
+1. customer: asks a question about the product/service
+2. bot: warm greeting + qualifying question
+3. customer: replies and explains what they need
+4. bot: identifies the need, recommends a specific service/product with benefits
+5. customer: shows interest but has an objection (price or time)
+6. bot: handles objection, offers value
+7. customer: says "ok, I'm interested" or similar
+8. bot: asks for contact info (name + email) and closes
 
-Výstup MUSÍ byť iba JSON pole bez akéhokoľvek iného textu:
+Output MUST be ONLY a JSON array with no other text:
 [{"role":"customer","text":"..."},{"role":"bot","text":"..."},...]
 
-Pravidlá:
-- Jazyk: slovenčina
-- Správy krátke (1-3 vety), prirodzené
-- Bot je priateľský, profesionálny, presvedčivý
-- Produkty/služby musia dávať zmysel pre daný biznis`,
+Rules:
+- Language: ${langName} (write ALL messages in this language)
+- Messages short (1-3 sentences), natural
+- Bot is friendly, professional, persuasive
+- Products/services must make sense for the given business`,
       }],
     });
 

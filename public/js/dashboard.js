@@ -4228,15 +4228,54 @@ function closeAccountModal() {
 }
 
 function switchAccTab(tab) {
-  const isPw = tab === 'pw';
-  document.getElementById('acc-panel-pw').style.display = isPw ? '' : 'none';
-  document.getElementById('acc-panel-email').style.display = isPw ? 'none' : '';
-  document.getElementById('acc-tab-pw').style.cssText = isPw
-    ? 'flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit'
-    : 'flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
-  document.getElementById('acc-tab-email').style.cssText = isPw
-    ? 'flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit'
-    : 'flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
+  const active   = 'flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
+  const inactive = 'flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
+  document.getElementById('acc-panel-pw').style.display    = tab === 'pw'    ? '' : 'none';
+  document.getElementById('acc-panel-email').style.display = tab === 'email' ? '' : 'none';
+  document.getElementById('acc-panel-lang').style.display  = tab === 'lang'  ? '' : 'none';
+  document.getElementById('acc-tab-pw').style.cssText    = tab === 'pw'    ? active : inactive;
+  document.getElementById('acc-tab-email').style.cssText = tab === 'email' ? active : inactive;
+  document.getElementById('acc-tab-lang').style.cssText  = tab === 'lang'  ? active : inactive;
+
+  if (tab === 'lang') _renderLangGrid();
+}
+
+function _renderLangGrid() {
+  const grid = document.getElementById('acc-lang-grid');
+  if (!grid || grid.dataset.built) return;
+  grid.dataset.built = '1';
+
+  const i18n = window.i18n;
+  if (!i18n) return;
+
+  const current = i18n.currentLang();
+  const langs = [
+    { code: 'sk', flag: '🇸🇰', name: 'Slovenčina' },
+    { code: 'en', flag: '🇬🇧', name: 'English' },
+    { code: 'de', flag: '🇩🇪', name: 'Deutsch' },
+    { code: 'fr', flag: '🇫🇷', name: 'Français' },
+    { code: 'es', flag: '🇪🇸', name: 'Español' },
+    { code: 'pl', flag: '🇵🇱', name: 'Polski' },
+    { code: 'cs', flag: '🇨🇿', name: 'Čeština' },
+    { code: 'hu', flag: '🇭🇺', name: 'Magyar' },
+    { code: 'ro', flag: '🇷🇴', name: 'Română' },
+    { code: 'hr', flag: '🇭🇷', name: 'Hrvatski' },
+  ];
+
+  grid.innerHTML = langs.map(l => {
+    const isActive = l.code === current;
+    return `<button onclick="window.i18n.setLang('${l.code}')"
+      style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;border-radius:8px;
+             border:1px solid ${isActive ? '#2563eb' : '#e2e8f0'};
+             background:${isActive ? '#eff6ff' : 'white'};
+             color:${isActive ? '#1d4ed8' : '#374151'};
+             font-size:0.85rem;font-weight:${isActive ? '700' : '500'};
+             cursor:pointer;font-family:inherit;text-align:left;width:100%">
+      <span style="font-size:1.1rem">${l.flag}</span>
+      <span>${l.name}</span>
+      ${isActive ? '<span style="margin-left:auto;font-size:0.7rem;background:#2563eb;color:white;padding:1px 6px;border-radius:4px">✓</span>' : ''}
+    </button>`;
+  }).join('');
 }
 
 async function doChangePassword() {

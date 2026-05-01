@@ -2819,6 +2819,7 @@
     <div style="display:flex;gap:0.35rem;margin-bottom:1.5rem;background:#f1f5f9;border-radius:10px;padding:0.2rem">
       <button id="acc-tab-pw" onclick="switchAccTab('pw')" style="flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">Zmena hesla</button>
       <button id="acc-tab-email" onclick="switchAccTab('email')" style="flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">Zmena emailu</button>
+      <button id="acc-tab-lang" onclick="switchAccTab('lang')" style="flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">🌐 Jazyk</button>
     </div>
 
     <!-- Change password -->
@@ -2838,6 +2839,12 @@
       <div id="acc-pw-err" style="color:#dc2626;font-size:0.82rem;margin-bottom:0.75rem;display:none"></div>
       <div id="acc-pw-ok" style="color:#16a34a;font-size:0.82rem;margin-bottom:0.75rem;display:none">Heslo bolo úspešne zmenené.</div>
       <button class="btn btn-primary" style="width:100%" onclick="doChangePassword()">Zmeniť heslo</button>
+    </div>
+
+    <!-- Language selection -->
+    <div id="acc-panel-lang" style="display:none">
+      <p style="font-size:0.85rem;color:#64748b;margin:0 0 1rem">Vyberte jazyk rozhrania Neoworkly. Zmena sa prejaví okamžite.</p>
+      <div id="acc-lang-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem"></div>
     </div>
 
     <!-- Change email -->
