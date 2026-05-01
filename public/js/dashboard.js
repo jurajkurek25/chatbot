@@ -104,6 +104,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const addProactiveLangBtn = document.getElementById('btn-add-proactive-lang');
   if (addProactiveLangBtn) addProactiveLangBtn.addEventListener('click', () => addProactiveLang());
+  document.getElementById('btn-add-proactive-seq')?.addEventListener('click', () => addProactiveSeqItem());
 });
 
 let _wlStatus = null;
@@ -414,6 +415,7 @@ async function openWidget(widgetId) {
     clearProactiveLangs();
   }
   document.getElementById('s-proactive-delay').value = currentWidget.proactive_delay || 4;
+  renderProactiveSeq(currentWidget.proactive_sequence || []);
 
   // Avatar preview
   const preview = document.getElementById('s-avatar-preview');
@@ -733,6 +735,67 @@ async function autoTranslateProactive() {
   }
 }
 
+/* ── Proactive Sequence ─────────────────────────────────────────── */
+function renderProactiveSeq(seq) {
+  const list = document.getElementById('proactive-seq-list');
+  if (!list) return;
+  list.innerHTML = '';
+  (seq || []).forEach(item => addProactiveSeqItem(item));
+}
+
+function addProactiveSeqItem(item) {
+  item = item || { id: Math.random().toString(36).slice(2) + Date.now().toString(36), text: '', trigger: 'inactivity', delay: 30, repeat_after: 0, enabled: true };
+  const list = document.getElementById('proactive-seq-list');
+  if (!list) return;
+  const div = document.createElement('div');
+  div.className = 'proactive-seq-item';
+  div.dataset.seqId = item.id || (Math.random().toString(36).slice(2) + Date.now().toString(36));
+  div.innerHTML = `
+    <div style="display:flex;gap:0.5rem;align-items:flex-start;padding:0.75rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5rem;margin-bottom:0.5rem">
+      <label style="display:flex;align-items:center;cursor:pointer;margin-top:3px" title="Zapnúť/vypnúť túto správu">
+        <input type="checkbox" class="seq-enabled" ${item.enabled !== false ? 'checked' : ''} style="width:14px;height:14px">
+      </label>
+      <div style="flex:1;min-width:0">
+        <input type="text" class="form-control seq-text" value="${esc(item.text || '')}" placeholder="Text správy..." style="margin-bottom:0.5rem">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+          <select class="form-control seq-trigger" style="width:auto;font-size:0.8rem;padding:0.25rem 0.5rem">
+            <option value="time" ${item.trigger === 'time' ? 'selected' : ''}>⏱ Po čase od načítania</option>
+            <option value="inactivity" ${item.trigger === 'inactivity' ? 'selected' : ''}>😴 Po nečinnosti</option>
+            <option value="unanswered" ${item.trigger === 'unanswered' ? 'selected' : ''}>❓ Bez odpovede chatbotu</option>
+          </select>
+          <input type="number" class="form-control seq-delay" value="${+item.delay || 30}" min="5" max="3600" style="width:68px;font-size:0.8rem;padding:0.25rem 0.5rem" title="Počet sekúnd">
+          <span style="font-size:0.8rem;color:#64748b">sek.</span>
+          <span style="font-size:0.78rem;color:#cbd5e1">│</span>
+          <span style="font-size:0.78rem;color:#94a3b8">Opakovať po</span>
+          <input type="number" class="form-control seq-repeat" value="${+item.repeat_after || 0}" min="0" max="3600" style="width:68px;font-size:0.8rem;padding:0.25rem 0.5rem" title="0 = nezobrazí sa znovu">
+          <span style="font-size:0.78rem;color:#94a3b8">sek. (0 = nikdy)</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm seq-remove" style="padding:0.2rem 0.5rem;flex-shrink:0" title="Odstrániť">✕</button>
+    </div>
+  `;
+  div.querySelector('.seq-remove').addEventListener('click', () => div.remove());
+  list.appendChild(div);
+}
+
+function buildProactiveSequence() {
+  const items = document.querySelectorAll('.proactive-seq-item');
+  const result = [];
+  items.forEach(div => {
+    const text = (div.querySelector('.seq-text')?.value || '').trim();
+    if (!text) return;
+    result.push({
+      id: div.dataset.seqId,
+      text,
+      trigger: div.querySelector('.seq-trigger')?.value || 'inactivity',
+      delay: Math.max(5, parseInt(div.querySelector('.seq-delay')?.value) || 30),
+      repeat_after: Math.max(0, parseInt(div.querySelector('.seq-repeat')?.value) || 0),
+      enabled: div.querySelector('.seq-enabled')?.checked !== false,
+    });
+  });
+  return result;
+}
+
 /* ── Save Settings ─────────────────────────────────────────────── */
 async function saveSettings() {
   if (!currentWidget) return;
@@ -746,6 +809,7 @@ async function saveSettings() {
     proactive_enabled: document.getElementById('s-proactive-enabled').checked,
     proactive_message: buildProactiveMessage(),
     proactive_delay: parseInt(document.getElementById('s-proactive-delay').value) || 4,
+    proactive_sequence: buildProactiveSequence(),
   };
   if (!body.name) { showToast('Názov widgetu je povinný.', 'error'); return; }
 

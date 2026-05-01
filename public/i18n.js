@@ -92,10 +92,7 @@
 
   function setLang(lang) {
     localStorage.setItem('nd_lang', lang || DEFAULT);
-    // Reload page — cleanest way to re-apply all translations from scratch
-    var url = new URL(window.location.href);
-    url.searchParams.delete('lang');
-    window.location.href = url.toString();
+    window.location.reload(); // preserves hash (#section anchors)
   }
 
   var switcherBuilt = false;

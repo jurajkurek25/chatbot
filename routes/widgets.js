@@ -138,7 +138,7 @@ router.put('/:id', (req, res) => {
 
   const { name, bot_name, welcome_message, primary_color, goals, cta_type, cta_config, suggested_questions,
           suggested_questions_i18n, active,
-          proactive_enabled, proactive_delay, proactive_message, gdpr_text,
+          proactive_enabled, proactive_delay, proactive_message, proactive_sequence, gdpr_text,
           webhook_url, slack_webhook_url, hide_branding, csat_enabled,
           ab_test_enabled, welcome_message_b, auto_reply_enabled, auto_reply_message,
           offline_message, business_hours, demo_video_url } = req.body;
@@ -178,6 +178,7 @@ router.put('/:id', (req, res) => {
       proactive_enabled = ?,
       proactive_delay = ?,
       proactive_message = ?,
+      proactive_sequence = ?,
       gdpr_text = ?,
       webhook_url = ?,
       slack_webhook_url = ?,
@@ -205,6 +206,7 @@ router.put('/:id', (req, res) => {
     proactive_enabled !== undefined ? (proactive_enabled ? 1 : 0) : (widget.proactive_enabled || 0),
     proactive_delay !== undefined ? Math.max(1, Math.min(60, parseInt(proactive_delay) || 4)) : (widget.proactive_delay || 4),
     proactive_message !== undefined ? String(proactive_message).slice(0, 5000) : (widget.proactive_message || ''),
+    proactive_sequence !== undefined ? JSON.stringify(Array.isArray(proactive_sequence) ? proactive_sequence.slice(0, 20) : []) : (widget.proactive_sequence || '[]'),
     gdpr_text !== undefined ? String(gdpr_text).slice(0, 5000) : (widget.gdpr_text || ''),
     webhook_url !== undefined ? (webhook_url ? String(webhook_url).slice(0, 512) : null) : (widget.webhook_url || null),
     slack_webhook_url !== undefined ? (slack_webhook_url ? String(slack_webhook_url).slice(0, 512) : null) : (widget.slack_webhook_url || null),
@@ -427,6 +429,7 @@ function parseWidget(w) {
     proactive_enabled: Boolean(w.proactive_enabled),
     proactive_delay: w.proactive_delay || 4,
     proactive_message: w.proactive_message || '',
+    proactive_sequence: safeParseJSON(w.proactive_sequence, []),
     gdpr_text: w.gdpr_text || '',
     hide_branding: Boolean(w.hide_branding),
     csat_enabled: Boolean(w.csat_enabled),

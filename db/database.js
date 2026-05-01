@@ -539,6 +539,7 @@ function initDatabase() {
   failed INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 )`,
+    `ALTER TABLE widgets ADD COLUMN proactive_sequence TEXT NOT NULL DEFAULT '[]'`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

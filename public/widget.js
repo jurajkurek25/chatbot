@@ -708,6 +708,11 @@
   let botMsgCount = 0;
   let csatShown = false;
   let proactiveDismissed = false;
+  let proactiveSeqTimers = [];
+  let lastInteractionTime = Date.now();
+  let lastBotQuestionTime = 0;
+  let exitIntentShown = false;
+  let _pendingPopup = null;
   let unreadCount = 0;
   let _liveMode = false;
   let _livePollTimer = null;
@@ -749,6 +754,7 @@
           <div id="nd-bot-name">${esc(config.bot_name)}</div>
           <div id="nd-status"><span id="nd-status-dot"></span> ${wt('online')}</div>
         </div>
+        <button id="nd-popout" title="Otvoriť v novom okne" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.75);padding:0.25rem;border-radius:4px;display:none;line-height:0;margin-right:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></button>
         <button id="nd-close" title="${wt('close')}">${ICON_CLOSE}</button>
       </div>
       <div id="nd-messages"></div>
@@ -772,16 +778,29 @@
 
     // Wire events
     if (!INLINE_MODE) shadow.getElementById('nd-close').addEventListener('click', toggleChat);
+    const _popoutBtn = shadow.getElementById('nd-popout');
+    if (_popoutBtn) _popoutBtn.addEventListener('click', popOutChat);
     shadow.getElementById('nd-send').addEventListener('click', handleSend);
     shadow.getElementById('nd-input').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
     });
     shadow.getElementById('nd-input').addEventListener('input', autoResize);
 
-    // Add welcome message — A/B variant or default (multilingual JSON or plain text)
-    const _welcomeRaw = (config.ab_variant === 'b' && config.welcome_message_b) ? config.welcome_message_b : config.welcome_message;
-    const _welcomeMsg = getWelcomeMessage(_welcomeRaw);
-    if (_welcomeMsg) addBotMessage(_welcomeMsg);
+    // Add welcome message — skip if restoring conversation from popup
+    if (_pendingPopup && Array.isArray(_pendingPopup.hist) && _pendingPopup.hist.length) {
+      _pendingPopup.hist.forEach(m => {
+        if (m.role === 'user') addUserMessage(m.content);
+        else addBotMessage(m.content, false, true); // true = skipTracking to avoid triggering lastBotQuestionTime
+      });
+      history = _pendingPopup.hist.slice();
+      _pendingPopup = null;
+      updatePopoutBtn();
+      setTimeout(() => { if (!isOpen) toggleChat(); }, 80);
+    } else {
+      const _welcomeRaw = (config.ab_variant === 'b' && config.welcome_message_b) ? config.welcome_message_b : config.welcome_message;
+      const _welcomeMsg = getWelcomeMessage(_welcomeRaw);
+      if (_welcomeMsg) addBotMessage(_welcomeMsg);
+    }
 
     // Render suggested questions
     renderSuggestions();
@@ -794,6 +813,20 @@
         showProactiveBubble(getWelcomeMessage(config.proactive_message));
         showBadge();
       }, delay);
+    }
+
+    // Proactive sequence (floating mode only)
+    if (!INLINE_MODE) {
+      scheduleProactiveSequence();
+      // Exit intent: gentle nudge when user moves mouse out of window with active conversation
+      document.addEventListener('mouseleave', function ndExitIntent(e) {
+        if (e.clientY > 5) return; // top-edge exit only
+        if (!exitIntentShown && history.length > 0 && !isOpen) {
+          exitIntentShown = true;
+          showProactiveBubble(getExitIntentMsg(), { repeat_after: 0 });
+          showBadge();
+        }
+      });
     }
 
     // White-label: remove branding footer
@@ -818,11 +851,12 @@
   }
 
   /* ── Proactive Bubble ───────────────────────────────────────── */
-  function showProactiveBubble(message) {
-    if (shadow.getElementById('nd-proactive-bubble')) return; // already shown
+  function showProactiveBubble(message, seqMeta) {
+    if (shadow.getElementById('nd-proactive-bubble')) return;
 
     const primary = config.primary_color || '#2563eb';
     const bubble = elem('div', { id: 'nd-proactive-bubble' });
+    bubble._nd_seq = seqMeta || null; // null = main proactive; object = sequence item
     bubble.innerHTML = `
       <button id="nd-proactive-close" title="${wt('close')}">✕</button>
       <div style="padding-right:1rem">${esc(message)}</div>
@@ -833,28 +867,114 @@
 
     bubble.addEventListener('click', (e) => {
       if (e.target.id === 'nd-proactive-close') {
-        dismissBubble();
+        dismissBubble(false); // dismissed manually → allow reschedule
         return;
       }
-      dismissBubble();
+      dismissBubble(true); // user opened chat → suppress reschedule
       if (!isOpen) toggleChat();
     });
 
     shadow.getElementById('nd-proactive-close').addEventListener('click', (e) => {
       e.stopPropagation();
-      dismissBubble();
+      dismissBubble(false);
     });
   }
 
-  function dismissBubble() {
-    proactiveDismissed = true;
+  // openedChat=true: user engaged → no reschedule; false: user dismissed manually → reschedule seq
+  function dismissBubble(openedChat) {
     const b = shadow.getElementById('nd-proactive-bubble');
-    if (b) {
-      b.style.opacity = '0';
-      b.style.transform = 'translateY(8px)';
-      b.style.transition = 'opacity 0.2s, transform 0.2s';
-      setTimeout(() => b.remove(), 220);
+    if (!b) return;
+    const seqMeta = b._nd_seq;
+    if (!seqMeta) proactiveDismissed = true; // only mark for the main proactive message
+    b.style.opacity = '0';
+    b.style.transform = 'translateY(8px)';
+    b.style.transition = 'opacity 0.2s, transform 0.2s';
+    setTimeout(() => {
+      if (b.parentNode) b.remove();
+      if (!openedChat && seqMeta && (seqMeta.repeat_after || 0) > 0) {
+        setTimeout(() => showSeqBubble(seqMeta), seqMeta.repeat_after * 1000);
+      }
+    }, 220);
+  }
+
+  /* ── Proactive Sequence ─────────────────────────────────────── */
+  function scheduleProactiveSequence() {
+    const seq = config.proactive_sequence;
+    if (!Array.isArray(seq) || !seq.length) return;
+
+    seq.forEach(function (item) {
+      if (item.enabled === false || !item.text) return;
+      const delayMs = Math.max(5, item.delay || 30) * 1000;
+
+      if (item.trigger === 'time') {
+        const t = setTimeout(function () { showSeqBubble(item); }, delayMs);
+        proactiveSeqTimers.push(t);
+      } else if (item.trigger === 'inactivity') {
+        const t = setInterval(function () {
+          if (Date.now() - lastInteractionTime >= delayMs) {
+            clearInterval(t);
+            showSeqBubble(item);
+          }
+        }, 5000);
+        proactiveSeqTimers.push(t);
+      } else if (item.trigger === 'unanswered') {
+        const t = setInterval(function () {
+          if (lastBotQuestionTime > 0 && Date.now() - lastBotQuestionTime >= delayMs) {
+            clearInterval(t);
+            showSeqBubble(item);
+          }
+        }, 3000);
+        proactiveSeqTimers.push(t);
+      }
+    });
+  }
+
+  function showSeqBubble(item) {
+    if (isOpen) {
+      if ((item.repeat_after || 0) > 0) {
+        setTimeout(function () { showSeqBubble(item); }, item.repeat_after * 1000);
+      }
+      return;
     }
+    if (shadow.getElementById('nd-proactive-bubble')) {
+      setTimeout(function () { showSeqBubble(item); }, 12000); // another bubble showing, retry
+      return;
+    }
+    showProactiveBubble(getWelcomeMessage(item.text), item);
+    showBadge();
+  }
+
+  /* ── Pop-out ─────────────────────────────────────────────────── */
+  function updatePopoutBtn() {
+    const btn = shadow.getElementById('nd-popout');
+    if (btn) btn.style.display = history.length > 0 ? '' : 'none';
+  }
+
+  function popOutChat() {
+    try {
+      localStorage.setItem('nd_popup_' + WIDGET_ID, JSON.stringify({ sid: sessionId, hist: history }));
+    } catch {}
+    window.open(
+      window.location.href.split('#')[0],
+      'nd_chat_' + WIDGET_ID,
+      'width=420,height=640,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no'
+    );
+  }
+
+  function getExitIntentMsg() {
+    const l = getLang();
+    return ({
+      sk: 'Ešte sme neskončili — pokračujte v konverzácii 💬',
+      en: "We're not done — continue chatting 💬",
+      de: 'Wir sind noch nicht fertig — Chat fortsetzen 💬',
+      fr: "Nous n'avons pas terminé — continuez à chatter 💬",
+      es: 'No hemos terminado — sigue chateando 💬',
+      pl: 'Jeszcze nie skończyliśmy — kontynuuj czat 💬',
+      cs: 'Ještě jsme neskončili — pokračujte v chatu 💬',
+      hu: 'Még nem végeztünk — folytassa a csevegést 💬',
+      ro: 'Nu am terminat — continuați conversația 💬',
+      hr: 'Još nismo završili — nastavite chat 💬',
+    })[l] || "We're not done — continue chatting 💬";
   }
 
   /* ── Unread Badge ───────────────────────────────────────────── */
@@ -882,13 +1002,14 @@
   function toggleChat() {
     if (INLINE_MODE) return;
     isOpen = !isOpen;
-    dismissBubble();
+    dismissBubble(true); // user engaged → suppress seq reschedule
     const win = shadow.getElementById('nd-window');
     const iconEl = shadow.getElementById('nd-launcher-icon');
     win.classList.toggle('nd-hidden', !isOpen);
     if (iconEl) iconEl.innerHTML = isOpen ? ICON_CLOSE : ICON_CHAT;
     if (isOpen) {
       hideBadge();
+      updatePopoutBtn();
       shadow.getElementById('nd-input').focus();
       scrollToBottom();
     }
@@ -980,13 +1101,17 @@
   }
 
   /* ── Messages ───────────────────────────────────────────────── */
-  function addBotMessage(text, isStreaming = false) {
+  function addBotMessage(text, isStreaming = false, skipTracking = false) {
     const msgs = shadow.getElementById('nd-messages');
     const div = elem('div', { class: `nd-msg nd-msg-bot${isStreaming ? ' nd-typing' : ''}` });
     if (isStreaming) {
       div.textContent = text;
     } else {
       div.innerHTML = renderMarkdown(text);
+      if (!skipTracking) {
+        if (text.trim().match(/\?\s*$/)) lastBotQuestionTime = Date.now();
+        updatePopoutBtn();
+      }
     }
     msgs.appendChild(div);
     scrollToBottom();
@@ -1027,10 +1152,13 @@
     hideSuggestions();
     isTyping = true;
     msgCount++;
+    lastInteractionTime = Date.now();
+    lastBotQuestionTime = 0; // user responded, reset unanswered tracker
 
     // Add user message to UI and history
     addUserMessage(text);
     history.push({ role: 'user', content: text });
+    updatePopoutBtn();
 
     setSendDisabled(true);
 
@@ -1110,6 +1238,8 @@
                 final = final.replace(/__DIRECTBOOK__:\{[\s\S]*?\}/g, '').trim();
                 typingEl.innerHTML = renderMarkdown(final);
                 history.push({ role: 'assistant', content: final });
+                if (final.trim().match(/\?\s*$/)) lastBotQuestionTime = Date.now();
+                updatePopoutBtn();
                 maybeShowCta();
                 try { handleDirectBooking(JSON.parse(directBookMatch[1])); } catch (e) {
                   addBotMessage('❌ Rezerváciu sa nepodarilo spracovať. Skúste to znova.');
@@ -1120,6 +1250,8 @@
                 if (lmMatch) final = final.replace(/__LEADMAGNET__:\{[^\n]*?\}/g, '').trim();
                 typingEl.innerHTML = renderMarkdown(final);
                 history.push({ role: 'assistant', content: final });
+                if (final.trim().match(/\?\s*$/)) lastBotQuestionTime = Date.now();
+                updatePopoutBtn();
                 maybeShowCta();
                 if (bookingTrigger) showInlineBookingCard();
                 if (lmMatch) {
@@ -1820,6 +1952,19 @@
     }
 
     sessionId = getSessionId();
+
+    // Check for popup context — restore session + history if this page was opened by popOutChat()
+    try {
+      const _ps = localStorage.getItem('nd_popup_' + WIDGET_ID);
+      if (_ps) {
+        localStorage.removeItem('nd_popup_' + WIDGET_ID);
+        _pendingPopup = JSON.parse(_ps);
+        if (_pendingPopup && _pendingPopup.sid) {
+          sessionId = _pendingPopup.sid;
+          sessionStorage.setItem('nd_session_' + WIDGET_ID, sessionId);
+        }
+      }
+    } catch {}
 
     if (INLINE_MODE) {
       const containerEl = INLINE_CONTAINER ? document.querySelector(INLINE_CONTAINER) : null;
