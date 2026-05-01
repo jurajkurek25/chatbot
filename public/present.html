@@ -343,15 +343,15 @@ body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-in
               <div class="gc-logo-mark">🤖</div>
               <div class="gc-logo-text">Neoworkly</div>
             </div>
-            <div class="gc-badge">Darčeková karta</div>
+            <div class="gc-badge" id="pdf-badge-text">Darčeková karta</div>
           </div>
           <div class="gc-middle">
-            <div class="gc-label">Hodnota</div>
+            <div class="gc-label" id="pdf-value-label">Hodnota</div>
             <div class="gc-amount" id="success-amount">€0</div>
             <div class="gc-message" id="success-message" style="display:none"></div>
           </div>
           <div class="gc-bottom">
-            <div class="gc-code-label">Kód</div>
+            <div class="gc-code-label" id="pdf-code-label">Kód</div>
             <div class="gc-code" id="success-code">—</div>
             <div class="gc-recipient" id="success-recipient" style="display:none"></div>
           </div>
@@ -371,28 +371,28 @@ body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-in
 
       <!-- Instructions -->
       <div>
-        <div class="info-box">
-          <h3>Ako kartu uplatniť?</h3>
+        <div class="info-box" id="pdf-info-box">
+          <h3 id="pdf-redeem-title">Ako kartu uplatniť?</h3>
           <div class="info-step">
             <div class="step-num">1</div>
-            <div class="step-text">Prihlás sa na <strong>neoworkly.com</strong> (alebo sa zaregistruj — je to rýchle)</div>
+            <div class="step-text" id="pdf-step-1">Prihlás sa na <strong>neoworkly.com</strong> (alebo sa zaregistruj — je to rýchle)</div>
           </div>
           <div class="info-step">
             <div class="step-num">2</div>
-            <div class="step-text">V dashboarde klikni na <strong>Affiliate &amp; Kredity</strong> v ľavom menu</div>
+            <div class="step-text" id="pdf-step-2">V dashboarde klikni na <strong>Affiliate &amp; Kredity</strong> v ľavom menu</div>
           </div>
           <div class="info-step">
             <div class="step-num">3</div>
-            <div class="step-text">Nájdi sekciu <strong>"Uplatniť darčekovú kartu"</strong> a zadaj kód</div>
+            <div class="step-text" id="pdf-step-3">Nájdi sekciu <strong>"Uplatniť darčekovú kartu"</strong> a zadaj kód</div>
           </div>
           <div class="info-step" style="margin-bottom:0">
             <div class="step-num">4</div>
-            <div class="step-text">Kredity sa pripíšu okamžite — <strong>€37+ = voľný mesiac</strong>, menej = AI odpovede</div>
+            <div class="step-text" id="pdf-step-4">Kredity sa pripíšu okamžite — <strong>€37+ = voľný mesiac</strong>, menej = AI odpovede</div>
           </div>
         </div>
 
-        <div class="tip-box">
-          💡 <strong>Tip:</strong> Kód je jednorazový a platí bez časového obmedzenia. Uchovajte ho na bezpečnom mieste alebo vytlačte kartu.
+        <div class="tip-box" id="pdf-tip-box">
+          💡 <strong>Tip:</strong> <span id="pdf-tip-text">Kód je jednorazový a platí bez časového obmedzenia. Uchovajte ho na bezpečnom mieste alebo vytlačte kartu.</span>
         </div>
       </div>
     </div>
@@ -535,12 +535,22 @@ function _roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// Read translated text from a DOM element (strips inner HTML tags)
+function domText(id) {
+  const el = document.getElementById(id);
+  return el ? el.textContent.trim() : '';
+}
+
 function drawGiftCardCanvas(amount, code, message, recipient) {
   const W = 800, H = 500;
   const canvas = document.createElement('canvas');
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
-  const tr = k => (window.t ? window.t(k) : k);
+
+  // Labels read from already-translated DOM
+  const badgeLabel = domText('pdf-badge-text').toUpperCase();
+  const valueLabel = domText('pdf-value-label').toUpperCase();
+  const codeLabel  = domText('pdf-code-label').toUpperCase();
 
   // Background gradient
   const bg = ctx.createLinearGradient(0, 0, W, H);
@@ -548,18 +558,16 @@ function drawGiftCardCanvas(amount, code, message, recipient) {
   bg.addColorStop(0.5, '#4c1d95');
   bg.addColorStop(1, '#7c3aed');
   _roundRect(ctx, 0, 0, W, H, 24);
-  ctx.fillStyle = bg;
-  ctx.fill();
+  ctx.fillStyle = bg; ctx.fill();
 
   // Shine overlay
   const shine = ctx.createLinearGradient(0, 0, W * 0.65, H * 0.65);
   shine.addColorStop(0, 'rgba(255,255,255,0.13)');
   shine.addColorStop(1, 'rgba(255,255,255,0)');
   _roundRect(ctx, 0, 0, W, H, 24);
-  ctx.fillStyle = shine;
-  ctx.fill();
+  ctx.fillStyle = shine; ctx.fill();
 
-  // Decorative circle top-right
+  // Decorative circles top-right
   ctx.save();
   ctx.globalAlpha = 0.05;
   ctx.fillStyle = 'white';
@@ -572,38 +580,32 @@ function drawGiftCardCanvas(amount, code, message, recipient) {
   ctx.fillStyle = 'rgba(255,255,255,0.92)';
   ctx.textAlign = 'left';
   ctx.fillText('Neoworkly', 64, 54);
-  ctx.font = '20px Arial';
-  ctx.fillText('🤖', 36, 54);
+  ctx.font = '20px Arial'; ctx.fillText('🤖', 36, 54);
 
-  // Badge (top-right)
-  const badgeText = tr('Darčeková karta').toUpperCase();
+  // Badge (top-right) — translated
   ctx.font = 'bold 11px Arial, sans-serif';
-  const bMeasure = ctx.measureText(badgeText).width;
-  const bPad = 14, bH = 26, bW = bMeasure + bPad * 2;
-  const bX = W - bW - 36, bY = 30;
+  const bW = ctx.measureText(badgeLabel).width + 28;
+  const bX = W - bW - 36, bY = 30, bH = 26;
   ctx.fillStyle = 'rgba(255,255,255,0.15)';
-  _roundRect(ctx, bX, bY, bW, bH, 13);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
-  ctx.lineWidth = 1;
-  _roundRect(ctx, bX, bY, bW, bH, 13);
-  ctx.stroke();
+  _roundRect(ctx, bX, bY, bW, bH, 13); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1;
+  _roundRect(ctx, bX, bY, bW, bH, 13); ctx.stroke();
   ctx.fillStyle = 'rgba(255,255,255,0.88)';
   ctx.textAlign = 'center';
-  ctx.fillText(badgeText, bX + bW / 2, bY + 17);
+  ctx.fillText(badgeLabel, bX + bW / 2, bY + 17);
 
-  // Value label (center)
+  // Value label — translated
   ctx.textAlign = 'center';
   ctx.font = '400 13px Arial, sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
-  ctx.fillText(tr('Hodnota').toUpperCase(), W / 2, H / 2 - 48);
+  ctx.fillText(valueLabel, W / 2, H / 2 - 48);
 
-  // Amount (center, big)
+  // Amount
   ctx.font = 'bold 88px Arial, sans-serif';
   ctx.fillStyle = 'white';
   ctx.fillText(amount, W / 2, H / 2 + 28);
 
-  // Message (italic, below amount)
+  // Message
   if (message) {
     ctx.font = 'italic 15px Arial, sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.68)';
@@ -613,23 +615,20 @@ function drawGiftCardCanvas(amount, code, message, recipient) {
     ctx.fillText(msg, W / 2, H / 2 + 66);
   }
 
-  // Code section (bottom-left)
+  // Code label — translated
   ctx.textAlign = 'left';
   ctx.font = '400 11px Arial, sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
-  ctx.fillText(tr('Kód').toUpperCase(), 36, H - 76);
+  ctx.fillText(codeLabel, 36, H - 76);
 
-  const codeFont = 'bold 20px "Courier New", Courier, monospace';
-  ctx.font = codeFont;
-  const codeW = ctx.measureText(code).width;
-  const cpX = 30, cpY = H - 66, cpW = codeW + 32, cpH = 42;
+  // Code pill
+  ctx.font = 'bold 20px "Courier New", Courier, monospace';
+  const cpW = ctx.measureText(code).width + 32;
+  const cpX = 30, cpY = H - 66, cpH = 42;
   ctx.fillStyle = 'rgba(255,255,255,0.11)';
-  _roundRect(ctx, cpX, cpY, cpW, cpH, 8);
-  ctx.fill();
-  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-  ctx.lineWidth = 1;
-  _roundRect(ctx, cpX, cpY, cpW, cpH, 8);
-  ctx.stroke();
+  _roundRect(ctx, cpX, cpY, cpW, cpH, 8); ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1;
+  _roundRect(ctx, cpX, cpY, cpW, cpH, 8); ctx.stroke();
   ctx.fillStyle = 'white';
   ctx.fillText(code, cpX + 16, cpY + 28);
 
@@ -638,7 +637,7 @@ function drawGiftCardCanvas(amount, code, message, recipient) {
     ctx.textAlign = 'right';
     ctx.font = '400 13px Arial, sans-serif';
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.fillText(`${tr('Pre')}: ${recipient}`, W - 36, H - 48);
+    ctx.fillText(recipient, W - 36, H - 48);
   }
 
   return canvas;
@@ -651,7 +650,6 @@ async function downloadCardPDF() {
 
   try {
     const { jsPDF } = window.jspdf;
-    const tr = k => (window.t ? window.t(k) : k);
     const lang = window.i18n ? window.i18n.currentLang() : 'sk';
 
     const code      = document.getElementById('success-code').textContent.trim();
@@ -659,7 +657,12 @@ async function downloadCardPDF() {
     const msgEl     = document.getElementById('success-message');
     const recEl     = document.getElementById('success-recipient');
     const message   = msgEl.style.display !== 'none' ? msgEl.textContent.replace(/^"|"$/g, '').trim() : '';
-    const recipient = recEl.style.display !== 'none' ? recEl.textContent.replace(/^Pre:\s*/i, '').trim() : '';
+    const recipient = recEl.style.display !== 'none' ? recEl.textContent.replace(/^.*?:\s*/i, '').trim() : '';
+
+    // Read all instruction text from already-translated DOM
+    const redeemTitle = domText('pdf-redeem-title');
+    const steps = ['pdf-step-1','pdf-step-2','pdf-step-3','pdf-step-4'].map(domText).filter(Boolean);
+    const tipText = domText('pdf-tip-text');
 
     // Draw card on canvas
     const cardCanvas = drawGiftCardCanvas(amount, code, message, recipient);
@@ -685,43 +688,40 @@ async function downloadCardPDF() {
     doc.setTextColor(60, 20, 140);
     doc.text(code, 210 / 2, codeY + 9.5, { align: 'center' });
 
-    // Instructions heading
+    // Instructions heading — from DOM (already translated)
     const instrY = codeY + 22;
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(11);
     doc.setTextColor(20, 20, 40);
-    doc.text(tr('Ako uplatniť kód:'), marginX, instrY);
+    doc.text(redeemTitle, marginX, instrY);
 
-    const steps = [
-      tr('Prihlás sa na neoworkly.com (alebo sa zaregistruj — je to rýchle)'),
-      tr('V dashboarde klikni na Affiliate & Kredity v ľavom menu'),
-      tr('Zadaj kód — kredity sa pripíšu okamžite'),
-    ];
-    doc.setFont('helvetica', 'normal');
+    // Steps — from DOM (already translated)
     doc.setFontSize(9.5);
     doc.setTextColor(80, 80, 110);
+    let stepY = instrY + 8;
     steps.forEach((step, i) => {
-      const y = instrY + 8 + i * 7;
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(100, 80, 200);
-      doc.text(`${i + 1}.`, marginX, y);
+      doc.text(`${i + 1}.`, marginX, stepY);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(80, 80, 110);
       const lines = doc.splitTextToSize(step, cardW - 8);
-      doc.text(lines, marginX + 6, y);
+      doc.text(lines, marginX + 6, stepY);
+      stepY += lines.length > 1 ? lines.length * 5.5 + 1.5 : 7;
     });
 
-    // Note at bottom
-    const noteY = instrY + 38;
+    // Tip note — from DOM (already translated)
+    const noteY = stepY + 4;
     doc.setFillColor(255, 249, 230);
     doc.setDrawColor(250, 200, 80);
     doc.setLineWidth(0.3);
-    doc.roundedRect(marginX, noteY, cardW, 10, 2, 2, 'FD');
+    const tipLines = doc.splitTextToSize(tipText, cardW - 10);
+    const noteH = tipLines.length * 5 + 5;
+    doc.roundedRect(marginX, noteY, cardW, noteH, 2, 2, 'FD');
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(8.5);
     doc.setTextColor(100, 70, 10);
-    const noteText = tr('Kód platí bez časového obmedzenia · Jednorazové použitie');
-    doc.text(noteText, 210 / 2, noteY + 6.5, { align: 'center' });
+    doc.text(tipLines, 210 / 2, noteY + 5.5, { align: 'center' });
 
     // Footer
     doc.setFontSize(7.5);
