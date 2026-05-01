@@ -34,9 +34,16 @@
       animation: nd-spin 0.7s linear infinite;
     }
     @keyframes nd-spin { to { transform: rotate(360deg); } }
+    #nd-chat-popup {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
   </style>
 </head>
 <body>
+  <div id="nd-chat-popup"></div>
   <div id="nd-loading">
     <div class="nd-spinner"></div>
     <span>Načítavam chat…</span>
@@ -57,8 +64,8 @@
         // Set popup session data so widget.js can pick it up during init
         if (sessionData) window._ndPopupSession = sessionData;
 
-        // Override NeoworklyConfig so widget.js initialises with the right ID
-        window.NeoworklyConfig = { widgetId: wid };
+        // Override NeoworklyConfig so widget.js initialises in inline mode inside #nd-chat-popup
+        window.NeoworklyConfig = { widgetId: wid, container: '#nd-chat-popup' };
 
         // Remove loading indicator once widget is ready
         var s = document.createElement('script');
