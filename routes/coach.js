@@ -2,11 +2,48 @@
 
 const express = require('express');
 const Anthropic = require('@anthropic-ai/sdk');
+const { v4: uuidv4 } = require('uuid');
 const { requireAuth } = require('../middleware/auth');
 const { getDb } = require('../db/database');
 
 const router = express.Router();
 const client = new Anthropic();
+
+const COACH_TOOLS = [
+  {
+    name: 'create_widget',
+    description: 'Creates a new widget for the user based on their business info. Call this when you have collected business name, product/service description, tone, and assistant name.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        name:               { type: 'string', description: 'Internal widget name, e.g. "Hlavný web"' },
+        bot_name:           { type: 'string', description: 'Display name of the AI assistant' },
+        welcome_message:    { type: 'string', description: 'Opening message the bot sends to visitors' },
+        goals:              { type: 'string', description: 'Detailed system prompt describing the business, tone, and bot objectives (200-400 words)' },
+        primary_color:      { type: 'string', description: 'Brand hex color, default #2563eb' },
+        suggested_questions:{ type: 'array', items: { type: 'string' }, description: '3-4 typical customer questions for this business type' },
+        knowledge_texts:    { type: 'array', items: { type: 'string' }, description: 'Key business info texts to seed the knowledge base' },
+      },
+      required: ['name', 'bot_name', 'welcome_message', 'goals'],
+    },
+  },
+  {
+    name: 'update_widget',
+    description: 'Updates settings of an existing widget. Use when user wants to change bot name, welcome message, goals or other settings of an already created widget.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        widget_id:          { type: 'string', description: 'ID of the widget to update' },
+        bot_name:           { type: 'string' },
+        welcome_message:    { type: 'string' },
+        goals:              { type: 'string' },
+        primary_color:      { type: 'string' },
+        suggested_questions:{ type: 'array', items: { type: 'string' } },
+      },
+      required: ['widget_id'],
+    },
+  },
+];
 
 const SYSTEM_PROMPT = `Si AI Coach a podpora pre Neoworkly. Si expert na túto aplikáciu — poznáš ju od základov až po každý detail. Pomáhaš klientom s aktívnym predplatným riešiť akékoľvek otázky, problémy a nastavenia.
 
@@ -867,6 +904,26 @@ Dashboard → váš widget → záložka "🛒 Shopify"
 
 ━━━
 
+━━━ VYTVÁRANIE WIDGETU CEZ AI (WIDGET WIZARD) ━━━
+Keď klient chce vytvoriť nový widget alebo chatbota, spusť konverzačný sprievodca. Opýtaj sa ho postupne (nie naraz) tieto otázky — každá v jednej správe:
+
+1. „Ako sa volá vaša firma / web?"
+2. „Čo predávate alebo ponúkate? (produkt, služba, odbor)"
+3. „Ako má chatbot komunikovať — formálne alebo priateľsky?"
+4. „Ako sa má chatbot volať? (napr. Sofia, Asistent, Ján)"
+5. „Máte webstránku? Ak áno, zadajte URL — môžem z nej naskenuvať obsah do znalostnej bázy."
+
+Po zodpovedaní otázok (URL nie je povinná) zavolaj nástroj create_widget — NEVYPISUJ súhrn pred zavolaním, len ho zavolaj. Vygeneruj:
+- name: interný názov (napr. "Hlavný web", "E-shop [firma]")
+- bot_name: meno asistenta
+- welcome_message: prirodzená privítacia správa v duchu biznisu (SK)
+- goals: detailný systémový prompt (200-400 slov) — popis firmy, čo chatbot predáva, aký má mať tón, ciele (predaj kontaktov, rezervácií), čo má a nemá robiť
+- primary_color: #2563eb (ak klient nespomína farbu)
+- suggested_questions: 3-4 otázky ktoré zákazníci typicky kladú pre daný typ biznisu
+- knowledge_texts: ak klient popísal čo predáva, zahrň to ako knowledge item
+
+Trigger frázy pre spustenie wizardu: "vytvoriť widget", "nový chatbot", "nastaviť chatbota", "create widget", "new widget", "chcem chatbota", "pomôž mi vytvoriť".
+
 ━━━ POKYNY PRE TEBA ━━━
 - Odpovedaj v slovenčine (alebo v jazyku otázky ak píše po anglicky, nemecky atď.)
 - Buď konkrétny: uvádzaj presné kroky (Dashboard → záložka → akcia)
@@ -900,16 +957,152 @@ router.post('/chat', requireAuth, async (req, res) => {
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 800,
+      max_tokens: 1200,
       system: SYSTEM_PROMPT,
       messages,
+      tools: COACH_TOOLS,
     });
 
-    res.json({ reply: response.content[0].text });
+    // ── Handle tool use ──────────────────────────────────────────
+    if (response.stop_reason === 'tool_use') {
+      const toolBlock = response.content.find(b => b.type === 'tool_use');
+      const textBlock = response.content.find(b => b.type === 'text');
+
+      if (toolBlock?.name === 'create_widget') {
+        const result = await _coachCreateWidget(req.userId, toolBlock.input);
+        if (result.error) return res.status(400).json({ error: result.error });
+
+        // Get a follow-up text reply from Claude describing what was done
+        const followUp = await client.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 400,
+          system: SYSTEM_PROMPT,
+          messages: [
+            ...messages,
+            { role: 'assistant', content: response.content },
+            {
+              role: 'user',
+              content: [{
+                type: 'tool_result',
+                tool_use_id: toolBlock.id,
+                content: JSON.stringify({ success: true, widget_id: result.widget.id, widget_name: result.widget.name }),
+              }],
+            },
+          ],
+          tools: COACH_TOOLS,
+        });
+
+        const replyText = followUp.content.find(b => b.type === 'text')?.text
+          || `Widget "${result.widget.name}" bol úspešne vytvorený! Môžeš ho teraz otvoriť a doladiť v dashboarde.`;
+
+        return res.json({ reply: replyText, widget_created: result.widget });
+      }
+
+      if (toolBlock?.name === 'update_widget') {
+        const result = await _coachUpdateWidget(req.userId, toolBlock.input);
+        if (result.error) return res.status(400).json({ error: result.error });
+
+        const followUp = await client.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 300,
+          system: SYSTEM_PROMPT,
+          messages: [
+            ...messages,
+            { role: 'assistant', content: response.content },
+            {
+              role: 'user',
+              content: [{
+                type: 'tool_result',
+                tool_use_id: toolBlock.id,
+                content: JSON.stringify({ success: true, widget_id: result.widget.id }),
+              }],
+            },
+          ],
+          tools: COACH_TOOLS,
+        });
+
+        const replyText = followUp.content.find(b => b.type === 'text')?.text
+          || `Widget "${result.widget.name}" bol aktualizovaný.`;
+
+        return res.json({ reply: replyText, widget_updated: result.widget });
+      }
+    }
+
+    // ── Normal text reply ────────────────────────────────────────
+    const textReply = response.content.find(b => b.type === 'text')?.text || '';
+    res.json({ reply: textReply });
   } catch (err) {
     console.error('[coach] Claude error:', err.message);
     res.status(500).json({ error: 'Chyba AI. Skúste znova.' });
   }
 });
+
+// ── Widget creation helper ────────────────────────────────────────
+async function _coachCreateWidget(userId, input) {
+  const db = getDb();
+  const user = db.prepare('SELECT subscription_plan, subscription_status, free_until, white_label_extra_slots FROM users WHERE id = ?').get(userId);
+  const nowTs = Math.floor(Date.now() / 1000);
+  const subActive = user?.subscription_status === 'active' || user?.subscription_status === 'past_due'
+    || (user?.free_until && user.free_until > nowTs);
+  if (!subActive) return { error: 'Aktívne predplatné je potrebné na vytvorenie widgetu.' };
+
+  const widgetCount = db.prepare('SELECT COUNT(*) AS cnt FROM widgets WHERE user_id = ?').get(userId).cnt;
+  const isWL = user?.subscription_plan === 'white_label';
+  const limit = isWL ? (40 + (user.white_label_extra_slots || 0)) : 10;
+  if (widgetCount >= limit) return { error: `Dosiahli ste limit ${limit} widgetov.` };
+
+  const id = uuidv4();
+  const { name, bot_name, welcome_message, goals, primary_color, suggested_questions, knowledge_texts } = input;
+
+  db.prepare(`
+    INSERT INTO widgets (id, user_id, name, bot_name, welcome_message, primary_color, goals, suggested_questions)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    id, userId,
+    (name || 'Môj chatbot').trim(),
+    (bot_name || 'Asistent').trim(),
+    (welcome_message || 'Ahoj! Ako vám môžem pomôcť?').trim(),
+    primary_color || '#2563eb',
+    goals || '',
+    JSON.stringify(Array.isArray(suggested_questions) ? suggested_questions.slice(0, 4) : [])
+  );
+
+  // Seed knowledge base
+  if (Array.isArray(knowledge_texts)) {
+    for (const text of knowledge_texts.slice(0, 5)) {
+      if (!text?.trim()) continue;
+      db.prepare(`INSERT INTO knowledge_items (id, widget_id, title, content, source_type) VALUES (?, ?, ?, ?, ?)`)
+        .run(uuidv4(), id, 'O firme', text.trim(), 'manual');
+    }
+  }
+
+  const widget = db.prepare('SELECT id, name, bot_name FROM widgets WHERE id = ?').get(id);
+  return { widget };
+}
+
+// ── Widget update helper ──────────────────────────────────────────
+async function _coachUpdateWidget(userId, input) {
+  const db = getDb();
+  const { widget_id, bot_name, welcome_message, goals, primary_color, suggested_questions } = input;
+  const widget = db.prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(widget_id, userId);
+  if (!widget) return { error: 'Widget nenájdený.' };
+
+  const fields = [];
+  const values = [];
+  if (bot_name        !== undefined) { fields.push('bot_name = ?');           values.push(bot_name.trim()); }
+  if (welcome_message !== undefined) { fields.push('welcome_message = ?');    values.push(welcome_message.trim()); }
+  if (goals           !== undefined) { fields.push('goals = ?');              values.push(goals); }
+  if (primary_color   !== undefined) { fields.push('primary_color = ?');      values.push(primary_color); }
+  if (suggested_questions !== undefined) {
+    fields.push('suggested_questions = ?');
+    values.push(JSON.stringify(Array.isArray(suggested_questions) ? suggested_questions.slice(0, 4) : []));
+  }
+  if (!fields.length) return { widget };
+
+  values.push(widget_id);
+  db.prepare(`UPDATE widgets SET ${fields.join(', ')} WHERE id = ?`).run(...values);
+  const updated = db.prepare('SELECT id, name, bot_name FROM widgets WHERE id = ?').get(widget_id);
+  return { widget: updated };
+}
 
 module.exports = router;

@@ -262,6 +262,7 @@ function showView(view) {
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
     document.getElementById('topbar-actions').innerHTML =
+      '<button class="btn btn-secondary" onclick="startAiWidgetWizard()">🤖 Vytvoriť s AI</button>' +
       '<button class="btn btn-primary" onclick="openCreateWidgetModal()">+ Nový widget</button>';
   }
   if (view === 'leads') {
@@ -1995,8 +1996,15 @@ async function sendCoachMessage() {
       appendCoachMsg('assistant', d.reply);
       coachHistory.push({ role: 'user', content: message });
       coachHistory.push({ role: 'assistant', content: d.reply });
-      // Keep history reasonable
       if (coachHistory.length > 24) coachHistory = coachHistory.slice(-24);
+      if (d.widget_created) {
+        appendCoachWidgetCard(d.widget_created, false);
+        loadWidgets(); // refresh sidebar list
+      }
+      if (d.widget_updated) {
+        appendCoachWidgetCard(d.widget_updated, true);
+        loadWidgets();
+      }
     }
   } catch {
     typing.remove();
@@ -2032,6 +2040,45 @@ function appendCoachTyping() {
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
   return div;
+}
+
+function appendCoachWidgetCard(widget, isUpdate) {
+  const container = document.getElementById('coach-messages');
+  const card = document.createElement('div');
+  card.style.cssText = 'margin:0.5rem 0 0.5rem 2.5rem';
+  const label = isUpdate
+    ? `✏️ Widget <strong>${esc(widget.name)}</strong> aktualizovaný`
+    : `✅ Widget <strong>${esc(widget.name)}</strong> vytvorený`;
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #93c5fd;border-radius:12px;padding:1rem 1.15rem">
+      <div style="font-weight:700;color:#1e40af;margin-bottom:0.3rem;font-size:0.92rem">${label}</div>
+      <div style="font-size:0.82rem;color:#374151;margin-bottom:0.8rem">Chatbot <em>${esc(widget.bot_name)}</em> je pripravený. Dolaď ho priamo v dashboarde — farby, logo, znalostná báza, rezervácie.</div>
+      <button onclick="openCoachWidget('${esc(widget.id)}')" style="background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+        Otvoriť widget →
+      </button>
+    </div>
+  `;
+  container.appendChild(card);
+  container.scrollTop = container.scrollHeight;
+}
+
+function openCoachWidget(widgetId) {
+  const w = (widgets || []).find(x => x.id === widgetId);
+  if (w) selectWidget(w);
+  else loadWidgets().then(() => {
+    const found = (widgets || []).find(x => x.id === widgetId);
+    if (found) selectWidget(found);
+  });
+  showTab('settings');
+}
+
+function startAiWidgetWizard() {
+  showView('coach');
+  // Pre-fill and send the trigger phrase
+  const input = document.getElementById('coach-input');
+  if (input) input.value = 'Chcem vytvoriť nový widget';
+  document.getElementById('coach-suggestions')?.style.setProperty('display', 'none');
+  sendCoachMessage();
 }
 
 function clearCoachHistory() {
