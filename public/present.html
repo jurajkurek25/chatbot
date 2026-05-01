@@ -193,6 +193,7 @@ body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-in
       <a href="/#pricing">Cena</a>
     </div>
     <div class="nav-cta-desktop">
+      <div class="lang-switcher"></div>
       <a href="/dashboard" class="btn-ghost" style="width:auto;display:inline-block">Prihlásiť sa</a>
       <a href="/?register=1" class="btn-nav-cta">Začať</a>
     </div>
@@ -211,6 +212,7 @@ body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-in
     <div class="nav-mobile-cta">
       <a href="/dashboard" class="btn-ghost">Prihlásiť sa</a>
       <a href="/?register=1" class="btn-primary" style="padding:.75rem">Začať</a>
+      <div class="lang-switcher" style="margin-top:.5rem;align-self:center"></div>
     </div>
   </div>
 </nav>
@@ -361,7 +363,8 @@ body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-in
         </div>
 
         <div class="card-actions">
-          <button class="btn-action btn-print" onclick="window.print()">🖨️ Vytlačiť / Uložiť PDF</button>
+          <button class="btn-action btn-print" onclick="downloadCardPDF()" id="btn-pdf">⬇️ Stiahnuť PDF</button>
+          <button class="btn-action btn-copy" style="background:var(--surface);border:1px solid var(--border2);color:var(--muted2)" onclick="window.print()">🖨️ Vytlačiť</button>
           <button class="btn-action btn-copy" id="btn-copy-code" onclick="copyCode()">📋 Skopírovať kód</button>
         </div>
       </div>
@@ -517,6 +520,224 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// ── PDF GENERATION ──────────────────────────────────────────────────────────
+function _roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+function drawGiftCardCanvas(amount, code, message, recipient) {
+  const W = 800, H = 500;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  const tr = k => (window.t ? window.t(k) : k);
+
+  // Background gradient
+  const bg = ctx.createLinearGradient(0, 0, W, H);
+  bg.addColorStop(0, '#1e0a3c');
+  bg.addColorStop(0.5, '#4c1d95');
+  bg.addColorStop(1, '#7c3aed');
+  _roundRect(ctx, 0, 0, W, H, 24);
+  ctx.fillStyle = bg;
+  ctx.fill();
+
+  // Shine overlay
+  const shine = ctx.createLinearGradient(0, 0, W * 0.65, H * 0.65);
+  shine.addColorStop(0, 'rgba(255,255,255,0.13)');
+  shine.addColorStop(1, 'rgba(255,255,255,0)');
+  _roundRect(ctx, 0, 0, W, H, 24);
+  ctx.fillStyle = shine;
+  ctx.fill();
+
+  // Decorative circle top-right
+  ctx.save();
+  ctx.globalAlpha = 0.05;
+  ctx.fillStyle = 'white';
+  ctx.beginPath(); ctx.arc(W + 55, -55, 220, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(W + 20, -20, 140, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+
+  // Logo (top-left)
+  ctx.font = 'bold 22px Arial, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.92)';
+  ctx.textAlign = 'left';
+  ctx.fillText('Neoworkly', 64, 54);
+  ctx.font = '20px Arial';
+  ctx.fillText('🤖', 36, 54);
+
+  // Badge (top-right)
+  const badgeText = tr('Darčeková karta').toUpperCase();
+  ctx.font = 'bold 11px Arial, sans-serif';
+  const bMeasure = ctx.measureText(badgeText).width;
+  const bPad = 14, bH = 26, bW = bMeasure + bPad * 2;
+  const bX = W - bW - 36, bY = 30;
+  ctx.fillStyle = 'rgba(255,255,255,0.15)';
+  _roundRect(ctx, bX, bY, bW, bH, 13);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+  ctx.lineWidth = 1;
+  _roundRect(ctx, bX, bY, bW, bH, 13);
+  ctx.stroke();
+  ctx.fillStyle = 'rgba(255,255,255,0.88)';
+  ctx.textAlign = 'center';
+  ctx.fillText(badgeText, bX + bW / 2, bY + 17);
+
+  // Value label (center)
+  ctx.textAlign = 'center';
+  ctx.font = '400 13px Arial, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.55)';
+  ctx.fillText(tr('Hodnota').toUpperCase(), W / 2, H / 2 - 48);
+
+  // Amount (center, big)
+  ctx.font = 'bold 88px Arial, sans-serif';
+  ctx.fillStyle = 'white';
+  ctx.fillText(amount, W / 2, H / 2 + 28);
+
+  // Message (italic, below amount)
+  if (message) {
+    ctx.font = 'italic 15px Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.68)';
+    const maxW = W - 80;
+    let msg = `"${message}"`;
+    while (ctx.measureText(msg).width > maxW && msg.length > 6) msg = msg.slice(0, -2) + '…"';
+    ctx.fillText(msg, W / 2, H / 2 + 66);
+  }
+
+  // Code section (bottom-left)
+  ctx.textAlign = 'left';
+  ctx.font = '400 11px Arial, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,0.5)';
+  ctx.fillText(tr('Kód').toUpperCase(), 36, H - 76);
+
+  const codeFont = 'bold 20px "Courier New", Courier, monospace';
+  ctx.font = codeFont;
+  const codeW = ctx.measureText(code).width;
+  const cpX = 30, cpY = H - 66, cpW = codeW + 32, cpH = 42;
+  ctx.fillStyle = 'rgba(255,255,255,0.11)';
+  _roundRect(ctx, cpX, cpY, cpW, cpH, 8);
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  _roundRect(ctx, cpX, cpY, cpW, cpH, 8);
+  ctx.stroke();
+  ctx.fillStyle = 'white';
+  ctx.fillText(code, cpX + 16, cpY + 28);
+
+  // Recipient (bottom-right)
+  if (recipient) {
+    ctx.textAlign = 'right';
+    ctx.font = '400 13px Arial, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillText(`${tr('Pre')}: ${recipient}`, W - 36, H - 48);
+  }
+
+  return canvas;
+}
+
+async function downloadCardPDF() {
+  const btn = document.getElementById('btn-pdf');
+  btn.disabled = true;
+  btn.textContent = '…';
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const tr = k => (window.t ? window.t(k) : k);
+    const lang = window.i18n ? window.i18n.currentLang() : 'sk';
+
+    const code      = document.getElementById('success-code').textContent.trim();
+    const amount    = document.getElementById('success-amount').textContent.trim();
+    const msgEl     = document.getElementById('success-message');
+    const recEl     = document.getElementById('success-recipient');
+    const message   = msgEl.style.display !== 'none' ? msgEl.textContent.replace(/^"|"$/g, '').trim() : '';
+    const recipient = recEl.style.display !== 'none' ? recEl.textContent.replace(/^Pre:\s*/i, '').trim() : '';
+
+    // Draw card on canvas
+    const cardCanvas = drawGiftCardCanvas(amount, code, message, recipient);
+    const imgData = cardCanvas.toDataURL('image/png');
+
+    // PDF setup (A4 portrait)
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    doc.setLanguage(lang);
+
+    // Card image (centered, 160mm wide)
+    const cardW = 160, cardH = cardW * (500 / 800);
+    const marginX = (210 - cardW) / 2;
+    doc.addImage(imgData, 'PNG', marginX, 18, cardW, cardH);
+
+    // Code box below card
+    const codeY = 18 + cardH + 8;
+    doc.setFillColor(240, 236, 255);
+    doc.setDrawColor(180, 160, 255);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(marginX, codeY, cardW, 14, 3, 3, 'FD');
+    doc.setFont('courier', 'bold');
+    doc.setFontSize(13);
+    doc.setTextColor(60, 20, 140);
+    doc.text(code, 210 / 2, codeY + 9.5, { align: 'center' });
+
+    // Instructions heading
+    const instrY = codeY + 22;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(20, 20, 40);
+    doc.text(tr('Ako uplatniť kód:'), marginX, instrY);
+
+    const steps = [
+      tr('Prihlás sa na neoworkly.com (alebo sa zaregistruj — je to rýchle)'),
+      tr('V dashboarde klikni na Affiliate & Kredity v ľavom menu'),
+      tr('Zadaj kód — kredity sa pripíšu okamžite'),
+    ];
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(9.5);
+    doc.setTextColor(80, 80, 110);
+    steps.forEach((step, i) => {
+      const y = instrY + 8 + i * 7;
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(100, 80, 200);
+      doc.text(`${i + 1}.`, marginX, y);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(80, 80, 110);
+      const lines = doc.splitTextToSize(step, cardW - 8);
+      doc.text(lines, marginX + 6, y);
+    });
+
+    // Note at bottom
+    const noteY = instrY + 38;
+    doc.setFillColor(255, 249, 230);
+    doc.setDrawColor(250, 200, 80);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(marginX, noteY, cardW, 10, 2, 2, 'FD');
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    doc.setTextColor(100, 70, 10);
+    const noteText = tr('Kód platí bez časového obmedzenia · Jednorazové použitie');
+    doc.text(noteText, 210 / 2, noteY + 6.5, { align: 'center' });
+
+    // Footer
+    doc.setFontSize(7.5);
+    doc.setTextColor(160, 160, 180);
+    doc.text('neoworkly.com', 210 / 2, 287, { align: 'center' });
+
+    doc.save(`neoworkly-gift-${code}.pdf`);
+  } catch (err) {
+    console.error('[pdf]', err);
+    showToast('Chyba generovania PDF');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '⬇️ Stiahnuť PDF';
+  }
+}
+
 // Nav hamburger
 const hamburger = document.getElementById('hamburger');
 const navMobile = document.getElementById('nav-mobile');
@@ -537,5 +758,7 @@ function closeMobileNav() {
   if (p.get('success') === '1' && p.get('session')) loadSuccess(p.get('session'));
 })();
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="/i18n.js?v=2"></script>
 </body>
 </html>
