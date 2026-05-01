@@ -521,6 +521,9 @@ function showToast(msg) {
 }
 
 // ── PDF GENERATION ──────────────────────────────────────────────────────────
+// Single system font stack — covers all Latin Extended chars (pl, cs, hu, ro, hr, de, fr, es, sk)
+const _PDF_FONT = 'system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif';
+
 function _roundRect(ctx, x, y, w, h, r) {
   ctx.beginPath();
   ctx.moveTo(x + r, y);
@@ -535,10 +538,27 @@ function _roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
-// Read translated text from a DOM element (strips inner HTML tags)
 function domText(id) {
   const el = document.getElementById(id);
   return el ? el.textContent.trim() : '';
+}
+
+// Word-wrap helper — returns array of lines that fit inside maxWidth
+function _wrapText(ctx, text, maxWidth) {
+  const words = text.split(' ');
+  const lines = [];
+  let line = '';
+  for (const word of words) {
+    const test = line ? `${line} ${word}` : word;
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = test;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
 }
 
 function drawGiftCardCanvas(amount, code, message, recipient) {
@@ -547,7 +567,6 @@ function drawGiftCardCanvas(amount, code, message, recipient) {
   canvas.width = W; canvas.height = H;
   const ctx = canvas.getContext('2d');
 
-  // Labels read from already-translated DOM
   const badgeLabel = domText('pdf-badge-text').toUpperCase();
   const valueLabel = domText('pdf-value-label').toUpperCase();
   const codeLabel  = domText('pdf-code-label').toUpperCase();
@@ -567,24 +586,24 @@ function drawGiftCardCanvas(amount, code, message, recipient) {
   _roundRect(ctx, 0, 0, W, H, 24);
   ctx.fillStyle = shine; ctx.fill();
 
-  // Decorative circles top-right
+  // Decorative circles
   ctx.save();
-  ctx.globalAlpha = 0.05;
+  ctx.globalAlpha = 0.06;
   ctx.fillStyle = 'white';
   ctx.beginPath(); ctx.arc(W + 55, -55, 220, 0, Math.PI * 2); ctx.fill();
   ctx.beginPath(); ctx.arc(W + 20, -20, 140, 0, Math.PI * 2); ctx.fill();
   ctx.restore();
 
-  // Logo (top-left)
-  ctx.font = 'bold 22px Arial, sans-serif';
+  // Logo
+  ctx.font = `bold 22px ${_PDF_FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.92)';
   ctx.textAlign = 'left';
   ctx.fillText('Neoworkly', 64, 54);
-  ctx.font = '20px Arial'; ctx.fillText('🤖', 36, 54);
+  ctx.font = `20px ${_PDF_FONT}`; ctx.fillText('🤖', 36, 54);
 
-  // Badge (top-right) — translated
-  ctx.font = 'bold 11px Arial, sans-serif';
-  const bW = ctx.measureText(badgeLabel).width + 28;
+  // Badge (top-right) — auto-width, max 220px
+  ctx.font = `bold 11px ${_PDF_FONT}`;
+  const bW = Math.min(ctx.measureText(badgeLabel).width + 28, 220);
   const bX = W - bW - 36, bY = 30, bH = 26;
   ctx.fillStyle = 'rgba(255,255,255,0.15)';
   _roundRect(ctx, bX, bY, bW, bH, 13); ctx.fill();
@@ -592,36 +611,40 @@ function drawGiftCardCanvas(amount, code, message, recipient) {
   _roundRect(ctx, bX, bY, bW, bH, 13); ctx.stroke();
   ctx.fillStyle = 'rgba(255,255,255,0.88)';
   ctx.textAlign = 'center';
+  // Clip badge text to pill width
+  ctx.save();
+  ctx.rect(bX + 4, bY, bW - 8, bH); ctx.clip();
   ctx.fillText(badgeLabel, bX + bW / 2, bY + 17);
+  ctx.restore();
 
-  // Value label — translated
+  // Value label
   ctx.textAlign = 'center';
-  ctx.font = '400 13px Arial, sans-serif';
+  ctx.font = `400 13px ${_PDF_FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.55)';
   ctx.fillText(valueLabel, W / 2, H / 2 - 48);
 
   // Amount
-  ctx.font = 'bold 88px Arial, sans-serif';
+  ctx.font = `bold 88px ${_PDF_FONT}`;
   ctx.fillStyle = 'white';
   ctx.fillText(amount, W / 2, H / 2 + 28);
 
-  // Message
+  // Message — truncate to card width
   if (message) {
-    ctx.font = 'italic 15px Arial, sans-serif';
+    ctx.font = `italic 15px ${_PDF_FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.68)';
     const maxW = W - 80;
-    let msg = `"${message}"`;
-    while (ctx.measureText(msg).width > maxW && msg.length > 6) msg = msg.slice(0, -2) + '…"';
-    ctx.fillText(msg, W / 2, H / 2 + 66);
+    let msg = `“${message}”`;
+    while (ctx.measureText(msg).width > maxW && msg.length > 6) msg = msg.slice(0, -2) + '…”';
+    ctx.fillText(msg, W / 2, H / 2 + 68);
   }
 
-  // Code label — translated
+  // Code label
   ctx.textAlign = 'left';
-  ctx.font = '400 11px Arial, sans-serif';
+  ctx.font = `400 11px ${_PDF_FONT}`;
   ctx.fillStyle = 'rgba(255,255,255,0.5)';
   ctx.fillText(codeLabel, 36, H - 76);
 
-  // Code pill
+  // Code pill — Courier is fine (ASCII-only code)
   ctx.font = 'bold 20px "Courier New", Courier, monospace';
   const cpW = ctx.measureText(code).width + 32;
   const cpX = 30, cpY = H - 66, cpH = 42;
@@ -632,13 +655,108 @@ function drawGiftCardCanvas(amount, code, message, recipient) {
   ctx.fillStyle = 'white';
   ctx.fillText(code, cpX + 16, cpY + 28);
 
-  // Recipient (bottom-right)
+  // Recipient — truncate to right-half width
   if (recipient) {
-    ctx.textAlign = 'right';
-    ctx.font = '400 13px Arial, sans-serif';
+    ctx.font = `400 13px ${_PDF_FONT}`;
     ctx.fillStyle = 'rgba(255,255,255,0.55)';
-    ctx.fillText(recipient, W - 36, H - 48);
+    ctx.textAlign = 'right';
+    const maxRecW = W / 2 - 20;
+    let rec = recipient;
+    while (ctx.measureText(rec).width > maxRecW && rec.length > 4) rec = rec.slice(0, -2) + '…';
+    ctx.fillText(rec, W - 36, H - 48);
   }
+
+  return canvas;
+}
+
+// Renders the "how to redeem" section onto a canvas — all text via browser fonts (full Unicode)
+function drawInstructionsCanvas(redeemTitle, steps, tipText) {
+  const W = 800;
+  const PAD = 52;
+  const CW = W - PAD * 2;   // 696px content width
+  const STEP_LH = 31;        // line-height inside a step
+  const STEP_GAP = 20;       // vertical gap between step blocks
+  const TIP_PAD = 18;
+  const TIP_LH = 27;
+
+  // Pre-measure on a throwaway canvas to compute total height
+  const tmp = document.createElement('canvas');
+  tmp.width = W; tmp.height = 10;
+  const t = tmp.getContext('2d');
+
+  t.font = `22px ${_PDF_FONT}`;
+  const stepData = steps.map(text => {
+    const lines = _wrapText(t, text, CW - 52);
+    const blockH = Math.max(42, 28 + (lines.length - 1) * STEP_LH + 10);
+    return { lines, blockH };
+  });
+
+  t.font = `19px ${_PDF_FONT}`;
+  const tipLines = _wrapText(t, tipText, CW - TIP_PAD * 2 - 4);
+  const tipBoxH = tipLines.length * TIP_LH + TIP_PAD * 2 + 6;
+
+  const titleH = 74;
+  const stepsH = stepData.reduce((s, d) => s + d.blockH + STEP_GAP, 0);
+  const H = titleH + stepsH + 24 + tipBoxH + 40;
+
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // White background
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, W, H);
+
+  // Title
+  ctx.font = `bold 30px ${_PDF_FONT}`;
+  ctx.fillStyle = '#14142a';
+  ctx.textAlign = 'left';
+  ctx.fillText(redeemTitle, PAD, 44);
+
+  // Purple accent underline
+  ctx.fillStyle = '#7c3aed';
+  ctx.fillRect(PAD, 56, 64, 3);
+
+  // Steps
+  let y = titleH;
+  stepData.forEach(({ lines, blockH }, i) => {
+    // Circle badge
+    ctx.fillStyle = '#7c3aed';
+    ctx.beginPath();
+    ctx.arc(PAD + 19, y + 21, 19, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold 16px ${_PDF_FONT}`;
+    ctx.textAlign = 'center';
+    ctx.fillText(`${i + 1}`, PAD + 19, y + 27);
+
+    // Step text — wrapped, clipped to content width
+    ctx.font = `22px ${_PDF_FONT}`;
+    ctx.fillStyle = '#505070';
+    ctx.textAlign = 'left';
+    lines.forEach((line, li) => {
+      ctx.fillText(line, PAD + 50, y + 27 + li * STEP_LH);
+    });
+
+    y += blockH + STEP_GAP;
+  });
+
+  // Tip box
+  const tipY = y + 16;
+  ctx.fillStyle = '#fffbeb';
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 1.5;
+  _roundRect(ctx, PAD, tipY, CW, tipBoxH, 10);
+  ctx.fill();
+  ctx.stroke();
+
+  // Tip text — centered inside box
+  ctx.font = `19px ${_PDF_FONT}`;
+  ctx.fillStyle = '#78350f';
+  ctx.textAlign = 'center';
+  tipLines.forEach((line, li) => {
+    ctx.fillText(line, W / 2, tipY + TIP_PAD + 20 + li * TIP_LH);
+  });
 
   return canvas;
 }
@@ -656,77 +774,56 @@ async function downloadCardPDF() {
     const amount    = document.getElementById('success-amount').textContent.trim();
     const msgEl     = document.getElementById('success-message');
     const recEl     = document.getElementById('success-recipient');
-    const message   = msgEl.style.display !== 'none' ? msgEl.textContent.replace(/^"|"$/g, '').trim() : '';
-    const recipient = recEl.style.display !== 'none' ? recEl.textContent.replace(/^.*?:\s*/i, '').trim() : '';
+    const message   = msgEl && msgEl.style.display !== 'none' ? msgEl.textContent.replace(/^"|"$/g, '').trim() : '';
+    const recipient = recEl && recEl.style.display !== 'none' ? recEl.textContent.replace(/^.*?:\s*/i, '').trim() : '';
 
-    // Read all instruction text from already-translated DOM
+    // Read translated texts from DOM (i18n.js has already applied translations)
     const redeemTitle = domText('pdf-redeem-title');
-    const steps = ['pdf-step-1','pdf-step-2','pdf-step-3','pdf-step-4'].map(domText).filter(Boolean);
+    const steps = ['pdf-step-1', 'pdf-step-2', 'pdf-step-3', 'pdf-step-4'].map(domText).filter(Boolean);
     const tipText = domText('pdf-tip-text');
 
-    // Draw card on canvas
+    // Render both sections on canvas — browser handles all Unicode rendering
     const cardCanvas = drawGiftCardCanvas(amount, code, message, recipient);
-    const imgData = cardCanvas.toDataURL('image/png');
+    const instrCanvas = drawInstructionsCanvas(redeemTitle, steps, tipText);
 
-    // PDF setup (A4 portrait)
+    const cardImg  = cardCanvas.toDataURL('image/png');
+    const instrImg = instrCanvas.toDataURL('image/png');
+
+    // A4 portrait, 210×297mm
     const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
     doc.setLanguage(lang);
 
-    // Card image (centered, 160mm wide)
-    const cardW = 160, cardH = cardW * (500 / 800);
-    const marginX = (210 - cardW) / 2;
-    doc.addImage(imgData, 'PNG', marginX, 18, cardW, cardH);
+    const PAGE_W = 210;
+    const CARD_W = 172;
+    const MX = (PAGE_W - CARD_W) / 2;   // ~19mm side margin
 
-    // Code box below card
-    const codeY = 18 + cardH + 8;
+    // Card image
+    const cardH = CARD_W * (500 / 800);  // keeps 8:5 aspect ratio
+    doc.addImage(cardImg, 'PNG', MX, 13, CARD_W, cardH);
+
+    // Code box (ASCII-only — courier is fine here)
+    const codeY = 13 + cardH + 6;
     doc.setFillColor(240, 236, 255);
     doc.setDrawColor(180, 160, 255);
     doc.setLineWidth(0.5);
-    doc.roundedRect(marginX, codeY, cardW, 14, 3, 3, 'FD');
+    doc.roundedRect(MX, codeY, CARD_W, 13, 2.5, 2.5, 'FD');
     doc.setFont('courier', 'bold');
-    doc.setFontSize(13);
+    doc.setFontSize(12);
     doc.setTextColor(60, 20, 140);
-    doc.text(code, 210 / 2, codeY + 9.5, { align: 'center' });
+    doc.text(code, PAGE_W / 2, codeY + 9, { align: 'center' });
 
-    // Instructions heading — from DOM (already translated)
-    const instrY = codeY + 22;
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(20, 20, 40);
-    doc.text(redeemTitle, marginX, instrY);
-
-    // Steps — from DOM (already translated)
-    doc.setFontSize(9.5);
-    doc.setTextColor(80, 80, 110);
-    let stepY = instrY + 8;
-    steps.forEach((step, i) => {
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(100, 80, 200);
-      doc.text(`${i + 1}.`, marginX, stepY);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(80, 80, 110);
-      const lines = doc.splitTextToSize(step, cardW - 8);
-      doc.text(lines, marginX + 6, stepY);
-      stepY += lines.length > 1 ? lines.length * 5.5 + 1.5 : 7;
-    });
-
-    // Tip note — from DOM (already translated)
-    const noteY = stepY + 4;
-    doc.setFillColor(255, 249, 230);
-    doc.setDrawColor(250, 200, 80);
-    doc.setLineWidth(0.3);
-    const tipLines = doc.splitTextToSize(tipText, cardW - 10);
-    const noteH = tipLines.length * 5 + 5;
-    doc.roundedRect(marginX, noteY, cardW, noteH, 2, 2, 'FD');
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8.5);
-    doc.setTextColor(100, 70, 10);
-    doc.text(tipLines, 210 / 2, noteY + 5.5, { align: 'center' });
+    // Instructions canvas image — scales to same width as card
+    const instrY = codeY + 17;
+    const instrScale = CARD_W / instrCanvas.width;
+    const instrH = Math.min(instrCanvas.height * instrScale, 297 - instrY - 10);
+    doc.addImage(instrImg, 'PNG', MX, instrY, CARD_W, instrH);
 
     // Footer
-    doc.setFontSize(7.5);
+    const footerY = Math.min(instrY + instrH + 5, 292);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(7);
     doc.setTextColor(160, 160, 180);
-    doc.text('neoworkly.com', 210 / 2, 287, { align: 'center' });
+    doc.text('neoworkly.com', PAGE_W / 2, footerY, { align: 'center' });
 
     doc.save(`neoworkly-gift-${code}.pdf`);
   } catch (err) {
@@ -734,7 +831,7 @@ async function downloadCardPDF() {
     showToast('Chyba generovania PDF');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '⬇️ Stiahnuť PDF';
+    btn.innerHTML = '⬇️ Stáhnuť PDF';
   }
 }
 
