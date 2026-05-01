@@ -41,14 +41,14 @@
         currentLang = lang;
         localStorage.setItem('nd_lang', lang);
       } else {
+        // File not yet available — keep user's choice, apply no translations for now
         translations = {};
-        currentLang  = DEFAULT;
-        localStorage.setItem('nd_lang', DEFAULT);
+        currentLang = lang;
       }
       document.documentElement.lang = currentLang;
       if (callback) callback();
     };
-    xhr.onerror = function () { translations = {}; currentLang = DEFAULT; document.documentElement.lang = DEFAULT; if (callback) callback(); };
+    xhr.onerror = function () { translations = {}; currentLang = lang; document.documentElement.lang = lang; if (callback) callback(); };
     xhr.send();
   }
 
@@ -57,7 +57,7 @@
   }
 
   function applyTranslations(root) {
-    if (currentLang === DEFAULT) { updateSwitcherUI(); return; }
+    if (currentLang === DEFAULT || Object.keys(translations).length === 0) { updateSwitcherUI(); return; }
     if (!root) root = document.body;
 
     // Walk text nodes
