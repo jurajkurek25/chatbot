@@ -31,11 +31,18 @@ const SKIP_PATTERNS = [
   /^#[0-9a-f]/i,/^[+\-\d\s€$%.,/()]+$/,
 ];
 
+// Slovak-specific diacritics that prove a string needs translation
+const SK_CHARS = /[ľščťžýáíéúäôňĺŕ]/i;
+
 function isGenuinelyUntranslated(key) {
   if (BRAND.has(key.trim())) return false;
   if (SKIP_PATTERNS.some(p => p.test(key.trim()))) return false;
   if (!/[a-zA-ZÀ-ž]/.test(key)) return false;
   return true;
+}
+
+function hasSkDiacritics(key) {
+  return SK_CHARS.test(key);
 }
 
 function extractFromHTML(file) {
@@ -103,29 +110,21 @@ async function main() {
 
   const sk = JSON.parse(fs.readFileSync(path.join(LOCALES, 'sk.json'), 'utf8'));
 
-  // Collect strings from dashboard + index
-  const htmlStrings = new Set([
-    ...extractFromHTML('dashboard.html'),
-    ...extractFromHTML('index.html'),
-    ...extractFromHTML('onboarding.html'),
-    ...extractFromHTML('demo.html'),
-    ...extractFromHTML('present.html'),
-  ]);
-
-  const targetKeys = [...htmlStrings].filter(s => sk[s]);
-  console.log(`\nTarget keys (in sk.json): ${targetKeys.length}`);
-
   for (const lang of langs) {
     const langName = LANG_NAMES[lang];
     const outFile  = path.join(LOCALES, `${lang}.json`);
     const existing = JSON.parse(fs.readFileSync(outFile, 'utf8'));
 
-    // Find keys that are missing OR identical to Slovak source (not a brand/skip)
+    // Find ALL keys where value == key AND contains Slovak diacritics
+    // This catches strings missed by HTML extraction (from JS, DB, etc.)
     const toRetranslate = {};
-    for (const key of targetKeys) {
-      if (!existing[key] || (existing[key] === sk[key] && isGenuinelyUntranslated(key))) {
-        toRetranslate[key] = sk[key];
-      }
+    for (const [key, val] of Object.entries(existing)) {
+      if (val !== key) continue;          // already translated
+      if (key.length <= 3) continue;
+      if (!hasSkDiacritics(key)) continue; // not genuinely Slovak
+      if (!isGenuinelyUntranslated(key)) continue;
+      // Use SK source as translation base (prefer sk.json value if available)
+      toRetranslate[key] = sk[key] || key;
     }
 
     if (Object.keys(toRetranslate).length === 0) {
