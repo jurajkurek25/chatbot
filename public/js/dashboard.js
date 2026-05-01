@@ -3782,6 +3782,15 @@ async function loadInbox() {
   if (!res || !res.ok) return;
   _inboxConvs = await res.json();
   renderInboxList();
+  // Wire back button (safe to call multiple times — replaces onclick)
+  const backBtn = document.getElementById('inbox-back-btn');
+  if (backBtn) backBtn.onclick = function () {
+    document.getElementById('inbox-list-panel')?.classList.remove('mob-hidden');
+    document.getElementById('inbox-transcript-panel').style.display = 'none';
+    document.getElementById('inbox-select-hint').style.display = 'block';
+    _activeConvId = null;
+    renderInboxList();
+  };
 }
 
 function renderInboxList() {
@@ -3838,6 +3847,10 @@ async function openConversation(convId) {
     const hint  = document.getElementById('inbox-select-hint');
     panel.style.display = 'block';
     hint.style.display  = 'none';
+    // Mobile: hide list panel so transcript takes full width
+    if (window.innerWidth <= 768) {
+      document.getElementById('inbox-list-panel')?.classList.add('mob-hidden');
+    }
 
     document.getElementById('inbox-conv-title').textContent = conv?.lead_name || 'Anonymný návštevník';
     document.getElementById('inbox-conv-meta').textContent = conv ? `Session: ${conv.session_id.slice(0,16)}… · ${conv.msg_count} správ` : '';
