@@ -487,6 +487,14 @@
     #nd-bot-name { font-size: 0.95rem; font-weight: 700; color: white; }
     #nd-status { font-size: 0.75rem; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 0.3rem; }
     #nd-status-dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; }
+    #nd-popout {
+      display: none; background: none; border: none;
+      cursor: pointer; color: rgba(255,255,255,0.75);
+      padding: 0.25rem; border-radius: 4px; line-height: 0;
+      margin-right: 2px; transition: color 0.15s;
+    }
+    #nd-popout.nd-visible { display: inline-flex; align-items: center; }
+    #nd-popout:hover { color: white; }
     #nd-close {
       background: none; border: none; color: rgba(255,255,255,0.8);
       cursor: pointer; font-size: 1.3rem; line-height: 1; padding: 0.2rem;
@@ -754,7 +762,7 @@
           <div id="nd-bot-name">${esc(config.bot_name)}</div>
           <div id="nd-status"><span id="nd-status-dot"></span> ${wt('online')}</div>
         </div>
-        <button id="nd-popout" title="Otvoriť v novom okne" style="background:none;border:none;cursor:pointer;color:rgba(255,255,255,0.75);padding:0.25rem;border-radius:4px;display:none;line-height:0;margin-right:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></button>
+        <button id="nd-popout" title="Otvoriť v novom okne"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></button>
         <button id="nd-close" title="${wt('close')}">${ICON_CLOSE}</button>
       </div>
       <div id="nd-messages"></div>
@@ -947,7 +955,7 @@
   /* ── Pop-out ─────────────────────────────────────────────────── */
   function updatePopoutBtn() {
     const btn = shadow.getElementById('nd-popout');
-    if (btn) btn.style.display = history.length > 0 ? '' : 'none';
+    if (btn) btn.classList.toggle('nd-visible', history.length > 0);
   }
 
   function popOutChat() {
