@@ -9,20 +9,47 @@ const { getDb } = require('../db/database');
 const router = express.Router();
 const client = new Anthropic();
 
+const BOOKING_SERVICE_SCHEMA = {
+  type: 'object',
+  properties: {
+    name:         { type: 'string', description: 'Service name, e.g. "Strihanie vlasov"' },
+    description:  { type: 'string', description: 'Short service description (optional)' },
+    duration_mins:{ type: 'integer', description: 'Duration in minutes, e.g. 30, 60, 90' },
+    price:        { type: 'number', description: 'Price (optional, 0 if free)' },
+    currency:     { type: 'string', description: 'Currency code, default EUR' },
+  },
+  required: ['name', 'duration_mins'],
+};
+
+const BOOKING_SCHEDULE_SCHEMA = {
+  type: 'object',
+  properties: {
+    day_of_week: { type: 'integer', description: '0=Sunday, 1=Monday, 2=Tuesday, 3=Wednesday, 4=Thursday, 5=Friday, 6=Saturday' },
+    start_time:  { type: 'string', description: 'HH:MM, e.g. "09:00"' },
+    end_time:    { type: 'string', description: 'HH:MM, e.g. "17:00"' },
+  },
+  required: ['day_of_week', 'start_time', 'end_time'],
+};
+
 const COACH_TOOLS = [
   {
     name: 'create_widget',
-    description: 'Creates a new widget for the user based on their business info. Call this when you have collected business name, product/service description, tone, and assistant name.',
+    description: 'Creates a new widget. Call when you have: business name, product/service, assistant name, and tone. Include booking config if user wants reservations.',
     input_schema: {
       type: 'object',
       properties: {
         name:               { type: 'string', description: 'Internal widget name, e.g. "Hlavný web"' },
         bot_name:           { type: 'string', description: 'Display name of the AI assistant' },
         welcome_message:    { type: 'string', description: 'Opening message the bot sends to visitors' },
-        goals:              { type: 'string', description: 'Detailed system prompt describing the business, tone, and bot objectives (200-400 words)' },
+        goals:              { type: 'string', description: 'Detailed system prompt (200-400 words): business description, target customers, unique value, tone, objectives, what the bot should and should not do' },
         primary_color:      { type: 'string', description: 'Brand hex color, default #2563eb' },
-        suggested_questions:{ type: 'array', items: { type: 'string' }, description: '3-4 typical customer questions for this business type' },
-        knowledge_texts:    { type: 'array', items: { type: 'string' }, description: 'Key business info texts to seed the knowledge base' },
+        suggested_questions:{ type: 'array', items: { type: 'string' }, description: '3-5 typical questions visitors ask for this business type' },
+        knowledge_texts:    { type: 'array', items: { type: 'string' }, description: 'Key business info texts to seed the knowledge base (services, pricing, FAQ)' },
+        setup_booking:      { type: 'boolean', description: 'Set true to also configure an AI booking system for this widget' },
+        booking_timezone:   { type: 'string', description: 'Timezone for booking, e.g. "Europe/Bratislava", "Europe/Prague", "Europe/Warsaw"' },
+        booking_slot_duration:{ type: 'integer', description: 'Slot length in minutes (e.g. 30, 60, 90). Use shortest service duration if mixed.' },
+        booking_services:   { type: 'array', items: BOOKING_SERVICE_SCHEMA, description: 'Services available for booking' },
+        booking_schedule:   { type: 'array', items: BOOKING_SCHEDULE_SCHEMA, description: 'Working days and hours. Each active day gets one entry.' },
       },
       required: ['name', 'bot_name', 'welcome_message', 'goals'],
     },
@@ -39,6 +66,21 @@ const COACH_TOOLS = [
         goals:              { type: 'string' },
         primary_color:      { type: 'string' },
         suggested_questions:{ type: 'array', items: { type: 'string' } },
+      },
+      required: ['widget_id'],
+    },
+  },
+  {
+    name: 'setup_booking',
+    description: 'Configures or updates the AI booking system for an existing widget. Use when user wants to add/modify reservations on a widget that already exists.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        widget_id:     { type: 'string', description: 'ID of the widget to configure booking for' },
+        timezone:      { type: 'string', description: 'Timezone, e.g. "Europe/Bratislava"' },
+        slot_duration: { type: 'integer', description: 'Slot length in minutes' },
+        services:      { type: 'array', items: BOOKING_SERVICE_SCHEMA, description: 'Services to add/replace' },
+        schedule:      { type: 'array', items: BOOKING_SCHEDULE_SCHEMA, description: 'Working hours per day' },
       },
       required: ['widget_id'],
     },
@@ -905,24 +947,57 @@ Dashboard → váš widget → záložka "🛒 Shopify"
 ━━━
 
 ━━━ VYTVÁRANIE WIDGETU CEZ AI (WIDGET WIZARD) ━━━
-Keď klient chce vytvoriť nový widget alebo chatbota, spusť konverzačný sprievodca. Opýtaj sa ho postupne (nie naraz) tieto otázky — každá v jednej správe:
 
-1. „Ako sa volá vaša firma / web?"
-2. „Čo predávate alebo ponúkate? (produkt, služba, odbor)"
-3. „Ako má chatbot komunikovať — formálne alebo priateľsky?"
-4. „Ako sa má chatbot volať? (napr. Sofia, Asistent, Ján)"
-5. „Máte webstránku? Ak áno, zadajte URL — môžem z nej naskenuvať obsah do znalostnej bázy."
+Keď klient chce vytvoriť nový widget alebo chatbota, spusť konverzačný sprievodca. KONVERZÁCIA JE ADAPTÍVNA — nepýtaj sa všetko naraz, reaguj na odpovede, kladie prirodzené nadväzujúce otázky. Každá správa = max 1-2 otázky.
 
-Po zodpovedaní otázok (URL nie je povinná) zavolaj nástroj create_widget — NEVYPISUJ súhrn pred zavolaním, len ho zavolaj. Vygeneruj:
-- name: interný názov (napr. "Hlavný web", "E-shop [firma]")
-- bot_name: meno asistenta
-- welcome_message: prirodzená privítacia správa v duchu biznisu (SK)
-- goals: detailný systémový prompt (200-400 slov) — popis firmy, čo chatbot predáva, aký má mať tón, ciele (predaj kontaktov, rezervácií), čo má a nemá robiť
-- primary_color: #2563eb (ak klient nespomína farbu)
-- suggested_questions: 3-4 otázky ktoré zákazníci typicky kladú pre daný typ biznisu
-- knowledge_texts: ak klient popísal čo predáva, zahrň to ako knowledge item
+INFORMÁCIE KTORÉ POTREBUJEŠ (zbieraj postupne, v prirodzenom poradí):
 
-Trigger frázy pre spustenie wizardu: "vytvoriť widget", "nový chatbot", "nastaviť chatbota", "create widget", "new widget", "chcem chatbota", "pomôž mi vytvoriť".
+ZÁKLAD (vždy spýtaj — prvé 2-3 správy):
+1. Meno firmy alebo projektu
+2. Čo predávajú / ponúkajú — produkt, služba, odbor; buď konkrétny
+3. Kto sú ich zákazníci — cieľová skupina (napr. "ženy 25-45", "firmy čo hľadajú účtovníka", "rodičia detí")
+
+OSOBNOSŤ ASISTENTA:
+4. Tón komunikácie — formálne "Vy" alebo priateľsky "ty"? Seriózny alebo uvoľnený / s humorom?
+5. Meno asistenta (napr. Sofia, Emma, Asistent, Ján — poraď ak nevedia)
+
+STRATÉGIA (pýtaj ak nie je jasné z kontextu):
+6. Čo má chatbot primárne robiť? Odpovedať na otázky? Zbierať kontakty (formulár)? Alebo PRIJÍMAŤ REZERVÁCIE?
+7. Čo ich odlišuje od konkurencie — unikátna hodnota, špeciálny prístup, cena, rýchlosť, kvalita?
+
+AK CHCÚ REZERVÁCIE — spýtaj pred zavolaním nástroja:
+8a. Aké služby ponúkajú na rezerváciu? (pre každú: názov, dĺžka stretnutia v minútach, cena ak ju chcú uviesť)
+8b. V ktoré dni a hodiny sú dostupní? (napr. "Pondelok-Piatok 9:00-17:00" alebo aj sobota/nedeľa)
+8c. Ako dlho trvá jeden termín? (ak majú viac služieb, aký je najkratší slot?)
+   — timezone zvyčajne Europe/Bratislava ak SK firma; pri zahraničných sa spýtaj
+
+VOLITEĽNÉ (len ak sa hodí):
+9. Majú web? URL pre skenovanie obsahu — nie je povinná, ale pomôže ak ju majú
+
+PRAVIDLÁ:
+- Začni s otázkou č. 1+2 v jednej správe ("Ako sa volá vaša firma a čo ponúkate?")
+- Ak klient odpovie vágne ("predávame produkty"), dopýtaj sa konkrétnejšie
+- Ak niečo vieš z kontextu rozhovoru, nepýtaj sa znova
+- Keď máš základ (firma + produkt + tón + meno asistenta) → môžeš zavolať create_widget
+- Booking informácie zbieraj PRED zavolaním — zahrni ich priamo do create_widget
+- NIKDY nevypisuj súhrn ani "takže toto mám" pred zavolaním nástroja — rovno ho zavolaj
+
+KEDY VOLAŤ create_widget:
+- Minimum: firma, produkt/služba, meno asistenta, tón
+- Cieľová skupina a USP zahrni do goals aj ak si ich musel odhadnúť z odboru
+- Pri booking: aspoň 1 služba + pracovné hodiny → nastav setup_booking: true + vyplň booking_services + booking_schedule
+
+KEDY VOLAŤ setup_booking (nie create_widget):
+- Keď widget už existuje a klient chce pridať/zmeniť rezervácie
+
+GENEROVANIE POLÍ pre create_widget:
+- goals (200-400 slov): popis firmy, cieľová skupina, USP, tón komunikácie, ciele chatbota (čo má robiť), čo nesmie robiť, ako má reagovať na rôzne situácie
+- welcome_message: prirodzená privítacia správa v duchu biznisu a tónu
+- suggested_questions: 3-5 otázok ktoré zákazníci typicky kladú pre daný typ biznisu
+- knowledge_texts: všetko čo klient povedal o biznise, službách, cenách, postupe
+- booking_schedule: day_of_week 0=Nedeľa, 1=Pondelok, 2=Utorok, 3=Streda, 4=Štvrtok, 5=Piatok, 6=Sobota
+
+Trigger frázy: "vytvoriť widget", "nový chatbot", "nastaviť chatbota", "create widget", "new widget", "chcem chatbota", "pomôž mi vytvoriť".
 
 ━━━ POKYNY PRE TEBA ━━━
 - Odpovedaj v slovenčine (alebo v jazyku otázky ak píše po anglicky, nemecky atď.)
@@ -1026,6 +1101,37 @@ router.post('/chat', requireAuth, async (req, res) => {
 
         return res.json({ reply: replyText, widget_updated: result.widget });
       }
+
+      if (toolBlock?.name === 'setup_booking') {
+        const { widget_id, ...bookingInput } = toolBlock.input;
+        const widget = getDb().prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(widget_id, req.userId);
+        if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+        const bookingResult = await _coachSetupBooking(widget_id, bookingInput);
+        const followUp = await client.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 400,
+          system: SYSTEM_PROMPT,
+          messages: [
+            ...messages,
+            { role: 'assistant', content: response.content },
+            {
+              role: 'user',
+              content: [{
+                type: 'tool_result',
+                tool_use_id: toolBlock.id,
+                content: JSON.stringify({ success: true, widget_id, services_created: bookingResult.services_count }),
+              }],
+            },
+          ],
+          tools: COACH_TOOLS,
+        });
+
+        const replyText = followUp.content.find(b => b.type === 'text')?.text
+          || `Rezervačný systém pre widget bol nastavený.`;
+
+        return res.json({ reply: replyText, widget_updated: widget });
+      }
     }
 
     // ── Normal text reply ────────────────────────────────────────
@@ -1052,11 +1158,16 @@ async function _coachCreateWidget(userId, input) {
   if (widgetCount >= limit) return { error: `Dosiahli ste limit ${limit} widgetov.` };
 
   const id = uuidv4();
-  const { name, bot_name, welcome_message, goals, primary_color, suggested_questions, knowledge_texts } = input;
+  const {
+    name, bot_name, welcome_message, goals, primary_color, suggested_questions, knowledge_texts,
+    setup_booking, booking_timezone, booking_slot_duration, booking_services, booking_schedule,
+  } = input;
+
+  const ctaType = setup_booking ? 'booking' : 'contact';
 
   db.prepare(`
-    INSERT INTO widgets (id, user_id, name, bot_name, welcome_message, primary_color, goals, suggested_questions)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO widgets (id, user_id, name, bot_name, welcome_message, primary_color, goals, suggested_questions, cta_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, userId,
     (name || 'Môj chatbot').trim(),
@@ -1064,7 +1175,8 @@ async function _coachCreateWidget(userId, input) {
     (welcome_message || 'Ahoj! Ako vám môžem pomôcť?').trim(),
     primary_color || '#2563eb',
     goals || '',
-    JSON.stringify(Array.isArray(suggested_questions) ? suggested_questions.slice(0, 4) : [])
+    JSON.stringify(Array.isArray(suggested_questions) ? suggested_questions.slice(0, 5) : []),
+    ctaType,
   );
 
   // Seed knowledge base
@@ -1076,8 +1188,93 @@ async function _coachCreateWidget(userId, input) {
     }
   }
 
+  // Setup booking if requested
+  if (setup_booking) {
+    await _coachSetupBooking(id, {
+      timezone: booking_timezone,
+      slot_duration: booking_slot_duration,
+      services: booking_services,
+      schedule: booking_schedule,
+    });
+  }
+
   const widget = db.prepare('SELECT id, name, bot_name FROM widgets WHERE id = ?').get(id);
   return { widget };
+}
+
+// ── Booking setup helper ──────────────────────────────────────────
+async function _coachSetupBooking(widgetId, input) {
+  const db = getDb();
+  const { timezone, slot_duration, services, schedule } = input || {};
+
+  // Create or fetch booking_config
+  let cfg = db.prepare('SELECT * FROM booking_configs WHERE widget_id = ?').get(widgetId);
+  if (!cfg) {
+    const cfgId = uuidv4();
+    db.prepare(`INSERT INTO booking_configs (id, widget_id, timezone, slot_duration) VALUES (?, ?, ?, ?)`)
+      .run(cfgId, widgetId, timezone || 'Europe/Bratislava', slot_duration || 60);
+    // Create default schedule rows for all 7 days (inactive by default)
+    for (let d = 0; d < 7; d++) {
+      db.prepare(`INSERT OR IGNORE INTO booking_schedules (id, booking_config_id, day_of_week, start_time, end_time, active) VALUES (?, ?, ?, ?, ?, ?)`)
+        .run(uuidv4(), cfgId, d, '09:00', '17:00', 0);
+    }
+    cfg = db.prepare('SELECT * FROM booking_configs WHERE id = ?').get(cfgId);
+  } else {
+    // Update existing config fields if provided
+    const updates = [];
+    const vals = [];
+    if (timezone)      { updates.push('timezone = ?');      vals.push(timezone); }
+    if (slot_duration) { updates.push('slot_duration = ?'); vals.push(slot_duration); }
+    if (updates.length) {
+      vals.push(cfg.id);
+      db.prepare(`UPDATE booking_configs SET ${updates.join(', ')} WHERE id = ?`).run(...vals);
+      cfg = db.prepare('SELECT * FROM booking_configs WHERE id = ?').get(cfg.id);
+    }
+  }
+
+  // Apply schedule: mark days active/inactive based on provided entries
+  if (Array.isArray(schedule) && schedule.length > 0) {
+    // First deactivate all days
+    db.prepare('UPDATE booking_schedules SET active = 0 WHERE booking_config_id = ?').run(cfg.id);
+    for (const entry of schedule) {
+      const dow = Number(entry.day_of_week);
+      if (dow < 0 || dow > 6) continue;
+      const st = (entry.start_time || '09:00').slice(0, 5);
+      const et = (entry.end_time   || '17:00').slice(0, 5);
+      db.prepare(`
+        INSERT INTO booking_schedules (id, booking_config_id, day_of_week, start_time, end_time, active)
+        VALUES (?, ?, ?, ?, ?, 1)
+        ON CONFLICT(booking_config_id, day_of_week)
+        DO UPDATE SET start_time = excluded.start_time, end_time = excluded.end_time, active = 1
+      `).run(uuidv4(), cfg.id, dow, st, et);
+    }
+  }
+
+  // Add services (append, don't delete existing ones)
+  let servicesCount = 0;
+  if (Array.isArray(services) && services.length > 0) {
+    for (const [i, svc] of services.entries()) {
+      if (!svc?.name?.trim()) continue;
+      db.prepare(`
+        INSERT INTO booking_services (id, booking_config_id, name, description, duration_mins, price, currency, display_order)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        uuidv4(), cfg.id,
+        svc.name.trim(),
+        (svc.description || '').trim(),
+        svc.duration_mins || 60,
+        svc.price ?? null,
+        svc.currency || 'EUR',
+        i,
+      );
+      servicesCount++;
+    }
+  }
+
+  // Ensure widget cta_type is set to 'booking'
+  db.prepare(`UPDATE widgets SET cta_type = 'booking' WHERE id = ?`).run(widgetId);
+
+  return { services_count: servicesCount };
 }
 
 // ── Widget update helper ──────────────────────────────────────────
