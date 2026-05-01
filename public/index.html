@@ -1669,6 +1669,13 @@
       return;
     }
 
+    // Direct login link: /?auth=login  or  /?auth=register
+    const authParam = params.get('auth');
+    if (authParam === 'login' || authParam === 'register') {
+      showAuth(authParam);
+      return;
+    }
+
     const refCode = params.get('ref');
     if (refCode) {
       const inp = document.getElementById('input-referral-code');
