@@ -34,7 +34,15 @@ Neoworkly je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvoria 
 1. WIDGETY
 - Vytvoriť až 10 widgetov, každý pre iný web alebo účel
 - Nastavenia: názov (interný), meno asistenta, uvítacia správa, farba widgetu, avatar foto (JPG/PNG/WebP/GIF max 5MB)
-- Proaktívna správa: chatbot sa sám ozve návštevníkovi po nastaveном počte sekúnd (1–60 s), napr. "Ahoj! Môžem pomôcť? 👋"
+- Proaktívna správa: chatbot sa sám ozve návštevníkovi po nastavenom počte sekúnd (1–60 s), napr. "Ahoj! Môžem pomôcť? 👋"
+- Proaktívna sekvencia správ: ďalšie automatické správy nad rámec jednej proaktívnej správy (nastavenie: Dashboard → widget → záložka Nastavenia → sekcia "📣 Ďalšie proaktívne správy")
+  • Každá správa má vlastný text, typ spúšťača a oneskorenie
+  • Typy spúšťačov: ⏱ Po čase od načítania | 😴 Po nečinnosti (keď návštevník X sekúnd nič nerobí) | ❓ Bez odpovede chatbotu (keď chatbot položil otázku a návštevník neodpovedal)
+  • Opakovanie: nastavíte po koľkých sekundách sa správa znovu zobrazí po zatvorení (0 = nikdy)
+  • Každú správu možno zapnúť/vypnúť samostatne
+  • Maximálne 20 správ v sekvencii
+- Pop-out widget: zákazník môže pokračovať v chate aj po odchode zo stránky — tlačidlo ↗ v hlavičke otvoreného chatu otvorí konverzáciu v novom malom okne (popup), kde rozhovor pokračuje vrátane histórie; zákazník môže v hlavnom okne prechádzať na iné stránky, popup ostáva otvorený
+- Exit intent pripomienka: keď zákazník s aktívnou konverzáciou pohybuje kurzorom k vrchu okna (opúšťa stránku), widget mu jemne pripomenie nedokončený rozhovor — zobrazí sa raz za session
 - Stav: Aktívny (viditeľný) / Neaktívny (skrytý)
 - Ciele a kontext biznisu: popis pre AI aby pochopila produkt, cieľovku, tón komunikácie
 - Jazyk widgetu: automaticky sa prispôsobí jazyku zákazníka (SK, EN, DE, FR, ES, PL, CS, HU, RO, HR a ďalšie)
@@ -446,6 +454,15 @@ Follow-up email sa neodoslal:
 
 A/B test neukazuje žiadne štatistiky:
 → Trendy vyžadujú aspoň niekoľko konverzácií. Skontrolujte, že A/B test je zapnutý v Integráciách a že oba texty (A aj B) sú vyplnené. Štatistiky vidíte v záložke Trendy → sekcia A/B Test.
+
+Proaktívna sekvencia správ sa nezobrazuje:
+→ Skontrolujte, že daná správa má zaškrtnutý checkbox (je zapnutá) a text nie je prázdny. Trigger "Po nečinnosti" sa spustí len keď návštevník X sekúnd nič nezapisuje — ak hneď začne písať, správa sa nezobrazí (zámerné správanie). Trigger "Bez odpovede chatbotu" vyžaduje, aby chatbot položil otázku (text musí končiť otáznikom) — bez toho sa nezapne.
+
+Tlačidlo ↗ (pop-out) sa nezobrazuje v chate:
+→ Tlačidlo sa objaví až po prvej správe v konverzácii (nie pri prázdnom chate). Je v pravom hornom rohu hlavičky chatovacieho okna vedľa tlačidla zatvoriť.
+
+Pop-out okno sa nezotvorilo / prehliadač ho blokuje:
+→ Pop-up okná musia byť povolené pre daný web. Ak prehliadač zobrazí notifikáciu o blokovanom pop-upe, kliknite na ňu a vyberte "Vždy povoliť pop-upy z [adresa webu]". Na mobile pop-out nefunguje rovnako ako na počítači.
 
 SEO audit nenájde záložku / "SEO Audit" sa nezobrazuje:
 → Záložka "📈 SEO Audit" je v ľavom menu dashboardu. Ak ju nevidíte, skontrolujte či máte aktívne predplatné. Audit je dostupný pre všetkých platiacich zákazníkov.
