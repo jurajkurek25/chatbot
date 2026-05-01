@@ -45,8 +45,8 @@ router.post('/checkout', async (req, res) => {
       }],
       customer_email: buyer_email,
       locale: 'sk',
-      success_url: `${baseUrl}/darcek?success=1&session={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/darcek`,
+      success_url: `${baseUrl}/present?success=1&session={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/present`,
       metadata: {
         type: 'gift_card',
         amount_eur: amountEur.toFixed(2),

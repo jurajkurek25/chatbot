@@ -191,6 +191,15 @@ router.post('/webhook', async (req, res) => {
               session.metadata.message || '',
               session.id);
           console.log(`[gift-card] Code ${code} generated (€${amountEur}, session ${session.id})`);
+          const { sendGiftCardEmail } = require('../services/email');
+          sendGiftCardEmail({
+            code,
+            amountEur,
+            buyerEmail:     session.metadata.buyer_email || session.customer_details?.email || '',
+            buyerName:      session.metadata.buyer_name || '',
+            recipientEmail: session.metadata.recipient_email || '',
+            message:        session.metadata.message || '',
+          }).catch(err => console.error('[gift-card] Email error:', err.message));
         }
         break;
       }

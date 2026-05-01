@@ -112,9 +112,10 @@ app.get('/onboarding', (req, res) =>
 app.get('/demo', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'demo.html'))
 );
-app.get('/darcek', (req, res) =>
-  res.sendFile(path.join(__dirname, 'public', 'darcek.html'))
+app.get('/present', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'present.html'))
 );
+app.get('/darcek', (req, res) => res.redirect(301, '/present'));
 app.get('/book/:widgetId', (req, res) => {
   // Allow booking page to be embedded in iframes on any domain
   res.setHeader('Content-Security-Policy', "frame-ancestors *");

@@ -108,6 +108,130 @@ async function sendLeadNotification({ toEmail, ownerName, widgetName, lead }) {
 }
 
 /**
+ * Send gift card email to buyer (and optionally to recipient).
+ * @param {object} opts
+ * @param {string} opts.code
+ * @param {number} opts.amountEur
+ * @param {string} opts.buyerEmail
+ * @param {string} [opts.buyerName]
+ * @param {string} [opts.recipientEmail]
+ * @param {string} [opts.message]
+ */
+async function sendGiftCardEmail({ code, amountEur, buyerEmail, buyerName = '', recipientEmail = '', message = '' }) {
+  const transport = createTransport();
+  if (!transport) {
+    console.log('[email] SMTP not configured, skipping gift card email.');
+    return;
+  }
+
+  const from    = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const baseUrl = process.env.BASE_URL || 'https://neoworkly.com';
+  const redeemUrl = `${baseUrl}/dashboard`;
+  const amountFmt = `€${parseFloat(amountEur).toFixed(0)}`;
+
+  function buildHtml({ toName, heading, intro }) {
+    const messageBlock = message
+      ? `<div style="background:#f0f0ff;border-left:4px solid #5b4fff;padding:12px 16px;border-radius:0 8px 8px 0;margin:20px 0;font-size:14px;color:#1e293b;font-style:italic">"${esc(message)}"<br><span style="font-size:12px;color:#64748b;font-style:normal">— ${esc(buyerName || buyerEmail)}</span></div>`
+      : '';
+
+    return `<!DOCTYPE html>
+<html lang="sk">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:560px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+
+    <div style="background:linear-gradient(135deg,#1e0a3c,#4c1d95,#7c3aed);padding:28px 32px;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:white;letter-spacing:-0.5px">🎁 Neoworkly</div>
+      <div style="color:rgba(255,255,255,0.8);font-size:14px;margin-top:4px">${heading}</div>
+    </div>
+
+    <div style="padding:28px 32px">
+      ${toName ? `<p style="color:#374151;font-size:15px;margin:0 0 16px">Ahoj <strong>${esc(toName)}</strong>,</p>` : ''}
+      <p style="color:#64748b;font-size:14px;margin:0 0 20px;line-height:1.6">${intro}</p>
+
+      ${messageBlock}
+
+      <div style="background:linear-gradient(135deg,#1e0a3c,#4c1d95);border-radius:14px;padding:24px;text-align:center;margin:20px 0">
+        <div style="color:rgba(255,255,255,0.65);font-size:11px;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:8px">Hodnota darčekovej karty</div>
+        <div style="color:white;font-size:2.4rem;font-weight:900;letter-spacing:-1px;margin-bottom:12px">${amountFmt}</div>
+        <div style="color:rgba(255,255,255,0.6);font-size:11px;letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Kód</div>
+        <div style="font-family:'Courier New',monospace;font-size:1.2rem;font-weight:700;letter-spacing:0.16em;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 16px;color:white;display:inline-block">${esc(code)}</div>
+      </div>
+
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:16px 20px;margin:20px 0;font-size:13px;color:#166534;line-height:1.7">
+        <strong>Na čo sa dá karta použiť:</strong><br>
+        ✓ <strong>€37+</strong> — celý mesiac Neoworkly Pro zadarmo<br>
+        ✓ <strong>€29+</strong> — Person add-on (AI digitálny dvojník)<br>
+        ✓ <strong>Ľubovoľná suma</strong> — AI odpovede v chatbote
+      </div>
+
+      <div style="font-size:13px;color:#64748b;line-height:1.7;margin-bottom:20px">
+        <strong style="color:#374151">Ako uplatniť kód:</strong><br>
+        1. Prihlás sa (alebo zaregistruj) na neoworkly.com<br>
+        2. Dashboard → <strong>Affiliate &amp; Kredity</strong><br>
+        3. Zadaj kód — kredity sa pripíšu okamžite
+      </div>
+
+      <a href="${redeemUrl}" style="display:block;background:linear-gradient(135deg,#5b4fff,#9b8cff);color:white;font-weight:700;font-size:15px;padding:14px 28px;border-radius:10px;text-decoration:none;text-align:center">
+        Uplatniť darčekovú kartu →
+      </a>
+    </div>
+
+    <div style="padding:20px 32px;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px;text-align:center">
+      Kód platí bez časového obmedzenia · Jednorazové použitie<br>
+      <a href="${baseUrl}" style="color:#94a3b8">neoworkly.com</a>
+    </div>
+  </div>
+</body>
+</html>`;
+  }
+
+  const buyerHtml = buildHtml({
+    toName: buyerName || undefined,
+    heading: 'Darčeková karta je pripravená!',
+    intro: recipientEmail
+      ? `Vaša darčeková karta v hodnote <strong>${amountFmt}</strong> bola úspešne zakúpená. Nižšie nájdete kód — uložte si ho alebo ho odovzdajte príjemcovi.`
+      : `Ďakujeme za nákup! Vaša darčeková karta v hodnote <strong>${amountFmt}</strong> je pripravená. Nižšie nájdete kód na uplatnenie.`,
+  });
+
+  const buyerText = `Darčeková karta Neoworkly (${amountFmt})\n\nKód: ${code}\n\nUplatniť: ${redeemUrl}\n\nPlatí bez časového obmedzenia.`;
+
+  try {
+    await transport.sendMail({
+      from: `"Neoworkly" <${from}>`,
+      to: buyerEmail,
+      subject: `🎁 Darčeková karta Neoworkly – ${amountFmt} (kód: ${code})`,
+      html: buyerHtml,
+      text: buyerText,
+    });
+    console.log(`[email] Gift card email sent to buyer ${buyerEmail}`);
+  } catch (err) {
+    console.error('[email] Failed to send gift card buyer email:', err.message);
+  }
+
+  if (recipientEmail && recipientEmail !== buyerEmail) {
+    const recipientHtml = buildHtml({
+      heading: 'Niekto vám daroval Neoworkly!',
+      intro: `${esc(buyerName || buyerEmail)} vám daroval/a darčekovú kartu Neoworkly v hodnote <strong>${amountFmt}</strong>. Kód nájdete nižšie.`,
+    });
+    const recipientText = `${buyerName || buyerEmail} vám daroval/a darčekovú kartu Neoworkly (${amountFmt})\n\nKód: ${code}\n\nUplatniť: ${redeemUrl}`;
+    try {
+      await transport.sendMail({
+        from: `"Neoworkly" <${from}>`,
+        to: recipientEmail,
+        subject: `🎁 Dostali ste darčekovú kartu Neoworkly – ${amountFmt}`,
+        html: recipientHtml,
+        text: recipientText,
+      });
+      console.log(`[email] Gift card email sent to recipient ${recipientEmail}`);
+    } catch (err) {
+      console.error('[email] Failed to send gift card recipient email:', err.message);
+    }
+  }
+}
+
+
+/**
  * Send usage notification at 80% or 100% of monthly limit.
  * @param {object} opts
  * @param {string} opts.toEmail
@@ -416,4 +540,4 @@ async function sendAutoReloadFailedEmail({ toEmail, name, euros }) {
   } catch (err) { console.error('[email] Auto-reload failed email error:', err.message); }
 }
 
-module.exports = { sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite, sendPasswordReset, sendWinbackEmail, sendPaymentFailedEmail, sendPaymentReceiptEmail, sendAutoReloadFailedEmail };
+module.exports = { sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite, sendPasswordReset, sendWinbackEmail, sendPaymentFailedEmail, sendPaymentReceiptEmail, sendAutoReloadFailedEmail, sendGiftCardEmail };

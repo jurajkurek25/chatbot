@@ -758,7 +758,7 @@ BEŽNÉ OTÁZKY:
 ━━━
 
 28. DARČEKOVÉ KARTY
-Stránka: neoworkly.com/darcek (verejná, nevyžaduje prihlásenie)
+Stránka: neoworkly.com/present (verejná, nevyžaduje prihlásenie)
 - Zakúpte darčekovú kartu pre niekoho iného alebo pre seba — hodnoty: €5, €10, €15, €25, €50 alebo vlastná suma
 - Po zaplatení cez Stripe dostane kupujúci e-mailom kód vo formáte NEOW-XXXX-XXXX-XXXX
 - Uplatnenie: Dashboard → sidebar → "🎁 Uplatniť darčekovú kartu" → zadajte kód → kredity sa okamžite pripíšu
