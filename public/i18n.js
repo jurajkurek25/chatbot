@@ -181,10 +181,74 @@
       history.replaceState(null, '', cleanUrl || window.location.pathname);
     }
     buildSwitcher();
-    loadLang(lang, function () { applyTranslations(document.body); });
+    loadLang(lang, function () { applyTranslations(document.body); applyMetaTranslations(); });
+  }
+
+  // Translations for <title> and <meta name="description"> per page per lang
+  var META = {
+    'index.html': {
+      en: { title: 'Neoworkly – AI Sales Agent for Your Website & Instagram', description: 'Not a chatbot. A trained AI salesperson – guides customers from the first question to a closed deal. 24/7. On your website and Instagram.' },
+      de: { title: 'Neoworkly – KI-Verkäufer für Ihre Website & Instagram', description: 'Kein Chatbot. Ein trainierter KI-Verkäufer – begleitet Kunden von der ersten Frage bis zum Abschluss. 24/7. Auf Ihrer Website und Instagram.' },
+      fr: { title: 'Neoworkly – Agent commercial IA pour votre site & Instagram', description: 'Pas un chatbot. Un commercial IA formé – guide les clients de la première question à la vente conclue. 24h/24. Sur votre site et Instagram.' },
+      es: { title: 'Neoworkly – Agente de ventas IA para tu web e Instagram', description: 'No es un chatbot. Es un vendedor IA entrenado – guía al cliente desde la primera pregunta hasta cerrar la venta. 24/7. En tu web e Instagram.' },
+      pl: { title: 'Neoworkly – Sprzedawca AI dla Twojej strony i Instagrama', description: 'Nie chatbot. Wyszkolony sprzedawca AI – prowadzi klienta od pierwszego pytania do zamkniętej sprzedaży. 24/7. Na stronie i Instagramie.' },
+      cs: { title: 'Neoworkly – AI obchodník pro váš web a Instagram', description: 'Žádný chatbot. Vyškolený AI obchodník – provází zákazníka od první otázky k uzavřenému prodeji. 24/7. Na webu i Instagramu.' },
+      hu: { title: 'Neoworkly – AI értékesítő a weboldaladhoz és Instagramhoz', description: 'Nem chatbot. Betanított AI értékesítő – végigkíséri az ügyfelet az első kérdéstől a lezárt üzletig. 24/7. Weboldaladon és Instagramon.' },
+      ro: { title: 'Neoworkly – Agent de vânzări AI pentru site-ul și Instagram-ul tău', description: 'Nu un chatbot. Un agent de vânzări AI instruit – ghidează clientul de la prima întrebare până la vânzarea închisă. 24/7. Pe site și Instagram.' },
+      hr: { title: 'Neoworkly – AI prodajni agent za vašu web stranicu i Instagram', description: 'Ne chatbot. Obučeni AI prodavač – vodi kupca od prvog pitanja do zaključene prodaje. 24/7. Na webu i Instagramu.' },
+    },
+    'demo.html': {
+      en: { title: 'See Your AI Salesperson in Action – Neoworkly' },
+      de: { title: 'Ihren KI-Verkäufer in Aktion erleben – Neoworkly' },
+      fr: { title: 'Voir votre vendeur IA en action – Neoworkly' },
+      es: { title: 'Ver tu vendedor IA en acción – Neoworkly' },
+      pl: { title: 'Zobacz swojego sprzedawcę AI w akcji – Neoworkly' },
+      cs: { title: 'Uvidíte svého AI obchodníka v akci – Neoworkly' },
+      hu: { title: 'Lásd az AI értékesítődet akcióban – Neoworkly' },
+      ro: { title: 'Vedeți agentul dvs. AI de vânzări în acțiune – Neoworkly' },
+      hr: { title: 'Pogledajte svog AI prodavača na djelu – Neoworkly' },
+    },
+    'onboarding.html': {
+      en: { title: 'Setup – Neoworkly' },
+      de: { title: 'Einrichtung – Neoworkly' },
+      fr: { title: 'Configuration – Neoworkly' },
+      es: { title: 'Configuración – Neoworkly' },
+      pl: { title: 'Konfiguracja – Neoworkly' },
+      cs: { title: 'Nastavení – Neoworkly' },
+      hu: { title: 'Beállítás – Neoworkly' },
+      ro: { title: 'Configurare – Neoworkly' },
+      hr: { title: 'Postavljanje – Neoworkly' },
+    },
+    'present.html': {
+      en: { title: 'Gift Card – Neoworkly', description: 'Give Neoworkly — AI chatbot, digital twin or AI credits for your business or a loved one.' },
+      de: { title: 'Geschenkkarte – Neoworkly', description: 'Verschenken Sie Neoworkly — KI-Chatbot, digitaler Zwilling oder KI-Credits für Ihr Unternehmen oder jemanden Nahestehenden.' },
+      fr: { title: 'Carte cadeau – Neoworkly', description: 'Offrez Neoworkly — chatbot IA, jumeau numérique ou crédits IA pour votre entreprise ou un proche.' },
+      es: { title: 'Tarjeta de regalo – Neoworkly', description: 'Regala Neoworkly — chatbot IA, gemelo digital o créditos IA para tu negocio o alguien especial.' },
+      pl: { title: 'Karta podarunkowa – Neoworkly', description: 'Podaruj Neoworkly — chatbot AI, cyfrowy bliźniak lub kredyty AI dla Twojej firmy lub bliskiej osoby.' },
+      cs: { title: 'Dárková karta – Neoworkly', description: 'Darujte Neoworkly — AI chatbot, digitální dvojník nebo AI kredity pro váš byznys nebo blízkého.' },
+      hu: { title: 'Ajándékkártya – Neoworkly', description: 'Ajándékozzon Neoworkly-t — AI chatbot, digitális iker vagy AI kreditek vállalkozásának vagy szeretteinek.' },
+      ro: { title: 'Card cadou – Neoworkly', description: 'Dăruiți Neoworkly — chatbot AI, geamăn digital sau credite AI pentru afacerea dvs. sau o persoană dragă.' },
+      hr: { title: 'Poklon kartica – Neoworkly', description: 'Poklonite Neoworkly — AI chatbot, digitalni dvojnik ili AI kredite za vaše poslovanje ili nekoga bliskog.' },
+    },
+  };
+
+  function applyMetaTranslations() {
+    if (currentLang === DEFAULT) return;
+    var page = window.location.pathname.split('/').pop() || 'index.html';
+    if (!page.endsWith('.html')) page = 'index.html';
+    var pageMeta = META[page];
+    if (!pageMeta) return;
+    var m = pageMeta[currentLang];
+    if (!m) return;
+    if (m.title) document.title = m.title;
+    if (m.description) {
+      var el = document.querySelector('meta[name="description"]');
+      if (el) el.setAttribute('content', m.description);
+    }
   }
 
   window.i18n = { t: t, setLang: setLang, loadLang: loadLang, applyTranslations: applyTranslations,
+                  applyMetaTranslations: applyMetaTranslations,
                   currentLang: function () { return currentLang; }, SUPPORTED: SUPPORTED, FLAGS: FLAGS };
   window.t = t;
 
