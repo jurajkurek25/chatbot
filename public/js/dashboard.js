@@ -804,6 +804,7 @@ function addProactiveSeqItem(item) {
   div.querySelector('.seq-add-lang-btn').addEventListener('click', () => _addSeqLangRow(langContainer));
   div.querySelector('.seq-translate-btn').addEventListener('click', () => _autoTranslateSeqItem(div));
   list.appendChild(div);
+  window.i18n?.applyTranslations(div);
 }
 
 function _addSeqLangRow(container, lang, msg) {

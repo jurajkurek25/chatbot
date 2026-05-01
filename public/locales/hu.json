@@ -3462,5 +3462,19 @@
   "Upraviť službu": "Upraviť službu",
   "Zmazať tento lead magnet? Zozbierané emaily budú tiež vymazané.": "Zmazať tento lead magnet? Zozbierané emaily budú tiež vymazané.",
   "Importovaných": "Importovaných",
-  "Nové heslá sa nezhodujú.": "Nové heslá sa nezhodujú."
+  "Nové heslá sa nezhodujú.": "Nové heslá sa nezhodujú.",
+  "📣 Ďalšie proaktívne správy": "📣 További proaktív üzenetek",
+  "Správy ktoré sa zobrazia automaticky v správnom momente – keď je návštevník dlho neaktívny, keď chatbot položil otázku bez odpovede, alebo po určitom čase od načítania. Nenásilné, dajú sa nastaviť aby sa opakovali.": "Üzenetek, amelyek automatikusan jelennek meg a megfelelő pillanatban – amikor egy látogató egy ideig inaktív, amikor a chatbot válasz nélküli kérdést tett fel, vagy az oldal betöltése után bizonyos idővel. Nem tolakodó, ismétlésre is beállítható.",
+  "+ Pridať správu": "+ Üzenet hozzáadása",
+  "Text správy (predvolený jazyk)...": "Üzenet szövege (alapértelmezett nyelv)...",
+  "Auto-preložiť do všetkých jazykov": "Automatikus fordítás minden nyelvre",
+  "+ Jazyk": "+ Nyelv",
+  "⏱ Po čase od načítania": "⏱ Az oldal betöltése utáni idő elteltével",
+  "😴 Po nečinnosti": "😴 Tétlenség után",
+  "❓ Bez odpovede chatbotu": "❓ Chatbot válasz nélkül",
+  "sek.": "mp.",
+  "Opakovať po": "Ismétlés után",
+  "sek. (0 = nikdy)": "mp. (0 = soha)",
+  "Preklad...": "Fordítás...",
+  "Zapnúť/vypnúť túto správu": "Üzenet bekapcsolása/kikapcsolása"
 }

@@ -3552,5 +3552,19 @@
   "Upraviť službu": "Upraviť službu",
   "Zmazať tento lead magnet? Zozbierané emaily budú tiež vymazané.": "Zmazať tento lead magnet? Zozbierané emaily budú tiež vymazané.",
   "Importovaných": "Importovaných",
-  "Nové heslá sa nezhodujú.": "Nové heslá sa nezhodujú."
+  "Nové heslá sa nezhodujú.": "Nové heslá sa nezhodujú.",
+  "📣 Ďalšie proaktívne správy": "📣 More proactive messages",
+  "Správy ktoré sa zobrazia automaticky v správnom momente – keď je návštevník dlho neaktívny, keď chatbot položil otázku bez odpovede, alebo po určitom čase od načítania. Nenásilné, dajú sa nastaviť aby sa opakovali.": "Messages that appear automatically at the right moment – when a visitor is inactive for a while, when the chatbot asked a question without a reply, or after a certain time since page load. Non-intrusive, can be set to repeat.",
+  "+ Pridať správu": "+ Add message",
+  "Text správy (predvolený jazyk)...": "Message text (default language)...",
+  "Auto-preložiť do všetkých jazykov": "Auto-translate to all languages",
+  "+ Jazyk": "+ Language",
+  "⏱ Po čase od načítania": "⏱ After time since page load",
+  "😴 Po nečinnosti": "😴 After inactivity",
+  "❓ Bez odpovede chatbotu": "❓ No reply to chatbot",
+  "sek.": "sec.",
+  "Opakovať po": "Repeat after",
+  "sek. (0 = nikdy)": "sec. (0 = never)",
+  "Preklad...": "Translation...",
+  "Zapnúť/vypnúť túto správu": "Enable/disable this message"
 }
