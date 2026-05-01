@@ -45,28 +45,54 @@ function hasSkDiacritics(key) {
   return SK_CHARS.test(key);
 }
 
-function extractFromHTML(file) {
-  const html = fs.readFileSync(path.join(PUBLIC, file), 'utf8');
+const GARBAGE = /[<>{}\\]|\bstyle=|\bclass=|\bon\w+=|\n/;
+
+function extractFromJS(file) {
+  let src;
+  try { src = fs.readFileSync(path.join(PUBLIC, file), 'utf8'); } catch { return new Set(); }
+  // Remove comments
+  src = src.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
   const found = new Set();
-  const c = html
-    .replace(/<!--[\s\S]*?-->/g, ' ')
-    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-    .replace(/<style[\s\S]*?<\/style>/gi, ' ');
-  const re = />([^<]+)</g; let m;
-  while ((m = re.exec(c)) !== null) {
-    const s = m[1].trim()
-      .replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
-      .replace(/&nbsp;/g,' ').replace(/&mdash;/g,'—').replace(/&hellip;/g,'…');
-    if (s.length >= 3 && /[a-zA-ZÀ-ž]/.test(s)) found.add(s);
+  // Single/double-quoted strings
+  const sqRe = /'([^'\n\\]{3,120})'|"([^"\n\\]{3,120})"/g;
+  let m;
+  while ((m = sqRe.exec(src)) !== null) {
+    const s = (m[1] || m[2]).trim();
+    if (SK_CHARS.test(s) && !GARBAGE.test(s)) found.add(s);
   }
-  ['placeholder','title','alt'].forEach(attr => {
-    const ar = new RegExp(`\\b${attr}\\s*=\\s*"([^"]+)"`, 'g');
-    while ((m = ar.exec(c)) !== null) {
-      const s = m[1].trim();
-      if (s.length >= 3 && /[a-zA-ZÀ-ž]/.test(s)) found.add(s);
+  // Template literal static parts (between ${...} or at edges)
+  const tlRe = /`([^`]{3,200})`/g;
+  while ((m = tlRe.exec(src)) !== null) {
+    const parts = m[1].split(/\$\{[^}]*\}/);
+    for (const p of parts) {
+      const s = p.trim();
+      if (s.length >= 4 && SK_CHARS.test(s) && !GARBAGE.test(s) && !s.includes('\n')) found.add(s);
     }
-  });
+  }
   return found;
+}
+
+function syncJsStrings(sk, langs) {
+  const JS_FILES = ['js/dashboard.js', 'js/onboarding.js', 'js/demo.js'];
+  const allNew = {};
+  for (const file of JS_FILES) {
+    for (const s of extractFromJS(file)) {
+      if (!sk[s]) allNew[s] = s;
+    }
+  }
+  if (!Object.keys(allNew).length) return;
+  // Add to sk.json
+  Object.assign(sk, allNew);
+  fs.writeFileSync(path.join(LOCALES, 'sk.json'), JSON.stringify(sk, null, 2) + '\n');
+  console.log(`  +${Object.keys(allNew).length} new strings extracted from JS → sk.json`);
+  // Add as untranslated to all lang files
+  for (const lang of langs) {
+    const p = path.join(LOCALES, `${lang}.json`);
+    const d = JSON.parse(fs.readFileSync(p, 'utf8'));
+    let added = 0;
+    for (const k of Object.keys(allNew)) { if (!d[k]) { d[k] = k; added++; } }
+    if (added) { fs.writeFileSync(p, JSON.stringify(d, null, 2) + '\n'); }
+  }
 }
 
 function chunk(obj, size) {
@@ -109,6 +135,10 @@ async function main() {
   const langs = targetLangs.length ? targetLangs : Object.keys(LANG_NAMES);
 
   const sk = JSON.parse(fs.readFileSync(path.join(LOCALES, 'sk.json'), 'utf8'));
+
+  // Step 1: extract new strings from JS files → add to sk.json + locale files
+  console.log('\nScanning JS files for new strings...');
+  syncJsStrings(sk, langs);
 
   for (const lang of langs) {
     const langName = LANG_NAMES[lang];
