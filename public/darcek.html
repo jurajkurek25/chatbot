@@ -2,285 +2,411 @@
 <html lang="sk">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Darčeková karta – Neoworkly</title>
+<meta name="description" content="Darujte Neoworkly — AI chatbot, digitálny dvojník alebo AI kredity pre váš biznis alebo niekoho blízkeho.">
+<link rel="stylesheet" href="/css/i18n.css">
 <style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8f7ff;color:#1e293b;min-height:100vh}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #080810; --bg2: #0d0d18; --bg3: #111120;
+  --surface: #18182a; --border: rgba(255,255,255,0.07); --border2: rgba(255,255,255,0.12);
+  --text: #eeeef5; --muted: #6e6e90; --muted2: #9898b8;
+  --accent: #5b4fff; --accent2: #9b8cff;
+  --success: #1fd89a;
+  --grad: linear-gradient(135deg, #5b4fff 0%, #9b8cff 60%, #c084fc 100%);
+  --px: clamp(16px, 5vw, 60px);
+}
+html { scroll-behavior: smooth; }
+body { font-family: Arial, Helvetica, sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; font-size: 16px; line-height: 1.6; }
+body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 999; opacity: .025; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
-/* ── HEADER ── */
-.site-header{background:white;border-bottom:1px solid #ede9fe;padding:1rem 2rem;display:flex;align-items:center;gap:0.75rem}
-.logo-mark{width:36px;height:36px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border-radius:10px;display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem}
-.logo-text{font-weight:800;font-size:1.1rem;color:#1e293b}
-.logo-text span{color:#7c3aed}
+/* ── NAV ── */
+.nav { position: fixed; top: 0; left: 0; right: 0; z-index: 200; background: rgba(8,8,16,0.92); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); }
+.nav-inner { max-width: 1200px; margin: 0 auto; padding: 0 var(--px); display: flex; align-items: center; justify-content: space-between; height: 58px; }
+.nav-logo { font-weight: 800; font-size: clamp(1rem, 4vw, 1.2rem); letter-spacing: -0.02em; flex-shrink: 0; text-decoration: none; color: var(--text); }
+.nav-logo span { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.nav-links { display: none; }
+.nav-cta-desktop { display: none; }
+.nav-hamburger { display: flex; flex-direction: column; justify-content: center; gap: 5px; width: 40px; height: 40px; background: none; border: 1px solid var(--border2); border-radius: 8px; cursor: pointer; padding: 8px; }
+.nav-hamburger span { display: block; height: 2px; background: var(--text); border-radius: 2px; transition: all .25s; }
+.nav-hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-hamburger.open span:nth-child(2) { opacity: 0; }
+.nav-hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+.nav-mobile { display: none; position: absolute; top: 100%; left: 0; right: 0; background: rgba(8,8,16,0.98); border-bottom: 1px solid var(--border); padding: 1rem var(--px) 1.5rem; flex-direction: column; gap: .25rem; }
+.nav-mobile.open { display: flex; }
+.nav-mobile a { color: var(--muted2); text-decoration: none; font-size: .95rem; padding: .75rem 0; border-bottom: 1px solid var(--border); }
+.nav-mobile a:last-of-type { border-bottom: none; }
+.nav-mobile-cta { display: flex; flex-direction: column; gap: .5rem; margin-top: .75rem; }
 
-/* ── LAYOUT ── */
-.page{max-width:960px;margin:0 auto;padding:2.5rem 1.5rem}
-.page-title{font-size:2rem;font-weight:800;color:#1e293b;text-align:center;margin-bottom:0.5rem}
-.page-sub{text-align:center;color:#64748b;font-size:1rem;margin-bottom:2.5rem}
+/* ── BUTTONS ── */
+.btn-ghost { background: none; border: 1px solid var(--border2); color: var(--muted2); padding: .5rem 1rem; border-radius: 8px; cursor: pointer; font-size: .875rem; font-family: inherit; transition: all .2s; width: 100%; text-decoration: none; display: block; text-align: center; }
+.btn-ghost:hover { color: var(--text); border-color: var(--accent2); }
+.btn-primary { background: var(--grad); border: none; color: white; padding: .9rem 1.75rem; border-radius: 14px; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; box-shadow: 0 0 40px rgba(91,79,255,0.35); transition: all .25s; width: 100%; display: block; text-align: center; text-decoration: none; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(91,79,255,0.52); }
+.btn-nav-cta { background: var(--grad); border: none; color: white; padding: .5rem 1.1rem; border-radius: 8px; font-size: .875rem; font-weight: 700; font-family: inherit; cursor: pointer; transition: opacity .2s; text-decoration: none; }
+.btn-nav-cta:hover { opacity: .85; }
 
-/* ── PURCHASE CARD ── */
-.buy-grid{display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start}
-@media(max-width:680px){.buy-grid{grid-template-columns:1fr}}
+/* ── FOOTER ── */
+.footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 2rem var(--px); }
+.footer-inner { max-width: 1100px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; gap: 1rem; text-align: center; }
+.footer-logo { font-weight: 800; font-size: 1.1rem; letter-spacing: -0.02em; background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.footer-links { display: flex; gap: 1.5rem; flex-wrap: wrap; justify-content: center; }
+.footer-links a { color: var(--muted); text-decoration: none; font-size: .85rem; transition: color .2s; }
+.footer-links a:hover { color: var(--text); }
+.footer-copy { font-size: .78rem; color: var(--muted); }
 
-.panel{background:white;border-radius:16px;padding:1.75rem;box-shadow:0 2px 16px rgba(124,58,237,0.07);border:1px solid #ede9fe}
-.panel-title{font-size:1rem;font-weight:700;color:#1e293b;margin-bottom:1.25rem;display:flex;align-items:center;gap:0.5rem}
+/* ── PAGE ── */
+.page { max-width: 980px; margin: 0 auto; padding: calc(58px + 48px) var(--px) 64px; }
+.page-eyebrow { text-align: center; font-size: .72rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--accent2); margin-bottom: .75rem; }
+.page-title { font-size: clamp(1.8rem, 6vw, 2.8rem); font-weight: 800; letter-spacing: -0.03em; text-align: center; margin-bottom: .5rem; }
+.grad-text { background: var(--grad); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.page-sub { text-align: center; color: var(--muted2); font-size: .95rem; margin-bottom: 2.5rem; max-width: 540px; margin-left: auto; margin-right: auto; line-height: 1.7; }
+
+/* ── USE-FOR BOX ── */
+.use-for { background: rgba(31,216,154,0.06); border: 1px solid rgba(31,216,154,0.2); border-radius: 14px; padding: 1rem 1.25rem; margin-bottom: 2.5rem; max-width: 540px; margin-left: auto; margin-right: auto; }
+.use-for-title { font-size: .72rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--success); margin-bottom: .6rem; }
+.use-for-items { display: flex; flex-direction: column; gap: .35rem; font-size: .85rem; color: var(--muted2); }
+.use-for-items span::before { content: '✓ '; color: var(--success); font-weight: 700; }
+
+/* ── BUY GRID ── */
+.buy-grid { display: grid; grid-template-columns: 1fr; gap: 1.75rem; }
+
+/* ── PANEL ── */
+.panel { background: var(--surface); border: 1px solid var(--border2); border-radius: 20px; padding: 1.75rem; }
+.panel-title { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: 1.25rem; display: flex; align-items: center; gap: .5rem; }
 
 /* Amount picker */
-.amount-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:1rem}
-.amt-btn{border:2px solid #e2e8f0;background:white;border-radius:10px;padding:0.6rem 0.5rem;font-size:0.95rem;font-weight:700;cursor:pointer;transition:all 0.15s;color:#1e293b;text-align:center}
-.amt-btn:hover{border-color:#7c3aed;color:#7c3aed}
-.amt-btn.active{border-color:#7c3aed;background:#7c3aed;color:white}
-.custom-amount-wrap{margin-bottom:1.25rem}
-.custom-amount-wrap label{font-size:0.82rem;font-weight:600;color:#64748b;display:block;margin-bottom:0.4rem}
-.inp-euro{display:flex;align-items:center;border:2px solid #e2e8f0;border-radius:10px;overflow:hidden;transition:border-color 0.15s}
-.inp-euro:focus-within{border-color:#7c3aed}
-.inp-euro span{padding:0.65rem 0.75rem;background:#f8f7ff;color:#64748b;font-weight:700;font-size:0.95rem;border-right:1px solid #e2e8f0}
-.inp-euro input{border:none;outline:none;padding:0.65rem 0.75rem;font-size:0.95rem;font-weight:700;color:#1e293b;width:100%;background:white}
+.amount-label { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: .6rem; }
+.amount-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin-bottom: 1rem; }
+.amt-btn { border: 1px solid var(--border2); background: var(--bg3); border-radius: 10px; padding: .6rem .4rem; font-size: .95rem; font-weight: 700; cursor: pointer; transition: all .15s; color: var(--muted2); text-align: center; font-family: inherit; }
+.amt-btn:hover { border-color: var(--accent2); color: var(--text); }
+.amt-btn.active { border-color: var(--accent); background: rgba(91,79,255,0.18); color: var(--text); }
+.custom-amount-wrap { margin-bottom: 1.25rem; }
+.inp-wrap { display: flex; align-items: center; border: 1px solid var(--border2); border-radius: 10px; overflow: hidden; transition: border-color .15s; background: var(--bg3); }
+.inp-wrap:focus-within { border-color: var(--accent2); }
+.inp-prefix { padding: .65rem .75rem; color: var(--muted); font-weight: 700; font-size: .95rem; border-right: 1px solid var(--border); background: var(--bg2); }
+.inp-wrap input { border: none; outline: none; padding: .65rem .75rem; font-size: .95rem; font-weight: 700; color: var(--text); width: 100%; background: transparent; font-family: inherit; }
+.inp-wrap input::placeholder { color: var(--muted); font-weight: 400; }
 
-.form-group{margin-bottom:1rem}
-.form-group label{font-size:0.82rem;font-weight:600;color:#64748b;display:block;margin-bottom:0.4rem}
-.form-group input,.form-group textarea{width:100%;border:2px solid #e2e8f0;border-radius:10px;padding:0.65rem 0.85rem;font-size:0.9rem;color:#1e293b;outline:none;transition:border-color 0.15s;font-family:inherit}
-.form-group input:focus,.form-group textarea:focus{border-color:#7c3aed}
-.form-group textarea{resize:vertical;min-height:72px}
-.optional-tag{font-size:0.72rem;color:#94a3b8;font-weight:400;margin-left:0.3rem}
+.form-group { margin-bottom: 1rem; }
+.form-group label { font-size: .75rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); display: block; margin-bottom: .4rem; }
+.form-group input, .form-group textarea { width: 100%; border: 1px solid var(--border2); border-radius: 10px; padding: .65rem .85rem; font-size: .9rem; color: var(--text); outline: none; transition: border-color .15s; font-family: inherit; background: var(--bg3); }
+.form-group input:focus, .form-group textarea:focus { border-color: var(--accent2); }
+.form-group input::placeholder, .form-group textarea::placeholder { color: var(--muted); }
+.form-group textarea { resize: vertical; min-height: 72px; }
+.optional-tag { font-size: .7rem; color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; margin-left: .3rem; }
 
-.btn-buy{width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;border-radius:12px;padding:0.9rem 1.5rem;font-size:1rem;font-weight:700;cursor:pointer;margin-top:0.5rem;transition:opacity 0.15s}
-.btn-buy:hover{opacity:0.9}
-.btn-buy:disabled{opacity:0.6;cursor:default}
+.btn-buy { width: 100%; background: var(--grad); color: white; border: none; border-radius: 12px; padding: .9rem 1.5rem; font-size: 1rem; font-weight: 700; cursor: pointer; margin-top: .5rem; transition: all .2s; font-family: inherit; box-shadow: 0 0 32px rgba(91,79,255,0.3); }
+.btn-buy:hover { transform: translateY(-2px); box-shadow: 0 0 48px rgba(91,79,255,0.45); }
+.btn-buy:disabled { opacity: .55; cursor: default; transform: none; box-shadow: none; }
+.buy-note { font-size: .73rem; color: var(--muted); text-align: center; margin-top: .65rem; }
 
 /* ── GIFT CARD PREVIEW ── */
-.gift-card{position:relative;border-radius:20px;overflow:hidden;aspect-ratio:1.6/1;background:linear-gradient(135deg,#1e0a3c 0%,#4c1d95 50%,#7c3aed 100%);color:white;padding:1.75rem;display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 12px 40px rgba(124,58,237,0.35)}
-.gc-shine{position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.12) 0%,transparent 60%);pointer-events:none}
-.gc-circles{position:absolute;top:-40px;right:-40px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,0.05);pointer-events:none}
-.gc-circles::after{content:'';position:absolute;top:30px;left:30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.06)}
-.gc-top{display:flex;align-items:center;justify-content:space-between;position:relative}
-.gc-logo{display:flex;align-items:center;gap:0.5rem}
-.gc-logo-mark{width:30px;height:30px;background:rgba(255,255,255,0.2);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:0.9rem}
-.gc-logo-text{font-weight:800;font-size:0.95rem;letter-spacing:0.02em}
-.gc-badge{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:20px;padding:0.25rem 0.75rem;font-size:0.7rem;font-weight:700;letter-spacing:0.05em;text-transform:uppercase}
-.gc-middle{position:relative;text-align:center}
-.gc-label{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;opacity:0.6;margin-bottom:0.25rem}
-.gc-amount{font-size:2.8rem;font-weight:900;letter-spacing:-0.02em;line-height:1}
-.gc-message{font-size:0.78rem;opacity:0.75;margin-top:0.4rem;font-style:italic;max-height:2.4em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.gc-bottom{position:relative}
-.gc-code-label{font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;opacity:0.55;margin-bottom:0.2rem}
-.gc-code{font-family:'Courier New',monospace;font-size:1.1rem;font-weight:700;letter-spacing:0.18em;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:0.45rem 0.75rem;display:inline-block}
-.gc-recipient{font-size:0.72rem;opacity:0.6;margin-top:0.35rem}
+.preview-label { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: .65rem; }
+.gift-card { position: relative; border-radius: 20px; overflow: hidden; aspect-ratio: 1.6/1; background: linear-gradient(135deg, #1e0a3c 0%, #4c1d95 50%, #7c3aed 100%); color: white; padding: 1.75rem; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 12px 48px rgba(91,79,255,0.4), 0 0 0 1px rgba(255,255,255,0.07); }
+.gc-shine { position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, transparent 60%); pointer-events: none; }
+.gc-circles { position: absolute; top: -40px; right: -40px; width: 180px; height: 180px; border-radius: 50%; background: rgba(255,255,255,0.05); pointer-events: none; }
+.gc-circles::after { content: ''; position: absolute; top: 30px; left: 30px; width: 120px; height: 120px; border-radius: 50%; background: rgba(255,255,255,0.06); }
+.gc-top { display: flex; align-items: center; justify-content: space-between; position: relative; }
+.gc-logo { display: flex; align-items: center; gap: .5rem; }
+.gc-logo-mark { width: 30px; height: 30px; background: rgba(255,255,255,0.2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .9rem; }
+.gc-logo-text { font-weight: 800; font-size: .95rem; letter-spacing: .02em; }
+.gc-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); border-radius: 20px; padding: .25rem .75rem; font-size: .65rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.gc-middle { position: relative; text-align: center; }
+.gc-label { font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; opacity: .6; margin-bottom: .25rem; }
+.gc-amount { font-size: 2.8rem; font-weight: 900; letter-spacing: -0.02em; line-height: 1; }
+.gc-message { font-size: .78rem; opacity: .75; margin-top: .4rem; font-style: italic; max-height: 2.4em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gc-bottom { position: relative; }
+.gc-code-label { font-size: .6rem; letter-spacing: .12em; text-transform: uppercase; opacity: .55; margin-bottom: .2rem; }
+.gc-code { font-family: 'Courier New', monospace; font-size: 1.05rem; font-weight: 700; letter-spacing: .16em; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; padding: .4rem .7rem; display: inline-block; }
+.gc-recipient { font-size: .7rem; opacity: .6; margin-top: .3rem; }
 
-/* ── SUCCESS STATE ── */
-#view-success{display:none}
-.success-header{text-align:center;margin-bottom:2rem}
-.success-header .icon{font-size:3rem;margin-bottom:0.75rem}
-.success-header h2{font-size:1.5rem;font-weight:800;color:#1e293b;margin-bottom:0.4rem}
-.success-header p{color:#64748b;font-size:0.9rem}
+/* ── SUCCESS ── */
+#view-success { display: none; }
+.success-header { text-align: center; margin-bottom: 2.5rem; }
+.success-icon { font-size: 3rem; margin-bottom: .75rem; }
+.success-header h2 { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.02em; margin-bottom: .4rem; }
+.success-header p { color: var(--muted2); font-size: .9rem; }
 
-.success-grid{display:grid;grid-template-columns:1.2fr 1fr;gap:2rem;align-items:start}
-@media(max-width:680px){.success-grid{grid-template-columns:1fr}}
+.code-display { background: rgba(91,79,255,0.1); border: 2px dashed rgba(155,140,255,0.35); border-radius: 14px; padding: 1.1rem; text-align: center; margin-top: 1.25rem; }
+.code-display .lbl { font-size: .65rem; letter-spacing: .12em; text-transform: uppercase; color: var(--accent2); font-weight: 700; margin-bottom: .35rem; }
+.code-display .code { font-family: 'Courier New', monospace; font-size: 1.25rem; font-weight: 700; color: var(--text); letter-spacing: .14em; }
 
-.card-actions{display:flex;flex-direction:column;gap:0.75rem;margin-top:1.5rem}
-.btn-action{display:flex;align-items:center;justify-content:center;gap:0.5rem;border:none;border-radius:10px;padding:0.7rem 1rem;font-size:0.9rem;font-weight:600;cursor:pointer;transition:all 0.15s}
-.btn-print{background:#7c3aed;color:white}
-.btn-print:hover{background:#6d28d9}
-.btn-copy{background:#f1f5f9;color:#1e293b;border:1px solid #e2e8f0}
-.btn-copy:hover{background:#e2e8f0}
+.card-actions { display: flex; flex-direction: column; gap: .65rem; margin-top: 1.25rem; }
+.btn-action { display: flex; align-items: center; justify-content: center; gap: .5rem; border: none; border-radius: 10px; padding: .7rem 1rem; font-size: .9rem; font-weight: 600; cursor: pointer; transition: all .15s; font-family: inherit; }
+.btn-print { background: var(--grad); color: white; }
+.btn-print:hover { opacity: .88; }
+.btn-copy { background: var(--surface); color: var(--muted2); border: 1px solid var(--border2); }
+.btn-copy:hover { border-color: var(--accent2); color: var(--text); }
 
-.info-box{background:white;border-radius:16px;padding:1.5rem;box-shadow:0 2px 16px rgba(124,58,237,0.07);border:1px solid #ede9fe}
-.info-box h3{font-size:1rem;font-weight:700;color:#1e293b;margin-bottom:1rem}
-.info-step{display:flex;gap:0.75rem;margin-bottom:0.85rem;align-items:flex-start}
-.step-num{min-width:24px;height:24px;border-radius:50%;background:#7c3aed;color:white;font-size:0.72rem;font-weight:700;display:flex;align-items:center;justify-content:center}
-.step-text{font-size:0.85rem;color:#64748b;line-height:1.5}
-.step-text strong{color:#1e293b}
+.info-box { background: var(--surface); border: 1px solid var(--border2); border-radius: 18px; padding: 1.5rem; margin-top: 1.5rem; }
+.info-box h3 { font-size: .9rem; font-weight: 700; color: var(--text); margin-bottom: 1rem; }
+.info-step { display: flex; gap: .75rem; margin-bottom: .85rem; align-items: flex-start; }
+.step-num { min-width: 24px; height: 24px; border-radius: 50%; background: var(--grad); color: white; font-size: .72rem; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.step-text { font-size: .85rem; color: var(--muted2); line-height: 1.5; }
+.step-text strong { color: var(--text); }
+.tip-box { margin-top: 1rem; padding: .85rem 1rem; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2); border-radius: 10px; font-size: .8rem; color: #fbbf24; line-height: 1.55; }
 
-.code-display{background:#f8f7ff;border:2px dashed #c4b5fd;border-radius:12px;padding:1rem;text-align:center;margin-top:1rem}
-.code-display .lbl{font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;color:#7c3aed;font-weight:700;margin-bottom:0.35rem}
-.code-display .code{font-family:'Courier New',monospace;font-size:1.3rem;font-weight:700;color:#4c1d95;letter-spacing:0.15em}
-
-/* ── PRINT STYLES ── */
-@media print{
-  body{background:white}
-  .site-header,.buy-section,.page-title,.page-sub,.card-actions,.info-box,.success-header{display:none!important}
-  .success-grid{display:block}
-  .gift-card{width:360px;margin:2rem auto;box-shadow:none;border:2px solid #e2e8f0}
-  #view-purchase{display:none!important}
+/* ── PRINT ── */
+@media print {
+  body { background: white; color: #000; }
+  .nav, .page-eyebrow, .page-title, .page-sub, .use-for, #view-purchase, .card-actions, .info-box, .success-header, .tip-box, .code-display, footer { display: none !important; }
+  #view-success { display: block !important; }
+  .gift-card { width: 380px; margin: 2rem auto; box-shadow: none; border: 2px solid #ddd; }
 }
 
-.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.4);border-top-color:white;border-radius:50%;animation:spin 0.6s linear infinite;vertical-align:middle;margin-right:0.4rem}
-@keyframes spin{to{transform:rotate(360deg)}}
-.toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1e293b;color:white;padding:0.75rem 1.25rem;border-radius:10px;font-size:0.875rem;font-weight:500;z-index:999;opacity:0;transform:translateY(8px);transition:all 0.25s}
-.toast.show{opacity:1;transform:translateY(0)}
+/* ── SPINNER / TOAST ── */
+.spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.35); border-top-color: white; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; margin-right: .4rem; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface); border: 1px solid var(--border2); color: var(--text); padding: .75rem 1.25rem; border-radius: 10px; font-size: .875rem; font-weight: 500; z-index: 9999; opacity: 0; transform: translateY(8px); transition: all .25s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── RESPONSIVE ── */
+@media (min-width: 700px) {
+  .buy-grid { grid-template-columns: 1fr 1fr; }
+  .footer-inner { flex-direction: row; justify-content: space-between; text-align: left; }
+}
+@media (min-width: 900px) {
+  .nav-links { display: flex; gap: 2rem; }
+  .nav-links a { color: var(--muted); text-decoration: none; font-size: .875rem; transition: color .2s; }
+  .nav-links a:hover { color: var(--text); }
+  .nav-cta-desktop { display: flex; gap: .6rem; align-items: center; }
+  .nav-hamburger { display: none; }
+  .nav-mobile { display: none !important; }
+}
 </style>
 </head>
 <body>
 
-<header class="site-header">
-  <div class="logo-mark">🤖</div>
-  <div class="logo-text">Neo<span>workly</span></div>
-</header>
+<!-- NAV -->
+<nav class="nav" id="main-nav">
+  <div class="nav-inner">
+    <a href="/" class="nav-logo">Neo<span>workly</span></a>
+    <div class="nav-links">
+      <a href="/#pain">Problém</a>
+      <a href="/#features">Funkcie</a>
+      <a href="/#booking">📅 Rezervácie</a>
+      <a href="/#channels">Kanály</a>
+      <a href="/#roi">💰 ROI</a>
+      <a href="/wordpress">WordPress</a>
+      <a href="/#pricing">Cena</a>
+    </div>
+    <div class="nav-cta-desktop">
+      <a href="/dashboard" class="btn-ghost" style="width:auto;display:inline-block">Prihlásiť sa</a>
+      <a href="/?register=1" class="btn-nav-cta">Začať</a>
+    </div>
+    <button class="nav-hamburger" id="hamburger" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="nav-mobile" id="nav-mobile">
+    <a href="/#pain" onclick="closeMobileNav()">Problém</a>
+    <a href="/#features" onclick="closeMobileNav()">Funkcie</a>
+    <a href="/#booking" onclick="closeMobileNav()">📅 Rezervácie</a>
+    <a href="/#channels" onclick="closeMobileNav()">Kanály</a>
+    <a href="/#roi" onclick="closeMobileNav()">💰 ROI</a>
+    <a href="/wordpress" onclick="closeMobileNav()">WordPress</a>
+    <a href="/#pricing" onclick="closeMobileNav()">Cena</a>
+    <div class="nav-mobile-cta">
+      <a href="/dashboard" class="btn-ghost">Prihlásiť sa</a>
+      <a href="/?register=1" class="btn-primary" style="padding:.75rem">Začať</a>
+    </div>
+  </div>
+</nav>
 
-<div id="view-purchase" class="page">
-  <h1 class="page-title">🎁 Darčeková karta</h1>
-  <p class="page-sub">Darujte Neoworkly — AI chatbot, digitálny dvojník alebo AI kredity pre váš biznis alebo niekoho blízkeho.</p>
+<!-- PURCHASE VIEW -->
+<div id="view-purchase">
+  <div class="page">
+    <div class="page-eyebrow">Darčeková karta</div>
+    <h1 class="page-title">Darujte <span class="grad-text">AI obchodníka</span></h1>
+    <p class="page-sub">Darujte Neoworkly — AI chatbot, digitálny dvojník alebo AI kredity pre váš biznis alebo niekoho blízkeho.</p>
 
-  <div class="buy-grid">
-    <!-- LEFT: Form -->
-    <div class="panel">
-      <div class="panel-title">💳 Konfigurácia karty</div>
-
-      <!-- Preset amounts -->
-      <div style="margin-bottom:0.75rem">
-        <div style="font-size:0.82rem;font-weight:600;color:#64748b;margin-bottom:0.5rem">Hodnota karty</div>
-        <div class="amount-grid">
-          <button class="amt-btn" onclick="setAmount(19)">€19</button>
-          <button class="amt-btn active" onclick="setAmount(29)">€29</button>
-          <button class="amt-btn" onclick="setAmount(37)">€37</button>
-          <button class="amt-btn" onclick="setAmount(49)">€49</button>
-          <button class="amt-btn" onclick="setAmount(74)">€74</button>
-          <button class="amt-btn" onclick="setAmount(null)">Vlastná</button>
-        </div>
+    <div class="use-for">
+      <div class="use-for-title">Na čo sa dá karta použiť</div>
+      <div class="use-for-items">
+        <span><strong>€37+</strong> — celý mesiac Neoworkly Pro zadarmo</span>
+        <span><strong>€29+</strong> — Person add-on (AI digitálny dvojník)</span>
+        <span><strong>Ľubovoľná suma</strong> — AI odpovede v chatbote (kredity)</span>
       </div>
-
-      <div class="custom-amount-wrap" id="custom-wrap" style="display:none">
-        <label>Vlastná suma</label>
-        <div class="inp-euro">
-          <span>€</span>
-          <input type="number" id="custom-amount" min="5" max="500" step="1" placeholder="min. 5" oninput="onCustomAmount()">
-        </div>
-      </div>
-
-      <div class="form-group">
-        <label>Váš email <span style="color:#e11d48;font-size:0.8rem">*</span></label>
-        <input type="email" id="buyer-email" placeholder="vas@email.sk" oninput="updatePreview()">
-      </div>
-
-      <div class="form-group">
-        <label>Vaše meno <span class="optional-tag">voliteľné</span></label>
-        <input type="text" id="buyer-name" placeholder="Ján Novák" oninput="updatePreview()">
-      </div>
-
-      <div class="form-group">
-        <label>Email príjemcu <span class="optional-tag">voliteľné</span></label>
-        <input type="email" id="recipient-email" placeholder="pratel@email.sk" oninput="updatePreview()">
-      </div>
-
-      <div class="form-group">
-        <label>Správa <span class="optional-tag">voliteľné</span></label>
-        <textarea id="gift-message" placeholder="Prajeme veľa úspechu!" oninput="updatePreview()"></textarea>
-      </div>
-
-      <button class="btn-buy" id="btn-buy" onclick="startCheckout()">Prejsť na platbu →</button>
-      <div style="font-size:0.75rem;color:#94a3b8;text-align:center;margin-top:0.65rem">Bezpečná platba cez Stripe · Zrušenie kedykoľvek</div>
     </div>
 
-    <!-- RIGHT: Preview -->
-    <div>
-      <div style="font-size:0.82rem;font-weight:600;color:#64748b;margin-bottom:0.65rem">Náhľad darčekovej karty</div>
-      <div class="gift-card" id="preview-card">
-        <div class="gc-shine"></div>
-        <div class="gc-circles"></div>
-        <div class="gc-top">
-          <div class="gc-logo">
-            <div class="gc-logo-mark">🤖</div>
-            <div class="gc-logo-text">Neoworkly</div>
+    <div class="buy-grid">
+      <!-- LEFT: Form -->
+      <div class="panel">
+        <div class="panel-title">💳 Konfigurácia karty</div>
+
+        <div style="margin-bottom:1.25rem">
+          <div class="amount-label">Hodnota karty</div>
+          <div class="amount-grid">
+            <button class="amt-btn" onclick="setAmount(19,this)">€19</button>
+            <button class="amt-btn active" onclick="setAmount(29,this)">€29</button>
+            <button class="amt-btn" onclick="setAmount(37,this)">€37</button>
+            <button class="amt-btn" onclick="setAmount(49,this)">€49</button>
+            <button class="amt-btn" onclick="setAmount(74,this)">€74</button>
+            <button class="amt-btn" onclick="setAmount(null,this)">Vlastná</button>
           </div>
-          <div class="gc-badge">Darčeková karta</div>
         </div>
-        <div class="gc-middle">
-          <div class="gc-label">Hodnota</div>
-          <div class="gc-amount" id="preview-amount">€29</div>
-          <div class="gc-message" id="preview-message" style="display:none"></div>
+
+        <div class="custom-amount-wrap" id="custom-wrap" style="display:none">
+          <div class="form-group">
+            <label>Vlastná suma</label>
+            <div class="inp-wrap">
+              <span class="inp-prefix">€</span>
+              <input type="number" id="custom-amount" min="5" max="500" step="1" placeholder="min. 5 — max. 500" oninput="onCustomAmount()">
+            </div>
+          </div>
         </div>
-        <div class="gc-bottom">
-          <div class="gc-code-label">Kód</div>
-          <div class="gc-code">NEOW-XXXX-XXXX-XXXX</div>
-          <div class="gc-recipient" id="preview-recipient" style="display:none"></div>
+
+        <div class="form-group">
+          <label>Váš email <span style="color:#ff4060;font-size:.8rem">*</span></label>
+          <input type="email" id="buyer-email" placeholder="vas@email.sk" oninput="updatePreview()">
         </div>
+
+        <div class="form-group">
+          <label>Vaše meno <span class="optional-tag">voliteľné</span></label>
+          <input type="text" id="buyer-name" placeholder="Ján Novák" oninput="updatePreview()">
+        </div>
+
+        <div class="form-group">
+          <label>Email príjemcu <span class="optional-tag">voliteľné</span></label>
+          <input type="email" id="recipient-email" placeholder="pratel@email.sk" oninput="updatePreview()">
+        </div>
+
+        <div class="form-group">
+          <label>Správa <span class="optional-tag">voliteľné</span></label>
+          <textarea id="gift-message" placeholder="Prajeme veľa úspechu s AI!" oninput="updatePreview()"></textarea>
+        </div>
+
+        <button class="btn-buy" id="btn-buy" onclick="startCheckout()">Prejsť na platbu →</button>
+        <div class="buy-note">Bezpečná platba cez Stripe · Zrušenie kedykoľvek</div>
       </div>
 
-      <div style="margin-top:1.25rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:1rem">
-        <div style="font-size:0.82rem;font-weight:700;color:#166534;margin-bottom:0.5rem">Na čo sa dá karta použiť?</div>
-        <div style="font-size:0.8rem;color:#166534;line-height:1.6">
-          ✅ <strong>€37+</strong> — mesiac Neoworkly Pro zadarmo<br>
-          ✅ <strong>Ľubovoľná suma</strong> — AI odpovede v chatbote<br>
-          ✅ <strong>€29+</strong> — Person add-on (AI digitálny dvojník)
+      <!-- RIGHT: Preview -->
+      <div>
+        <div class="preview-label">Náhľad darčekovej karty</div>
+        <div class="gift-card" id="preview-card">
+          <div class="gc-shine"></div>
+          <div class="gc-circles"></div>
+          <div class="gc-top">
+            <div class="gc-logo">
+              <div class="gc-logo-mark">🤖</div>
+              <div class="gc-logo-text">Neoworkly</div>
+            </div>
+            <div class="gc-badge">Darčeková karta</div>
+          </div>
+          <div class="gc-middle">
+            <div class="gc-label">Hodnota</div>
+            <div class="gc-amount" id="preview-amount">€29</div>
+            <div class="gc-message" id="preview-message" style="display:none"></div>
+          </div>
+          <div class="gc-bottom">
+            <div class="gc-code-label">Kód</div>
+            <div class="gc-code">NEOW-XXXX-XXXX-XXXX</div>
+            <div class="gc-recipient" id="preview-recipient" style="display:none"></div>
+          </div>
+        </div>
+
+        <div style="margin-top:1rem;background:var(--surface);border:1px solid var(--border2);border-radius:14px;padding:1rem">
+          <div style="font-size:.72rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem">Platnosť &amp; podmienky</div>
+          <div style="font-size:.82rem;color:var(--muted2);line-height:1.65">
+            ✓ Kód platí <strong style="color:var(--text)">bez časového obmedzenia</strong><br>
+            ✓ Jednorazové použitie — celá suma sa pripíše naraz<br>
+            ✓ Uplatnenie cez Dashboard → Affiliate &amp; Kredity
+          </div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- ─────────────────────────────────── SUCCESS ─────────────────────────────────── -->
-<div id="view-success" class="page">
-  <div class="success-header">
-    <div class="icon">🎉</div>
-    <h2>Darčeková karta je pripravená!</h2>
-    <p>Platba prebehla úspešne. Nižšie nájdete darčekovú kartu s unikátnym kódom.</p>
-  </div>
-
-  <div class="success-grid">
-    <!-- Gift card visual -->
-    <div>
-      <div class="gift-card" id="success-card">
-        <div class="gc-shine"></div>
-        <div class="gc-circles"></div>
-        <div class="gc-top">
-          <div class="gc-logo">
-            <div class="gc-logo-mark">🤖</div>
-            <div class="gc-logo-text">Neoworkly</div>
-          </div>
-          <div class="gc-badge">Darčeková karta</div>
-        </div>
-        <div class="gc-middle">
-          <div class="gc-label">Hodnota</div>
-          <div class="gc-amount" id="success-amount">€0</div>
-          <div class="gc-message" id="success-message" style="display:none"></div>
-        </div>
-        <div class="gc-bottom">
-          <div class="gc-code-label">Kód</div>
-          <div class="gc-code" id="success-code">—</div>
-          <div class="gc-recipient" id="success-recipient" style="display:none"></div>
-        </div>
-      </div>
-
-      <div class="card-actions">
-        <button class="btn-action btn-print" onclick="window.print()">🖨️ Vytlačiť / Uložiť PDF</button>
-        <button class="btn-action btn-copy" id="btn-copy-code" onclick="copyCode()">📋 Skopírovať kód</button>
-      </div>
+<!-- SUCCESS VIEW -->
+<div id="view-success">
+  <div class="page">
+    <div class="success-header">
+      <div class="success-icon">🎉</div>
+      <h2>Darčeková karta je <span class="grad-text">pripravená!</span></h2>
+      <p>Platba prebehla úspešne. Uložte alebo vytlačte kartu s unikátnym kódom.</p>
     </div>
 
-    <!-- Instructions -->
-    <div>
-      <div class="code-display" style="margin-bottom:1.5rem">
-        <div class="lbl">Kód darčekovej karty</div>
-        <div class="code" id="success-code-display">—</div>
+    <div class="buy-grid">
+      <!-- Gift card visual -->
+      <div>
+        <div class="preview-label">Vaša darčeková karta</div>
+        <div class="gift-card" id="success-card">
+          <div class="gc-shine"></div>
+          <div class="gc-circles"></div>
+          <div class="gc-top">
+            <div class="gc-logo">
+              <div class="gc-logo-mark">🤖</div>
+              <div class="gc-logo-text">Neoworkly</div>
+            </div>
+            <div class="gc-badge">Darčeková karta</div>
+          </div>
+          <div class="gc-middle">
+            <div class="gc-label">Hodnota</div>
+            <div class="gc-amount" id="success-amount">€0</div>
+            <div class="gc-message" id="success-message" style="display:none"></div>
+          </div>
+          <div class="gc-bottom">
+            <div class="gc-code-label">Kód</div>
+            <div class="gc-code" id="success-code">—</div>
+            <div class="gc-recipient" id="success-recipient" style="display:none"></div>
+          </div>
+        </div>
+
+        <div class="code-display">
+          <div class="lbl">Kód darčekovej karty</div>
+          <div class="code" id="success-code-display">—</div>
+        </div>
+
+        <div class="card-actions">
+          <button class="btn-action btn-print" onclick="window.print()">🖨️ Vytlačiť / Uložiť PDF</button>
+          <button class="btn-action btn-copy" id="btn-copy-code" onclick="copyCode()">📋 Skopírovať kód</button>
+        </div>
       </div>
 
-      <div class="info-box">
-        <h3>Ako kartu uplatniť?</h3>
-        <div class="info-step">
-          <div class="step-num">1</div>
-          <div class="step-text">Prihlás sa na <strong>neoworkly.com</strong> (alebo sa zaregistruj — registrácia je rýchla)</div>
+      <!-- Instructions -->
+      <div>
+        <div class="info-box">
+          <h3>Ako kartu uplatniť?</h3>
+          <div class="info-step">
+            <div class="step-num">1</div>
+            <div class="step-text">Prihlás sa na <strong>neoworkly.com</strong> (alebo sa zaregistruj — je to rýchle)</div>
+          </div>
+          <div class="info-step">
+            <div class="step-num">2</div>
+            <div class="step-text">V dashboarde klikni na <strong>Affiliate &amp; Kredity</strong> v ľavom menu</div>
+          </div>
+          <div class="info-step">
+            <div class="step-num">3</div>
+            <div class="step-text">Nájdi sekciu <strong>"Uplatniť darčekovú kartu"</strong> a zadaj kód</div>
+          </div>
+          <div class="info-step" style="margin-bottom:0">
+            <div class="step-num">4</div>
+            <div class="step-text">Kredity sa pripíšu okamžite — <strong>€37+ = voľný mesiac</strong>, menej = AI odpovede</div>
+          </div>
         </div>
-        <div class="info-step">
-          <div class="step-num">2</div>
-          <div class="step-text">V dashboarde klikni na <strong>Affiliate & Kredity</strong> v ľavom menu</div>
-        </div>
-        <div class="info-step">
-          <div class="step-num">3</div>
-          <div class="step-text">Nájdi sekciu <strong>"Uplatniť darčekovú kartu"</strong> a zadaj kód</div>
-        </div>
-        <div class="info-step">
-          <div class="step-num">4</div>
-          <div class="step-text">Kredity sa pripíšu okamžite — <strong>€37+ = voľný mesiac</strong>, menej = AI odpovede</div>
-        </div>
-      </div>
 
-      <div style="margin-top:1rem;padding:0.85rem;background:#fef9c3;border:1px solid #fde047;border-radius:10px;font-size:0.8rem;color:#713f12">
-        💡 <strong>Tip:</strong> Kód je jednorazový a platí bez časového obmedzenia. Uchovajte ho na bezpečnom mieste.
+        <div class="tip-box">
+          💡 <strong>Tip:</strong> Kód je jednorazový a platí bez časového obmedzenia. Uchovajte ho na bezpečnom mieste alebo vytlačte kartu.
+        </div>
       </div>
     </div>
   </div>
 </div>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-logo">Neoworkly</div>
+    <div class="footer-links">
+      <a href="https://neoworkly.com/policy.pdf">Ochrana súkromia</a>
+      <a href="https://neoworkly.com/policy.pdf">Podmienky</a>
+      <a href="mailto:info@neoworkly.com">Kontakt</a>
+    </div>
+    <div class="footer-copy">© 2025 Neoworkly. Všetky práva vyhradené.</div>
+  </div>
+</footer>
 
 <div class="toast" id="toast"></div>
 
@@ -288,15 +414,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#f8f7ff;color:#1e293
 let _amount = 29;
 let _isCustom = false;
 
-function setAmount(val) {
+function setAmount(val, btn) {
   _isCustom = val === null;
   document.getElementById('custom-wrap').style.display = _isCustom ? 'block' : 'none';
   document.querySelectorAll('.amt-btn').forEach(b => b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  if (!_isCustom) {
-    _amount = val;
-    updatePreview();
-  }
+  btn.classList.add('active');
+  if (!_isCustom) { _amount = val; updatePreview(); }
 }
 
 function onCustomAmount() {
@@ -306,14 +429,11 @@ function onCustomAmount() {
 }
 
 function updatePreview() {
-  const amountEl = document.getElementById('preview-amount');
-  amountEl.textContent = (_amount && _amount >= 5) ? `€${_amount}` : '€—';
-
+  document.getElementById('preview-amount').textContent = (_amount && _amount >= 5) ? `€${_amount}` : '€—';
   const msg = document.getElementById('gift-message').value.trim();
   const msgEl = document.getElementById('preview-message');
   msgEl.style.display = msg ? 'block' : 'none';
   msgEl.textContent = msg ? `"${msg}"` : '';
-
   const rec = document.getElementById('recipient-email').value.trim();
   const recEl = document.getElementById('preview-recipient');
   recEl.style.display = rec ? 'block' : 'none';
@@ -323,10 +443,9 @@ function updatePreview() {
 async function startCheckout() {
   if (_isCustom) {
     const v = parseFloat(document.getElementById('custom-amount').value);
-    _amount = v && v >= 5 && v <= 500 ? v : null;
+    _amount = (v && v >= 5 && v <= 500) ? v : null;
   }
   if (!_amount || _amount < 5) { showToast('Zadajte sumu (min. €5)'); return; }
-
   const email = document.getElementById('buyer-email').value.trim();
   if (!email || !email.includes('@')) { showToast('Zadajte platný email'); return; }
 
@@ -359,16 +478,10 @@ async function startCheckout() {
 async function loadSuccess(sessionId) {
   document.getElementById('view-purchase').style.display = 'none';
   document.getElementById('view-success').style.display = 'block';
-
-  // Poll until webhook creates the card (max 20s)
   for (let i = 0; i < 10; i++) {
     try {
       const r = await fetch(`/api/gift-cards/status?session=${encodeURIComponent(sessionId)}`);
-      if (r.ok) {
-        const d = await r.json();
-        renderSuccessCard(d);
-        return;
-      }
+      if (r.ok) { renderSuccessCard(await r.json()); return; }
     } catch {}
     await new Promise(res => setTimeout(res, 2000));
   }
@@ -376,10 +489,10 @@ async function loadSuccess(sessionId) {
 }
 
 function renderSuccessCard(d) {
-  document.getElementById('success-amount').textContent = `€${parseFloat(d.amount_eur).toFixed(0)}`;
+  const amt = `€${parseFloat(d.amount_eur).toFixed(0)}`;
+  document.getElementById('success-amount').textContent = amt;
   document.getElementById('success-code').textContent = d.code;
   document.getElementById('success-code-display').textContent = d.code;
-
   if (d.message) {
     const el = document.getElementById('success-message');
     el.textContent = `"${d.message}"`;
@@ -394,9 +507,7 @@ function renderSuccessCard(d) {
 
 function copyCode() {
   const code = document.getElementById('success-code').textContent;
-  navigator.clipboard.writeText(code).then(() => showToast('Kód skopírovaný!')).catch(() => {
-    prompt('Skopírujte kód:', code);
-  });
+  navigator.clipboard.writeText(code).then(() => showToast('Kód skopírovaný!')).catch(() => prompt('Skopírujte kód:', code));
 }
 
 function showToast(msg) {
@@ -406,12 +517,24 @@ function showToast(msg) {
   setTimeout(() => t.classList.remove('show'), 3000);
 }
 
+// Nav hamburger
+const hamburger = document.getElementById('hamburger');
+const navMobile = document.getElementById('nav-mobile');
+hamburger.addEventListener('click', () => {
+  const open = navMobile.classList.toggle('open');
+  hamburger.classList.toggle('open', open);
+  hamburger.setAttribute('aria-expanded', open);
+});
+function closeMobileNav() {
+  navMobile.classList.remove('open');
+  hamburger.classList.remove('open');
+  hamburger.setAttribute('aria-expanded', 'false');
+}
+
 // Init
 (function() {
-  const params = new URLSearchParams(location.search);
-  if (params.get('success') === '1' && params.get('session')) {
-    loadSuccess(params.get('session'));
-  }
+  const p = new URLSearchParams(location.search);
+  if (p.get('success') === '1' && p.get('session')) loadSuccess(p.get('session'));
 })();
 </script>
 </body>
