@@ -135,11 +135,18 @@ Neoworkly je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvoria 
 11. ONBOARDING (prvé nastavenie po registrácii)
 - Žiadny trial — platba prebehne hneď pri registrácii (Stripe)
 - Trial je dostupný výhradne pri osobnom stretnutí, nie verejne
-- Krok 1: Aktivácia predplatného (Stripe platba)
+- Krok 1: Aktivácia predplatného (Stripe platba) — alebo uplatnenie darčekovej karty (pozri nižšie)
 - Krok 2: Znalostná báza (nahranie obsahu alebo skenovanie URL)
 - Krok 3: Otázky & CTA (navrhované otázky + typ výzvy k akcii)
 - Krok 4: Embed kód (vloženie na web)
 - Krok 5: Growth Boost — SEO audit webu (voliteľný, €49 jednorazovo)
+
+AKTIVÁCIA CEZ DARČEKOVÚ KARTU V ONBOARDINGU:
+- Na onboarding stránke (pred platbou) je tlačidlo "🎁 Mám darčekovú kartu"
+- Zadáte kód vo formáte NEOW-XXXX-XXXX-XXXX → systém overí kartu
+- Ak je hodnota karty ≥ €37 (cena Pro plánu): Pro plán sa aktivuje okamžite — bez Stripe, bez platobnej karty
+- Ak je hodnota karty < €37: systém zobrazí koľko máte z karty a rozdiel doplatíte cez Stripe Checkout
+- Po aktivácii cez darčekovú kartu pokračujete rovnako: Znalostná báza → Otázky → Embed kód
 
 12. WORDPRESS PLUGIN
 - Plugin: Neoworkly Chatbot plugin (neoworkly-chatbot.zip)
@@ -759,15 +766,81 @@ BEŽNÉ OTÁZKY:
 
 28. DARČEKOVÉ KARTY
 Stránka: neoworkly.com/present (verejná, nevyžaduje prihlásenie)
+
+KÚPA DARČEKOVEJ KARTY:
 - Zakúpte darčekovú kartu pre niekoho iného alebo pre seba — hodnoty: €5, €10, €15, €25, €50 alebo vlastná suma
 - Po zaplatení cez Stripe dostane kupujúci e-mailom kód vo formáte NEOW-XXXX-XXXX-XXXX
-- Uplatnenie: Dashboard → sidebar → "🎁 Uplatniť darčekovú kartu" → zadajte kód → kredity sa okamžite pripíšu
-- Kredity z darčekovej karty fungujú ako affiliate/referral kredity:
-  • Voľný mesiac: 37 kreditov = 1 mesiac zadarmo (môžete uplatniť cez "Affiliate" sekciu)
-  • AI odpovede: 1 kredit = 100 AI odpovedí
-- Jeden kód možno uplatniť len raz; platnosť karty sa nepremlčuje
+- Platba cez Stripe, karta sa doručí na email kupujúceho
 
-29. SHOPIFY INTEGRÁCIA
+UPLATNENIE — existujúci zákazník (už má predplatné):
+- Dashboard → sidebar → "🎁 Uplatniť darčekovú kartu" → zadajte kód → kredity sa okamžite pripíšu
+- Kredity fungujú ako affiliate/referral kredity:
+  • Voľný mesiac: 37 kreditov = 1 mesiac Pro zadarmo (Stripe predplatné sa pozastaví na 1 mes.)
+  • AI odpovede: 1 kredit = 100 AI odpovedí (špeciálna sadzba, okamžite pripočítané)
+
+UPLATNENIE — nový zákazník (v onboardingu, bez predplatného):
+- Na onboarding stránke kliknite "🎁 Mám darčekovú kartu" a zadajte kód
+- Ak je hodnota ≥ €37: Pro plán sa aktivuje okamžite bez Stripe platobnej karty
+- Ak je hodnota < €37: systém zobrazí dostupný kredit a rozdiel doplatíte cez Stripe Checkout
+
+VŠEOBECNÉ PRAVIDLÁ:
+- Jeden kód možno uplatniť len raz; platnosť karty sa nepremlčuje
+- Kód sa nedá rozdeliť — celá hodnota sa uplatní naraz
+- Ak chce zákazník darovať Pro predplatné niekomu inému: kúpi kartu ≥ €37 a pošle kód obdarovanému
+
+TYPICKÉ OTÁZKY:
+"Kúpil som darčekovú kartu, nedostal som email s kódom"
+→ Skontrolujte spam/priečinok Hromadná pošta. Email posiela Stripe automaticky po zaplatení. Ak sa nenašiel, kontaktujte podporu.
+
+"Darčeková karta pokryla len časť — musím zaplatiť zvyšok"
+→ Áno — ak je hodnota karty nižšia ako €37, rozdiel doplatíte kartou cez Stripe. Systém to zobrazí automaticky.
+
+"Môžem kúpiť darčekovú kartu ako firmu a dostať faktúru?"
+→ Stripe vydá daňový doklad pri platbe. Faktúru so všetkými náležitosťami nájdete v Stripe potvrdzovacom emaily.
+
+29. VIACJAZYČNÉ ROZHRANIE (LANGUAGE SWITCHER)
+Neoworkly dashboard a landing stránka sú dostupné v 10 jazykoch:
+SK (slovenčina) • EN (English) • DE (Deutsch) • FR (Français) • ES (Español) • PL (Polski) • CS (Čeština) • HU (Magyar) • RO (Română) • HR (Hrvatski)
+
+JAK PREPNÚŤ JAZYK:
+1. Rozkliknúť rozbaľovací zoznam jazykov v pravom hornom rohu každej stránky (viditeľný napr. "SK ▾")
+2. Dashboard → Nastavenia účtu → záložka "🌐 Jazyk" → vybrať jazyk
+3. URL parameter: ?lang=en (alebo iný kód) — prepne jazyk priamo
+
+TECHNICKÉ DETAILY:
+- Jazyk sa uloží do localStorage — pretrváva aj po zatvorení prehľadávača
+- Automatická detekcia: ak jazyk nie je nastavený, systém použije jazyk prehľadávača
+- Predvolený jazyk (fallback): slovenčina (sk)
+- POZOR: Jazyk rozhrania ≠ jazyk widgetu. Widget chatbota sa automaticky prispôsobuje jazyku zákazníka nezávisle na nastavení jazyka dashboardu.
+
+TYPICKÉ OTÁZKY:
+"Dashboard sa zobrazuje po slovensky, chcem anglicky"
+→ Kliknite na "SK ▾" v pravom hornom rohu → vyberte English (EN).
+
+"Môj zákazník z Nemecka — bude chatbot odpovedať po nemecky?"
+→ Áno — chatbot detekuje jazyk zákazníka a odpovedá v ňom automaticky (napr. DE, EN, SK...), bez ohľadu na jazyk dashboardu.
+
+---
+
+30. DEMO STRÁNKA
+URL: neoworkly.com/demo.html (verejná, nevyžaduje prihlásenie)
+
+ČO JE DEMO STRÁNKA:
+Interaktívna ukážka chatbota pre potenciálnych zákazníkov — bez registrácie. Návštevník zadá typ biznisu a chatbot ukáže ako by fungoval v ich konkrétnom prípade.
+
+AKO TO FUNGUJE:
+1. Návštevník zadá popis biznisu (napr. "kaderníctvo Bratislava") alebo vyberie odvetvie
+2. AI vygeneruje simuláciu predajného rozhovoru šitú na mieru danému biznisu
+3. Návštevník si vyskúša chatbota v akcii — vidí reálne odpovede a správanie
+4. CTA na konci: "Vytvoriť vlastného chatbota" → presmeruje na registráciu / onboarding
+
+TYPICKÁ OTÁZKA:
+"Kde môžem ukázať potenciálnemu zákazníkovi ako chatbot funguje?"
+→ Pošlite link neoworkly.com/demo.html — každý si môže vyskúšať živú ukážku bez registrácie.
+
+---
+
+31. SHOPIFY INTEGRÁCIA
 Dashboard → váš widget → záložka "🛒 Shopify"
 - Prepojte Neoworkly s Shopify obchodom cez OAuth: Inštalácia cez neoworkly.com/shopify/install?shop=vasaadresa.myshopify.com
 - Po autorizácii jedným kliknutím naskenujte produkty, stránky a blogy do znalostnej bázy
