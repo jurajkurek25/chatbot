@@ -747,6 +747,20 @@ function addProactiveSeqItem(item) {
   item = item || { id: Math.random().toString(36).slice(2) + Date.now().toString(36), text: '', trigger: 'inactivity', delay: 30, repeat_after: 0, enabled: true };
   const list = document.getElementById('proactive-seq-list');
   if (!list) return;
+
+  // Parse multilingual text if stored as JSON
+  let defaultText = item.text || '';
+  let savedLangs = {};
+  if (defaultText.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(defaultText);
+      defaultText = parsed.default || parsed.sk || '';
+      for (const [k, v] of Object.entries(parsed)) {
+        if (k !== 'default') savedLangs[k] = v;
+      }
+    } catch {}
+  }
+
   const div = document.createElement('div');
   div.className = 'proactive-seq-item';
   div.dataset.seqId = item.id || (Math.random().toString(36).slice(2) + Date.now().toString(36));
@@ -756,7 +770,12 @@ function addProactiveSeqItem(item) {
         <input type="checkbox" class="seq-enabled" ${item.enabled !== false ? 'checked' : ''} style="width:14px;height:14px">
       </label>
       <div style="flex:1;min-width:0">
-        <input type="text" class="form-control seq-text" value="${esc(item.text || '')}" placeholder="Text správy..." style="margin-bottom:0.5rem">
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+          <input type="text" class="form-control seq-text" value="${esc(defaultText)}" placeholder="Text správy (predvolený jazyk)..." style="flex:1">
+          <button type="button" class="btn btn-secondary btn-sm seq-translate-btn" style="flex-shrink:0;font-size:0.78rem;padding:0.25rem 0.5rem" title="Auto-preložiť do všetkých jazykov">🌍</button>
+        </div>
+        <div class="seq-langs-container" style="margin-bottom:0.5rem"></div>
+        <button type="button" class="btn btn-secondary btn-sm seq-add-lang-btn" style="font-size:0.75rem;padding:0.2rem 0.5rem;margin-bottom:0.5rem">+ Jazyk</button>
         <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
           <select class="form-control seq-trigger" style="width:auto;font-size:0.8rem;padding:0.25rem 0.5rem">
             <option value="time" ${item.trigger === 'time' ? 'selected' : ''}>⏱ Po čase od načítania</option>
@@ -774,16 +793,82 @@ function addProactiveSeqItem(item) {
       <button type="button" class="btn btn-secondary btn-sm seq-remove" style="padding:0.2rem 0.5rem;flex-shrink:0" title="Odstrániť">✕</button>
     </div>
   `;
+
+  // Load saved language rows
+  const langContainer = div.querySelector('.seq-langs-container');
+  for (const [lang, msg] of Object.entries(savedLangs)) {
+    _addSeqLangRow(langContainer, lang, msg);
+  }
+
   div.querySelector('.seq-remove').addEventListener('click', () => div.remove());
+  div.querySelector('.seq-add-lang-btn').addEventListener('click', () => _addSeqLangRow(langContainer));
+  div.querySelector('.seq-translate-btn').addEventListener('click', () => _autoTranslateSeqItem(div));
   list.appendChild(div);
+}
+
+function _addSeqLangRow(container, lang, msg) {
+  const row = document.createElement('div');
+  row.className = 'seq-lang-row';
+  row.style.cssText = 'display:flex;gap:0.5rem;align-items:center;margin-bottom:0.35rem';
+  const options = Object.entries(WELCOME_LANG_NAMES)
+    .map(([code, name]) => `<option value="${code}">${name} (${code})</option>`).join('');
+  row.innerHTML =
+    `<select class="form-control sl-lang" style="width:140px;flex-shrink:0;font-size:0.8rem;padding:0.25rem 0.5rem">${options}</select>` +
+    `<input type="text" class="form-control sl-msg" placeholder="Preklad..." style="flex:1;font-size:0.85rem">` +
+    `<button type="button" class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:0.2rem 0.45rem" onclick="this.closest('.seq-lang-row').remove()">×</button>`;
+  container.appendChild(row);
+  if (lang) row.querySelector('.sl-lang').value = lang;
+  if (msg)  row.querySelector('.sl-msg').value  = msg;
+}
+
+async function _autoTranslateSeqItem(itemDiv) {
+  const textInput = itemDiv.querySelector('.seq-text');
+  const defaultText = textInput?.value.trim();
+  if (!defaultText) { showToast('Najprv vyplňte text správy.', 'error'); return; }
+  const btn = itemDiv.querySelector('.seq-translate-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const targetLangs = Object.keys(WELCOME_LANG_NAMES).filter(l => l !== 'sk');
+    const r = await apiFetch('/api/widgets/translate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: defaultText, targetLanguages: targetLangs,
+        context: 'proactive chat bubble message shown to a website visitor' }),
+    });
+    if (!r?.ok) { showToast('Chyba prekladu.', 'error'); return; }
+    const data = await r.json();
+    const container = itemDiv.querySelector('.seq-langs-container');
+    container.innerHTML = '';
+    for (const [lang, msg] of Object.entries(data.translations || {})) {
+      if (!WELCOME_LANG_NAMES[lang]) continue;
+      _addSeqLangRow(container, lang, String(msg));
+      await _sleep(20);
+    }
+    showToast('Preložené! Kliknite Uložiť nastavenia.', 'success');
+  } catch (e) {
+    showToast('Chyba: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🌍'; }
+  }
 }
 
 function buildProactiveSequence() {
   const items = document.querySelectorAll('.proactive-seq-item');
   const result = [];
   items.forEach(div => {
-    const text = (div.querySelector('.seq-text')?.value || '').trim();
-    if (!text) return;
+    const defaultText = (div.querySelector('.seq-text')?.value || '').trim();
+    if (!defaultText) return;
+    // Build multilingual text object if language rows exist
+    const langRows = div.querySelectorAll('.seq-lang-row');
+    let text = defaultText;
+    if (langRows.length) {
+      const obj = { default: defaultText };
+      langRows.forEach(r => {
+        const lang = r.querySelector('.sl-lang')?.value;
+        const msg  = r.querySelector('.sl-msg')?.value.trim();
+        if (lang && msg) obj[lang] = msg;
+      });
+      text = JSON.stringify(obj);
+    }
     result.push({
       id: div.dataset.seqId,
       text,
