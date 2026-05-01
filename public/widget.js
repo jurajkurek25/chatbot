@@ -951,14 +951,28 @@
   }
 
   function popOutChat() {
-    try {
-      localStorage.setItem('nd_popup_' + WIDGET_ID, JSON.stringify({ sid: sessionId, hist: history }));
-    } catch {}
-    window.open(
-      window.location.href.split('#')[0],
-      'nd_chat_' + WIDGET_ID,
-      'width=420,height=640,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no'
-    );
+    // Create a short-lived server-side session so the popup page can fetch conversation data
+    fetch(BASE_URL + '/api/widget/' + WIDGET_ID + '/popup-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sid: sessionId, hist: history }),
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        var url = data && data.token
+          ? BASE_URL + '/chat-popup.html?wid=' + encodeURIComponent(WIDGET_ID) + '&t=' + encodeURIComponent(data.token)
+          : BASE_URL + '/chat-popup.html?wid=' + encodeURIComponent(WIDGET_ID);
+        window.open(url, 'nd_chat_' + WIDGET_ID,
+          'width=420,height=640,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no');
+      })
+      .catch(function () {
+        // Fallback: open popup without history restore
+        window.open(
+          BASE_URL + '/chat-popup.html?wid=' + encodeURIComponent(WIDGET_ID),
+          'nd_chat_' + WIDGET_ID,
+          'width=420,height=640,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no'
+        );
+      });
   }
 
   function getExitIntentMsg() {
@@ -1953,18 +1967,26 @@
 
     sessionId = getSessionId();
 
-    // Check for popup context — restore session + history if this page was opened by popOutChat()
-    try {
-      const _ps = localStorage.getItem('nd_popup_' + WIDGET_ID);
-      if (_ps) {
-        localStorage.removeItem('nd_popup_' + WIDGET_ID);
-        _pendingPopup = JSON.parse(_ps);
-        if (_pendingPopup && _pendingPopup.sid) {
-          sessionId = _pendingPopup.sid;
-          sessionStorage.setItem('nd_session_' + WIDGET_ID, sessionId);
+    // Check for popup context — restore session + history
+    // Primary: window._ndPopupSession set by chat-popup.html after fetching server session
+    if (window._ndPopupSession) {
+      _pendingPopup = window._ndPopupSession;
+      window._ndPopupSession = null;
+    }
+    // Fallback: localStorage (same-origin, legacy path)
+    if (!_pendingPopup) {
+      try {
+        const _ps = localStorage.getItem('nd_popup_' + WIDGET_ID);
+        if (_ps) {
+          localStorage.removeItem('nd_popup_' + WIDGET_ID);
+          _pendingPopup = JSON.parse(_ps);
         }
-      }
-    } catch {}
+      } catch {}
+    }
+    if (_pendingPopup && _pendingPopup.sid) {
+      sessionId = _pendingPopup.sid;
+      try { sessionStorage.setItem('nd_session_' + WIDGET_ID, sessionId); } catch {}
+    }
 
     if (INLINE_MODE) {
       const containerEl = INLINE_CONTAINER ? document.querySelector(INLINE_CONTAINER) : null;

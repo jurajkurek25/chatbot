@@ -524,4 +524,39 @@ function safeParseJSON(str, fallback) {
   try { return JSON.parse(str); } catch { return fallback; }
 }
 
+/* ── Popup session store (in-memory, short TTL) ──────────────────── */
+const _popupSessions = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of _popupSessions) {
+    if (v.expires < now) _popupSessions.delete(k);
+  }
+}, 30000);
+
+// POST /api/widget/:widgetId/popup-session — called by widget before opening popup
+router.post('/:widgetId/popup-session', (req, res) => {
+  const { sid, hist } = req.body || {};
+  if (!sid) return res.status(400).json({ error: 'missing sid' });
+  const token = uuidv4();
+  _popupSessions.set(token, {
+    wid: req.params.widgetId,
+    sid: String(sid).slice(0, 128),
+    hist: Array.isArray(hist) ? hist.slice(-30) : [],
+    expires: Date.now() + 45000, // 45 second TTL — enough to open popup
+  });
+  res.json({ token });
+});
+
+// GET /api/widget/:widgetId/popup-session?t=TOKEN — called by chat-popup.html
+router.get('/:widgetId/popup-session', (req, res) => {
+  const token = (req.query.t || '').slice(0, 64);
+  const session = _popupSessions.get(token);
+  if (session && session.wid === req.params.widgetId && session.expires > Date.now()) {
+    _popupSessions.delete(token); // one-time use
+    res.json({ sid: session.sid, hist: session.hist });
+  } else {
+    res.json(null);
+  }
+});
+
 module.exports = router;
