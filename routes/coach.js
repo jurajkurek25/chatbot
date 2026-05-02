@@ -78,6 +78,22 @@ const WIDGET_SHARED_FIELDS = {
       days: { type: 'object' },
     },
   },
+  // Promotions / offers
+  promotions: {
+    type: 'array',
+    description: 'Active or scheduled promotions shown to visitors. Each item: { title, description, discount_text, start_at (unix ts, optional), end_at (unix ts, optional) }. The chatbot will proactively offer active promotions when visitors show interest or hesitate on price.',
+    items: {
+      type: 'object',
+      properties: {
+        title:         { type: 'string', description: 'Short promotion name, e.g. "Letná akcia"' },
+        description:   { type: 'string', description: 'What the promotion is, e.g. "20% zľava na všetky produkty"' },
+        discount_text: { type: 'string', description: 'Short label shown to AI, e.g. "-20%", "Zadarmo doprava"' },
+        start_at:      { type: 'integer', description: 'Unix timestamp when promotion starts (optional, default: now)' },
+        end_at:        { type: 'integer', description: 'Unix timestamp when promotion ends (optional, no end = indefinite)' },
+      },
+      required: ['title'],
+    },
+  },
   // CSAT & auto-reply
   csat_enabled:       { type: 'boolean', description: 'Show 5-star satisfaction rating to visitors after 4+ bot replies.' },
   auto_reply_enabled: { type: 'boolean', description: 'Send an auto-reply when agent is offline.' },
@@ -1489,7 +1505,7 @@ async function _coachUpdateWidget(userId, input) {
     cta_type, cta_phone, cta_label, cta_custom_text, cta_custom_btn, cta_custom_link,
     proactive_enabled, proactive_delay, proactive_message,
     offline_message, business_hours, csat_enabled, auto_reply_enabled, auto_reply_message,
-    active, webhook_url, slack_webhook_url, gdpr_text,
+    active, webhook_url, slack_webhook_url, gdpr_text, promotions,
   } = input;
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(widget_id, userId);
   if (!widget) return { error: 'Widget nenájdený.' };
@@ -1523,6 +1539,10 @@ async function _coachUpdateWidget(userId, input) {
   if (webhook_url        !== undefined) { fields.push('webhook_url = ?');        values.push(webhook_url || null); }
   if (slack_webhook_url  !== undefined) { fields.push('slack_webhook_url = ?');  values.push(slack_webhook_url || null); }
   if (gdpr_text          !== undefined) { fields.push('gdpr_text = ?');          values.push(gdpr_text || null); }
+  if (promotions         !== undefined) {
+    fields.push('promotions = ?');
+    values.push(JSON.stringify(Array.isArray(promotions) ? promotions.slice(0, 20) : []));
+  }
 
   if (!fields.length) return { widget };
 

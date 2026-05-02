@@ -417,6 +417,7 @@ async function openWidget(widgetId) {
   }
   document.getElementById('s-proactive-delay').value = currentWidget.proactive_delay || 4;
   renderProactiveSeq(currentWidget.proactive_sequence || []);
+  renderPromotions(currentWidget.promotions || []);
 
   // Avatar preview
   const preview = document.getElementById('s-avatar-preview');
@@ -854,6 +855,144 @@ async function _autoTranslateSeqItem(itemDiv) {
   }
 }
 
+/* ── Promotions / Offers ──────────────────────────────────────────── */
+
+function _promoStatus(p) {
+  const now = Math.floor(Date.now() / 1000);
+  const started = !p.start_at || p.start_at <= now;
+  const notEnded = !p.end_at || p.end_at >= now;
+  if (started && notEnded) return 'active';
+  if (!started) return 'planned';
+  return 'ended';
+}
+
+function _tsToLocal(ts) {
+  if (!ts) return '';
+  const d = new Date(ts * 1000);
+  // Format for datetime-local input: YYYY-MM-DDTHH:MM
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function _localToTs(str) {
+  if (!str) return null;
+  const ms = new Date(str).getTime();
+  return isNaN(ms) ? null : Math.floor(ms / 1000);
+}
+
+function renderPromotions(promos) {
+  const list = document.getElementById('promotions-list');
+  if (!list) return;
+  list.innerHTML = '';
+  (promos || []).forEach(p => _addPromotionRow(list, p));
+}
+
+function _addPromotionRow(list, p) {
+  const id = p?.id || ('promo_' + Math.random().toString(36).slice(2, 9));
+  const status = _promoStatus(p || {});
+  const badge = status === 'active'
+    ? '<span style="background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px">AKTÍVNA</span>'
+    : status === 'planned'
+    ? '<span style="background:#dbeafe;color:#2563eb;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px">PLÁNOVANÁ</span>'
+    : '<span style="background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px">UKONČENÁ</span>';
+
+  const div = document.createElement('div');
+  div.className = 'promo-item';
+  div.dataset.promoId = id;
+  div.style.cssText = 'border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fafafa';
+  div.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:600;color:#374151">
+        ${p?.title ? escHtml(p.title) : 'Nová akcia'}${badge}
+      </div>
+      <button type="button" onclick="removePromotion(this)" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;line-height:1;padding:0 2px" title="Odstrániť">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px">Názov akcie *</label>
+        <input type="text" class="form-control promo-title" value="${escHtml(p?.title || '')}" placeholder="napr. Letná akcia" style="font-size:13px" oninput="_updatePromoHeader(this)">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px">Text zľavy</label>
+        <input type="text" class="form-control promo-discount" value="${escHtml(p?.discount_text || '')}" placeholder="napr. -20%" style="font-size:13px">
+      </div>
+    </div>
+    <div style="margin-bottom:8px">
+      <label style="font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px">Popis akcie</label>
+      <input type="text" class="form-control promo-desc" value="${escHtml(p?.description || '')}" placeholder="napr. 20% zľava na všetky produkty" style="font-size:13px">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px">Začiatok akcie</label>
+        <input type="datetime-local" class="form-control promo-start" value="${_tsToLocal(p?.start_at)}" style="font-size:13px" onchange="_updatePromoBadge(this)">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px">Koniec akcie</label>
+        <input type="datetime-local" class="form-control promo-end" value="${_tsToLocal(p?.end_at)}" style="font-size:13px" onchange="_updatePromoBadge(this)">
+      </div>
+    </div>
+  `;
+  list.appendChild(div);
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _updatePromoHeader(input) {
+  const item = input.closest('.promo-item');
+  const titleEl = item?.querySelector('div[style*="font-weight:600"]');
+  if (titleEl) {
+    const badge = titleEl.querySelector('span');
+    titleEl.textContent = input.value || 'Nová akcia';
+    if (badge) titleEl.appendChild(badge);
+  }
+}
+
+function _updatePromoBadge(input) {
+  const item = input.closest('.promo-item');
+  if (!item) return;
+  const startVal = item.querySelector('.promo-start')?.value;
+  const endVal   = item.querySelector('.promo-end')?.value;
+  const p = { start_at: _localToTs(startVal), end_at: _localToTs(endVal) };
+  const status = _promoStatus(p);
+  const badge = item.querySelector('span[style*="border-radius:10px"]');
+  if (badge) {
+    if (status === 'active') { badge.textContent = 'AKTÍVNA'; badge.style.cssText = 'background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px'; }
+    else if (status === 'planned') { badge.textContent = 'PLÁNOVANÁ'; badge.style.cssText = 'background:#dbeafe;color:#2563eb;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px'; }
+    else { badge.textContent = 'UKONČENÁ'; badge.style.cssText = 'background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px'; }
+  }
+}
+
+function addPromotion() {
+  const list = document.getElementById('promotions-list');
+  if (!list) return;
+  _addPromotionRow(list, { id: 'promo_' + Math.random().toString(36).slice(2, 9) });
+}
+
+function removePromotion(btn) {
+  btn.closest('.promo-item')?.remove();
+}
+
+function buildPromotions() {
+  const result = [];
+  document.querySelectorAll('.promo-item').forEach(div => {
+    const title = (div.querySelector('.promo-title')?.value || '').trim();
+    if (!title) return;
+    result.push({
+      id:            div.dataset.promoId,
+      title,
+      description:   (div.querySelector('.promo-desc')?.value   || '').trim() || undefined,
+      discount_text: (div.querySelector('.promo-discount')?.value || '').trim() || undefined,
+      start_at:      _localToTs(div.querySelector('.promo-start')?.value) || undefined,
+      end_at:        _localToTs(div.querySelector('.promo-end')?.value)   || undefined,
+    });
+  });
+  return result;
+}
+
+/* ── Proactive Sequence ───────────────────────────────────────────── */
+
 function buildProactiveSequence() {
   const items = document.querySelectorAll('.proactive-seq-item');
   const result = [];
@@ -898,6 +1037,7 @@ async function saveSettings() {
     proactive_message: buildProactiveMessage(),
     proactive_delay: parseInt(document.getElementById('s-proactive-delay').value) || 4,
     proactive_sequence: buildProactiveSequence(),
+    promotions: buildPromotions(),
   };
   if (!body.name) { showToast('Názov widgetu je povinný.', 'error'); return; }
 

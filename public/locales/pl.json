@@ -2471,5 +2471,20 @@
   "Vytvoriť chatbota s AI →": "Utwórz chatbota z AI →",
   "WooCommerce import produktov": "Import produktów WooCommerce",
   "WhatsApp správa od zákazníka": "Wiadomość WhatsApp od klienta",
-  "SaaS dashboardy": "Pulpity nawigacyjne SaaS"
+  "SaaS dashboardy": "Pulpity nawigacyjne SaaS",
+  "🏷️ Akcie a zľavy": "🏷️ Akcje i Zniżki",
+  "Chatbot aktívne ponúka tieto akcie zákazníkom keď prejavujú záujem alebo váhajú pri cene. Môžete nastaviť začiatok aj koniec vopred – chatbot ich zobrazí len keď sú aktívne.": "Chatbot aktywnie oferuje te promocje odwiedzającym, gdy wykazują zainteresowanie lub wahają się przy cenie. Możesz z góry ustawić datę rozpoczęcia i zakończenia – chatbot wyświetli je tylko gdy są aktywne.",
+  "+ Pridať akciu": "+ Dodaj akcję",
+  "Názov akcie *": "Nazwa akcji *",
+  "Text zľavy": "Etykieta rabatu",
+  "Popis akcie": "Opis akcji",
+  "Začiatok akcie": "Data rozpoczęcia",
+  "Koniec akcie": "Data zakończenia",
+  "Nová akcia": "Nowa akcja",
+  "napr. Letná akcia": "np. Letnia wyprzedaż",
+  "napr. -20%": "np. -20%",
+  "napr. 20% zľava na všetky produkty": "np. 20% zniżki na wszystkie produkty",
+  "AKTÍVNA": "AKTYWNA",
+  "PLÁNOVANÁ": "ZAPLANOWANA",
+  "UKONČENÁ": "ZAKOŃCZONA"
 }

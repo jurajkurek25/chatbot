@@ -566,6 +566,7 @@ function initDatabase() {
 )`,
     `ALTER TABLE users ADD COLUMN sales_ref TEXT`,
     `ALTER TABLE users ADD COLUMN sales_promo_used TEXT`,
+    `ALTER TABLE widgets ADD COLUMN promotions TEXT NOT NULL DEFAULT '[]'`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

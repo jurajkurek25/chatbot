@@ -2471,5 +2471,20 @@
   "Vytvoriť chatbota s AI →": "Chatbot létrehozása AI-val →",
   "WooCommerce import produktov": "WooCommerce termékimport",
   "WhatsApp správa od zákazníka": "WhatsApp üzenet ügyféltől",
-  "SaaS dashboardy": "SaaS irányítópultok"
+  "SaaS dashboardy": "SaaS irányítópultok",
+  "🏷️ Akcie a zľavy": "🏷️ Akciók és Kedvezmények",
+  "Chatbot aktívne ponúka tieto akcie zákazníkom keď prejavujú záujem alebo váhajú pri cene. Môžete nastaviť začiatok aj koniec vopred – chatbot ich zobrazí len keď sú aktívne.": "A chatbot aktívan ajánlja ezeket az akciókat a látogatóknak, amikor érdeklődést mutatnak vagy haboznak az ár miatt. A kezdési és befejezési dátumot előre beállíthatja – a chatbot csak akkor jeleníti meg, ha aktív.",
+  "+ Pridať akciu": "+ Akció hozzáadása",
+  "Názov akcie *": "Akció neve *",
+  "Text zľavy": "Kedvezmény felirata",
+  "Popis akcie": "Akció leírása",
+  "Začiatok akcie": "Kezdési dátum",
+  "Koniec akcie": "Befejezési dátum",
+  "Nová akcia": "Új akció",
+  "napr. Letná akcia": "pl. Nyári akció",
+  "napr. -20%": "pl. -20%",
+  "napr. 20% zľava na všetky produkty": "pl. 20% kedvezmény minden termékre",
+  "AKTÍVNA": "AKTÍV",
+  "PLÁNOVANÁ": "TERVEZETT",
+  "UKONČENÁ": "BEFEJEZETT"
 }

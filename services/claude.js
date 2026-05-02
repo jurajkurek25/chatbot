@@ -79,6 +79,31 @@ function buildSystemPrompt(widget, knowledgeItems, products = [], pageContext = 
 
   const productsSection = buildProductsSection(products);
 
+  let promotionsSection = '';
+  const _now = Math.floor(Date.now() / 1000);
+  const _rawPromos = typeof widget.promotions === 'string'
+    ? (() => { try { return JSON.parse(widget.promotions); } catch { return []; } })()
+    : (Array.isArray(widget.promotions) ? widget.promotions : []);
+  const _activePromos = _rawPromos.filter(p =>
+    p && p.title &&
+    (!p.start_at || p.start_at <= _now) &&
+    (!p.end_at   || p.end_at   >= _now)
+  );
+  if (_activePromos.length > 0) {
+    promotionsSection = '\n\n## AKTUÁLNE AKCIE A ZĽAVY\nTieto akcie sú práve aktívne – ponúkaj ich zákazníkom prirodzene (keď prejavujú záujem, hovoria o cene alebo váhajú):\n';
+    _activePromos.forEach((p, i) => {
+      promotionsSection += `\n${i + 1}. **${p.title}**`;
+      if (p.discount_text) promotionsSection += ` (${p.discount_text})`;
+      if (p.description)   promotionsSection += `: ${p.description}`;
+      if (p.end_at) {
+        const daysLeft = Math.ceil((p.end_at - _now) / 86400);
+        if (daysLeft <= 7) promotionsSection += ` — platí ešte ${daysLeft} ${daysLeft === 1 ? 'deň' : daysLeft < 5 ? 'dni' : 'dní'}!`;
+        else promotionsSection += ` — platí do ${new Date(p.end_at * 1000).toLocaleDateString('sk-SK')}`;
+      }
+    });
+    promotionsSection += '\n→ Ponúkni akciu prirodzene keď zákazník hovorí o cene, váha alebo sa pýta na podmienky.';
+  }
+
   let pageContextSection = '';
   if (pageContext?.url) {
     pageContextSection = `\n\n## KONTEXT AKTUÁLNEJ STRÁNKY\nZákazník sa nachádza na: ${pageContext.url}`;
@@ -133,7 +158,7 @@ Keď zákazník prejaví záujem alebo súhlas:
 - Odpovedaj VŽDY v jazyku zákazníka (podľa toho ako píše – sk, en, de, fr, es, pl, cs, hu, ro, hr alebo iný).
 - Nikdy si nevymýšľaj fakty, ceny, mená, kontakty ani referencie.
 - Nebuď agresívny ani nátlakový – predávaj cez dôveru a pochopenie.
-- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${videoSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
+- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${videoSection}${productsSection}${knowledgeSection}${promotionsSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
 }
 
 function loadProducts(widgetId) {

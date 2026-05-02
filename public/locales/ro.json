@@ -2471,5 +2471,20 @@
   "Vytvoriť chatbota s AI →": "Creați chatbot cu AI →",
   "WooCommerce import produktov": "Import produse WooCommerce",
   "WhatsApp správa od zákazníka": "Mesaj WhatsApp de la client",
-  "SaaS dashboardy": "Tablouri de bord SaaS"
+  "SaaS dashboardy": "Tablouri de bord SaaS",
+  "🏷️ Akcie a zľavy": "🏷️ Promoții și Reduceri",
+  "Chatbot aktívne ponúka tieto akcie zákazníkom keď prejavujú záujem alebo váhajú pri cene. Môžete nastaviť začiatok aj koniec vopred – chatbot ich zobrazí len keď sú aktívne.": "Chatbot-ul oferă activ aceste promoții vizitatorilor când arată interes sau ezită la preț. Puteți seta datele de început și de sfârșit în avans – chatbot-ul le va afișa doar când sunt active.",
+  "+ Pridať akciu": "+ Adăugați promoție",
+  "Názov akcie *": "Numele promoției *",
+  "Text zľavy": "Eticheta reducerii",
+  "Popis akcie": "Descrierea promoției",
+  "Začiatok akcie": "Data de început",
+  "Koniec akcie": "Data de sfârșit",
+  "Nová akcia": "Promoție nouă",
+  "napr. Letná akcia": "ex. Reduceri de vară",
+  "napr. -20%": "ex. -20%",
+  "napr. 20% zľava na všetky produkty": "ex. 20% reducere la toate produsele",
+  "AKTÍVNA": "ACTIVĂ",
+  "PLÁNOVANÁ": "PLANIFICATĂ",
+  "UKONČENÁ": "ÎNCHEIATĂ"
 }
