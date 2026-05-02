@@ -1115,21 +1115,64 @@ router.post('/chat', requireAuth, async (req, res) => {
   // ── Build per-request system prompt with user's existing widgets ──
   const existingWidgets = db.prepare(
     'SELECT id, name, bot_name, welcome_message, primary_color, goals, cta_type, cta_config, ' +
-    'proactive_enabled, proactive_delay, proactive_message, offline_message, business_hours, ' +
-    'csat_enabled, auto_reply_enabled, auto_reply_message, active ' +
+    'suggested_questions, proactive_enabled, proactive_delay, proactive_message, ' +
+    'offline_message, business_hours, csat_enabled, auto_reply_enabled, auto_reply_message, ' +
+    'active, webhook_url, slack_webhook_url, gdpr_text ' +
     'FROM widgets WHERE user_id = ? ORDER BY created_at DESC LIMIT 20'
   ).all(req.userId);
 
   let widgetContext = '';
   if (existingWidgets.length > 0) {
     const widgetList = existingWidgets.map(w => {
-      const parts = [`ID: ${w.id}`, `Názov: ${w.name}`, `Bot: ${w.bot_name}`, `CTA: ${w.cta_type}`];
-      if (w.primary_color) parts.push(`Farba: ${w.primary_color}`);
-      if (w.proactive_enabled) parts.push(`Proactive: áno (${w.proactive_delay}s)`);
-      if (w.business_hours) parts.push('Otváracie hodiny: nastavené');
-      return `• ${parts.join(' | ')}`;
-    }).join('\n');
-    widgetContext = `\n\n━━━ EXISTUJÚCE WIDGETY KLIENTA ━━━\n${widgetList}\n\nKEDY VOLAŤ update_widget:\n- Klient chce zmeniť/upraviť/aktualizovať existujúci chatbot → použij update_widget s widget_id z vyššie uvedeného zoznamu\n- Trigger: "uprav", "zmeň", "aktualizuj", "update", "edit", "nastav inak" + meno alebo ID widgetu\n- Ak klient neupresní ktorý widget, spýtaj sa ktorý má na mysli (uveď zoznam mien)\n- update_widget zvláda všetky rovnaké polia ako create_widget — môžeš zmeniť hocičo`;
+      const lines = [];
+      lines.push(`ID: ${w.id} | Názov: ${w.name} | Bot: ${w.bot_name} | Stav: ${w.active ? 'aktívny' : 'neaktívny'}`);
+      lines.push(`  Farba: ${w.primary_color || '#2563eb'} | CTA: ${w.cta_type}`);
+
+      // CTA config details
+      try {
+        const cc = w.cta_config ? JSON.parse(w.cta_config) : {};
+        if (w.cta_type === 'call' && cc.phone)   lines.push(`  CTA tel: ${cc.phone}`);
+        if ((w.cta_type === 'contact' || w.cta_type === 'booking') && cc.label) lines.push(`  CTA label: ${cc.label}`);
+        if (w.cta_type === 'custom') lines.push(`  CTA link: ${cc.customLink || ''} | tlačidlo: ${cc.customBtnLabel || ''}`);
+      } catch (_) {}
+
+      // Proactive
+      if (w.proactive_enabled) lines.push(`  Proactive: áno | delay: ${w.proactive_delay}s | text: "${w.proactive_message}"`);
+      else lines.push('  Proactive: nie');
+
+      // Business hours
+      try {
+        const bh = w.business_hours ? JSON.parse(w.business_hours) : {};
+        if (bh.enabled && bh.days) {
+          const DAY = ['Ne','Po','Ut','St','Št','Pi','So'];
+          const activeDays = Object.entries(bh.days)
+            .filter(([, d]) => d.enabled)
+            .map(([k, d]) => `${DAY[+k]} ${d.start}-${d.end}`)
+            .join(', ');
+          lines.push(`  Otváracie hodiny: ${activeDays || 'nastavené ale žiadny deň aktívny'}`);
+        } else {
+          lines.push('  Otváracie hodiny: nie');
+        }
+      } catch (_) {}
+
+      if (w.offline_message)    lines.push(`  Offline správa: "${w.offline_message}"`);
+      if (w.auto_reply_enabled) lines.push(`  Auto-reply: "${w.auto_reply_message}"`);
+      if (w.webhook_url)        lines.push(`  Webhook: ${w.webhook_url}`);
+      if (w.slack_webhook_url)  lines.push(`  Slack webhook: ${w.slack_webhook_url}`);
+
+      // Suggested questions
+      try {
+        const sq = w.suggested_questions ? JSON.parse(w.suggested_questions) : [];
+        if (sq.length) lines.push(`  Otázky: ${sq.join(' | ')}`);
+      } catch (_) {}
+
+      // Goals (first 200 chars)
+      if (w.goals) lines.push(`  Goals (skrátené): ${String(w.goals).slice(0, 200)}...`);
+
+      return lines.join('\n');
+    }).join('\n\n');
+
+    widgetContext = `\n\n━━━ EXISTUJÚCE WIDGETY KLIENTA ━━━\n${widgetList}\n\nKEDY VOLAŤ update_widget:\n- Klient chce zmeniť/upraviť/aktualizovať existujúci chatbot → použij update_widget s widget_id z vyššie uvedeného zoznamu\n- Trigger: "uprav", "zmeň", "aktualizuj", "update", "edit", "nastav inak" + meno alebo ID widgetu\n- Ak klient neupresní ktorý widget, spýtaj sa ktorý má na mysli (uveď zoznam mien)\n- update_widget zvláda všetky rovnaké polia ako create_widget — môžeš zmeniť hocičo\n- Vždy zachovaj polia ktoré klient nechce meniť — z kontextu vyššie vieš ich aktuálne hodnoty`;
   } else {
     widgetContext = '\n\n━━━ EXISTUJÚCE WIDGETY KLIENTA ━━━\nKlient zatiaľ nemá žiadne widgety.';
   }
