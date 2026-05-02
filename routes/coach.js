@@ -11,6 +11,22 @@ const { logTrainingSample } = require('../services/training-logger');
 const router = express.Router();
 const client = new Anthropic();
 
+// Daily rate limit: max 40 coach messages per user per calendar day (in-memory, resets on server restart)
+const COACH_DAILY_LIMIT = 40;
+const _coachDaily = new Map(); // userId -> { date: 'YYYY-MM-DD', count: N }
+
+function _checkCoachLimit(userId) {
+  const today = new Date().toISOString().slice(0, 10);
+  const entry = _coachDaily.get(userId);
+  if (!entry || entry.date !== today) {
+    _coachDaily.set(userId, { date: today, count: 1 });
+    return true;
+  }
+  if (entry.count >= COACH_DAILY_LIMIT) return false;
+  entry.count++;
+  return true;
+}
+
 const BOOKING_SERVICE_SCHEMA = {
   type: 'object',
   properties: {
@@ -1108,6 +1124,10 @@ router.post('/chat', requireAuth, async (req, res) => {
     return res.status(403).json({ error: 'AI Coach je dostupný iba pre aktívnych predplatiteľov.' });
   }
 
+  if (!_checkCoachLimit(req.userId)) {
+    return res.status(429).json({ error: 'Denný limit AI Coach správ bol vyčerpaný. Skúste zajtra.' });
+  }
+
   const { message, history = [] } = req.body;
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'Správa nesmie byť prázdna.' });
@@ -1207,17 +1227,17 @@ router.post('/chat', requireAuth, async (req, res) => {
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 4096,
+      max_tokens: 2048,
       system: systemPrompt,
       messages,
       tools: COACH_TOOLS,
     });
 
-    // ── Helper: follow-up text after tool execution ──────────────
+    // ── Helper: follow-up text after tool execution (Haiku — just a confirmation message) ──
     const followUpText = async (toolUseId, toolResultContent) => {
       const fu = await client.messages.create({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 600,
+        model: 'claude-haiku-4-5-20251001',
+        max_tokens: 400,
         system: systemPrompt,
         messages: [
           ...messages,

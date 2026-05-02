@@ -29,7 +29,7 @@ function getStripe() {
 async function triggerAutoReload(userId, user) {
   const db = getDb();
   const euros = user.auto_reload_amount_eur || 8;
-  const credits = euros * 20;
+  const credits = Math.round(euros * 25); // 25 cr/€ — same rate as manual p8r package
   const now = Math.floor(Date.now() / 1000);
 
   // Atomic claim: only proceed if no other request triggered within last 600s
