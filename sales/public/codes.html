@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neoworkly Sales — Kódy &amp; Linky</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 240px; min-height: 100vh;
+      background: #1e293b;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .logo-row { display: flex; align-items: center; gap: 10px; }
+    .logo-dot {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+    }
+    .logo-dot svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .logo-text { font-size: 14px; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+    .logo-text small { display: block; font-size: 11px; color: #64748b; font-weight: 400; margin-top: 1px; }
+    .nav { flex: 1; padding: 16px 12px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 9px;
+      color: #94a3b8; text-decoration: none;
+      font-size: 14px; font-weight: 500;
+      transition: all 0.18s; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+    .nav-item.active { background: rgba(37,99,235,0.18); color: #60a5fa; }
+    .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .user-avatar { width: 34px; height: 34px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+    .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .user-name { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+    .user-email { font-size: 11px; color: #475569; margin-top: 1px; }
+    .btn-logout { width: 100%; padding: 8px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; color: #f87171; font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 500; transition: background 0.2s; }
+    .btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+    /* ── MAIN ── */
+    .main { margin-left: 240px; flex: 1; padding: 36px 40px; min-height: 100vh; max-width: calc(100vw - 240px); }
+
+    .page-header { margin-bottom: 32px; }
+    .page-header h2 { font-size: 27px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px; }
+    .page-header p { color: #64748b; font-size: 14px; margin-top: 5px; }
+
+    /* Section */
+    .section { margin-bottom: 44px; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+    .section-title { font-size: 18px; font-weight: 700; color: #f1f5f9; }
+
+    /* Card */
+    .card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    /* Generate form */
+    .generate-form { display: none; background: #162032; border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 22px; margin-bottom: 20px; }
+    .generate-form.open { display: block; }
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.6px; }
+    .form-group input, .form-group textarea {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      padding: 10px 13px;
+      color: #f1f5f9;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.18s;
+    }
+    .form-group input:focus, .form-group textarea:focus { border-color: rgba(37,99,235,0.5); }
+    .form-group textarea { resize: vertical; min-height: 72px; }
+    .form-actions { display: flex; gap: 10px; }
+
+    /* Buttons */
+    .btn {
+      padding: 10px 20px;
+      border-radius: 9px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+    .btn-primary { background: linear-gradient(135deg, #2563eb, #4f46e5); color: #fff; box-shadow: 0 4px 14px rgba(37,99,235,0.3); }
+    .btn-primary:hover { opacity: 0.92; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #e2e8f0; }
+    .btn-outline:hover { background: rgba(255,255,255,0.05); }
+    .btn-sm { padding: 6px 14px; font-size: 13px; }
+    .btn-ghost { background: transparent; border: none; color: #64748b; font-size: 13px; cursor: pointer; font-family: inherit; padding: 6px 10px; border-radius: 6px; transition: all 0.15s; }
+    .btn-ghost:hover { color: #e2e8f0; background: rgba(255,255,255,0.05); }
+
+    /* Generated code card */
+    .code-result {
+      display: none;
+      background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(124,58,237,0.08));
+      border: 1px solid rgba(37,99,235,0.3);
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .code-result.visible { display: block; }
+    .code-result-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; font-weight: 600; margin-bottom: 10px; }
+    .code-display {
+      font-size: 36px; font-weight: 800; color: #60a5fa; letter-spacing: 4px;
+      font-family: 'Courier New', monospace;
+      margin-bottom: 14px;
+    }
+    .code-share-msg {
+      background: #0f172a; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px;
+      padding: 14px 18px; font-size: 14px; color: #cbd5e1; text-align: left;
+      line-height: 1.6; margin-bottom: 14px;
+    }
+    .copy-row { display: flex; gap: 10px; justify-content: center; }
+
+    /* Codes list */
+    .codes-table { width: 100%; border-collapse: collapse; }
+    .codes-table th {
+      text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+      color: #475569; font-weight: 600; padding: 0 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .codes-table td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; }
+    .codes-table tr:last-child td { border-bottom: none; }
+    .code-mono { font-family: 'Courier New', monospace; font-size: 15px; font-weight: 700; color: #60a5fa; letter-spacing: 1px; }
+    .synced-ok { color: #34d399; font-size: 15px; }
+    .synced-warn { color: #fbbf24; font-size: 15px; }
+    .uses-pill { background: rgba(37,99,235,0.15); color: #60a5fa; padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+
+    /* Referral section */
+    .referral-card {
+      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(37,99,235,0.06));
+      border: 1px solid rgba(16,185,129,0.2);
+      border-radius: 14px;
+      padding: 28px;
+    }
+    .referral-link-row { display: flex; gap: 10px; margin: 16px 0; }
+    .referral-link-input {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 9px;
+      padding: 11px 15px;
+      color: #60a5fa;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      outline: none;
+    }
+    .referral-stats { display: flex; gap: 24px; margin-top: 16px; }
+    .ref-stat { text-align: center; }
+    .ref-stat-value { font-size: 28px; font-weight: 700; color: #34d399; }
+    .ref-stat-label { font-size: 12px; color: #64748b; margin-top: 3px; }
+    .referral-info { margin-top: 18px; padding: 14px 18px; background: rgba(255,255,255,0.03); border-radius: 10px; font-size: 13px; color: #94a3b8; line-height: 1.6; }
+
+    .empty-state { text-align: center; padding: 40px 20px; color: #475569; font-size: 14px; }
+
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1e293b; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 12px 18px;
+      color: #f1f5f9; font-size: 14px; font-weight: 500;
+      display: none; z-index: 9999;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      animation: fadeIn 0.2s ease;
+    }
+    .toast.show { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    @media (max-width: 900px) { .form-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 768px) {
+      .sidebar { width: 0; overflow: hidden; }
+      .main { margin-left: 0; padding: 24px 16px; max-width: 100vw; }
+    }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-row">
+        <div class="logo-dot">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="logo-text">Neoworkly Sales<small>Tréningová platforma</small></div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="/dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="/training.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        Tréning
+      </a>
+      <a href="/prospects.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Prospekting
+      </a>
+      <a href="/advisor.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        AI Poradca
+      </a>
+      <a href="/codes.html" class="nav-item active">
+        <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 2v4M16 2v4M2 10h20"/></svg>
+        Kódy &amp; Linky
+      </a>
+      <a href="/toolkit.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3-3a1 1 0 000-1.4l-1.6-1.6a1 1 0 00-1.4 0l-3 3z"/><path d="M5 20L2 22l2-3 9.5-9.5-2-2L5 20z"/></svg>
+        Toolkit
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="sidebar-name">–</div>
+          <div class="user-email" id="sidebar-email">–</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Odhlásiť sa</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-header">
+      <h2>Kódy &amp; Linky</h2>
+      <p>Generujte promo kódy pre klientov a zdieľajte váš referral link.</p>
+    </div>
+
+    <!-- Section 1: Promo kódy -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Promo kódy</span>
+        <button class="btn btn-primary btn-sm" onclick="toggleForm()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Generovať nový kód
+        </button>
+      </div>
+
+      <!-- Generate form -->
+      <div class="generate-form" id="generate-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Meno prospektu (voliteľné)</label>
+            <input type="text" id="f-prospect" placeholder="napr. Kozmetický salón Krása" />
+          </div>
+          <div class="form-group">
+            <label>Poznámka (voliteľné)</label>
+            <input type="text" id="f-notes" placeholder="napr. po cold calle dnes" />
+          </div>
+          <div class="form-group">
+            <label>Dni zadarmo</label>
+            <input type="number" id="f-days" value="30" min="1" max="365" />
+          </div>
+          <div class="form-group">
+            <label>Max. použití</label>
+            <input type="number" id="f-maxuses" value="1" min="1" max="100" />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" id="generate-btn" onclick="generateCode()">
+            Generovať kód
+          </button>
+          <button class="btn btn-outline" onclick="toggleForm()">Zrušiť</button>
+        </div>
+      </div>
+
+      <!-- Generated code result -->
+      <div class="code-result" id="code-result">
+        <div class="code-result-label">Váš promo kód</div>
+        <div class="code-display" id="result-code">–</div>
+        <div class="code-share-msg" id="result-msg"></div>
+        <div class="copy-row">
+          <button class="btn btn-primary btn-sm" onclick="copyCode()">Kopírovať kód</button>
+          <button class="btn btn-outline btn-sm" onclick="copyMessage()">Kopírovať správu</button>
+        </div>
+        <div style="margin-top:10px; font-size:12px; color:#475569" id="result-synced"></div>
+      </div>
+
+      <!-- Codes list -->
+      <div class="card">
+        <div id="codes-container">
+          <div class="empty-state">Načítavam...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Referral link -->
+    <div class="section">
+      <div class="section-header">
+        <span class="section-title">Váš referral link</span>
+      </div>
+      <div class="referral-card">
+        <p style="color:#94a3b8; font-size:14px; line-height:1.6; margin-bottom:4px;">
+          Zdieľajte tento link s potenciálnymi klientmi. Každý kto sa zaregistruje cez váš link bude priradený k vám.
+        </p>
+        <div class="referral-link-row">
+          <input type="text" class="referral-link-input" id="ref-link" readonly value="Načítavam..." />
+          <button class="btn btn-primary" onclick="copyRefLink()">Kopírovať link</button>
+        </div>
+        <div class="referral-stats">
+          <div class="ref-stat">
+            <div class="ref-stat-value" id="ref-clicks">–</div>
+            <div class="ref-stat-label">Klikov</div>
+          </div>
+          <div class="ref-stat">
+            <div class="ref-stat-value" style="color:#60a5fa" id="ref-code">–</div>
+            <div class="ref-stat-label">Váš kód</div>
+          </div>
+        </div>
+        <div class="referral-info">
+          Keď klient klikne na váš link a zaregistruje sa, systém automaticky zaznamená odkiaľ prišiel.
+          Použite tento link v emailoch, správach alebo na sociálnych sieťach.
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    async function apiFetch(path, options = {}) {
+      const token = localStorage.getItem('sales_token');
+      const res = await fetch('/api' + path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: 'Bearer ' + token } : {}),
+          ...(options.headers || {}),
+        },
+      });
+      if (res.status === 401) { localStorage.removeItem('sales_token'); window.location.href = '/'; return; }
+      return res;
+    }
+
+    function logout() { localStorage.removeItem('sales_token'); window.location.href = '/'; }
+
+    function showToast(msg, duration = 2500) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), duration);
+    }
+
+    function toggleForm() {
+      const f = document.getElementById('generate-form');
+      f.classList.toggle('open');
+    }
+
+    let lastGeneratedCode = '';
+    let lastGeneratedDays = 30;
+
+    async function generateCode() {
+      const btn = document.getElementById('generate-btn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Generujem...';
+      const body = {
+        prospect_name: document.getElementById('f-prospect').value.trim() || undefined,
+        notes: document.getElementById('f-notes').value.trim() || undefined,
+        value_days: parseInt(document.getElementById('f-days').value) || 30,
+        max_uses: parseInt(document.getElementById('f-maxuses').value) || 1,
+      };
+      try {
+        const res = await apiFetch('/codes/generate', { method: 'POST', body: JSON.stringify(body) });
+        if (!res) return;
+        const data = await res.json();
+        if (!res.ok) { showToast('Chyba: ' + (data.error || 'Neznáma chyba')); return; }
+        lastGeneratedCode = data.code;
+        lastGeneratedDays = data.value_days;
+        document.getElementById('result-code').textContent = data.code;
+        document.getElementById('result-msg').textContent =
+          `Mám pre vás darček – zadajte kód ${data.code} pri registrácii na neoworkly.com a získate ${data.value_days} dní zadarmo.`;
+        document.getElementById('result-synced').textContent =
+          data.synced ? '✓ Synchronizovaný s hlavnou aplikáciou' : '⚠ Uložený lokálne (synchronizácia prebehne neskôr)';
+        document.getElementById('result-synced').style.color = data.synced ? '#34d399' : '#fbbf24';
+        document.getElementById('code-result').classList.add('visible');
+        document.getElementById('generate-form').classList.remove('open');
+        // Reset form
+        document.getElementById('f-prospect').value = '';
+        document.getElementById('f-notes').value = '';
+        document.getElementById('f-days').value = '30';
+        document.getElementById('f-maxuses').value = '1';
+        await loadCodes();
+      } catch (e) {
+        showToast('Chyba pripojenia.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Generovať kód';
+      }
+    }
+
+    function copyCode() {
+      navigator.clipboard.writeText(lastGeneratedCode).then(() => showToast('Kód skopírovaný!'));
+    }
+
+    function copyMessage() {
+      const msg = document.getElementById('result-msg').textContent;
+      navigator.clipboard.writeText(msg).then(() => showToast('Správa skopírovaná!'));
+    }
+
+    function copyRefLink() {
+      const val = document.getElementById('ref-link').value;
+      navigator.clipboard.writeText(val).then(() => showToast('Link skopírovaný!'));
+    }
+
+    function formatDate(ts) {
+      if (!ts) return '–';
+      return new Date(ts * 1000).toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    async function loadCodes() {
+      const res = await apiFetch('/codes');
+      if (!res) return;
+      const codes = await res.json();
+      const container = document.getElementById('codes-container');
+      if (!Array.isArray(codes) || codes.length === 0) {
+        container.innerHTML = '<div class="empty-state">Zatiaľ ste nevygenerovali žiadne kódy.</div>';
+        return;
+      }
+      container.innerHTML = `
+        <table class="codes-table">
+          <thead>
+            <tr>
+              <th>Kód</th>
+              <th>Prospekt</th>
+              <th>Použitia</th>
+              <th>Platnosť do</th>
+              <th>Sync</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${codes.map(c => `
+              <tr>
+                <td><span class="code-mono">${c.code}</span></td>
+                <td style="color:#94a3b8">${c.prospect_name || '–'}</td>
+                <td><span class="uses-pill">${c.uses}/${c.max_uses}</span></td>
+                <td style="color:#64748b; font-size:13px">${formatDate(c.expires_at)}</td>
+                <td>${c.synced ? '<span class="synced-ok" title="Synchronizovaný">✓</span>' : '<span class="synced-warn" title="Nesynchronizovaný">⚠</span>'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    async function loadReferral() {
+      const res = await apiFetch('/codes/referral');
+      if (!res) return;
+      const data = await res.json();
+      document.getElementById('ref-link').value = data.link || '';
+      document.getElementById('ref-clicks').textContent = data.clicks ?? '0';
+      document.getElementById('ref-code').textContent = data.ref_code || '–';
+    }
+
+    async function init() {
+      const meRes = await apiFetch('/auth/me');
+      if (!meRes || !meRes.ok) return;
+      const me = await meRes.json();
+      document.getElementById('sidebar-name').textContent = me.name || 'Používateľ';
+      document.getElementById('sidebar-email').textContent = me.email || '';
+      document.getElementById('user-avatar').textContent = (me.name || me.email || '?')[0].toUpperCase();
+      await Promise.all([loadCodes(), loadReferral()]);
+    }
+
+    init();
+  </script>
+</body>
+</html>
