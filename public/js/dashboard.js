@@ -378,7 +378,7 @@ async function loadWidgets() {
 
 async function openWidget(widgetId) {
   const res = await apiFetch(`/api/widgets/${widgetId}`);
-  if (!res) return;
+  if (!res || !res.ok) return;
   currentWidget = await res.json();
 
   suggestedQuestions = [...(currentWidget.suggested_questions || [])];
@@ -2062,8 +2062,13 @@ function appendCoachWidgetCard(widget, isUpdate) {
   container.scrollTop = container.scrollHeight;
 }
 
-function openCoachWidget(widgetId) {
-  openWidget(widgetId).then(() => showTab('settings'));
+async function openCoachWidget(widgetId) {
+  try {
+    await openWidget(widgetId);
+  } catch (e) {
+    console.error('openCoachWidget failed:', e);
+    showToast('Nepodarilo sa otvoriť widget.', 'error');
+  }
 }
 
 function startAiWidgetWizard() {
