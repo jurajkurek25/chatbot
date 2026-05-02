@@ -74,6 +74,27 @@ function initDatabase() {
       notes TEXT,
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
+    CREATE TABLE IF NOT EXISTS promo_codes (
+      id TEXT PRIMARY KEY,
+      code TEXT UNIQUE NOT NULL,
+      created_by TEXT NOT NULL REFERENCES users(id),
+      type TEXT NOT NULL DEFAULT 'trial',
+      value_days INTEGER NOT NULL DEFAULT 30,
+      max_uses INTEGER NOT NULL DEFAULT 1,
+      uses INTEGER NOT NULL DEFAULT 0,
+      prospect_name TEXT,
+      notes TEXT,
+      expires_at INTEGER,
+      synced INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS sales_refs (
+      id TEXT PRIMARY KEY,
+      user_id TEXT UNIQUE NOT NULL REFERENCES users(id),
+      ref_code TEXT UNIQUE NOT NULL,
+      clicks INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
   `);
 
   seedTraining(db);

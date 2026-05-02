@@ -552,6 +552,20 @@ function initDatabase() {
   flagged INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 )`,
+    `CREATE TABLE IF NOT EXISTS sales_promo_codes (
+  id TEXT PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  type TEXT NOT NULL DEFAULT 'trial',
+  value_days INTEGER NOT NULL DEFAULT 30,
+  max_uses INTEGER NOT NULL DEFAULT 1,
+  uses INTEGER NOT NULL DEFAULT 0,
+  salesperson_name TEXT,
+  notes TEXT,
+  expires_at INTEGER,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `ALTER TABLE users ADD COLUMN sales_ref TEXT`,
+    `ALTER TABLE users ADD COLUMN sales_promo_used TEXT`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

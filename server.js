@@ -87,6 +87,7 @@ app.use('/api/gift-cards',  giftCardRoutes);
 app.use('/api/team',        teamRoutes);
 app.use('/api/woocommerce', woocommerceRoutes);
 app.use('/api/admin',      adminRoutes);
+app.use('/api/promo-codes', require('./routes/promo-codes'));
 // Team invite accept (public, no auth needed on GET)
 app.get('/team/accept/:token', (req, res) => res.redirect(`/api/team/accept/${req.params.token}`));
 

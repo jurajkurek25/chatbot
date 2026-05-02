@@ -47,7 +47,7 @@ router.post('/register', async (req, res) => {
     return res.status(429).json({ error: 'Príliš veľa pokusov. Skúste neskôr.' });
   }
 
-  const { email, password, name, referralCode } = req.body;
+  const { email, password, name, referralCode, salesRef, promoCode } = req.body;
 
   if (!email || !password || !name) {
     return res.status(400).json({ error: 'Email, heslo a meno sú povinné.' });
@@ -89,6 +89,21 @@ router.post('/register', async (req, res) => {
     db.prepare(
       'INSERT INTO users (id, email, password_hash, name, referral_code, referred_by) VALUES (?, ?, ?, ?, ?, ?)'
     ).run(id, email.toLowerCase(), passwordHash, name.trim(), myReferralCode, referredById);
+
+    // Apply sales_ref if provided
+    if (salesRef) {
+      db.prepare('UPDATE users SET sales_ref = ? WHERE id = ?').run(String(salesRef).slice(0, 50), id);
+    }
+    // Auto-apply promo code if provided
+    if (promoCode) {
+      const promo = db.prepare('SELECT * FROM sales_promo_codes WHERE code = ?').get(promoCode.toUpperCase().trim());
+      const nowTs = Math.floor(Date.now() / 1000);
+      if (promo && promo.uses < promo.max_uses && (!promo.expires_at || promo.expires_at > nowTs)) {
+        const newFreeUntil = nowTs + promo.value_days * 86400;
+        db.prepare('UPDATE users SET free_until = ?, sales_promo_used = ? WHERE id = ?').run(newFreeUntil, promo.code, id);
+        db.prepare('UPDATE sales_promo_codes SET uses = uses + 1 WHERE id = ?').run(promo.id);
+      }
+    }
 
     const token = signToken(id);
     return res.status(201).json({
