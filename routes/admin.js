@@ -1,10 +1,27 @@
 'use strict';
 
 const express = require('express');
-const { requireAuth } = require('../middleware/auth');
 const { getDb } = require('../db/database');
 
 const router = express.Router();
+
+// Auth: ADMIN_KEYS env var — comma-separated list of long secret keys
+// e.g. ADMIN_KEYS=abc123verylongkey1,xyz456verylongkey2
+function requireAdminKey(req, res, next) {
+  const raw = process.env.ADMIN_KEYS || '';
+  const keys = raw.split(',').map(k => k.trim()).filter(Boolean);
+
+  if (!keys.length) {
+    return res.status(503).json({ error: 'ADMIN_KEYS not configured on server.' });
+  }
+
+  const provided = req.headers['x-admin-key'] || '';
+  if (!provided || !keys.includes(provided)) {
+    return res.status(401).json({ error: 'Invalid admin key.' });
+  }
+
+  next();
+}
 
 // GET /api/admin/training-data
 // Query params:
@@ -12,7 +29,7 @@ const router = express.Router();
 //   source=chat|coach|demo (optional filter)
 //   quality=0|1|-1 (optional filter)
 //   limit=N (default 10000)
-router.get('/training-data', requireAuth, (req, res) => {
+router.get('/training-data', requireAdminKey, (req, res) => {
   const { format = 'jsonl', source, quality, limit = 10000 } = req.query;
 
   const db = getDb();
@@ -21,7 +38,7 @@ router.get('/training-data', requireAuth, (req, res) => {
   const params = [];
 
   if (source) { conditions.push('source = ?'); params.push(source); }
-  if (quality !== undefined) { conditions.push('quality = ?'); params.push(Number(quality)); }
+  if (quality !== undefined && quality !== '') { conditions.push('quality = ?'); params.push(Number(quality)); }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const rows = db.prepare(
@@ -33,25 +50,14 @@ router.get('/training-data', requireAuth, (req, res) => {
   }
 
   // JSONL — OpenAI fine-tuning format
-  // Each line: { "messages": [ {role, content}, ... ] }
   const lines = rows.map(row => {
     const messages = [];
-
-    if (row.system_prompt) {
-      messages.push({ role: 'system', content: row.system_prompt });
-    }
-
+    if (row.system_prompt) messages.push({ role: 'system', content: row.system_prompt });
     messages.push({ role: 'user', content: row.user_input });
 
-    // If there were tool calls, include them as assistant message with tool_calls
     if (row.tool_calls) {
       try {
-        const toolCalls = JSON.parse(row.tool_calls);
-        messages.push({
-          role: 'assistant',
-          content: row.assistant_output || '',
-          tool_calls: toolCalls,
-        });
+        messages.push({ role: 'assistant', content: row.assistant_output || '', tool_calls: JSON.parse(row.tool_calls) });
       } catch (_) {
         messages.push({ role: 'assistant', content: row.assistant_output });
       }
@@ -68,7 +74,7 @@ router.get('/training-data', requireAuth, (req, res) => {
 });
 
 // GET /api/admin/training-stats
-router.get('/training-stats', requireAuth, (req, res) => {
+router.get('/training-stats', requireAdminKey, (req, res) => {
   const db = getDb();
 
   const bySource = db.prepare(
