@@ -167,14 +167,19 @@
     const val = document.getElementById('keyInput').value.trim();
     if (!val) return;
     adminKey = val;
+    let status = 0;
     try {
       const res = await fetch('/api/admin/training-stats', { headers: headers() });
+      status = res.status;
       if (!res.ok) throw new Error();
       sessionStorage.setItem(STORAGE_KEY, adminKey);
       showMain();
       await loadStats();
     } catch {
-      document.getElementById('loginError').textContent = 'Neplatný kľúč.';
+      const msg = status === 503
+        ? 'ADMIN_KEYS nie sú nastavené na serveri (chýba v .env).'
+        : 'Neplatný kľúč.';
+      document.getElementById('loginError').textContent = msg;
       adminKey = '';
     }
   }
