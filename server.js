@@ -34,6 +34,7 @@ const reactivationRoutes = require('./routes/reactivation');
 const personRoutes       = require('./routes/person');
 const emailRoutes        = require('./routes/email');
 const { router: giftCardRoutes } = require('./routes/gift-cards');
+const adminRoutes           = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -85,6 +86,7 @@ app.use('/api/email',       emailRoutes);
 app.use('/api/gift-cards',  giftCardRoutes);
 app.use('/api/team',        teamRoutes);
 app.use('/api/woocommerce', woocommerceRoutes);
+app.use('/api/admin',      adminRoutes);
 // Team invite accept (public, no auth needed on GET)
 app.get('/team/accept/:token', (req, res) => res.redirect(`/api/team/accept/${req.params.token}`));
 
