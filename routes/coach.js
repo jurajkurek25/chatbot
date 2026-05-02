@@ -36,10 +36,10 @@ const BOOKING_SCHEDULE_SCHEMA = {
 const WIDGET_SHARED_FIELDS = {
   bot_name:           { type: 'string', description: 'Display name of the AI assistant' },
   welcome_message:    { type: 'string', description: 'Opening message the bot sends to visitors' },
-  goals:              { type: 'string', description: 'Detailed system prompt (200-400 words): business description, target customers, unique value, tone, objectives, what the bot should and should not do' },
+  goals:              { type: 'string', description: 'System prompt for the AI: business description, target customers, tone (formal/casual), what the bot should do, what it should not do. Generate from conversation context if not explicitly provided.' },
   primary_color:      { type: 'string', description: 'Brand hex color, e.g. "#2563eb". Use brand color if mentioned, otherwise #2563eb.' },
   suggested_questions:{ type: 'array', items: { type: 'string' }, description: '3-5 typical questions visitors ask for this business type' },
-  knowledge_texts:    { type: 'array', items: { type: 'string' }, description: 'Key business info texts to seed the knowledge base (services, pricing, about, FAQ). Max 5 items, each max 1500 chars.' },
+  knowledge_texts:    { type: 'array', items: { type: 'string' }, description: 'Business info for the knowledge base (services, pricing, about, FAQ, contact). Summarize from the conversation. Max 5 items, each max 1500 chars. Always include at least 1 item.' },
   // CTA
   cta_type:           { type: 'string', enum: ['contact', 'call', 'booking', 'custom', 'none'], description: '"contact" = lead form (default), "call" = suggest a phone call, "booking" = online booking, "custom" = custom link/text, "none" = no CTA' },
   cta_phone:          { type: 'string', description: 'Phone number for call CTA, e.g. "+421900123456". Required when cta_type="call".' },
@@ -1050,12 +1050,21 @@ PRAVIDLÁ:
 - csat_enabled=true nastavuj vždy (zbieraš spätnú väzbu zákazníkov)
 - NIKDY nevypisuj súhrn pred zavolaním nástroja — rovno ho zavolaj
 - Nevynechávaj polia len preto, že nie sú technicky "povinné" — čím viac info, tým lepší widget
+- NIKDY nehovor klientovi že "niečo chýba" alebo že "potrebuješ ešte X" — chýbajúce polia DOPLŇ SÁM z kontextu konverzácie, z odboru alebo rozumnými predvolenými hodnotami. Klient ti všetko potrebné povedal — ty to len musíš správne zakomponovať.
 
 KEDY VOLAŤ create_widget:
-- Minimum: firma, produkt, meno asistenta, tón, cta_type
+- Ak vieš: meno firmy, odbor/čo predávajú, cta_type → ZAVOLAJ create_widget OKAMŽITE. Nečakaj na ďalšie odpovede.
+- goals, bot_name, welcome_message, knowledge_texts — VYGENERUJ SÁM z toho čo klient povedal. Nepýtaj sa na ne osobitne.
 - Pri booking: aspoň 1 služba + pracovné hodiny → setup_booking=true
-- knowledge_texts: všetko čo klient povedal + [WEB SCAN] obsah (max 5 × 1500 znakov)
-- goals (200-400 slov): popis firmy + cieľová skupina + USP + tón + čo chatbot robí + čo nesmie
+- Ak klient nepovedal nejakú vec (napr. farbu, tón) — odhadni z odboru. Nikdy nestoj na mieste kvôli nedostatok info.
+
+GENEROVANIE POLÍ (ak klient nepovedal priamo):
+- bot_name: "Sofia" pre ženy-orientované biznisy, "Max" pre techniku, "Asistent" ako fallback
+- welcome_message: "Ahoj! Som [bot_name] z [firma]. Ako vám môžem pomôcť?" alebo verzia pre daný odbor
+- goals: 150-300 slov — popis firmy + cieľová skupina + tón + čo chatbot robí. VYGENERUJ z rozhovoru.
+- primary_color: odhadni z odboru (#10b981 zelená pre zdravie/prírodu, #2563eb modrá pre tech/financie, #f59e0b zlatá pre luxury, #ec4899 ružová pre kaderníctvo/kozmetiku, #2563eb default)
+- suggested_questions: 3-4 typické otázky pre daný odbor
+- knowledge_texts: zhrň čo klient povedal o firme, službách, cenách, kontakte — max 3 bloky
 
 FORMÁTY:
 - business_hours: { enabled: true, days: { "1":{enabled:true,start:"09:00",end:"17:00"}, "2":..., "0":{enabled:false,start:"09:00",end:"17:00"} } }
