@@ -2063,13 +2063,7 @@ function appendCoachWidgetCard(widget, isUpdate) {
 }
 
 function openCoachWidget(widgetId) {
-  const w = (widgets || []).find(x => x.id === widgetId);
-  if (w) selectWidget(w);
-  else loadWidgets().then(() => {
-    const found = (widgets || []).find(x => x.id === widgetId);
-    if (found) selectWidget(found);
-  });
-  showTab('settings');
+  openWidget(widgetId).then(() => showTab('settings'));
 }
 
 function startAiWidgetWizard() {
