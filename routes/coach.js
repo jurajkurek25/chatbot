@@ -1376,7 +1376,7 @@ async function _coachCreateWidget(userId, input) {
     for (const text of knowledge_texts.slice(0, 10)) {
       if (!text?.trim()) continue;
       db.prepare(`INSERT INTO knowledge_items (id, widget_id, title, content, source_type) VALUES (?, ?, ?, ?, ?)`)
-        .run(uuidv4(), id, 'O firme', text.trim(), 'manual');
+        .run(uuidv4(), id, 'O firme', text.trim(), 'text');
     }
   }
 
@@ -1484,9 +1484,9 @@ async function _coachUpdateWidget(userId, input) {
 
   const fields = [];
   const values = [];
-  if (name            !== undefined) { fields.push('name = ?');            values.push(name.trim()); }
-  if (bot_name        !== undefined) { fields.push('bot_name = ?');        values.push(bot_name.trim()); }
-  if (welcome_message !== undefined) { fields.push('welcome_message = ?'); values.push(welcome_message.trim()); }
+  if (name            != null) { fields.push('name = ?');            values.push(String(name).trim()); }
+  if (bot_name        != null) { fields.push('bot_name = ?');        values.push(String(bot_name).trim()); }
+  if (welcome_message != null) { fields.push('welcome_message = ?'); values.push(String(welcome_message).trim()); }
   if (goals           !== undefined) { fields.push('goals = ?');           values.push(goals); }
   if (primary_color   !== undefined) { fields.push('primary_color = ?');   values.push(primary_color); }
   if (suggested_questions !== undefined) {
@@ -1529,14 +1529,14 @@ async function _coachManageKnowledge(userId, input) {
   if (!Array.isArray(items) || items.length === 0) return { error: 'Žiadne položky na pridanie.' };
 
   if (mode === 'replace') {
-    db.prepare(`DELETE FROM knowledge_items WHERE widget_id = ? AND source_type = 'manual'`).run(widget_id);
+    db.prepare(`DELETE FROM knowledge_items WHERE widget_id = ? AND source_type = 'text'`).run(widget_id);
   }
 
   let added = 0;
   for (const item of items.slice(0, 10)) {
     if (!item?.content?.trim()) continue;
     db.prepare(`INSERT INTO knowledge_items (id, widget_id, title, content, source_type) VALUES (?, ?, ?, ?, ?)`)
-      .run(uuidv4(), widget_id, (item.title || 'Info').trim(), item.content.trim().slice(0, 2000), 'manual');
+      .run(uuidv4(), widget_id, (item.title || 'Info').trim(), item.content.trim().slice(0, 2000), 'text');
     added++;
   }
   return { added };
