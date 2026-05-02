@@ -79,28 +79,50 @@ router.post('/discover', async (req, res) => {
 
     // 4. Save high-fit prospects (fit_score >= 4 and not skipped)
     let added = 0;
+    const savedIds = [];
     const insert = db.prepare(`INSERT INTO prospects
-      (id, user_id, url, company_name, industry, fit_score, opening_line, source)
-      VALUES (?,?,?,?,?,?,?,?)`);
+      (id, user_id, url, company_name, industry, fit_score, opening_line, ai_summary, source)
+      VALUES (?,?,?,?,?,?,?,?,?)`);
 
     for (const a of analyses) {
       if (a.skip || a.fit_score < 4) continue;
       const src = fresh[a.idx - 1];
       if (!src) continue;
       try {
+        const id = uuidv4();
         insert.run(
-          uuidv4(), req.userId, src.link,
+          id, req.userId, src.link,
           a.company_name || src.title,
           a.industry || null,
           a.fit_score || null,
           a.opening_line || null,
+          a.summary || null,
           'auto'
         );
+        savedIds.push({ id, url: src.link });
         added++;
       } catch { /* duplicate url — skip */ }
     }
 
+    // 5. Respond immediately, then scrape contacts in background
     res.json({ added, query: searchQuery, total_searched: fresh.length });
+
+    // Background contact enrichment (fire-and-forget)
+    setImmediate(async () => {
+      const updateContacts = db.prepare(
+        'UPDATE prospects SET contact_email = ?, contact_phone = ? WHERE id = ? AND contact_email IS NULL AND contact_phone IS NULL'
+      );
+      for (const { id, url } of savedIds) {
+        try {
+          const html = await fetchPage(url);
+          const { emails, phones } = extractText(html);
+          const email = emails[0] || null;
+          const phone = phones[0] || null;
+          if (email || phone) updateContacts.run(email, phone, id);
+        } catch { /* ignore scrape errors */ }
+      }
+    });
+
   } catch (err) {
     console.error('[prospects/discover]', err.message);
     res.status(500).json({ error: err.message });

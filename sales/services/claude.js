@@ -157,7 +157,8 @@ Vráť VÝHRADNE JSON pole (žiadny iný text):
     "company_name": "názov firmy",
     "industry": "odvetvie v slovenčine",
     "fit_score": číslo 1-10,
-    "opening_line": "personalizovaný opener pre cold call (1-2 vety v slovenčine)",
+    "summary": "1-2 vety: čo firma robí + aký konkrétny problém im Neoworkly vyrieši (napr. zachytávanie leadov 24/7, rezervácie cez chat, odpovede na FAQ)",
+    "opening_line": "personalizovaný opener pre cold call (1-2 vety v slovenčine, začni 'Videl som váš web...')",
     "skip": false
   }
 ]

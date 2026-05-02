@@ -669,7 +669,9 @@
         const phone = p.contact_phone || '';
         const email = p.contact_email || '';
         const opener = p.opening_line || '';
+        const summary = p.ai_summary || '';
         const isAuto = p.source === 'auto';
+        const hasContact = phone || email;
         return `
         <div class="prospect-card" id="pcard-${p.id}">
           <div class="p-card-header">
@@ -682,8 +684,17 @@
               ${p.industry ? `<div class="industry-tag">${esc(p.industry)}</div>` : ''}
             </div>
           </div>
-          ${phone ? `<a href="tel:${esc(phone)}" onclick="markContacted('${p.id}')" style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(37,99,235,0.12),rgba(79,70,229,0.08));border:1px solid rgba(37,99,235,0.25);border-radius:10px;padding:10px 14px;margin-bottom:10px;text-decoration:none;color:#93c5fd;font-size:14px;font-weight:600;transition:background 0.18s" onmouseover="this.style.background='linear-gradient(135deg,rgba(37,99,235,0.2),rgba(79,70,229,0.15))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(37,99,235,0.12),rgba(79,70,229,0.08))'"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.14 1.18 2 2 0 012.11 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>📞 ${esc(phone)}</a>` : ''}
-          ${opener ? `<div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);border-radius:9px;padding:9px 13px;margin-bottom:10px;font-size:12px;color:#fde68a;line-height:1.5"><span style="font-size:10px;text-transform:uppercase;letter-spacing:0.7px;opacity:0.7;display:block;margin-bottom:3px">Odporúčaný opener</span>${esc(opener)}</div>` : ''}
+
+          ${summary ? `<div style="font-size:13px;color:#94a3b8;line-height:1.55;margin-bottom:10px;padding:10px 13px;background:rgba(255,255,255,0.03);border-radius:8px;border-left:2px solid rgba(37,99,235,0.4)">${esc(summary)}</div>` : ''}
+
+          ${hasContact ? `
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:10px">
+            ${phone ? `<a href="tel:${esc(phone)}" onclick="markContacted('${p.id}')" style="display:flex;align-items:center;gap:9px;background:linear-gradient(135deg,rgba(37,99,235,0.12),rgba(79,70,229,0.08));border:1px solid rgba(37,99,235,0.25);border-radius:9px;padding:9px 14px;text-decoration:none;color:#93c5fd;font-size:14px;font-weight:600;transition:background 0.18s"><svg viewBox="0 0 24 24" style="width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;flex-shrink:0"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.14 1.18 2 2 0 012.11 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>${esc(phone)}</a>` : ''}
+            ${email ? `<a href="mailto:${esc(email)}" style="display:flex;align-items:center;gap:9px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.09);border-radius:9px;padding:9px 14px;text-decoration:none;color:#94a3b8;font-size:13px"><svg viewBox="0 0 24 24" style="width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;flex-shrink:0"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${esc(email)}</a>` : ''}
+          </div>` : `<div style="font-size:12px;color:#475569;margin-bottom:10px;padding:7px 12px;border:1px dashed rgba(255,255,255,0.08);border-radius:8px">⏳ Kontakty sa načítavajú na pozadí...</div>`}
+
+          ${opener ? `<div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);border-radius:9px;padding:9px 13px;margin-bottom:10px;font-size:12px;color:#fde68a;line-height:1.5"><span style="font-size:10px;text-transform:uppercase;letter-spacing:0.7px;opacity:0.7;display:block;margin-bottom:3px">💬 Opener</span>${esc(opener)}</div>` : ''}
+
           <div class="p-card-controls">
             <select class="status-select" id="status-${p.id}" onchange="updateStatus('${p.id}', this.value)">
               <option value="new" ${p.status==='new'?'selected':''}>Nový</option>
@@ -691,7 +702,6 @@
               <option value="converted" ${p.status==='converted'?'selected':''}>Konvertovaný</option>
               <option value="rejected" ${p.status==='rejected'?'selected':''}>Nezáujem</option>
             </select>
-            ${email ? `<a href="mailto:${esc(email)}" style="padding:6px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#94a3b8;font-size:12px;text-decoration:none;white-space:nowrap">✉ Email</a>` : ''}
           </div>
           <textarea class="notes-input" id="notes-${p.id}" placeholder="Poznámky...">${esc(p.notes||'')}</textarea>
           <div class="p-card-footer">
@@ -789,6 +799,14 @@
     document.getElementById('url-input')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') analyzeUrl();
     });
+
+    // Refresh contacts after 30s if any cards are missing contacts (background scrape)
+    setTimeout(async () => {
+      const missing = allProspects.filter(p => !p.contact_phone && !p.contact_email && p.source === 'auto');
+      if (missing.length > 0) {
+        await loadProspects();
+      }
+    }, 30000);
 
     init();
   </script>
