@@ -1154,7 +1154,7 @@ router.post('/chat', requireAuth, async (req, res) => {
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1200,
+      max_tokens: 4096,
       system: systemPrompt,
       messages,
       tools: COACH_TOOLS,
@@ -1172,7 +1172,7 @@ router.post('/chat', requireAuth, async (req, res) => {
         // Get a follow-up text reply from Claude describing what was done
         const followUp = await client.messages.create({
           model: 'claude-sonnet-4-6',
-          max_tokens: 400,
+          max_tokens: 600,
           system: systemPrompt,
           messages: [
             ...messages,
@@ -1201,7 +1201,7 @@ router.post('/chat', requireAuth, async (req, res) => {
 
         const followUp = await client.messages.create({
           model: 'claude-sonnet-4-6',
-          max_tokens: 300,
+          max_tokens: 600,
           system: systemPrompt,
           messages: [
             ...messages,
@@ -1232,7 +1232,7 @@ router.post('/chat', requireAuth, async (req, res) => {
         const bookingResult = await _coachSetupBooking(widget_id, bookingInput);
         const followUp = await client.messages.create({
           model: 'claude-sonnet-4-6',
-          max_tokens: 400,
+          max_tokens: 600,
           system: systemPrompt,
           messages: [
             ...messages,
@@ -1261,7 +1261,7 @@ router.post('/chat', requireAuth, async (req, res) => {
 
         const followUp = await client.messages.create({
           model: 'claude-sonnet-4-6',
-          max_tokens: 300,
+          max_tokens: 600,
           system: systemPrompt,
           messages: [
             ...messages,
@@ -1289,7 +1289,7 @@ router.post('/chat', requireAuth, async (req, res) => {
     const textReply = response.content.find(b => b.type === 'text')?.text || '';
     res.json({ reply: textReply });
   } catch (err) {
-    console.error('[coach] Claude error:', err.message);
+    console.error('[coach] error:', err?.status, err?.error?.type, err?.error?.message ?? err?.message);
     res.status(500).json({ error: 'Chyba AI. Skúste znova.' });
   }
 });
