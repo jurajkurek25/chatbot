@@ -358,52 +358,93 @@
   <!-- MAIN -->
   <main class="main">
     <div class="main-inner">
-      <!-- Left panel: Analyzer -->
+      <!-- Left panel: Discovery -->
       <div class="panel-left">
         <div class="panel-title">Prospekting</div>
 
+        <!-- Auto-discovery card -->
         <div class="analyze-card">
           <h3>
             <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            Analyzovať web
+            AI Vyhľadávanie klientov
           </h3>
-          <div class="input-group">
-            <input type="url" class="url-input" id="url-input" placeholder="https://firma.sk" />
-            <button class="btn-analyze" id="analyze-btn" onclick="analyzeUrl()">Analyzovať</button>
-          </div>
-          <div class="error-msg" id="analyze-error" style="margin-top:12px"></div>
+          <p style="font-size:13px;color:#64748b;line-height:1.55;margin-bottom:16px">
+            AI prehľadá Google a nájde firmy na Slovensku, ktoré potrebujú chatbot. Stačí kliknúť – výsledky uvidíte v zozname vpravo.
+          </p>
+          <button class="btn-analyze" id="discover-btn" onclick="discoverProspects()" style="width:100%">
+            🔍 Nájsť nových klientov
+          </button>
+          <div id="discover-info" style="margin-top:10px;font-size:12px;color:#475569;text-align:center"></div>
+          <div class="error-msg" id="discover-error" style="margin-top:10px"></div>
         </div>
 
-        <!-- Loading -->
+        <!-- Stats -->
+        <div style="background:#1e293b;border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:18px 20px">
+          <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:#475569;margin-bottom:14px">Prehľad</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div style="text-align:center">
+              <div style="font-size:28px;font-weight:800;color:#f1f5f9" id="stat-total">–</div>
+              <div style="font-size:12px;color:#64748b;margin-top:2px">Celkom</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-size:28px;font-weight:800;color:#60a5fa" id="stat-uncontacted">–</div>
+              <div style="font-size:12px;color:#64748b;margin-top:2px">Neskontaktovaných</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Discovery loading -->
         <div class="loading-state" id="loading-state">
           <div class="spinner-large"></div>
           <div class="loading-text">
-            <strong style="color:#f1f5f9">Analyzujeme web s AI</strong><br>
-            Scrapeujeme web a analyzujeme s AI<span class="loading-dots"></span>
+            <strong style="color:#f1f5f9">Hľadáme klientov na Google</strong><br>
+            AI prehľadáva výsledky a hodnotí vhodnosť<span class="loading-dots"></span>
           </div>
         </div>
 
-        <!-- Result -->
-        <div class="result-card" id="result-card">
-          <div class="company-name" id="r-company">–</div>
-          <div class="industry-badge" id="r-industry">–</div>
-          <div class="fit-row">
-            <div class="fit-number" id="r-fit">–</div>
-            <div>
-              <div class="fit-label"><strong>Fit skóre</strong>hodnotenie vhodnosti</div>
+        <!-- Manual URL analyzer (secondary) -->
+        <div style="margin-top:4px">
+          <button onclick="toggleManual()" style="background:none;border:none;color:#475569;font-size:12px;cursor:pointer;font-family:inherit;padding:4px 0;display:flex;align-items:center;gap:5px">
+            <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+            Pridať manuálne cez URL
+          </button>
+          <div id="manual-panel" style="display:none;margin-top:10px">
+            <div class="analyze-card">
+              <div class="input-group">
+                <input type="url" class="url-input" id="url-input" placeholder="https://firma.sk" />
+                <button class="btn-analyze" id="analyze-btn" onclick="analyzeUrl()">Analyzovať</button>
+              </div>
+              <div class="error-msg" id="analyze-error" style="margin-top:12px"></div>
+            </div>
+            <!-- Result card -->
+            <div class="result-card" id="result-card" style="margin-top:12px">
+              <div class="company-name" id="r-company">–</div>
+              <div class="industry-badge" id="r-industry">–</div>
+              <div class="fit-row">
+                <div class="fit-number" id="r-fit">–</div>
+                <div><div class="fit-label"><strong>Fit skóre</strong>hodnotenie vhodnosti</div></div>
+              </div>
+              <div class="company-desc" id="r-desc"></div>
+              <div class="info-box blue" id="r-why">
+                <div class="info-box-label">Prečo potrebuje chatbot</div>
+                <div id="r-why-text"></div>
+              </div>
+              <div class="contact-row" id="r-contacts"></div>
+              <div class="info-box yellow" id="r-opener">
+                <div class="info-box-label">💬 Odporúčaný opener</div>
+                <div id="r-opener-text"></div>
+              </div>
+              <button class="btn-save" id="save-btn" onclick="saveProspect()">Uložiť prospekt</button>
+            </div>
+            <!-- Manual loading -->
+            <div class="loading-state" id="loading-state-manual">
+              <div class="spinner-large"></div>
+              <div class="loading-text">
+                <strong style="color:#f1f5f9">Analyzujeme web s AI</strong><br>
+                Scrapeujeme a analyzujeme<span class="loading-dots"></span>
+              </div>
             </div>
           </div>
-          <div class="company-desc" id="r-desc"></div>
-          <div class="info-box blue" id="r-why">
-            <div class="info-box-label">Prečo potrebuje chatbot</div>
-            <div id="r-why-text"></div>
-          </div>
-          <div class="contact-row" id="r-contacts"></div>
-          <div class="info-box yellow" id="r-opener">
-            <div class="info-box-label">💬 Odporúčaný opener</div>
-            <div id="r-opener-text"></div>
-          </div>
-          <button class="btn-save" id="save-btn" onclick="saveProspect()">Uložiť prospekt</button>
         </div>
       </div>
 
@@ -440,7 +481,7 @@
           ...(options.headers || {}),
         },
       });
-      if (res.status === 401) { localStorage.removeItem('sales_token'); window.location.href = '/'; return; }
+      if (res.status === 401) { localStorage.removeItem('sales_token'); window.location.href = '/'; return null; }
       return res;
     }
 
@@ -457,11 +498,50 @@
       t.classList.add('visible');
       setTimeout(() => t.classList.remove('visible'), 3000);
     }
-
+    function showError(id, msg) { const el = document.getElementById(id); if(el){el.textContent = msg; el.classList.add('visible');} }
+    function hideError(id) { const el = document.getElementById(id); if(el) el.classList.remove('visible'); }
     function fitClass(s) { return s >= 7 ? 'high' : s >= 4 ? 'mid' : 'low'; }
     function fitBadgeClass(s) { return s >= 7 ? 'fb-high' : s >= 4 ? 'fb-mid' : 'fb-low'; }
     function statusLabel(s) { return s === 'contacted' ? 'Kontaktovaný' : s === 'converted' ? 'Konvertovaný' : 'Nový'; }
 
+    function toggleManual() {
+      const p = document.getElementById('manual-panel');
+      p.style.display = p.style.display === 'none' ? 'block' : 'none';
+    }
+
+    /* ── Auto-discovery ───────────────────────────────────────────── */
+    async function discoverProspects() {
+      const btn = document.getElementById('discover-btn');
+      const info = document.getElementById('discover-info');
+      btn.disabled = true;
+      btn.textContent = 'Hľadám...';
+      hideError('discover-error');
+      document.getElementById('loading-state').classList.add('visible');
+      info.textContent = '';
+
+      try {
+        const res = await apiFetch('/prospects/discover', { method: 'POST', body: JSON.stringify({}) });
+        if (!res) return;
+        const data = await res.json();
+        if (!res.ok) { showError('discover-error', data.error || 'Chyba vyhľadávania.'); return; }
+
+        if (data.added > 0) {
+          showToast(`✓ Pridaných ${data.added} nových klientov!`);
+          // Reload prospects list
+          await loadProspects();
+        } else {
+          info.textContent = data.message || 'Žiadni noví klienti v tomto segmente.';
+        }
+      } catch (e) {
+        showError('discover-error', 'Chyba pripojenia.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Nájsť nových klientov';
+        document.getElementById('loading-state').classList.remove('visible');
+      }
+    }
+
+    /* ── Manual URL analyze ──────────────────────────────────────── */
     async function analyzeUrl() {
       const url = document.getElementById('url-input').value.trim();
       if (!url) { showError('analyze-error', 'Zadajte URL adresu.'); return; }
@@ -469,14 +549,11 @@
       hideError('analyze-error');
 
       document.getElementById('analyze-btn').disabled = true;
-      document.getElementById('loading-state').classList.add('visible');
+      document.getElementById('loading-state-manual').classList.add('visible');
       document.getElementById('result-card').classList.remove('visible');
 
       try {
-        const res = await apiFetch('/prospects/analyze', {
-          method: 'POST',
-          body: JSON.stringify({ url })
-        });
+        const res = await apiFetch('/prospects/analyze', { method: 'POST', body: JSON.stringify({ url }) });
         if (!res) return;
         if (!res.ok) {
           const d = await res.json().catch(() => ({}));
@@ -490,38 +567,31 @@
         showError('analyze-error', 'Chyba pripojenia. Skúste znova.');
       } finally {
         document.getElementById('analyze-btn').disabled = false;
-        document.getElementById('loading-state').classList.remove('visible');
+        document.getElementById('loading-state-manual').classList.remove('visible');
       }
     }
 
-    function showError(id, msg) { const el = document.getElementById(id); el.textContent = msg; el.classList.add('visible'); }
-    function hideError(id) { document.getElementById(id).classList.remove('visible'); }
-
     function showResult(d) {
       const card = document.getElementById('result-card');
-      document.getElementById('r-company').textContent = d.companyName || 'Neznáma firma';
+      document.getElementById('r-company').textContent = d.company_name || d.companyName || 'Neznáma firma';
       document.getElementById('r-industry').textContent = d.industry || 'Neznáme odvetvie';
-
+      const score = d.fit_score || d.fitScore || 0;
       const fitEl = document.getElementById('r-fit');
-      const score = d.fitScore || 0;
       fitEl.textContent = score;
       fitEl.className = 'fit-number ' + fitClass(score);
-
       document.getElementById('r-desc').textContent = d.description || '';
-      document.getElementById('r-why-text').textContent = d.whyNeedsChatbot || '';
-
+      document.getElementById('r-why-text').textContent = d.needs_chatbot_reason || d.whyNeedsChatbot || '';
+      const email = d.contact_email || d.email || '';
+      const phone = d.contact_phone || d.phone || '';
       const contacts = document.getElementById('r-contacts');
       let ctHTML = '';
-      if (d.email) ctHTML += `<div class="contact-item"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${d.email}</div>`;
-      if (d.phone) ctHTML += `<div class="contact-item"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.14 1.18 2 2 0 012.11 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>${d.phone}</div>`;
+      if (email) ctHTML += `<div class="contact-item"><svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>${email}</div>`;
+      if (phone) ctHTML += `<div class="contact-item"><svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.14 1.18 2 2 0 012.11 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>${phone}</div>`;
       contacts.innerHTML = ctHTML;
-      if (d.email || d.phone) contacts.style.display = 'flex'; else contacts.style.display = 'none';
-
-      document.getElementById('r-opener-text').textContent = d.openingLine || '';
-
+      contacts.style.display = (email || phone) ? 'flex' : 'none';
+      document.getElementById('r-opener-text').textContent = d.opening_line || d.openingLine || '';
       document.getElementById('save-btn').textContent = 'Uložiť prospekt';
       document.getElementById('save-btn').disabled = false;
-
       card.classList.add('visible');
     }
 
@@ -530,18 +600,27 @@
       const btn = document.getElementById('save-btn');
       btn.disabled = true; btn.textContent = 'Ukladám...';
       try {
-        const res = await apiFetch('/prospects', {
-          method: 'POST',
-          body: JSON.stringify(currentResult)
-        });
+        const body = {
+          url: currentResult.url,
+          company_name: currentResult.company_name || currentResult.companyName,
+          industry: currentResult.industry,
+          description: currentResult.description,
+          contact_email: currentResult.contact_email || currentResult.email,
+          contact_phone: currentResult.contact_phone || currentResult.phone,
+          fit_score: currentResult.fit_score || currentResult.fitScore,
+          ai_summary: currentResult.needs_chatbot_reason || currentResult.whyNeedsChatbot,
+          opening_line: currentResult.opening_line || currentResult.openingLine,
+        };
+        const res = await apiFetch('/prospects', { method: 'POST', body: JSON.stringify(body) });
         if (!res || !res.ok) {
           const d = await res?.json().catch(() => ({}));
-          showToast(d.message || 'Nepodarilo sa uložiť.', '#ef4444');
+          showToast(d.error || 'Nepodarilo sa uložiť.', '#ef4444');
           btn.disabled = false; btn.textContent = 'Uložiť prospekt';
           return;
         }
         const saved = await res.json();
-        allProspects.unshift(saved.prospect || saved);
+        allProspects.unshift(saved);
+        updateStats();
         renderProspects();
         showToast('Prospekt uložený!');
         btn.textContent = '✓ Uložené';
@@ -552,75 +631,119 @@
       }
     }
 
+    /* ── Prospects list ──────────────────────────────────────────── */
     function setFilter(filter, el) {
       currentFilter = filter;
       document.querySelectorAll('.filter-tab').forEach(t => t.classList.toggle('active', t === el));
       renderProspects();
     }
 
+    function updateStats() {
+      const uncontacted = allProspects.filter(p => p.status === 'new').length;
+      document.getElementById('stat-total').textContent = allProspects.length;
+      document.getElementById('stat-uncontacted').textContent = uncontacted;
+      document.getElementById('count-badge').textContent = `${allProspects.length} prospektov`;
+    }
+
+    function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
     function renderProspects() {
       const filtered = currentFilter === 'all'
         ? allProspects
         : allProspects.filter(p => p.status === currentFilter);
 
-      document.getElementById('count-badge').textContent = `${allProspects.length} prospektov`;
+      updateStats();
       const list = document.getElementById('prospects-list');
 
       if (!filtered.length) {
+        const isAll = currentFilter === 'all';
         list.innerHTML = `<div class="empty-state">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/><path d="M11 8v3m0 3h.01"/></svg>
-          <p>${currentFilter === 'all' ? 'Žiadni prospekti' : 'Žiadni ' + statusLabel(currentFilter).toLowerCase() + ' prospekti'}</p>
-          <span>${currentFilter === 'all' ? 'Analyzujte web firmy a uložte prvý prospekt.' : 'Zmeňte filter alebo pridajte nových prospektov.'}</span>
+          <p>${isAll ? 'Žiadni prospekti' : 'Žiadni ' + statusLabel(currentFilter).toLowerCase() + ' prospekti'}</p>
+          <span>${isAll ? 'Kliknite „Nájsť nových klientov" vľavo.' : 'Zmeňte filter alebo pridajte nových prospektov.'}</span>
         </div>`;
         return;
       }
 
-      list.innerHTML = filtered.map(p => `
+      list.innerHTML = filtered.map(p => {
+        const phone = p.contact_phone || '';
+        const email = p.contact_email || '';
+        const opener = p.opening_line || '';
+        const isAuto = p.source === 'auto';
+        return `
         <div class="prospect-card" id="pcard-${p.id}">
           <div class="p-card-header">
-            <div>
-              <div class="p-company">${p.companyName || 'Neznáma firma'}</div>
-              <a href="${p.url || '#'}" target="_blank" class="p-url">${p.url || ''}</a>
+            <div style="flex:1;min-width:0">
+              <div class="p-company">${esc(p.company_name || '–')}${isAuto ? '<span style="font-size:10px;background:rgba(37,99,235,0.15);color:#60a5fa;padding:1px 6px;border-radius:8px;margin-left:7px;font-weight:600">AI</span>' : ''}</div>
+              <a href="${esc(p.url||'#')}" target="_blank" class="p-url">${esc((p.url||'').replace(/^https?:\/\//,'').slice(0,45))}</a>
             </div>
             <div class="p-badges">
-              <div class="fit-badge-sm ${fitBadgeClass(p.fitScore)}">${p.fitScore}</div>
-              <div class="industry-tag">${p.industry || '–'}</div>
+              ${p.fit_score ? `<div class="fit-badge-sm ${fitBadgeClass(p.fit_score)}">${p.fit_score}</div>` : ''}
+              ${p.industry ? `<div class="industry-tag">${esc(p.industry)}</div>` : ''}
             </div>
           </div>
+          ${phone ? `<a href="tel:${esc(phone)}" onclick="markContacted('${p.id}')" style="display:flex;align-items:center;gap:8px;background:linear-gradient(135deg,rgba(37,99,235,0.12),rgba(79,70,229,0.08));border:1px solid rgba(37,99,235,0.25);border-radius:10px;padding:10px 14px;margin-bottom:10px;text-decoration:none;color:#93c5fd;font-size:14px;font-weight:600;transition:background 0.18s" onmouseover="this.style.background='linear-gradient(135deg,rgba(37,99,235,0.2),rgba(79,70,229,0.15))'" onmouseout="this.style.background='linear-gradient(135deg,rgba(37,99,235,0.12),rgba(79,70,229,0.08))'"><svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.81 19.79 19.79 0 01.14 1.18 2 2 0 012.11 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>📞 ${esc(phone)}</a>` : ''}
+          ${opener ? `<div style="background:rgba(245,158,11,0.07);border:1px solid rgba(245,158,11,0.2);border-radius:9px;padding:9px 13px;margin-bottom:10px;font-size:12px;color:#fde68a;line-height:1.5"><span style="font-size:10px;text-transform:uppercase;letter-spacing:0.7px;opacity:0.7;display:block;margin-bottom:3px">Odporúčaný opener</span>${esc(opener)}</div>` : ''}
           <div class="p-card-controls">
             <select class="status-select" id="status-${p.id}" onchange="updateStatus('${p.id}', this.value)">
-              <option value="new" ${p.status === 'new' ? 'selected' : ''}>Nový</option>
-              <option value="contacted" ${p.status === 'contacted' ? 'selected' : ''}>Kontaktovaný</option>
-              <option value="converted" ${p.status === 'converted' ? 'selected' : ''}>Konvertovaný</option>
+              <option value="new" ${p.status==='new'?'selected':''}>Nový</option>
+              <option value="contacted" ${p.status==='contacted'?'selected':''}>Kontaktovaný</option>
+              <option value="converted" ${p.status==='converted'?'selected':''}>Konvertovaný</option>
+              <option value="rejected" ${p.status==='rejected'?'selected':''}>Nezáujem</option>
             </select>
+            ${email ? `<a href="mailto:${esc(email)}" style="padding:6px 12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:#94a3b8;font-size:12px;text-decoration:none;white-space:nowrap">✉ Email</a>` : ''}
           </div>
-          <textarea class="notes-input" id="notes-${p.id}" placeholder="Poznámky k prospektu...">${p.notes || ''}</textarea>
+          <textarea class="notes-input" id="notes-${p.id}" placeholder="Poznámky...">${esc(p.notes||'')}</textarea>
           <div class="p-card-footer">
             <button class="btn-sm btn-save-note" onclick="saveNote('${p.id}')">Uložiť poznámku</button>
             <button class="btn-sm btn-delete" onclick="deleteProspect('${p.id}')">Odstrániť</button>
           </div>
-        </div>`).join('');
+        </div>`;
+      }).join('');
     }
 
-    async function updateStatus(id, status) {
-      const res = await apiFetch(`/prospects/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ status })
-      });
-      if (res && res.ok) {
-        const p = allProspects.find(x => String(x.id) === String(id));
-        if (p) p.status = status;
-        showToast('Stav aktualizovaný!');
-        if (currentFilter !== 'all') renderProspects();
+    async function markContacted(id) {
+      // Mark as contacted when phone link is clicked
+      const p = allProspects.find(x => String(x.id) === String(id));
+      if (p && p.status === 'new') {
+        await updateStatus(id, 'contacted');
+        const sel = document.getElementById('status-' + id);
+        if (sel) sel.value = 'contacted';
       }
     }
 
+    async function updateStatus(id, status) {
+      const res = await apiFetch(`/prospects/${id}`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      if (res && res.ok) {
+        const p = allProspects.find(x => String(x.id) === String(id));
+        if (p) p.status = status;
+        updateStats();
+        if (currentFilter !== 'all') renderProspects();
+        showToast('Stav aktualizovaný!');
+        // Auto-discover when running low
+        const uncontacted = allProspects.filter(x => x.status === 'new').length;
+        if (uncontacted < 5) autoDiscover();
+      }
+    }
+
+    async function autoDiscover() {
+      const info = document.getElementById('discover-info');
+      if (info) info.textContent = 'Automaticky hľadám nových klientov...';
+      try {
+        const res = await apiFetch('/prospects/discover', { method: 'POST', body: JSON.stringify({}) });
+        if (!res) return;
+        const data = await res.json();
+        if (res.ok && data.added > 0) {
+          await loadProspects();
+          showToast(`✓ Automaticky pridaných ${data.added} nových klientov`);
+        }
+      } catch {}
+      finally { if (info) info.textContent = ''; }
+    }
+
     async function saveNote(id) {
-      const notes = document.getElementById(`notes-${id}`).value;
-      const res = await apiFetch(`/prospects/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ notes })
-      });
+      const notes = document.getElementById(`notes-${id}`)?.value || '';
+      const res = await apiFetch(`/prospects/${id}`, { method: 'PATCH', body: JSON.stringify({ notes }) });
       if (res && res.ok) {
         const p = allProspects.find(x => String(x.id) === String(id));
         if (p) p.notes = notes;
@@ -629,13 +752,22 @@
     }
 
     async function deleteProspect(id) {
-      if (!confirm('Naozaj chcete odstrániť tento prospekt?')) return;
+      if (!confirm('Naozaj odstrániť tento prospekt?')) return;
       const res = await apiFetch(`/prospects/${id}`, { method: 'DELETE' });
       if (res && (res.ok || res.status === 204)) {
         allProspects = allProspects.filter(x => String(x.id) !== String(id));
         renderProspects();
         showToast('Prospekt odstránený.');
       }
+    }
+
+    async function loadProspects() {
+      const res = await apiFetch('/prospects');
+      if (res && res.ok) {
+        const d = await res.json();
+        allProspects = Array.isArray(d) ? d : (d.prospects || []);
+      }
+      renderProspects();
     }
 
     async function init() {
@@ -646,16 +778,15 @@
       document.getElementById('sidebar-email').textContent = me.email || '';
       document.getElementById('user-avatar').textContent = (me.name || me.email || '?')[0].toUpperCase();
 
-      const res = await apiFetch('/prospects');
-      if (res && res.ok) {
-        const d = await res.json();
-        allProspects = Array.isArray(d) ? d : (d.prospects || []);
+      await loadProspects();
+
+      // Auto-discover on first visit if no prospects yet
+      if (allProspects.length === 0) {
+        discoverProspects();
       }
-      renderProspects();
     }
 
-    // Enter key on URL input
-    document.getElementById('url-input').addEventListener('keydown', e => {
+    document.getElementById('url-input')?.addEventListener('keydown', e => {
       if (e.key === 'Enter') analyzeUrl();
     });
 

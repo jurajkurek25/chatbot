@@ -129,4 +129,51 @@ async function streamAdvisorResponse(message, history, res) {
   res.end();
 }
 
-module.exports = { analyzeProspect, streamAdvisorResponse };
+// Lightweight batch analysis of Google search results (title + snippet, no scraping)
+async function batchAnalyzeSearchResults(results) {
+  if (!results || results.length === 0) return [];
+
+  const items = results.map((r, i) =>
+    `${i + 1}. URL: ${r.link}\n   Názov: ${r.title}\n   Snippet: ${r.snippet || ''}`
+  ).join('\n\n');
+
+  const response = await client.messages.create({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 1200,
+    messages: [{
+      role: 'user',
+      content: `Si expert na predaj Neoworkly chatbotov. Analyzuj tieto výsledky Google vyhľadávania a pre každý určí vhodnosť na predaj Neoworkly.
+
+Neoworkly je ideálny pre: e-shopy, kozmetické salóny, fitness, realitky, reštaurácie, koučov, lekárov, právnikov, účtovníkov, hotely, autobazáre.
+Nevhodné: blogy, vládne weby, akademické inštitúcie, veľké korporácie, agregátory.
+
+Výsledky:
+${items}
+
+Vráť VÝHRADNE JSON pole (žiadny iný text):
+[
+  {
+    "idx": 1,
+    "company_name": "názov firmy",
+    "industry": "odvetvie v slovenčine",
+    "fit_score": číslo 1-10,
+    "opening_line": "personalizovaný opener pre cold call (1-2 vety v slovenčine)",
+    "skip": false
+  }
+]
+
+Pre weby s fit_score < 4 nastav "skip": true. Vráť záznam pre každý vstup.`,
+    }],
+  });
+
+  const raw = response.content[0]?.text?.trim() || '[]';
+  const match = raw.match(/\[[\s\S]*\]/);
+  if (!match) return [];
+  try {
+    return JSON.parse(match[0]);
+  } catch {
+    return [];
+  }
+}
+
+module.exports = { analyzeProspect, batchAnalyzeSearchResults, streamAdvisorResponse };

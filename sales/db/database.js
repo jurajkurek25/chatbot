@@ -98,6 +98,15 @@ function initDatabase() {
   `);
 
   seedTraining(db);
+
+  // Incremental migrations
+  const migrations = [
+    `ALTER TABLE prospects ADD COLUMN source TEXT NOT NULL DEFAULT 'manual'`,
+  ];
+  for (const sql of migrations) {
+    try { db.exec(sql); } catch { /* column already exists */ }
+  }
+
   console.log('DB initialized.');
 }
 
