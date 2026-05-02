@@ -1062,6 +1062,30 @@ router.post('/chat', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Správa nesmie byť prázdna.' });
   }
 
+  // ── Build per-request system prompt with user's existing widgets ──
+  const existingWidgets = db.prepare(
+    'SELECT id, name, bot_name, welcome_message, primary_color, goals, cta_type, cta_config, ' +
+    'proactive_enabled, proactive_delay, proactive_message, offline_message, business_hours, ' +
+    'csat_enabled, auto_reply_enabled, auto_reply_message, active ' +
+    'FROM widgets WHERE user_id = ? ORDER BY created_at DESC LIMIT 20'
+  ).all(req.userId);
+
+  let widgetContext = '';
+  if (existingWidgets.length > 0) {
+    const widgetList = existingWidgets.map(w => {
+      const parts = [`ID: ${w.id}`, `Názov: ${w.name}`, `Bot: ${w.bot_name}`, `CTA: ${w.cta_type}`];
+      if (w.primary_color) parts.push(`Farba: ${w.primary_color}`);
+      if (w.proactive_enabled) parts.push(`Proactive: áno (${w.proactive_delay}s)`);
+      if (w.business_hours) parts.push('Otváracie hodiny: nastavené');
+      return `• ${parts.join(' | ')}`;
+    }).join('\n');
+    widgetContext = `\n\n━━━ EXISTUJÚCE WIDGETY KLIENTA ━━━\n${widgetList}\n\nKEDY VOLAŤ update_widget:\n- Klient chce zmeniť/upraviť/aktualizovať existujúci chatbot → použij update_widget s widget_id z vyššie uvedeného zoznamu\n- Trigger: "uprav", "zmeň", "aktualizuj", "update", "edit", "nastav inak" + meno alebo ID widgetu\n- Ak klient neupresní ktorý widget, spýtaj sa ktorý má na mysli (uveď zoznam mien)\n- update_widget zvláda všetky rovnaké polia ako create_widget — môžeš zmeniť hocičo`;
+  } else {
+    widgetContext = '\n\n━━━ EXISTUJÚCE WIDGETY KLIENTA ━━━\nKlient zatiaľ nemá žiadne widgety.';
+  }
+
+  const systemPrompt = SYSTEM_PROMPT + widgetContext;
+
   // ── Auto-scrape any URL in the message ──────────────────────────
   let userContent = message.trim().slice(0, 2000);
   const urlMatch = userContent.match(/https?:\/\/[^\s"'<>]+/);
@@ -1090,7 +1114,7 @@ router.post('/chat', requireAuth, async (req, res) => {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-6',
       max_tokens: 1200,
-      system: SYSTEM_PROMPT,
+      system: systemPrompt,
       messages,
       tools: COACH_TOOLS,
     });
@@ -1108,7 +1132,7 @@ router.post('/chat', requireAuth, async (req, res) => {
         const followUp = await client.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 400,
-          system: SYSTEM_PROMPT,
+          system: systemPrompt,
           messages: [
             ...messages,
             { role: 'assistant', content: response.content },
@@ -1137,7 +1161,7 @@ router.post('/chat', requireAuth, async (req, res) => {
         const followUp = await client.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 300,
-          system: SYSTEM_PROMPT,
+          system: systemPrompt,
           messages: [
             ...messages,
             { role: 'assistant', content: response.content },
@@ -1168,7 +1192,7 @@ router.post('/chat', requireAuth, async (req, res) => {
         const followUp = await client.messages.create({
           model: 'claude-sonnet-4-6',
           max_tokens: 400,
-          system: SYSTEM_PROMPT,
+          system: systemPrompt,
           messages: [
             ...messages,
             { role: 'assistant', content: response.content },
