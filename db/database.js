@@ -540,6 +540,18 @@ function initDatabase() {
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 )`,
     `ALTER TABLE widgets ADD COLUMN proactive_sequence TEXT NOT NULL DEFAULT '[]'`,
+    `CREATE TABLE IF NOT EXISTS ai_training_samples (
+  id TEXT PRIMARY KEY,
+  source TEXT NOT NULL,
+  system_prompt TEXT,
+  user_input TEXT NOT NULL,
+  assistant_output TEXT NOT NULL,
+  tool_calls TEXT,
+  widget_id TEXT,
+  quality INTEGER NOT NULL DEFAULT 0,
+  flagged INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

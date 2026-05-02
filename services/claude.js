@@ -1,6 +1,7 @@
 'use strict';
 
 const Anthropic = require('@anthropic-ai/sdk');
+const { logTrainingSample } = require('./training-logger');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -343,6 +344,16 @@ async function streamChatResponse(widget, knowledgeItems, history, userMessage, 
 
   res.write(`data: ${JSON.stringify({ done: true, fullText: fullResponse })}\n\n`);
   res.end();
+
+  logTrainingSample({
+    source: 'chat',
+    systemPrompt,
+    userInput: userMessage,
+    assistantOutput: fullResponse,
+    widgetId: widget.id,
+    quality: 0,
+  });
+
   return fullResponse;
 }
 

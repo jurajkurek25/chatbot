@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const { requireAuth } = require('../middleware/auth');
 const { getDb } = require('../db/database');
 const { crawlSite } = require('../services/scraper');
+const { logTrainingSample } = require('../services/training-logger');
 
 const router = express.Router();
 const client = new Anthropic();
@@ -1212,67 +1213,52 @@ router.post('/chat', requireAuth, async (req, res) => {
       tools: COACH_TOOLS,
     });
 
+    // ── Helper: follow-up text after tool execution ──────────────
+    const followUpText = async (toolUseId, toolResultContent) => {
+      const fu = await client.messages.create({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 600,
+        system: systemPrompt,
+        messages: [
+          ...messages,
+          { role: 'assistant', content: response.content },
+          { role: 'user', content: [{ type: 'tool_result', tool_use_id: toolUseId, content: toolResultContent }] },
+        ],
+        tools: COACH_TOOLS,
+      });
+      return fu.content.find(b => b.type === 'text')?.text || '';
+    };
+
+    // ── Helper: log coach conversation sample ────────────────────
+    const logCoach = (replyText, widgetId, quality) => logTrainingSample({
+      source: 'coach',
+      userInput: userContent,
+      assistantOutput: replyText,
+      widgetId: widgetId || null,
+      quality,
+    });
+
     // ── Handle tool use ──────────────────────────────────────────
     if (response.stop_reason === 'tool_use') {
       const toolBlock = response.content.find(b => b.type === 'tool_use');
-      const textBlock = response.content.find(b => b.type === 'text');
 
       if (toolBlock?.name === 'create_widget') {
         const result = await _coachCreateWidget(req.userId, toolBlock.input);
         if (result.error) return res.status(400).json({ error: result.error });
-
-        // Get a follow-up text reply from Claude describing what was done
-        const followUp = await client.messages.create({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 600,
-          system: systemPrompt,
-          messages: [
-            ...messages,
-            { role: 'assistant', content: response.content },
-            {
-              role: 'user',
-              content: [{
-                type: 'tool_result',
-                tool_use_id: toolBlock.id,
-                content: JSON.stringify({ success: true, widget_id: result.widget.id, widget_name: result.widget.name }),
-              }],
-            },
-          ],
-          tools: COACH_TOOLS,
-        });
-
-        const replyText = followUp.content.find(b => b.type === 'text')?.text
-          || `Widget "${result.widget.name}" bol úspešne vytvorený! Môžeš ho teraz otvoriť a doladiť v dashboarde.`;
-
+        const replyText = await followUpText(toolBlock.id,
+          JSON.stringify({ success: true, widget_id: result.widget.id, widget_name: result.widget.name }))
+          || `Widget "${result.widget.name}" bol úspešne vytvorený!`;
+        logCoach(replyText, result.widget.id, 1);
         return res.json({ reply: replyText, widget_created: result.widget });
       }
 
       if (toolBlock?.name === 'update_widget') {
         const result = await _coachUpdateWidget(req.userId, toolBlock.input);
         if (result.error) return res.status(400).json({ error: result.error });
-
-        const followUp = await client.messages.create({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 600,
-          system: systemPrompt,
-          messages: [
-            ...messages,
-            { role: 'assistant', content: response.content },
-            {
-              role: 'user',
-              content: [{
-                type: 'tool_result',
-                tool_use_id: toolBlock.id,
-                content: JSON.stringify({ success: true, widget_id: result.widget.id }),
-              }],
-            },
-          ],
-          tools: COACH_TOOLS,
-        });
-
-        const replyText = followUp.content.find(b => b.type === 'text')?.text
+        const replyText = await followUpText(toolBlock.id,
+          JSON.stringify({ success: true, widget_id: result.widget.id }))
           || `Widget "${result.widget.name}" bol aktualizovaný.`;
-
+        logCoach(replyText, result.widget.id, 1);
         return res.json({ reply: replyText, widget_updated: result.widget });
       }
 
@@ -1280,65 +1266,28 @@ router.post('/chat', requireAuth, async (req, res) => {
         const { widget_id, ...bookingInput } = toolBlock.input;
         const widget = getDb().prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(widget_id, req.userId);
         if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
-
         const bookingResult = await _coachSetupBooking(widget_id, bookingInput);
-        const followUp = await client.messages.create({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 600,
-          system: systemPrompt,
-          messages: [
-            ...messages,
-            { role: 'assistant', content: response.content },
-            {
-              role: 'user',
-              content: [{
-                type: 'tool_result',
-                tool_use_id: toolBlock.id,
-                content: JSON.stringify({ success: true, widget_id, services_created: bookingResult.services_count }),
-              }],
-            },
-          ],
-          tools: COACH_TOOLS,
-        });
-
-        const replyText = followUp.content.find(b => b.type === 'text')?.text
+        const replyText = await followUpText(toolBlock.id,
+          JSON.stringify({ success: true, widget_id, services_created: bookingResult.services_count }))
           || `Rezervačný systém pre widget bol nastavený.`;
-
+        logCoach(replyText, widget_id, 1);
         return res.json({ reply: replyText, widget_updated: widget });
       }
 
       if (toolBlock?.name === 'manage_knowledge') {
         const result = await _coachManageKnowledge(req.userId, toolBlock.input);
         if (result.error) return res.status(400).json({ error: result.error });
-
-        const followUp = await client.messages.create({
-          model: 'claude-sonnet-4-6',
-          max_tokens: 600,
-          system: systemPrompt,
-          messages: [
-            ...messages,
-            { role: 'assistant', content: response.content },
-            {
-              role: 'user',
-              content: [{
-                type: 'tool_result',
-                tool_use_id: toolBlock.id,
-                content: JSON.stringify({ success: true, items_added: result.added }),
-              }],
-            },
-          ],
-          tools: COACH_TOOLS,
-        });
-
-        const replyText = followUp.content.find(b => b.type === 'text')?.text
+        const replyText = await followUpText(toolBlock.id,
+          JSON.stringify({ success: true, items_added: result.added }))
           || `Znalostná báza bola aktualizovaná (${result.added} položiek).`;
-
+        logCoach(replyText, toolBlock.input.widget_id, 1);
         return res.json({ reply: replyText });
       }
     }
 
     // ── Normal text reply ────────────────────────────────────────
     const textReply = response.content.find(b => b.type === 'text')?.text || '';
+    logCoach(textReply, null, 0);
     res.json({ reply: textReply });
   } catch (err) {
     console.error('[coach] error:', err?.status, err?.error?.type, err?.error?.message ?? err?.message);
