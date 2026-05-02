@@ -8,16 +8,21 @@ const router = express.Router();
 // Auth: ADMIN_KEYS env var — comma-separated list of long secret keys
 // e.g. ADMIN_KEYS=abc123verylongkey1,xyz456verylongkey2
 function requireAdminKey(req, res, next) {
-  const raw = process.env.ADMIN_KEYS || '';
+  const raw = (process.env.ADMIN_KEYS || '').replace(/['"]/g, '');
   const keys = raw.split(',').map(k => k.trim()).filter(Boolean);
 
   if (!keys.length) {
     return res.status(503).json({ error: 'ADMIN_KEYS not configured on server.' });
   }
 
-  const provided = req.headers['x-admin-key'] || '';
+  const provided = (req.headers['x-admin-key'] || '').trim();
   if (!provided || !keys.includes(provided)) {
-    return res.status(401).json({ error: 'Invalid admin key.' });
+    return res.status(401).json({
+      error: 'Invalid admin key.',
+      debug_keys_count: keys.length,
+      debug_provided_len: provided.length,
+      debug_first_key_len: keys[0].length,
+    });
   }
 
   next();
