@@ -16,7 +16,7 @@ const BOOKING_SERVICE_SCHEMA = {
     name:         { type: 'string', description: 'Service name, e.g. "Strihanie vlasov"' },
     description:  { type: 'string', description: 'Short service description (optional)' },
     duration_mins:{ type: 'integer', description: 'Duration in minutes, e.g. 30, 60, 90' },
-    price:        { type: 'number', description: 'Price (optional, 0 if free)' },
+    price:        { type: 'number', description: 'Price (optional, null if not set)' },
     currency:     { type: 'string', description: 'Currency code, default EUR' },
   },
   required: ['name', 'duration_mins'],
@@ -32,56 +32,84 @@ const BOOKING_SCHEDULE_SCHEMA = {
   required: ['day_of_week', 'start_time', 'end_time'],
 };
 
+// Shared widget fields used in both create_widget and update_widget
+const WIDGET_SHARED_FIELDS = {
+  bot_name:           { type: 'string', description: 'Display name of the AI assistant' },
+  welcome_message:    { type: 'string', description: 'Opening message the bot sends to visitors' },
+  goals:              { type: 'string', description: 'Detailed system prompt (200-400 words): business description, target customers, unique value, tone, objectives, what the bot should and should not do' },
+  primary_color:      { type: 'string', description: 'Brand hex color, e.g. "#2563eb". Use brand color if mentioned, otherwise #2563eb.' },
+  suggested_questions:{ type: 'array', items: { type: 'string' }, description: '3-5 typical questions visitors ask for this business type' },
+  knowledge_texts:    { type: 'array', items: { type: 'string' }, description: 'Key business info texts to seed the knowledge base (services, pricing, about, FAQ). Max 5 items, each max 1500 chars.' },
+  // CTA
+  cta_type:           { type: 'string', enum: ['contact', 'call', 'booking', 'custom', 'none'], description: '"contact" = lead form (default), "call" = suggest a phone call, "booking" = online booking, "custom" = custom link/text, "none" = no CTA' },
+  cta_phone:          { type: 'string', description: 'Phone number for call CTA, e.g. "+421900123456". Required when cta_type="call".' },
+  cta_label:          { type: 'string', description: 'Button label for contact CTA (default "Zanechajte kontakt") or booking CTA (default "Rezervovať termín").' },
+  cta_custom_text:    { type: 'string', description: 'Descriptive text shown above the custom CTA button.' },
+  cta_custom_btn:     { type: 'string', description: 'Button label for custom CTA, e.g. "Prejsť do e-shopu".' },
+  cta_custom_link:    { type: 'string', description: 'URL for custom CTA button.' },
+  // Proactive message
+  proactive_enabled:  { type: 'boolean', description: 'Send a proactive greeting to visitors after a delay.' },
+  proactive_delay:    { type: 'integer', description: 'Seconds before proactive message appears (1-60), default 5.' },
+  proactive_message:  { type: 'string', description: 'Proactive greeting text, e.g. "Ahoj! Môžem pomôcť? 👋". Keep it short and inviting.' },
+  // Offline / business hours
+  offline_message:    { type: 'string', description: 'Message shown when widget is outside business hours, e.g. "Sme zatvorení, otvárame o 9:00. Zanechajte nám správu."' },
+  business_hours:     {
+    type: 'object',
+    description: 'Widget offline hours. Set enabled:true and days object. Keys "0"-"6" where 0=Sunday,1=Monday,...,6=Saturday. Each day: {enabled:bool, start:"HH:MM", end:"HH:MM"}',
+    properties: {
+      enabled: { type: 'boolean' },
+      days: { type: 'object' },
+    },
+  },
+  // CSAT & auto-reply
+  csat_enabled:       { type: 'boolean', description: 'Show 5-star satisfaction rating to visitors after 4+ bot replies.' },
+  auto_reply_enabled: { type: 'boolean', description: 'Send an auto-reply when agent is offline.' },
+  auto_reply_message: { type: 'string', description: 'Auto-reply text, e.g. "Ďakujeme za správu, ozveme sa vám do 24 hodín."' },
+};
+
 const COACH_TOOLS = [
   {
     name: 'create_widget',
-    description: 'Creates a new widget. Call when you have: business name, product/service, assistant name, and tone. Include booking config if user wants reservations.',
+    description: 'Creates a fully configured new widget. Call when you have collected enough info. Include booking config if user wants reservations.',
     input_schema: {
       type: 'object',
       properties: {
-        name:               { type: 'string', description: 'Internal widget name, e.g. "Hlavný web"' },
-        bot_name:           { type: 'string', description: 'Display name of the AI assistant' },
-        welcome_message:    { type: 'string', description: 'Opening message the bot sends to visitors' },
-        goals:              { type: 'string', description: 'Detailed system prompt (200-400 words): business description, target customers, unique value, tone, objectives, what the bot should and should not do' },
-        primary_color:      { type: 'string', description: 'Brand hex color, default #2563eb' },
-        suggested_questions:{ type: 'array', items: { type: 'string' }, description: '3-5 typical questions visitors ask for this business type' },
-        knowledge_texts:    { type: 'array', items: { type: 'string' }, description: 'Key business info texts to seed the knowledge base (services, pricing, FAQ)' },
-        setup_booking:      { type: 'boolean', description: 'Set true to also configure an AI booking system for this widget' },
-        booking_timezone:   { type: 'string', description: 'Timezone for booking, e.g. "Europe/Bratislava", "Europe/Prague", "Europe/Warsaw"' },
-        booking_slot_duration:{ type: 'integer', description: 'Slot length in minutes (e.g. 30, 60, 90). Use shortest service duration if mixed.' },
-        booking_services:   { type: 'array', items: BOOKING_SERVICE_SCHEMA, description: 'Services available for booking' },
-        booking_schedule:   { type: 'array', items: BOOKING_SCHEDULE_SCHEMA, description: 'Working days and hours. Each active day gets one entry.' },
+        name: { type: 'string', description: 'Internal widget name, e.g. "Hlavný web", "E-shop Rubikon"' },
+        ...WIDGET_SHARED_FIELDS,
+        // Booking
+        setup_booking:        { type: 'boolean', description: 'Set true to also configure the AI booking calendar.' },
+        booking_timezone:     { type: 'string', description: 'Timezone for booking, e.g. "Europe/Bratislava"' },
+        booking_slot_duration:{ type: 'integer', description: 'Slot length in minutes (e.g. 30, 60).' },
+        booking_services:     { type: 'array', items: BOOKING_SERVICE_SCHEMA },
+        booking_schedule:     { type: 'array', items: BOOKING_SCHEDULE_SCHEMA },
       },
       required: ['name', 'bot_name', 'welcome_message', 'goals'],
     },
   },
   {
     name: 'update_widget',
-    description: 'Updates settings of an existing widget. Use when user wants to change bot name, welcome message, goals or other settings of an already created widget.',
+    description: 'Updates any settings of an existing widget. Supports all the same fields as create_widget plus widget_id.',
     input_schema: {
       type: 'object',
       properties: {
-        widget_id:          { type: 'string', description: 'ID of the widget to update' },
-        bot_name:           { type: 'string' },
-        welcome_message:    { type: 'string' },
-        goals:              { type: 'string' },
-        primary_color:      { type: 'string' },
-        suggested_questions:{ type: 'array', items: { type: 'string' } },
+        widget_id: { type: 'string', description: 'ID of the widget to update' },
+        name:      { type: 'string' },
+        ...WIDGET_SHARED_FIELDS,
       },
       required: ['widget_id'],
     },
   },
   {
     name: 'setup_booking',
-    description: 'Configures or updates the AI booking system for an existing widget. Use when user wants to add/modify reservations on a widget that already exists.',
+    description: 'Configures or updates the booking calendar for an existing widget.',
     input_schema: {
       type: 'object',
       properties: {
-        widget_id:     { type: 'string', description: 'ID of the widget to configure booking for' },
-        timezone:      { type: 'string', description: 'Timezone, e.g. "Europe/Bratislava"' },
-        slot_duration: { type: 'integer', description: 'Slot length in minutes' },
-        services:      { type: 'array', items: BOOKING_SERVICE_SCHEMA, description: 'Services to add/replace' },
-        schedule:      { type: 'array', items: BOOKING_SCHEDULE_SCHEMA, description: 'Working hours per day' },
+        widget_id:     { type: 'string', description: 'ID of the widget' },
+        timezone:      { type: 'string' },
+        slot_duration: { type: 'integer' },
+        services:      { type: 'array', items: BOOKING_SERVICE_SCHEMA },
+        schedule:      { type: 'array', items: BOOKING_SCHEDULE_SCHEMA },
       },
       required: ['widget_id'],
     },
@@ -949,62 +977,64 @@ Dashboard → váš widget → záložka "🛒 Shopify"
 
 ━━━ VYTVÁRANIE WIDGETU CEZ AI (WIDGET WIZARD) ━━━
 
-Keď klient chce vytvoriť nový widget alebo chatbota, spusť konverzačný sprievodca. KONVERZÁCIA JE ADAPTÍVNA — nepýtaj sa všetko naraz, reaguj na odpovede, kladie prirodzené nadväzujúce otázky. Každá správa = max 1-2 otázky.
+Keď klient chce vytvoriť nový widget, spusť konverzačný sprievodca. KONVERZÁCIA JE ADAPTÍVNA — nepýtaj sa všetko naraz, reaguj na odpovede. Každá správa = max 1-2 otázky.
 
-INFORMÁCIE KTORÉ POTREBUJEŠ (zbieraj postupne, v prirodzenom poradí):
+CIEĽ: Zozbierať dostatok informácií na KOMPLETNÉ nastavenie widgetu — rovnaké ako keby si klient klikol každé políčko ručne.
 
-ZÁKLAD (vždy spýtaj — prvé 2-3 správy):
-1. Meno firmy alebo projektu
-2. Čo predávajú / ponúkajú — produkt, služba, odbor; buď konkrétny
-3. Kto sú ich zákazníci — cieľová skupina (napr. "ženy 25-45", "firmy čo hľadajú účtovníka", "rodičia detí")
+INFORMÁCIE KTORÉ ZBIERAŠ:
 
-OSOBNOSŤ ASISTENTA:
-4. Tón komunikácie — formálne "Vy" alebo priateľsky "ty"? Seriózny alebo uvoľnený / s humorom?
-5. Meno asistenta (napr. Sofia, Emma, Asistent, Ján — poraď ak nevedia)
+1. ZÁKLAD (v prvej správe):
+   "Ako sa volá vaša firma a čo ponúkate?"
+   → Zisti: firma, odbor, služby, cieľová skupina, USP (z odpovede alebo z [WEB SCAN])
 
-STRATÉGIA (pýtaj ak nie je jasné z kontextu):
-6. Čo má chatbot primárne robiť? Odpovedať na otázky? Zbierať kontakty (formulár)? Alebo PRIJÍMAŤ REZERVÁCIE?
-7. Čo ich odlišuje od konkurencie — unikátna hodnota, špeciálny prístup, cena, rýchlosť, kvalita?
+2. OSOBNOSŤ CHATBOTA:
+   - Tón: formálne "Vy" alebo priateľsky "ty"? Seriózny alebo uvoľnený?
+   - Meno asistenta (napr. Sofia, Emma, Asistent — poraď ak nevedia)
 
-AK CHCÚ REZERVÁCIE — spýtaj pred zavolaním nástroja:
-8a. Aké služby ponúkajú na rezerváciu? (pre každú: názov, dĺžka stretnutia v minútach, cena ak ju chcú uviesť)
-8b. V ktoré dni a hodiny sú dostupní? (napr. "Pondelok-Piatok 9:00-17:00" alebo aj sobota/nedeľa)
-8c. Ako dlho trvá jeden termín? (ak majú viac služieb, aký je najkratší slot?)
-   — timezone zvyčajne Europe/Bratislava ak SK firma; pri zahraničných sa spýtaj
+3. CTA — ČO MÁ CHATBOT NAVRHNÚŤ ZÁKAZNÍKOVI?
+   "Čo má chatbot navrhnúť zákazníkovi — zanechať kontakt, zavolať, rezervovať termín alebo niečo iné?"
+   → "zanechať kontakt / formulár" → cta_type="contact", cta_label="Zanechajte kontakt"
+   → "zavolať / telefón" → cta_type="call" + spýtaj: "Na aké tel. číslo?" → cta_phone="+421..."
+   → "rezervovať termín" → cta_type="booking" + zbieraj booking info (krok 5)
+   → "vlastný link / e-shop" → cta_type="custom" + spýtaj URL a text tlačidla → cta_custom_link, cta_custom_btn, cta_custom_text
+   → "nič, len odpovedať" → cta_type="none"
 
-VOLITEĽNÉ (len ak sa hodí):
-9. Majú web? URL pre skenovanie obsahu — nie je povinná, ale pomôže ak ju majú
+4. PROAKTÍVNA SPRÁVA:
+   "Má chatbot sám osloviť návštevníka po pár sekundách? (napr. Ahoj! Môžem pomôcť? 👋)"
+   → Ak áno: proactive_enabled=true, spýtaj text → proactive_message, proactive_delay=5
+
+5. REZERVÁCIE (len ak cta_type="booking" alebo klient spomína termíny):
+   a) "Aké služby ponúkate?" (každá: názov, dĺžka v min, cena)
+   b) "V ktoré dni a hodiny ste dostupní?"
+   c) Slot = najkratšia služba; timezone = "Europe/Bratislava" pre SK firmy
+
+6. PRACOVNÉ HODINY & OFFLINE SPRÁVA (ak cta_type != "booking"):
+   "Má chatbot zobrazovať offline správu mimo pracovných hodín?"
+   → Ak áno: zisti hodiny → nastav business_hours + offline_message
+
+7. AUTOMATICKÁ ODPOVEĎ (optional):
+   "Chcete automatickú odpoveď zákazníkovi keď nie ste online?"
+   → Ak áno: auto_reply_enabled=true + auto_reply_message
 
 PRAVIDLÁ:
-- Začni s otázkou č. 1+2 v jednej správe ("Ako sa volá vaša firma a čo ponúkate?")
-- Ak klient odpovie vágne ("predávame produkty"), dopýtaj sa konkrétnejšie
-- Ak niečo vieš z kontextu rozhovoru, nepýtaj sa znova
-- Keď máš základ (firma + produkt + tón + meno asistenta) → môžeš zavolať create_widget
-- Booking informácie zbieraj PRED zavolaním — zahrni ich priamo do create_widget
-- NIKDY nevypisuj súhrn ani "takže toto mám" pred zavolaním nástroja — rovno ho zavolaj
+- Z [WEB SCAN] zisti max info — nepýtaj sa na to čo už vieš
+- csat_enabled=true nastavuj vždy (zbieraš spätnú väzbu zákazníkov)
+- NIKDY nevypisuj súhrn pred zavolaním nástroja — rovno ho zavolaj
+- Nevynechávaj polia len preto, že nie sú technicky "povinné" — čím viac info, tým lepší widget
 
 KEDY VOLAŤ create_widget:
-- Minimum: firma, produkt/služba, meno asistenta, tón
-- Cieľová skupina a USP zahrni do goals aj ak si ich musel odhadnúť z odboru
-- Pri booking: aspoň 1 služba + pracovné hodiny → nastav setup_booking: true + vyplň booking_services + booking_schedule
+- Minimum: firma, produkt, meno asistenta, tón, cta_type
+- Pri booking: aspoň 1 služba + pracovné hodiny → setup_booking=true
+- knowledge_texts: všetko čo klient povedal + [WEB SCAN] obsah (max 5 × 1500 znakov)
+- goals (200-400 slov): popis firmy + cieľová skupina + USP + tón + čo chatbot robí + čo nesmie
 
-KEDY VOLAŤ setup_booking (nie create_widget):
-- Keď widget už existuje a klient chce pridať/zmeniť rezervácie
+FORMÁTY:
+- business_hours: { enabled: true, days: { "1":{enabled:true,start:"09:00",end:"17:00"}, "2":..., "0":{enabled:false,start:"09:00",end:"17:00"} } }
+  (kľúče: "0"=Nedeľa, "1"=Pondelok, "2"=Utorok, "3"=Streda, "4"=Štvrtok, "5"=Piatok, "6"=Sobota)
+- booking_schedule day_of_week: 0=Nedeľa,1=Pondelok,2=Utorok,3=Streda,4=Štvrtok,5=Piatok,6=Sobota
 
-GENEROVANIE POLÍ pre create_widget:
-- goals (200-400 slov): popis firmy, cieľová skupina, USP, tón komunikácie, ciele chatbota (čo má robiť), čo nesmie robiť, ako má reagovať na rôzne situácie
-- welcome_message: prirodzená privítacia správa v duchu biznisu a tónu
-- suggested_questions: 3-5 otázok ktoré zákazníci typicky kladú pre daný typ biznisu
-- knowledge_texts: všetko čo klient povedal o biznise, službách, cenách, postupe — AJ obsah z naskenovaného webu!
-- booking_schedule: day_of_week 0=Nedeľa, 1=Pondelok, 2=Utorok, 3=Streda, 4=Štvrtok, 5=Piatok, 6=Sobota
-
-WEB SKENOVANIE — DÔLEŽITÉ:
-Keď klient zadá URL webu, systém ho automaticky naskenuje a obsah ti pošle priamo v správe vo formáte [WEB SCAN: ...]. Vtedy:
-- Prečítaj obsah dôkladne — obsahuje texty stránok, služby, kontakty, ceny
-- Z tohto obsahu zisti: čo firma robí, aké má služby, kde pôsobí, aký tón komunikácie používa
-- Nepýtaj sa na veci ktoré si z obsahu mohol/a zistiť (firma, odbor, základné služby)
-- Dopýtaj sa len na veci ktoré v obsahu chýbajú: napr. cieľová skupina, tón chatbota, meno asistenta, či chcú rezervácie
-- Zahrnú obsah webu do knowledge_texts pri create_widget (max 5 textov, každý max 1500 znakov)
+WEB SKENOVANIE:
+Keď klient zadá URL, dostaneš obsah vo formáte [WEB SCAN: ...]. Prečítaj ho — obsahuje texty stránok, služby, kontakty. Z neho zisti čo vieš a spýtaj sa len na zvyšok.
 
 Trigger frázy: "vytvoriť widget", "nový chatbot", "nastaviť chatbota", "create widget", "new widget", "chcem chatbota", "pomôž mi vytvoriť".
 
@@ -1171,6 +1201,15 @@ router.post('/chat', requireAuth, async (req, res) => {
 });
 
 // ── Widget creation helper ────────────────────────────────────────
+function _buildCtaConfig(input) {
+  const { cta_type, cta_phone, cta_label, cta_custom_text, cta_custom_btn, cta_custom_link } = input;
+  if (cta_type === 'call')    return { phone: cta_phone || '' };
+  if (cta_type === 'contact') return { label: cta_label || 'Zanechajte kontakt' };
+  if (cta_type === 'booking') return { label: cta_label || 'Rezervovať termín' };
+  if (cta_type === 'custom')  return { text: cta_custom_text || '', customBtnLabel: cta_custom_btn || '', customLink: cta_custom_link || '' };
+  return null;
+}
+
 async function _coachCreateWidget(userId, input) {
   const db = getDb();
   const user = db.prepare('SELECT subscription_plan, subscription_status, free_until, white_label_extra_slots FROM users WHERE id = ?').get(userId);
@@ -1187,14 +1226,22 @@ async function _coachCreateWidget(userId, input) {
   const id = uuidv4();
   const {
     name, bot_name, welcome_message, goals, primary_color, suggested_questions, knowledge_texts,
+    cta_type, proactive_enabled, proactive_delay, proactive_message,
+    offline_message, business_hours, csat_enabled, auto_reply_enabled, auto_reply_message,
     setup_booking, booking_timezone, booking_slot_duration, booking_services, booking_schedule,
   } = input;
 
-  const ctaType = setup_booking ? 'booking' : 'contact';
+  const ctaType = setup_booking ? 'booking' : (cta_type || 'contact');
+  const ctaConfig = _buildCtaConfig({ ...input, cta_type: ctaType });
 
   db.prepare(`
-    INSERT INTO widgets (id, user_id, name, bot_name, welcome_message, primary_color, goals, suggested_questions, cta_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO widgets (
+      id, user_id, name, bot_name, welcome_message, primary_color, goals, suggested_questions,
+      cta_type, cta_config,
+      proactive_enabled, proactive_delay, proactive_message,
+      offline_message, business_hours,
+      csat_enabled, auto_reply_enabled, auto_reply_message
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, userId,
     (name || 'Môj chatbot').trim(),
@@ -1204,6 +1251,15 @@ async function _coachCreateWidget(userId, input) {
     goals || '',
     JSON.stringify(Array.isArray(suggested_questions) ? suggested_questions.slice(0, 5) : []),
     ctaType,
+    ctaConfig ? JSON.stringify(ctaConfig) : null,
+    proactive_enabled ? 1 : 0,
+    proactive_delay ?? 5,
+    proactive_message || null,
+    offline_message || null,
+    business_hours ? JSON.stringify(business_hours) : null,
+    csat_enabled !== false ? 1 : 0,
+    auto_reply_enabled ? 1 : 0,
+    auto_reply_message || null,
   );
 
   // Seed knowledge base
@@ -1307,20 +1363,40 @@ async function _coachSetupBooking(widgetId, input) {
 // ── Widget update helper ──────────────────────────────────────────
 async function _coachUpdateWidget(userId, input) {
   const db = getDb();
-  const { widget_id, bot_name, welcome_message, goals, primary_color, suggested_questions } = input;
+  const {
+    widget_id, bot_name, welcome_message, goals, primary_color, suggested_questions,
+    cta_type, cta_phone, cta_label, cta_custom_text, cta_custom_btn, cta_custom_link,
+    proactive_enabled, proactive_delay, proactive_message,
+    offline_message, business_hours, csat_enabled, auto_reply_enabled, auto_reply_message,
+  } = input;
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(widget_id, userId);
   if (!widget) return { error: 'Widget nenájdený.' };
 
   const fields = [];
   const values = [];
-  if (bot_name        !== undefined) { fields.push('bot_name = ?');           values.push(bot_name.trim()); }
-  if (welcome_message !== undefined) { fields.push('welcome_message = ?');    values.push(welcome_message.trim()); }
-  if (goals           !== undefined) { fields.push('goals = ?');              values.push(goals); }
-  if (primary_color   !== undefined) { fields.push('primary_color = ?');      values.push(primary_color); }
+  if (bot_name        !== undefined) { fields.push('bot_name = ?');        values.push(bot_name.trim()); }
+  if (welcome_message !== undefined) { fields.push('welcome_message = ?'); values.push(welcome_message.trim()); }
+  if (goals           !== undefined) { fields.push('goals = ?');           values.push(goals); }
+  if (primary_color   !== undefined) { fields.push('primary_color = ?');   values.push(primary_color); }
   if (suggested_questions !== undefined) {
     fields.push('suggested_questions = ?');
     values.push(JSON.stringify(Array.isArray(suggested_questions) ? suggested_questions.slice(0, 4) : []));
   }
+  if (cta_type !== undefined) {
+    fields.push('cta_type = ?');
+    values.push(cta_type);
+    const ctaConfig = _buildCtaConfig({ cta_type, cta_phone, cta_label, cta_custom_text, cta_custom_btn, cta_custom_link });
+    if (ctaConfig) { fields.push('cta_config = ?'); values.push(JSON.stringify(ctaConfig)); }
+  }
+  if (proactive_enabled  !== undefined) { fields.push('proactive_enabled = ?');  values.push(proactive_enabled ? 1 : 0); }
+  if (proactive_delay    !== undefined) { fields.push('proactive_delay = ?');    values.push(proactive_delay); }
+  if (proactive_message  !== undefined) { fields.push('proactive_message = ?');  values.push(proactive_message); }
+  if (offline_message    !== undefined) { fields.push('offline_message = ?');    values.push(offline_message); }
+  if (business_hours     !== undefined) { fields.push('business_hours = ?');     values.push(JSON.stringify(business_hours)); }
+  if (csat_enabled       !== undefined) { fields.push('csat_enabled = ?');       values.push(csat_enabled ? 1 : 0); }
+  if (auto_reply_enabled !== undefined) { fields.push('auto_reply_enabled = ?'); values.push(auto_reply_enabled ? 1 : 0); }
+  if (auto_reply_message !== undefined) { fields.push('auto_reply_message = ?'); values.push(auto_reply_message); }
+
   if (!fields.length) return { widget };
 
   values.push(widget_id);
