@@ -5,6 +5,7 @@ const Anthropic = require('@anthropic-ai/sdk');
 const { v4: uuidv4 } = require('uuid');
 const { requireAuth } = require('../middleware/auth');
 const { getDb } = require('../db/database');
+const { crawlSite } = require('../services/scraper');
 
 const router = express.Router();
 const client = new Anthropic();
@@ -994,8 +995,16 @@ GENEROVANIE POLÍ pre create_widget:
 - goals (200-400 slov): popis firmy, cieľová skupina, USP, tón komunikácie, ciele chatbota (čo má robiť), čo nesmie robiť, ako má reagovať na rôzne situácie
 - welcome_message: prirodzená privítacia správa v duchu biznisu a tónu
 - suggested_questions: 3-5 otázok ktoré zákazníci typicky kladú pre daný typ biznisu
-- knowledge_texts: všetko čo klient povedal o biznise, službách, cenách, postupe
+- knowledge_texts: všetko čo klient povedal o biznise, službách, cenách, postupe — AJ obsah z naskenovaného webu!
 - booking_schedule: day_of_week 0=Nedeľa, 1=Pondelok, 2=Utorok, 3=Streda, 4=Štvrtok, 5=Piatok, 6=Sobota
+
+WEB SKENOVANIE — DÔLEŽITÉ:
+Keď klient zadá URL webu, systém ho automaticky naskenuje a obsah ti pošle priamo v správe vo formáte [WEB SCAN: ...]. Vtedy:
+- Prečítaj obsah dôkladne — obsahuje texty stránok, služby, kontakty, ceny
+- Z tohto obsahu zisti: čo firma robí, aké má služby, kde pôsobí, aký tón komunikácie používa
+- Nepýtaj sa na veci ktoré si z obsahu mohol/a zistiť (firma, odbor, základné služby)
+- Dopýtaj sa len na veci ktoré v obsahu chýbajú: napr. cieľová skupina, tón chatbota, meno asistenta, či chcú rezervácie
+- Zahrnú obsah webu do knowledge_texts pri create_widget (max 5 textov, každý max 1500 znakov)
 
 Trigger frázy: "vytvoriť widget", "nový chatbot", "nastaviť chatbota", "create widget", "new widget", "chcem chatbota", "pomôž mi vytvoriť".
 
@@ -1023,10 +1032,28 @@ router.post('/chat', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'Správa nesmie byť prázdna.' });
   }
 
+  // ── Auto-scrape any URL in the message ──────────────────────────
+  let userContent = message.trim().slice(0, 2000);
+  const urlMatch = userContent.match(/https?:\/\/[^\s"'<>]+/);
+  if (urlMatch) {
+    try {
+      const pages = await crawlSite(urlMatch[0], 5); // max 5 pages for speed
+      if (pages.length > 0) {
+        const scraped = pages
+          .slice(0, 5)
+          .map(p => `=== ${p.title || p.url} ===\n${p.content.slice(0, 1200)}`)
+          .join('\n\n');
+        userContent = `${userContent}\n\n[WEB SCAN: ${urlMatch[0]}]\n${scraped}`;
+      }
+    } catch (_) {
+      // Scraping failed — continue without it
+    }
+  }
+
   // Build messages array from history + current message
   const messages = [
     ...history.slice(-12).map(h => ({ role: h.role, content: h.content })),
-    { role: 'user', content: message.trim().slice(0, 2000) },
+    { role: 'user', content: userContent },
   ];
 
   try {
