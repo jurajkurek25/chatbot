@@ -65,6 +65,11 @@ const WIDGET_SHARED_FIELDS = {
   csat_enabled:       { type: 'boolean', description: 'Show 5-star satisfaction rating to visitors after 4+ bot replies.' },
   auto_reply_enabled: { type: 'boolean', description: 'Send an auto-reply when agent is offline.' },
   auto_reply_message: { type: 'string', description: 'Auto-reply text, e.g. "Ďakujeme za správu, ozveme sa vám do 24 hodín."' },
+  // Integrations & compliance
+  active:             { type: 'boolean', description: 'Whether the widget is active (visible on site). Default true.' },
+  webhook_url:        { type: 'string', description: 'URL to POST lead data to (name, email, phone, widget_id, ai_summary). Must be publicly reachable.' },
+  slack_webhook_url:  { type: 'string', description: 'Slack Incoming Webhook URL to receive lead notifications.' },
+  gdpr_text:          { type: 'string', description: 'GDPR consent text shown in the widget. Leave empty to use default.' },
 };
 
 const COACH_TOOLS = [
@@ -112,6 +117,30 @@ const COACH_TOOLS = [
         schedule:      { type: 'array', items: BOOKING_SCHEDULE_SCHEMA },
       },
       required: ['widget_id'],
+    },
+  },
+  {
+    name: 'manage_knowledge',
+    description: 'Adds or replaces knowledge base items for an existing widget. Use when user wants to update what the chatbot knows (new services, prices, FAQ, contact info, etc.).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        widget_id: { type: 'string', description: 'ID of the widget to update' },
+        mode:      { type: 'string', enum: ['add', 'replace'], description: '"add" appends new items, "replace" removes existing items first then adds new ones.' },
+        items: {
+          type: 'array',
+          description: 'Knowledge items to add. Max 10 items, each max 2000 chars.',
+          items: {
+            type: 'object',
+            properties: {
+              title:   { type: 'string', description: 'Short label, e.g. "Cenník", "Kontakt", "FAQ"' },
+              content: { type: 'string', description: 'Text content of the knowledge item.' },
+            },
+            required: ['title', 'content'],
+          },
+        },
+      },
+      required: ['widget_id', 'items'],
     },
   },
 ];
@@ -1038,6 +1067,18 @@ Keď klient zadá URL, dostaneš obsah vo formáte [WEB SCAN: ...]. Prečítaj h
 
 Trigger frázy: "vytvoriť widget", "nový chatbot", "nastaviť chatbota", "create widget", "new widget", "chcem chatbota", "pomôž mi vytvoriť".
 
+KEDY VOLAŤ manage_knowledge:
+- Klient chce pridať/zmeniť informácie čo chatbot vie (nové služby, ceny, FAQ, kontakt, popis firmy)
+- Trigger: "pridaj info", "aktualizuj znalosti", "chatbot nevie o X", "doplň ceny", "zmeň popis"
+- mode="add" → pridá nové položky k existujúcim
+- mode="replace" → vymaže staré manuálne položky a nahradí novými (použiť keď klient chce kompletne prepísať obsah)
+
+ĎALŠIE NASTAVENIA (cez update_widget):
+- active=false → deaktivuje widget (skryje z webu); active=true → aktivuje
+- webhook_url → URL kam systém posiela údaje o každom leade (meno, email, telefón, ai_summary)
+- slack_webhook_url → Slack Incoming Webhook pre notifikácie o leadoch
+- gdpr_text → vlastný GDPR súhlas text v chatbote (ak prázdny, použije sa predvolený)
+
 ━━━ POKYNY PRE TEBA ━━━
 - Odpovedaj v slovenčine (alebo v jazyku otázky ak píše po anglicky, nemecky atď.)
 - Buď konkrétny: uvádzaj presné kroky (Dashboard → záložka → akcia)
@@ -1213,6 +1254,35 @@ router.post('/chat', requireAuth, async (req, res) => {
 
         return res.json({ reply: replyText, widget_updated: widget });
       }
+
+      if (toolBlock?.name === 'manage_knowledge') {
+        const result = await _coachManageKnowledge(req.userId, toolBlock.input);
+        if (result.error) return res.status(400).json({ error: result.error });
+
+        const followUp = await client.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 300,
+          system: systemPrompt,
+          messages: [
+            ...messages,
+            { role: 'assistant', content: response.content },
+            {
+              role: 'user',
+              content: [{
+                type: 'tool_result',
+                tool_use_id: toolBlock.id,
+                content: JSON.stringify({ success: true, items_added: result.added }),
+              }],
+            },
+          ],
+          tools: COACH_TOOLS,
+        });
+
+        const replyText = followUp.content.find(b => b.type === 'text')?.text
+          || `Znalostná báza bola aktualizovaná (${result.added} položiek).`;
+
+        return res.json({ reply: replyText });
+      }
     }
 
     // ── Normal text reply ────────────────────────────────────────
@@ -1252,6 +1322,7 @@ async function _coachCreateWidget(userId, input) {
     name, bot_name, welcome_message, goals, primary_color, suggested_questions, knowledge_texts,
     cta_type, proactive_enabled, proactive_delay, proactive_message,
     offline_message, business_hours, csat_enabled, auto_reply_enabled, auto_reply_message,
+    active, webhook_url, slack_webhook_url, gdpr_text,
     setup_booking, booking_timezone, booking_slot_duration, booking_services, booking_schedule,
   } = input;
 
@@ -1264,8 +1335,9 @@ async function _coachCreateWidget(userId, input) {
       cta_type, cta_config,
       proactive_enabled, proactive_delay, proactive_message,
       offline_message, business_hours,
-      csat_enabled, auto_reply_enabled, auto_reply_message
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      csat_enabled, auto_reply_enabled, auto_reply_message,
+      active, webhook_url, slack_webhook_url, gdpr_text
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, userId,
     (name || 'Môj chatbot').trim(),
@@ -1284,11 +1356,15 @@ async function _coachCreateWidget(userId, input) {
     csat_enabled !== false ? 1 : 0,
     auto_reply_enabled ? 1 : 0,
     auto_reply_message || null,
+    active !== false ? 1 : 0,
+    webhook_url || null,
+    slack_webhook_url || null,
+    gdpr_text || null,
   );
 
   // Seed knowledge base
   if (Array.isArray(knowledge_texts)) {
-    for (const text of knowledge_texts.slice(0, 5)) {
+    for (const text of knowledge_texts.slice(0, 10)) {
       if (!text?.trim()) continue;
       db.prepare(`INSERT INTO knowledge_items (id, widget_id, title, content, source_type) VALUES (?, ?, ?, ?, ?)`)
         .run(uuidv4(), id, 'O firme', text.trim(), 'manual');
@@ -1388,23 +1464,25 @@ async function _coachSetupBooking(widgetId, input) {
 async function _coachUpdateWidget(userId, input) {
   const db = getDb();
   const {
-    widget_id, bot_name, welcome_message, goals, primary_color, suggested_questions,
+    widget_id, name, bot_name, welcome_message, goals, primary_color, suggested_questions,
     cta_type, cta_phone, cta_label, cta_custom_text, cta_custom_btn, cta_custom_link,
     proactive_enabled, proactive_delay, proactive_message,
     offline_message, business_hours, csat_enabled, auto_reply_enabled, auto_reply_message,
+    active, webhook_url, slack_webhook_url, gdpr_text,
   } = input;
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(widget_id, userId);
   if (!widget) return { error: 'Widget nenájdený.' };
 
   const fields = [];
   const values = [];
+  if (name            !== undefined) { fields.push('name = ?');            values.push(name.trim()); }
   if (bot_name        !== undefined) { fields.push('bot_name = ?');        values.push(bot_name.trim()); }
   if (welcome_message !== undefined) { fields.push('welcome_message = ?'); values.push(welcome_message.trim()); }
   if (goals           !== undefined) { fields.push('goals = ?');           values.push(goals); }
   if (primary_color   !== undefined) { fields.push('primary_color = ?');   values.push(primary_color); }
   if (suggested_questions !== undefined) {
     fields.push('suggested_questions = ?');
-    values.push(JSON.stringify(Array.isArray(suggested_questions) ? suggested_questions.slice(0, 4) : []));
+    values.push(JSON.stringify(Array.isArray(suggested_questions) ? suggested_questions.slice(0, 5) : []));
   }
   if (cta_type !== undefined) {
     fields.push('cta_type = ?');
@@ -1420,6 +1498,10 @@ async function _coachUpdateWidget(userId, input) {
   if (csat_enabled       !== undefined) { fields.push('csat_enabled = ?');       values.push(csat_enabled ? 1 : 0); }
   if (auto_reply_enabled !== undefined) { fields.push('auto_reply_enabled = ?'); values.push(auto_reply_enabled ? 1 : 0); }
   if (auto_reply_message !== undefined) { fields.push('auto_reply_message = ?'); values.push(auto_reply_message); }
+  if (active             !== undefined) { fields.push('active = ?');             values.push(active ? 1 : 0); }
+  if (webhook_url        !== undefined) { fields.push('webhook_url = ?');        values.push(webhook_url || null); }
+  if (slack_webhook_url  !== undefined) { fields.push('slack_webhook_url = ?');  values.push(slack_webhook_url || null); }
+  if (gdpr_text          !== undefined) { fields.push('gdpr_text = ?');          values.push(gdpr_text || null); }
 
   if (!fields.length) return { widget };
 
@@ -1427,6 +1509,28 @@ async function _coachUpdateWidget(userId, input) {
   db.prepare(`UPDATE widgets SET ${fields.join(', ')} WHERE id = ?`).run(...values);
   const updated = db.prepare('SELECT id, name, bot_name FROM widgets WHERE id = ?').get(widget_id);
   return { widget: updated };
+}
+
+// ── Knowledge base management helper ─────────────────────────────
+async function _coachManageKnowledge(userId, input) {
+  const db = getDb();
+  const { widget_id, mode, items } = input;
+  const widget = db.prepare('SELECT * FROM widgets WHERE id = ? AND user_id = ?').get(widget_id, userId);
+  if (!widget) return { error: 'Widget nenájdený.' };
+  if (!Array.isArray(items) || items.length === 0) return { error: 'Žiadne položky na pridanie.' };
+
+  if (mode === 'replace') {
+    db.prepare(`DELETE FROM knowledge_items WHERE widget_id = ? AND source_type = 'manual'`).run(widget_id);
+  }
+
+  let added = 0;
+  for (const item of items.slice(0, 10)) {
+    if (!item?.content?.trim()) continue;
+    db.prepare(`INSERT INTO knowledge_items (id, widget_id, title, content, source_type) VALUES (?, ?, ?, ?, ?)`)
+      .run(uuidv4(), widget_id, (item.title || 'Info').trim(), item.content.trim().slice(0, 2000), 'manual');
+    added++;
+  }
+  return { added };
 }
 
 module.exports = router;
