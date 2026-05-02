@@ -414,6 +414,16 @@ body::after { content: ''; position: fixed; inset: 0; pointer-events: none; z-in
 <div class="toast" id="toast"></div>
 
 <script>
+// Forward sales_ref param to registration links
+(function() {
+  const sr = new URLSearchParams(location.search).get('sales_ref');
+  if (sr) {
+    document.querySelectorAll('a[href="/?register=1"]').forEach(a => {
+      a.href = '/?register=1&sales_ref=' + encodeURIComponent(sr);
+    });
+  }
+})();
+
 let _amount = 29;
 let _isCustom = false;
 

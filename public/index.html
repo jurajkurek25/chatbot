@@ -1504,6 +1504,12 @@
         <input type="text" name="referralCode" id="input-referral-code" placeholder="napr. JANA4X2K" style="text-transform:uppercase" autocomplete="off">
         <div id="referral-valid-note" style="display:none;font-size:.75rem;color:#1fd89a;margin-top:.25rem">🎁 Kód je platný – dostanete 15% zľavu!</div>
       </div>
+      <div class="field" id="promo-field">
+        <label>Promo kód <small>(voliteľné)</small></label>
+        <input type="text" id="input-promo-code" placeholder="napr. LETO2026" style="text-transform:uppercase" autocomplete="off">
+        <div id="promo-valid-note" style="display:none;font-size:.75rem;color:#1fd89a;margin-top:.25rem">🎁 Kód je platný!</div>
+        <div id="promo-invalid-note" style="display:none;font-size:.75rem;color:#f87171;margin-top:.25rem">❌ Neplatný promo kód.</div>
+      </div>
       <div class="checkbox-group">
         <input type="checkbox" id="agree-privacy" name="agreePrivacy" required>
         <label for="agree-privacy">
@@ -1601,6 +1607,20 @@
     } catch {}
   }
 
+  async function validatePromoCode(code) {
+    const validNote = document.getElementById('promo-valid-note');
+    const invalidNote = document.getElementById('promo-invalid-note');
+    if (validNote) validNote.style.display = 'none';
+    if (invalidNote) invalidNote.style.display = 'none';
+    if (!code || code.length < 3) return;
+    try {
+      const r = await fetch(`/api/promo-codes/validate/${encodeURIComponent(code)}`);
+      const d = await r.json();
+      if (validNote) validNote.style.display = d.valid ? '' : 'none';
+      if (invalidNote) invalidNote.style.display = d.valid ? 'none' : '';
+    } catch {}
+  }
+
   // ── LOGIN ──
   async function handleLogin(e) {
     e.preventDefault();
@@ -1641,6 +1661,8 @@
 
     const referralCode =
       (document.getElementById('input-referral-code')?.value || '').trim().toUpperCase() || undefined;
+    const salesRef = sessionStorage.getItem('nd_sales_ref') || undefined;
+    const promoCode = (document.getElementById('input-promo-code')?.value || '').trim().toUpperCase() || undefined;
 
     try {
       const res = await fetch('/api/auth/register', {
@@ -1651,6 +1673,8 @@
           email: f.email.value,
           password: f.password.value,
           referralCode,
+          salesRef,
+          promoCode,
           agreePrivacy: true,
           agreeTerms: true,
           policyVersion: '2026-04'
@@ -1764,8 +1788,26 @@
       showAuth('register');
     }
 
+    const salesRefParam = params.get('sales_ref');
+    if (salesRefParam) {
+      sessionStorage.setItem('nd_sales_ref', salesRefParam);
+      showAuth('register');
+    }
+
+    const promoParam = params.get('promo');
+    if (promoParam) {
+      const promoInp = document.getElementById('input-promo-code');
+      if (promoInp) { promoInp.value = promoParam.toUpperCase(); validatePromoCode(promoParam.toUpperCase()); }
+      showAuth('register');
+    }
+
+    if (params.get('register') === '1') showAuth('register');
+
     const inp = document.getElementById('input-referral-code');
     if (inp) inp.addEventListener('blur', () => validateReferralCode(inp.value.trim()));
+
+    const promoInp2 = document.getElementById('input-promo-code');
+    if (promoInp2) promoInp2.addEventListener('blur', () => validatePromoCode(promoInp2.value.trim()));
   });
 </script>
 <script src="/i18n.js?v=3"></script>
