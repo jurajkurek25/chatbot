@@ -34,7 +34,7 @@
       return;
     }
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/locales/' + lang + '.json?v=5', true);
+    xhr.open('GET', '/locales/' + lang + '.json?v=6', true);
     xhr.onload = function () {
       if (xhr.status === 200) {
         try { const p = JSON.parse(xhr.responseText); delete p.__done__; translations = p; } catch (e) { translations = {}; }
