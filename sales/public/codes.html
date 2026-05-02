@@ -59,19 +59,50 @@
 
     .page-header { margin-bottom: 32px; }
     .page-header h2 { font-size: 27px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px; }
-    .page-header p { color: #64748b; font-size: 14px; margin-top: 5px; }
 
     /* Section */
     .section { margin-bottom: 44px; }
     .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
     .section-title { font-size: 18px; font-weight: 700; color: #f1f5f9; }
 
-    /* Card */
-    .card {
+    /* Referral card */
+    .referral-card {
       background: #1e293b;
       border: 1px solid rgba(255,255,255,0.07);
       border-radius: 14px;
-      padding: 24px;
+      padding: 24px 28px;
+      max-width: 700px;
+    }
+    .referral-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; margin-bottom: 12px; }
+    .referral-link-row { display: flex; gap: 10px; margin-bottom: 10px; }
+    .referral-link-input {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 9px;
+      padding: 11px 15px;
+      color: #60a5fa;
+      font-size: 14px;
+      font-family: 'Courier New', monospace;
+      outline: none;
+    }
+    .btn-copy-link {
+      padding: 11px 20px;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      border: none; border-radius: 9px;
+      color: white; font-size: 14px; font-weight: 600;
+      cursor: pointer; font-family: inherit;
+      transition: opacity 0.2s;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+      white-space: nowrap;
+    }
+    .btn-copy-link:hover { opacity: 0.9; }
+    .referral-clicks { font-size: 13px; color: #94a3b8; margin-bottom: 10px; }
+    .referral-clicks strong { color: #f1f5f9; }
+    .referral-note {
+      font-size: 12px; color: #475569; line-height: 1.55;
+      padding: 10px 14px; background: rgba(255,255,255,0.03);
+      border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
     }
 
     /* Generate form */
@@ -80,7 +111,7 @@
     .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 16px; }
     .form-group { display: flex; flex-direction: column; gap: 6px; }
     .form-group label { font-size: 12px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.6px; }
-    .form-group input, .form-group textarea {
+    .form-group input {
       background: #1e293b;
       border: 1px solid rgba(255,255,255,0.1);
       border-radius: 8px;
@@ -91,8 +122,8 @@
       outline: none;
       transition: border-color 0.18s;
     }
-    .form-group input:focus, .form-group textarea:focus { border-color: rgba(37,99,235,0.5); }
-    .form-group textarea { resize: vertical; min-height: 72px; }
+    .form-group input:focus { border-color: rgba(37,99,235,0.5); }
+    .form-group input::placeholder { color: #334155; }
     .form-actions { display: flex; gap: 10px; }
 
     /* Buttons */
@@ -115,10 +146,8 @@
     .btn-outline { background: transparent; border: 1px solid rgba(255,255,255,0.15); color: #e2e8f0; }
     .btn-outline:hover { background: rgba(255,255,255,0.05); }
     .btn-sm { padding: 6px 14px; font-size: 13px; }
-    .btn-ghost { background: transparent; border: none; color: #64748b; font-size: 13px; cursor: pointer; font-family: inherit; padding: 6px 10px; border-radius: 6px; transition: all 0.15s; }
-    .btn-ghost:hover { color: #e2e8f0; background: rgba(255,255,255,0.05); }
 
-    /* Generated code card */
+    /* Generated code result */
     .code-result {
       display: none;
       background: linear-gradient(135deg, rgba(37,99,235,0.12), rgba(124,58,237,0.08));
@@ -143,6 +172,12 @@
     .copy-row { display: flex; gap: 10px; justify-content: center; }
 
     /* Codes list */
+    .card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 24px;
+    }
     .codes-table { width: 100%; border-collapse: collapse; }
     .codes-table th {
       text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
@@ -153,32 +188,6 @@
     .code-mono { font-family: 'Courier New', monospace; font-size: 15px; font-weight: 700; color: #60a5fa; letter-spacing: 1px; }
     .synced-ok { color: #34d399; font-size: 15px; }
     .synced-warn { color: #fbbf24; font-size: 15px; }
-    .uses-pill { background: rgba(37,99,235,0.15); color: #60a5fa; padding: 3px 9px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-
-    /* Referral section */
-    .referral-card {
-      background: linear-gradient(135deg, rgba(16,185,129,0.08), rgba(37,99,235,0.06));
-      border: 1px solid rgba(16,185,129,0.2);
-      border-radius: 14px;
-      padding: 28px;
-    }
-    .referral-link-row { display: flex; gap: 10px; margin: 16px 0; }
-    .referral-link-input {
-      flex: 1;
-      background: #0f172a;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 9px;
-      padding: 11px 15px;
-      color: #60a5fa;
-      font-size: 14px;
-      font-family: 'Courier New', monospace;
-      outline: none;
-    }
-    .referral-stats { display: flex; gap: 24px; margin-top: 16px; }
-    .ref-stat { text-align: center; }
-    .ref-stat-value { font-size: 28px; font-weight: 700; color: #34d399; }
-    .ref-stat-label { font-size: 12px; color: #64748b; margin-top: 3px; }
-    .referral-info { margin-top: 18px; padding: 14px 18px; background: rgba(255,255,255,0.03); border-radius: 10px; font-size: 13px; color: #94a3b8; line-height: 1.6; }
 
     .empty-state { text-align: center; padding: 40px 20px; color: #475569; font-size: 14px; }
 
@@ -257,10 +266,22 @@
   <main class="main">
     <div class="page-header">
       <h2>Kódy &amp; Linky</h2>
-      <p>Generujte promo kódy pre klientov a zdieľajte váš referral link.</p>
     </div>
 
-    <!-- Section 1: Promo kódy -->
+    <!-- Section 1: Referral link (smaller card at top) -->
+    <div class="section">
+      <div class="referral-card">
+        <div class="referral-label">Váš referral link</div>
+        <div class="referral-link-row">
+          <input type="text" class="referral-link-input" id="ref-link" readonly value="Načítavam..." />
+          <button class="btn-copy-link" onclick="copyRefLink()">Kopírovať</button>
+        </div>
+        <div class="referral-clicks">Clicks: <strong id="ref-clicks">–</strong></div>
+        <div class="referral-note">Zdieľajte tento link s potenciálnymi klientmi. Registrovaní cez váš link budú priradení k vám.</div>
+      </div>
+    </div>
+
+    <!-- Section 2: Promo kódy -->
     <div class="section">
       <div class="section-header">
         <span class="section-title">Promo kódy</span>
@@ -285,65 +306,30 @@
             <label>Dni zadarmo</label>
             <input type="number" id="f-days" value="30" min="1" max="365" />
           </div>
-          <div class="form-group">
-            <label>Max. použití</label>
-            <input type="number" id="f-maxuses" value="1" min="1" max="100" />
-          </div>
         </div>
         <div class="form-actions">
           <button class="btn btn-primary" id="generate-btn" onclick="generateCode()">
-            Generovať kód
+            Generovať
           </button>
           <button class="btn btn-outline" onclick="toggleForm()">Zrušiť</button>
         </div>
       </div>
 
-      <!-- Generated code result -->
+      <!-- Generated code result / success banner -->
       <div class="code-result" id="code-result">
-        <div class="code-result-label">Váš promo kód</div>
+        <div class="code-result-label">Kód vygenerovaný!</div>
         <div class="code-display" id="result-code">–</div>
         <div class="code-share-msg" id="result-msg"></div>
         <div class="copy-row">
           <button class="btn btn-primary btn-sm" onclick="copyCode()">Kopírovať kód</button>
           <button class="btn btn-outline btn-sm" onclick="copyMessage()">Kopírovať správu</button>
         </div>
-        <div style="margin-top:10px; font-size:12px; color:#475569" id="result-synced"></div>
       </div>
 
       <!-- Codes list -->
       <div class="card">
         <div id="codes-container">
           <div class="empty-state">Načítavam...</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Section 2: Referral link -->
-    <div class="section">
-      <div class="section-header">
-        <span class="section-title">Váš referral link</span>
-      </div>
-      <div class="referral-card">
-        <p style="color:#94a3b8; font-size:14px; line-height:1.6; margin-bottom:4px;">
-          Zdieľajte tento link s potenciálnymi klientmi. Každý kto sa zaregistruje cez váš link bude priradený k vám.
-        </p>
-        <div class="referral-link-row">
-          <input type="text" class="referral-link-input" id="ref-link" readonly value="Načítavam..." />
-          <button class="btn btn-primary" onclick="copyRefLink()">Kopírovať link</button>
-        </div>
-        <div class="referral-stats">
-          <div class="ref-stat">
-            <div class="ref-stat-value" id="ref-clicks">–</div>
-            <div class="ref-stat-label">Klikov</div>
-          </div>
-          <div class="ref-stat">
-            <div class="ref-stat-value" style="color:#60a5fa" id="ref-code">–</div>
-            <div class="ref-stat-label">Váš kód</div>
-          </div>
-        </div>
-        <div class="referral-info">
-          Keď klient klikne na váš link a zaregistruje sa, systém automaticky zaznamená odkiaľ prišiel.
-          Použite tento link v emailoch, správach alebo na sociálnych sieťach.
         </div>
       </div>
     </div>
@@ -368,11 +354,11 @@
 
     function logout() { localStorage.removeItem('sales_token'); window.location.href = '/'; }
 
-    function showToast(msg, duration = 2500) {
+    function showToast(msg, duration) {
       const t = document.getElementById('toast');
       t.textContent = msg;
       t.classList.add('show');
-      setTimeout(() => t.classList.remove('show'), duration);
+      setTimeout(() => t.classList.remove('show'), duration || 2500);
     }
 
     function toggleForm() {
@@ -391,34 +377,29 @@
         prospect_name: document.getElementById('f-prospect').value.trim() || undefined,
         notes: document.getElementById('f-notes').value.trim() || undefined,
         value_days: parseInt(document.getElementById('f-days').value) || 30,
-        max_uses: parseInt(document.getElementById('f-maxuses').value) || 1,
       };
       try {
         const res = await apiFetch('/codes/generate', { method: 'POST', body: JSON.stringify(body) });
         if (!res) return;
         const data = await res.json();
-        if (!res.ok) { showToast('Chyba: ' + (data.error || 'Neznáma chyba')); return; }
+        if (!res.ok) { showToast('Chyba: ' + (data.error || data.message || 'Neznáma chyba')); return; }
         lastGeneratedCode = data.code;
-        lastGeneratedDays = data.value_days;
+        lastGeneratedDays = data.value_days || body.value_days;
         document.getElementById('result-code').textContent = data.code;
         document.getElementById('result-msg').textContent =
-          `Mám pre vás darček – zadajte kód ${data.code} pri registrácii na neoworkly.com a získate ${data.value_days} dní zadarmo.`;
-        document.getElementById('result-synced').textContent =
-          data.synced ? '✓ Synchronizovaný s hlavnou aplikáciou' : '⚠ Uložený lokálne (synchronizácia prebehne neskôr)';
-        document.getElementById('result-synced').style.color = data.synced ? '#34d399' : '#fbbf24';
+          'Mám pre vás darček – zadajte kód ' + data.code + ' pri registrácii na neoworkly.com a získate ' + lastGeneratedDays + ' dní zadarmo.';
         document.getElementById('code-result').classList.add('visible');
         document.getElementById('generate-form').classList.remove('open');
         // Reset form
         document.getElementById('f-prospect').value = '';
         document.getElementById('f-notes').value = '';
         document.getElementById('f-days').value = '30';
-        document.getElementById('f-maxuses').value = '1';
         await loadCodes();
       } catch (e) {
         showToast('Chyba pripojenia.');
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Generovať kód';
+        btn.textContent = 'Generovať';
       }
     }
 
@@ -438,16 +419,20 @@
 
     function formatDate(ts) {
       if (!ts) return '–';
-      return new Date(ts * 1000).toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      // support both Unix timestamp (number) and ISO string
+      const d = (typeof ts === 'number') ? new Date(ts * 1000) : new Date(ts);
+      if (isNaN(d.getTime())) return '–';
+      return d.toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric' });
     }
 
     async function loadCodes() {
       const res = await apiFetch('/codes');
       if (!res) return;
-      const codes = await res.json();
+      const data = await res.json();
+      const codes = Array.isArray(data) ? data : (data.codes || []);
       const container = document.getElementById('codes-container');
-      if (!Array.isArray(codes) || codes.length === 0) {
-        container.innerHTML = '<div class="empty-state">Zatiaľ ste nevygenerovali žiadne kódy.</div>';
+      if (!codes.length) {
+        container.innerHTML = '<div class="empty-state">Zatiaľ žiadne kódy. Generujte prvý kód vyššie.</div>';
         return;
       }
       container.innerHTML = `
@@ -456,19 +441,21 @@
             <tr>
               <th>Kód</th>
               <th>Prospekt</th>
-              <th>Použitia</th>
-              <th>Platnosť do</th>
-              <th>Sync</th>
+              <th>Dni</th>
+              <th>Použití</th>
+              <th>Expiruje</th>
+              <th>Synced</th>
             </tr>
           </thead>
           <tbody>
             ${codes.map(c => `
               <tr>
-                <td><span class="code-mono">${c.code}</span></td>
-                <td style="color:#94a3b8">${c.prospect_name || '–'}</td>
-                <td><span class="uses-pill">${c.uses}/${c.max_uses}</span></td>
-                <td style="color:#64748b; font-size:13px">${formatDate(c.expires_at)}</td>
-                <td>${c.synced ? '<span class="synced-ok" title="Synchronizovaný">✓</span>' : '<span class="synced-warn" title="Nesynchronizovaný">⚠</span>'}</td>
+                <td><span class="code-mono">${c.code || '–'}</span></td>
+                <td style="color:#94a3b8">${c.prospect_name || c.prospect || '–'}</td>
+                <td style="color:#94a3b8">${c.value_days || c.days || '–'}</td>
+                <td style="color:#94a3b8">${(typeof c.uses !== 'undefined' ? c.uses : (typeof c.usages !== 'undefined' ? c.usages : '–'))}</td>
+                <td style="color:#64748b; font-size:13px">${formatDate(c.expires_at || c.expiry || c.expiresAt)}</td>
+                <td>${c.synced !== false ? '<span class="synced-ok" title="Synchronizovaný">✓</span>' : '<span class="synced-warn" title="Nesynchronizovaný">⚠</span>'}</td>
               </tr>`).join('')}
           </tbody>
         </table>`;
@@ -476,11 +463,10 @@
 
     async function loadReferral() {
       const res = await apiFetch('/codes/referral');
-      if (!res) return;
+      if (!res || !res.ok) return;
       const data = await res.json();
-      document.getElementById('ref-link').value = data.link || '';
-      document.getElementById('ref-clicks').textContent = data.clicks ?? '0';
-      document.getElementById('ref-code').textContent = data.ref_code || '–';
+      document.getElementById('ref-link').value = data.link || data.url || data.referralUrl || '';
+      document.getElementById('ref-clicks').textContent = typeof data.clicks !== 'undefined' ? data.clicks : '0';
     }
 
     async function init() {
