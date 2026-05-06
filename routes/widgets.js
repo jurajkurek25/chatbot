@@ -141,7 +141,7 @@ router.put('/:id', (req, res) => {
           proactive_enabled, proactive_delay, proactive_message, proactive_sequence, gdpr_text,
           webhook_url, slack_webhook_url, hide_branding, csat_enabled,
           ab_test_enabled, welcome_message_b, auto_reply_enabled, auto_reply_message,
-          offline_message, business_hours, demo_video_url } = req.body;
+          offline_message, business_hours, demo_video_url, promotions } = req.body;
 
   const db = getDb();
 
