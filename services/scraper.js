@@ -30,7 +30,7 @@ function fetchPage(rawUrl, redirects = 0) {
     const lib = parsed.protocol === 'https:' ? https : http;
     const req = lib.get(rawUrl, {
       headers: {
-        'User-Agent': 'NeoworklyBot/1.0 (knowledge-scanner)',
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Language': 'sk,cs,en',
       },
