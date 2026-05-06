@@ -45,7 +45,7 @@ async function startDemo() {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ business }),
+      body: JSON.stringify({ business, lang: window.i18n?.currentLang() || 'sk' }),
     });
 
     const data = await res.json();

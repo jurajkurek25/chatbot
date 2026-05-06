@@ -25,7 +25,16 @@ const woocommerceRoutes = require('./routes/woocommerce');
 const leadMagnetsRoutes = require('./routes/lead-magnets');
 const insightsRoutes    = require('./routes/insights');
 const facebookRoutes    = require('./routes/facebook');
+const whatsappRoutes    = require('./routes/whatsapp');
+const sequencesRoutes   = require('./routes/sequences');
 const ecomailRoutes     = require('./routes/ecomail');
+const seoRoutes         = require('./routes/seo');
+const moneyRoutes       = require('./routes/money');
+const reactivationRoutes = require('./routes/reactivation');
+const personRoutes       = require('./routes/person');
+const emailRoutes        = require('./routes/email');
+const { router: giftCardRoutes } = require('./routes/gift-cards');
+const adminRoutes           = require('./routes/admin');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -37,7 +46,7 @@ app.use(cors());
 // Stripe webhook MUST receive raw body — mount before express.json()
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '10mb', verify: (req, _res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // widget.js: short cache so customers always get fresh translations
@@ -66,9 +75,19 @@ app.use('/api/booking', bookingRoutes);
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
+app.use('/api/whatsapp',    whatsappRoutes);
+app.use('/api/sequences',   sequencesRoutes);
 app.use('/api/ecomail',     ecomailRoutes);
+app.use('/api/seo',         seoRoutes);
+app.use('/api/money',       moneyRoutes);
+app.use('/api/reactivation', reactivationRoutes);
+app.use('/api/person',      personRoutes);
+app.use('/api/email',       emailRoutes);
+app.use('/api/gift-cards',  giftCardRoutes);
 app.use('/api/team',        teamRoutes);
 app.use('/api/woocommerce', woocommerceRoutes);
+app.use('/api/admin',      adminRoutes);
+app.use('/api/promo-codes', require('./routes/promo-codes'));
 // Team invite accept (public, no auth needed on GET)
 app.get('/team/accept/:token', (req, res) => res.redirect(`/api/team/accept/${req.params.token}`));
 
@@ -96,6 +115,10 @@ app.get('/onboarding', (req, res) =>
 app.get('/demo', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'demo.html'))
 );
+app.get('/present', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'present.html'))
+);
+app.get('/darcek', (req, res) => res.redirect(301, '/present'));
 app.get('/book/:widgetId', (req, res) => {
   // Allow booking page to be embedded in iframes on any domain
   res.setHeader('Content-Security-Policy', "frame-ancestors *");
@@ -111,3 +134,59 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Neoworkly running on http://localhost:${PORT}`);
 });
+
+// Process follow-up sequence emails every 5 minutes
+setInterval(async () => {
+  try {
+    const http = require('http');
+    const opts = { hostname: 'localhost', port: PORT, path: '/api/sequences/process', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': 0, 'X-Internal-Secret': process.env.INTERNAL_SECRET || '' } };
+    const req = http.request(opts);
+    req.on('error', () => {});
+    req.end();
+  } catch {}
+}, 5 * 60 * 1000);
+
+// Subscription safety sync every 4 hours: deactivate widgets for inactive subscriptions
+// Guards against missed webhooks
+setInterval(() => {
+  try {
+    const { getDb } = require('./db/database');
+    const db = getDb();
+    const result = db.prepare(`
+      UPDATE widgets SET active = 0
+      WHERE user_id IN (
+        SELECT id FROM users
+        WHERE subscription_status = 'inactive'
+          AND (free_until IS NULL OR free_until < unixepoch())
+      ) AND active = 1
+    `).run();
+    if (result.changes > 0) {
+      console.log(`[sync] Deactivated ${result.changes} widget(s) for inactive subscriptions`);
+    }
+  } catch (e) {
+    console.error('[sync] Subscription sync error:', e.message);
+  }
+}, 4 * 60 * 60 * 1000);
+
+// Process win-back emails every hour
+setInterval(async () => {
+  try {
+    const { getDb } = require('./db/database');
+    const { sendWinbackEmail } = require('./services/email');
+    const db = getDb();
+    const now = Math.floor(Date.now() / 1000);
+    const jobs = db.prepare('SELECT * FROM winback_jobs WHERE sent_at IS NULL AND failed = 0 AND send_at <= ?').all(now);
+    for (const job of jobs) {
+      try {
+        await sendWinbackEmail({ toEmail: job.user_email, name: job.user_name });
+        db.prepare('UPDATE winback_jobs SET sent_at = ? WHERE id = ?').run(now, job.id);
+      } catch (e) {
+        console.error('[winback] Failed to send email for job', job.id, e.message);
+        db.prepare('UPDATE winback_jobs SET failed = 1 WHERE id = ?').run(job.id);
+      }
+    }
+    if (jobs.length > 0) console.log(`[winback] Processed ${jobs.length} win-back email(s)`);
+  } catch (e) {
+    console.error('[winback] Cron error:', e.message);
+  }
+}, 60 * 60 * 1000);

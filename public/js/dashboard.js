@@ -61,30 +61,157 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   // Check subscription; redirect to onboarding if inactive
+  let stripeStatus = null;
   try {
     const sr = await apiFetch('/api/stripe/status');
     if (sr) {
-      const sdata = await sr.json();
-      if (!sdata.active) { window.location.href = '/onboarding'; return; }
+      stripeStatus = await sr.json();
+      if (!stripeStatus.active) { window.location.href = '/onboarding'; return; }
       renderBillingButton();
+      if (stripeStatus.plan === 'white_label') renderWLSlotsPanel(stripeStatus);
     }
   } catch { /* allow access on network error */ }
 
   loadWidgets();
   loadUsageBar();
 
-  // Show toast if returning from credit purchase
+  // Show toast if returning from credit purchase or card setup
   const params = new URLSearchParams(location.search);
+  if (params.get('payment_setup') === '1') {
+    window.history.replaceState({}, '', '/dashboard');
+    showToast('Karta uložená! Skontrolujte nastavenia auto-reloadu.', 'success');
+    setTimeout(() => openCreditsModal(), 600);
+  }
   if (params.get('credits_added') === '1') {
     showToast('Kredity boli úspešne pridané!', 'success');
     window.history.replaceState({}, '', '/dashboard');
     loadUsageBar();
   }
+  if (params.get('person_activated') === '1') {
+    window.history.replaceState({}, '', '/dashboard');
+    showToast('Person add-on aktivovaný!', 'success');
+    setTimeout(() => showTab('person'), 400);
+  }
+  if (params.get('wl_slots_added')) {
+    const n = parseInt(params.get('wl_slots_added'), 10);
+    window.history.replaceState({}, '', '/dashboard');
+    showToast(`✅ Pridaných ${n} extra klientov (slotov)!`, 'success');
+  }
 
   // Wire "add language" button via JS (not onclick attribute) to avoid scope issues
   const addLangBtn = document.getElementById('btn-add-welcome-lang');
   if (addLangBtn) addLangBtn.addEventListener('click', () => addWelcomeLang());
+
+  const addProactiveLangBtn = document.getElementById('btn-add-proactive-lang');
+  if (addProactiveLangBtn) addProactiveLangBtn.addEventListener('click', () => addProactiveLang());
+  document.getElementById('btn-add-proactive-seq')?.addEventListener('click', () => addProactiveSeqItem());
 });
+
+let _wlStatus = null;
+
+function renderWLSlotsPanel(status) {
+  _wlStatus = status;
+  const footer = document.getElementById('sidebar-footer');
+  if (!footer || document.getElementById('wl-slots-panel')) return;
+
+  const extraSlots = status.white_label_extra_slots || 0;
+  const totalLimit = 40 + extraSlots;
+  const hasExtraSub = !!status.white_label_extra_sub_id;
+
+  const panel = document.createElement('div');
+  panel.id = 'wl-slots-panel';
+  panel.style.cssText = 'background:#f8f7ff;border:1px solid #ede9fe;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;font-size:0.8rem';
+  panel.innerHTML = `
+    <div style="font-weight:700;color:#4c1d95;margin-bottom:0.35rem">👥 White Label klienti</div>
+    <div style="color:#64748b;margin-bottom:0.5rem">
+      Limit: <strong style="color:#1e293b">${totalLimit} klientov</strong>
+      ${extraSlots ? `<span style="color:#7c3aed"> (+${extraSlots} extra · €${extraSlots * 15}/mes)</span>` : ''}
+    </div>
+    ${hasExtraSub
+      ? `<button onclick="openBillingPortal()" style="width:100%;background:#f1f5f9;color:#1e293b;border:1px solid #e2e8f0;border-radius:7px;padding:0.4rem 0.75rem;font-size:0.78rem;font-weight:600;cursor:pointer">⚙️ Spravovať / zrušiť extra sloty</button>`
+      : `<button onclick="openWLSlotsModal()" style="width:100%;background:#7c3aed;color:white;border:none;border-radius:7px;padding:0.4rem 0.75rem;font-size:0.78rem;font-weight:600;cursor:pointer">+ Pridať klientov (€15/klient/mes)</button>`
+    }
+  `;
+  footer.insertBefore(panel, footer.firstChild);
+}
+
+function openWLSlotsModal() {
+  const existing = document.getElementById('wl-slots-modal');
+  if (existing) { existing.remove(); }
+
+  const currentExtra = _wlStatus?.white_label_extra_slots || 0;
+  const defaultSlots = currentExtra || 5;
+  const isUpdate = !!_wlStatus?.white_label_extra_sub_id;
+  const title = isUpdate ? 'Zmeniť počet extra klientov' : 'Pridať extra klientov';
+  const note = isUpdate
+    ? `Aktuálne máte <strong>${currentExtra} extra klientov</strong>. Nová hodnota nahradí existujúcu subscripciu (pomerné vyrovnanie cez Stripe).`
+    : `Každý extra klient stojí <strong>€15/mesiac</strong>. Sloty sa pripočítajú k základným 40 a fakturujú sa mesačne.`;
+
+  const modal = document.createElement('div');
+  modal.id = 'wl-slots-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem';
+  modal.innerHTML = `
+    <div style="background:white;border-radius:16px;padding:2rem;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,0.15)">
+      <h3 style="font-size:1.1rem;font-weight:700;color:#1e293b;margin-bottom:0.5rem">${title}</h3>
+      <p style="font-size:0.85rem;color:#64748b;margin-bottom:1.25rem">${note}</p>
+      <div style="margin-bottom:1.25rem">
+        <label style="font-size:0.82rem;font-weight:600;color:#64748b;display:block;margin-bottom:0.4rem">Počet extra klientov</label>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <button onclick="changeWLSlots(-5)" style="border:1px solid #e2e8f0;background:white;border-radius:8px;width:36px;height:36px;font-size:1.1rem;cursor:pointer;font-weight:700">−</button>
+          <input id="wl-slots-input" type="number" value="${defaultSlots}" min="1" max="200"
+            style="flex:1;text-align:center;border:2px solid #e2e8f0;border-radius:8px;padding:0.5rem;font-size:1.1rem;font-weight:700;outline:none" oninput="updateWLSlotsPrice()">
+          <button onclick="changeWLSlots(5)" style="border:1px solid #e2e8f0;background:white;border-radius:8px;width:36px;height:36px;font-size:1.1rem;cursor:pointer;font-weight:700">+</button>
+        </div>
+      </div>
+      <div style="background:#f8f7ff;border-radius:10px;padding:0.85rem;margin-bottom:1.25rem;text-align:center">
+        <div style="font-size:0.78rem;color:#64748b">Mesačná platba</div>
+        <div id="wl-slots-price" style="font-size:1.75rem;font-weight:800;color:#7c3aed">€${defaultSlots * 15}</div>
+        <div style="font-size:0.75rem;color:#94a3b8">€15 × <span id="wl-slots-count">${defaultSlots}</span> klientov / mes</div>
+      </div>
+      <button id="btn-buy-wl-slots" onclick="buyWLSlots()" style="width:100%;background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;border-radius:10px;padding:0.8rem;font-size:0.95rem;font-weight:700;cursor:pointer;margin-bottom:0.5rem">${isUpdate ? 'Aktualizovať' : 'Predplatiť mesačne'} →</button>
+      <button onclick="document.getElementById('wl-slots-modal').remove()" style="width:100%;background:none;border:none;color:#94a3b8;font-size:0.85rem;cursor:pointer;padding:0.4rem">Zrušiť</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+function changeWLSlots(delta) {
+  const inp = document.getElementById('wl-slots-input');
+  if (!inp) return;
+  inp.value = Math.max(1, Math.min(200, (parseInt(inp.value) || 0) + delta));
+  updateWLSlotsPrice();
+}
+
+function updateWLSlotsPrice() {
+  const inp = document.getElementById('wl-slots-input');
+  const priceEl = document.getElementById('wl-slots-price');
+  const countEl = document.getElementById('wl-slots-count');
+  if (!inp || !priceEl) return;
+  const n = Math.max(1, parseInt(inp.value) || 1);
+  priceEl.textContent = `€${n * 15}`;
+  if (countEl) countEl.textContent = n;
+}
+
+async function buyWLSlots() {
+  const inp = document.getElementById('wl-slots-input');
+  const btn = document.getElementById('btn-buy-wl-slots');
+  const slots = Math.max(1, parseInt(inp?.value) || 1);
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Presmerovanie…'; }
+  try {
+    const r = await apiFetch('/api/stripe/checkout-wl-slots', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slots }),
+    });
+    if (!r) return;
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Chyba.', 'error'); return; }
+    if (d.url) window.location.href = d.url;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Zaplatiť →'; }
+  }
+}
 
 function renderBillingButton() {
   const footer = document.getElementById('sidebar-footer');
@@ -120,21 +247,22 @@ function renderUserInfo() {
 /* ── Views ─────────────────────────────────────────────────────── */
 function showView(view) {
   closeMobileSidebar();
-  document.getElementById('view-widgets').style.display = view === 'widgets' ? '' : 'none';
-  document.getElementById('view-editor').style.display = view === 'editor' ? '' : 'none';
-  document.getElementById('view-leads').style.display = view === 'leads' ? '' : 'none';
-  document.getElementById('view-affiliate').style.display = view === 'affiliate' ? '' : 'none';
-  document.getElementById('view-coach').style.display = view === 'coach' ? '' : 'none';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  const views = ['widgets','editor','leads','affiliate','coach','seo','money','reactivation'];
+  views.forEach(v => {
+    const el = document.getElementById(`view-${v}`);
+    if (el) el.style.display = v === view ? '' : 'none';
+  });
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
-  document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
-  document.getElementById('nav-leads').classList.toggle('active', view === 'leads');
-  document.getElementById('nav-affiliate').classList.toggle('active', view === 'affiliate');
-  document.getElementById('nav-coach').classList.toggle('active', view === 'coach');
+  ['widgets','leads','affiliate','coach','seo','money','reactivation'].forEach(v => {
+    document.getElementById(`nav-${v}`)?.classList.toggle('active', v === view);
+  });
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
     document.getElementById('topbar-actions').innerHTML =
+      '<button class="btn btn-secondary" onclick="startAiWidgetWizard()">🤖 Vytvoriť s AI</button>' +
       '<button class="btn btn-primary" onclick="openCreateWidgetModal()">+ Nový widget</button>';
   }
   if (view === 'leads') {
@@ -152,12 +280,27 @@ function showView(view) {
     document.getElementById('topbar-actions').innerHTML =
       '<button class="btn btn-secondary btn-sm" onclick="clearCoachHistory()">Vymazať chat</button>';
   }
+  if (view === 'seo') {
+    document.getElementById('topbar-title').textContent = 'SEO Audit';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadSeoAudit();
+  }
+  if (view === 'money') {
+    document.getElementById('topbar-title').textContent = 'Money Mode';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadMoneyStats();
+  }
+  if (view === 'reactivation') {
+    document.getElementById('topbar-title').textContent = 'Lead Reaktivácia';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadColdLeads(24);
+  }
 }
 
 function showTab(tab) {
   closeMobileSidebar();
   currentTab = tab;
-  ['settings','knowledge','questions','embed','products','instagram','facebook','gdpr','booking','leadmagnets','insights','inbox','integrations'].forEach(t => {
+  ['settings','knowledge','questions','embed','products','instagram','facebook','gdpr','booking','leadmagnets','insights','inbox','integrations','sequences','whatsapp','person'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
@@ -173,6 +316,9 @@ function showTab(tab) {
   if (tab === 'inbox') loadInbox();
   if (tab === 'integrations') { loadIntegrations(); loadEcomailStatus(); }
   if (tab === 'facebook') loadFacebookStatus();
+  if (tab === 'sequences') loadSequences();
+  if (tab === 'whatsapp') loadWaStatus();
+  if (tab === 'person') loadPersonProfile();
 }
 
 /* ── Widgets List ─────────────────────────────────────────────── */
@@ -232,7 +378,7 @@ async function loadWidgets() {
 
 async function openWidget(widgetId) {
   const res = await apiFetch(`/api/widgets/${widgetId}`);
-  if (!res) return;
+  if (!res || !res.ok) return;
   currentWidget = await res.json();
 
   suggestedQuestions = [...(currentWidget.suggested_questions || [])];
@@ -258,8 +404,20 @@ async function openWidget(widgetId) {
   document.getElementById('s-active').value = currentWidget.active ? '1' : '0';
   updateColorPreview(currentWidget.primary_color);
   document.getElementById('s-proactive-enabled').checked = Boolean(currentWidget.proactive_enabled);
-  document.getElementById('s-proactive-message').value = currentWidget.proactive_message || '';
+  const rawProactive = currentWidget.proactive_message || '';
+  if (rawProactive.startsWith('{')) {
+    try {
+      const pmObj = JSON.parse(rawProactive);
+      document.getElementById('s-proactive-message').value = pmObj.default || '';
+      loadProactiveLangs(pmObj);
+    } catch { document.getElementById('s-proactive-message').value = rawProactive; clearProactiveLangs(); }
+  } else {
+    document.getElementById('s-proactive-message').value = rawProactive;
+    clearProactiveLangs();
+  }
   document.getElementById('s-proactive-delay').value = currentWidget.proactive_delay || 4;
+  renderProactiveSeq(currentWidget.proactive_sequence || []);
+  renderPromotions(currentWidget.promotions || []);
 
   // Avatar preview
   const preview = document.getElementById('s-avatar-preview');
@@ -499,6 +657,372 @@ function buildWelcomeMessage() {
   return JSON.stringify(obj);
 }
 
+/* ── Multilingual Proactive Messages ────────────────────────────── */
+function clearProactiveLangs() {
+  const c = document.getElementById('proactive-langs-container');
+  if (c) c.innerHTML = '';
+}
+
+function loadProactiveLangs(pmObj) {
+  clearProactiveLangs();
+  for (const [lang, msg] of Object.entries(pmObj)) {
+    if (lang === 'default') continue;
+    addProactiveLang(lang, msg);
+  }
+}
+
+function addProactiveLang(lang, msg) {
+  const container = document.getElementById('proactive-langs-container');
+  if (!container) return;
+  const row = document.createElement('div');
+  row.className = 'proactive-lang-row';
+  row.style.cssText = 'display:flex;gap:0.5rem;align-items:center;margin-top:0.5rem';
+  const options = Object.entries(WELCOME_LANG_NAMES)
+    .map(([code, name]) => `<option value="${code}">${name} (${code})</option>`).join('');
+  row.innerHTML =
+    `<select class="form-control pl-lang" style="width:150px;flex-shrink:0">${options}</select>` +
+    `<input type="text" class="form-control pl-msg" placeholder="Proaktívna správa..." style="flex:1">` +
+    `<button type="button" class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:0.35rem 0.65rem" ` +
+    `onclick="this.closest('.proactive-lang-row').remove()">×</button>`;
+  container.appendChild(row);
+  if (lang) row.querySelector('.pl-lang').value = lang;
+  if (msg)  row.querySelector('.pl-msg').value  = msg;
+}
+
+function buildProactiveMessage() {
+  const def = document.getElementById('s-proactive-message').value.trim();
+  const rows = document.querySelectorAll('.proactive-lang-row');
+  if (!rows.length) return def;
+  const obj = { default: def };
+  rows.forEach(r => {
+    const lang = r.querySelector('.pl-lang').value;
+    const msg  = r.querySelector('.pl-msg').value.trim();
+    if (lang && msg) obj[lang] = msg;
+  });
+  return JSON.stringify(obj);
+}
+
+async function autoTranslateProactive() {
+  const defaultMsg = document.getElementById('s-proactive-message')?.value.trim();
+  if (!defaultMsg) { showToast('Najprv vyplňte predvolenú proaktívnu správu.', 'error'); return; }
+
+  const btn = document.getElementById('btn-auto-translate-proactive');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Prekladám...'; }
+
+  try {
+    const targetLangs = Object.keys(WELCOME_LANG_NAMES).filter(l => l !== 'sk');
+    const r = await apiFetch('/api/widgets/translate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: defaultMsg, targetLanguages: targetLangs,
+        context: 'proactive chat bubble greeting a website visitor' }),
+    });
+    if (!r?.ok) { showToast('Chyba prekladu.', 'error'); return; }
+    const data = await r.json();
+
+    clearProactiveLangs();
+    const entries = Object.entries(data.translations || {});
+    for (const [lang, msg] of entries) {
+      if (!WELCOME_LANG_NAMES[lang]) continue;
+      addProactiveLang(lang, '');
+      const rows = document.querySelectorAll('.proactive-lang-row');
+      const lastInput = rows[rows.length - 1]?.querySelector('.pl-msg');
+      if (lastInput) await _typeText(lastInput, String(msg), 8);
+      await _sleep(30);
+    }
+    showToast(`Preložené do ${entries.length} jazykov! Kliknite Uložiť nastavenia.`, 'success');
+  } catch (e) {
+    showToast('Chyba: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🌍 Auto-preložiť'; }
+  }
+}
+
+/* ── Proactive Sequence ─────────────────────────────────────────── */
+function renderProactiveSeq(seq) {
+  const list = document.getElementById('proactive-seq-list');
+  if (!list) return;
+  list.innerHTML = '';
+  (seq || []).forEach(item => addProactiveSeqItem(item));
+}
+
+function addProactiveSeqItem(item) {
+  item = item || { id: Math.random().toString(36).slice(2) + Date.now().toString(36), text: '', trigger: 'inactivity', delay: 30, repeat_after: 0, enabled: true };
+  const list = document.getElementById('proactive-seq-list');
+  if (!list) return;
+
+  // Parse multilingual text if stored as JSON
+  let defaultText = item.text || '';
+  let savedLangs = {};
+  if (defaultText.startsWith('{')) {
+    try {
+      const parsed = JSON.parse(defaultText);
+      defaultText = parsed.default || parsed.sk || '';
+      for (const [k, v] of Object.entries(parsed)) {
+        if (k !== 'default') savedLangs[k] = v;
+      }
+    } catch {}
+  }
+
+  const div = document.createElement('div');
+  div.className = 'proactive-seq-item';
+  div.dataset.seqId = item.id || (Math.random().toString(36).slice(2) + Date.now().toString(36));
+  div.innerHTML = `
+    <div style="display:flex;gap:0.5rem;align-items:flex-start;padding:0.75rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:0.5rem;margin-bottom:0.5rem">
+      <label style="display:flex;align-items:center;cursor:pointer;margin-top:3px" title="Zapnúť/vypnúť túto správu">
+        <input type="checkbox" class="seq-enabled" ${item.enabled !== false ? 'checked' : ''} style="width:14px;height:14px">
+      </label>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;gap:0.5rem;margin-bottom:0.5rem">
+          <input type="text" class="form-control seq-text" value="${esc(defaultText)}" placeholder="Text správy (predvolený jazyk)..." style="flex:1">
+          <button type="button" class="btn btn-secondary btn-sm seq-translate-btn" style="flex-shrink:0;font-size:0.78rem;padding:0.25rem 0.5rem" title="Auto-preložiť do všetkých jazykov">🌍</button>
+        </div>
+        <div class="seq-langs-container" style="margin-bottom:0.5rem"></div>
+        <button type="button" class="btn btn-secondary btn-sm seq-add-lang-btn" style="font-size:0.75rem;padding:0.2rem 0.5rem;margin-bottom:0.5rem">+ Jazyk</button>
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+          <select class="form-control seq-trigger" style="width:auto;font-size:0.8rem;padding:0.25rem 0.5rem">
+            <option value="time" ${item.trigger === 'time' ? 'selected' : ''}>⏱ Po čase od načítania</option>
+            <option value="inactivity" ${item.trigger === 'inactivity' ? 'selected' : ''}>😴 Po nečinnosti</option>
+            <option value="unanswered" ${item.trigger === 'unanswered' ? 'selected' : ''}>❓ Bez odpovede chatbotu</option>
+          </select>
+          <input type="number" class="form-control seq-delay" value="${+item.delay || 30}" min="5" max="3600" style="width:68px;font-size:0.8rem;padding:0.25rem 0.5rem" title="Počet sekúnd">
+          <span style="font-size:0.8rem;color:#64748b">sek.</span>
+          <span style="font-size:0.78rem;color:#cbd5e1">│</span>
+          <span style="font-size:0.78rem;color:#94a3b8">Opakovať po</span>
+          <input type="number" class="form-control seq-repeat" value="${+item.repeat_after || 0}" min="0" max="3600" style="width:68px;font-size:0.8rem;padding:0.25rem 0.5rem" title="0 = nezobrazí sa znovu">
+          <span style="font-size:0.78rem;color:#94a3b8">sek. (0 = nikdy)</span>
+        </div>
+      </div>
+      <button type="button" class="btn btn-secondary btn-sm seq-remove" style="padding:0.2rem 0.5rem;flex-shrink:0" title="Odstrániť">✕</button>
+    </div>
+  `;
+
+  // Load saved language rows
+  const langContainer = div.querySelector('.seq-langs-container');
+  for (const [lang, msg] of Object.entries(savedLangs)) {
+    _addSeqLangRow(langContainer, lang, msg);
+  }
+
+  div.querySelector('.seq-remove').addEventListener('click', () => div.remove());
+  div.querySelector('.seq-add-lang-btn').addEventListener('click', () => _addSeqLangRow(langContainer));
+  div.querySelector('.seq-translate-btn').addEventListener('click', () => _autoTranslateSeqItem(div));
+  list.appendChild(div);
+  window.i18n?.applyTranslations(div);
+}
+
+function _addSeqLangRow(container, lang, msg) {
+  const row = document.createElement('div');
+  row.className = 'seq-lang-row';
+  row.style.cssText = 'display:flex;gap:0.5rem;align-items:center;margin-bottom:0.35rem';
+  const options = Object.entries(WELCOME_LANG_NAMES)
+    .map(([code, name]) => `<option value="${code}">${name} (${code})</option>`).join('');
+  row.innerHTML =
+    `<select class="form-control sl-lang" style="width:140px;flex-shrink:0;font-size:0.8rem;padding:0.25rem 0.5rem">${options}</select>` +
+    `<input type="text" class="form-control sl-msg" placeholder="Preklad..." style="flex:1;font-size:0.85rem">` +
+    `<button type="button" class="btn btn-secondary btn-sm" style="flex-shrink:0;padding:0.2rem 0.45rem" onclick="this.closest('.seq-lang-row').remove()">×</button>`;
+  container.appendChild(row);
+  if (lang) row.querySelector('.sl-lang').value = lang;
+  if (msg)  row.querySelector('.sl-msg').value  = msg;
+  window.i18n?.applyTranslations(row);
+}
+
+async function _autoTranslateSeqItem(itemDiv) {
+  const textInput = itemDiv.querySelector('.seq-text');
+  const defaultText = textInput?.value.trim();
+  if (!defaultText) { showToast('Najprv vyplňte text správy.', 'error'); return; }
+  const btn = itemDiv.querySelector('.seq-translate-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+  try {
+    const targetLangs = Object.keys(WELCOME_LANG_NAMES).filter(l => l !== 'sk');
+    const r = await apiFetch('/api/widgets/translate', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: defaultText, targetLanguages: targetLangs,
+        context: 'proactive chat bubble message shown to a website visitor' }),
+    });
+    if (!r?.ok) { showToast('Chyba prekladu.', 'error'); return; }
+    const data = await r.json();
+    const container = itemDiv.querySelector('.seq-langs-container');
+    container.innerHTML = '';
+    for (const [lang, msg] of Object.entries(data.translations || {})) {
+      if (!WELCOME_LANG_NAMES[lang]) continue;
+      _addSeqLangRow(container, lang, String(msg));
+      await _sleep(20);
+    }
+    showToast('Preložené! Kliknite Uložiť nastavenia.', 'success');
+  } catch (e) {
+    showToast('Chyba: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '🌍'; }
+  }
+}
+
+/* ── Promotions / Offers ──────────────────────────────────────────── */
+
+function _promoStatus(p) {
+  const now = Math.floor(Date.now() / 1000);
+  const started = !p.start_at || p.start_at <= now;
+  const notEnded = !p.end_at || p.end_at >= now;
+  if (started && notEnded) return 'active';
+  if (!started) return 'planned';
+  return 'ended';
+}
+
+function _tsToLocal(ts) {
+  if (!ts) return '';
+  const d = new Date(ts * 1000);
+  // Format for datetime-local input: YYYY-MM-DDTHH:MM
+  const pad = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function _localToTs(str) {
+  if (!str) return null;
+  const ms = new Date(str).getTime();
+  return isNaN(ms) ? null : Math.floor(ms / 1000);
+}
+
+function renderPromotions(promos) {
+  const list = document.getElementById('promotions-list');
+  if (!list) return;
+  list.innerHTML = '';
+  (promos || []).forEach(p => _addPromotionRow(list, p));
+}
+
+function _addPromotionRow(list, p) {
+  const id = p?.id || ('promo_' + Math.random().toString(36).slice(2, 9));
+  const status = _promoStatus(p || {});
+  const badge = status === 'active'
+    ? '<span style="background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px">AKTÍVNA</span>'
+    : status === 'planned'
+    ? '<span style="background:#dbeafe;color:#2563eb;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px">PLÁNOVANÁ</span>'
+    : '<span style="background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px">UKONČENÁ</span>';
+
+  const div = document.createElement('div');
+  div.className = 'promo-item';
+  div.dataset.promoId = id;
+  div.style.cssText = 'border:1px solid #e2e8f0;border-radius:8px;padding:12px 14px;margin-bottom:10px;background:#fafafa';
+  div.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:600;color:#374151">
+        ${p?.title ? escHtml(p.title) : 'Nová akcia'}${badge}
+      </div>
+      <button type="button" onclick="removePromotion(this)" style="background:none;border:none;color:#94a3b8;cursor:pointer;font-size:18px;line-height:1;padding:0 2px" title="Odstrániť">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px">Názov akcie *</label>
+        <input type="text" class="form-control promo-title" value="${escHtml(p?.title || '')}" placeholder="napr. Letná akcia" style="font-size:13px" oninput="_updatePromoHeader(this)">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px">Text zľavy</label>
+        <input type="text" class="form-control promo-discount" value="${escHtml(p?.discount_text || '')}" placeholder="napr. -20%" style="font-size:13px">
+      </div>
+    </div>
+    <div style="margin-bottom:8px">
+      <label style="font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px">Popis akcie</label>
+      <input type="text" class="form-control promo-desc" value="${escHtml(p?.description || '')}" placeholder="napr. 20% zľava na všetky produkty" style="font-size:13px">
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px">Začiatok akcie</label>
+        <input type="datetime-local" class="form-control promo-start" value="${_tsToLocal(p?.start_at)}" style="font-size:13px" onchange="_updatePromoBadge(this)">
+      </div>
+      <div>
+        <label style="font-size:11px;font-weight:600;color:#6b7280;display:block;margin-bottom:3px">Koniec akcie</label>
+        <input type="datetime-local" class="form-control promo-end" value="${_tsToLocal(p?.end_at)}" style="font-size:13px" onchange="_updatePromoBadge(this)">
+      </div>
+    </div>
+  `;
+  list.appendChild(div);
+}
+
+function escHtml(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _updatePromoHeader(input) {
+  const item = input.closest('.promo-item');
+  const titleEl = item?.querySelector('div[style*="font-weight:600"]');
+  if (titleEl) {
+    const badge = titleEl.querySelector('span');
+    titleEl.textContent = input.value || 'Nová akcia';
+    if (badge) titleEl.appendChild(badge);
+  }
+}
+
+function _updatePromoBadge(input) {
+  const item = input.closest('.promo-item');
+  if (!item) return;
+  const startVal = item.querySelector('.promo-start')?.value;
+  const endVal   = item.querySelector('.promo-end')?.value;
+  const p = { start_at: _localToTs(startVal), end_at: _localToTs(endVal) };
+  const status = _promoStatus(p);
+  const badge = item.querySelector('span[style*="border-radius:10px"]');
+  if (badge) {
+    if (status === 'active') { badge.textContent = 'AKTÍVNA'; badge.style.cssText = 'background:#dcfce7;color:#16a34a;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px'; }
+    else if (status === 'planned') { badge.textContent = 'PLÁNOVANÁ'; badge.style.cssText = 'background:#dbeafe;color:#2563eb;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px'; }
+    else { badge.textContent = 'UKONČENÁ'; badge.style.cssText = 'background:#f1f5f9;color:#64748b;font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;margin-left:8px'; }
+  }
+}
+
+function addPromotion() {
+  const list = document.getElementById('promotions-list');
+  if (!list) return;
+  _addPromotionRow(list, { id: 'promo_' + Math.random().toString(36).slice(2, 9) });
+}
+
+function removePromotion(btn) {
+  btn.closest('.promo-item')?.remove();
+}
+
+function buildPromotions() {
+  const result = [];
+  document.querySelectorAll('.promo-item').forEach(div => {
+    const title = (div.querySelector('.promo-title')?.value || '').trim();
+    if (!title) return;
+    result.push({
+      id:            div.dataset.promoId,
+      title,
+      description:   (div.querySelector('.promo-desc')?.value   || '').trim() || undefined,
+      discount_text: (div.querySelector('.promo-discount')?.value || '').trim() || undefined,
+      start_at:      _localToTs(div.querySelector('.promo-start')?.value) || undefined,
+      end_at:        _localToTs(div.querySelector('.promo-end')?.value)   || undefined,
+    });
+  });
+  return result;
+}
+
+/* ── Proactive Sequence ───────────────────────────────────────────── */
+
+function buildProactiveSequence() {
+  const items = document.querySelectorAll('.proactive-seq-item');
+  const result = [];
+  items.forEach(div => {
+    const defaultText = (div.querySelector('.seq-text')?.value || '').trim();
+    if (!defaultText) return;
+    // Build multilingual text object if language rows exist
+    const langRows = div.querySelectorAll('.seq-lang-row');
+    let text = defaultText;
+    if (langRows.length) {
+      const obj = { default: defaultText };
+      langRows.forEach(r => {
+        const lang = r.querySelector('.sl-lang')?.value;
+        const msg  = r.querySelector('.sl-msg')?.value.trim();
+        if (lang && msg) obj[lang] = msg;
+      });
+      text = JSON.stringify(obj);
+    }
+    result.push({
+      id: div.dataset.seqId,
+      text,
+      trigger: div.querySelector('.seq-trigger')?.value || 'inactivity',
+      delay: Math.max(5, parseInt(div.querySelector('.seq-delay')?.value) || 30),
+      repeat_after: Math.max(0, parseInt(div.querySelector('.seq-repeat')?.value) || 0),
+      enabled: div.querySelector('.seq-enabled')?.checked !== false,
+    });
+  });
+  return result;
+}
+
 /* ── Save Settings ─────────────────────────────────────────────── */
 async function saveSettings() {
   if (!currentWidget) return;
@@ -510,8 +1034,10 @@ async function saveSettings() {
     goals: document.getElementById('s-goals').value.trim(),
     active: document.getElementById('s-active').value === '1',
     proactive_enabled: document.getElementById('s-proactive-enabled').checked,
-    proactive_message: document.getElementById('s-proactive-message').value.trim(),
+    proactive_message: buildProactiveMessage(),
     proactive_delay: parseInt(document.getElementById('s-proactive-delay').value) || 4,
+    proactive_sequence: buildProactiveSequence(),
+    promotions: buildPromotions(),
   };
   if (!body.name) { showToast('Názov widgetu je povinný.', 'error'); return; }
 
@@ -576,7 +1102,7 @@ async function loadKnowledge() {
 function renderKnowledgeList(items) {
   const container = document.getElementById('knowledge-list');
   if (!items.length) {
-    container.innerHTML = `<div class="empty-state" style="padding:1.5rem"><p>Zatiaľ žiadne dokumenty.</p></div>`;
+    container.innerHTML = `<div class="empty-state" style="padding:1.5rem"><p>${t('Zatiaľ žiadne dokumenty.')}</p></div>`;
     return;
   }
   container.innerHTML = `<div class="knowledge-list">${items.map(item => `
@@ -587,7 +1113,7 @@ function renderKnowledgeList(items) {
         <div class="knowledge-preview">${esc(item.preview || '')}</div>
         <div class="knowledge-meta">${item.char_count?.toLocaleString() || '?'} znakov · ${new Date(item.created_at * 1000).toLocaleDateString('sk-SK')}</div>
       </div>
-      <button class="btn btn-sm btn-danger" onclick="deleteKnowledge('${item.id}')">Zmazať</button>
+      <button class="btn btn-sm btn-danger" onclick="deleteKnowledge('${item.id}')">${t('Zmazať')}</button>
     </div>
   `).join('')}</div>`;
 }
@@ -689,7 +1215,7 @@ async function deleteKnowledge(itemId) {
 function renderQuestions() {
   const container = document.getElementById('questions-list');
   if (!suggestedQuestions.length) {
-    container.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem;padding:0.5rem 0;">Žiadne otázky. Pridajte prvú!</div>';
+    container.innerHTML = `<div style="color:#94a3b8;font-size:0.875rem;padding:0.5rem 0;">${t('Žiadne otázky. Pridajte prvú!')}</div>`;
     return;
   }
   container.innerHTML = suggestedQuestions.map((q, i) => `
@@ -1003,7 +1529,7 @@ function renderLeads() {
   const container = document.getElementById('leads-list');
 
   if (filtered.length === 0) {
-    container.innerHTML = '<div class="empty-state" style="padding:2rem"><p>Žiadne kontakty pre zvolený filter.</p></div>';
+    container.innerHTML = `<div class="empty-state" style="padding:2rem"><p>${t('Žiadne kontakty pre zvolený filter.')}</p></div>`;
     return;
   }
 
@@ -1018,19 +1544,23 @@ function renderLeads() {
 
     const summaryHtml = lead.chat_summary
       ? `<div class="lead-summary">
-           <div class="lead-summary-label">🤖 Zhrnutie konverzácie</div>
+           <div class="lead-summary-label">🤖 ${t('Zhrnutie konverzácie')}</div>
            <div style="white-space:pre-line;font-size:0.82rem;line-height:1.7;color:#374151">${esc(lead.chat_summary)}</div>
          </div>`
-      : `<div class="lead-summary-pending" style="font-size:0.78rem;color:#94a3b8;padding:0.5rem 0">💬 Zákazník nezanechal správu pred kontaktom</div>`;
+      : `<div class="lead-summary-pending" style="font-size:0.78rem;color:#94a3b8;padding:0.5rem 0">💬 ${t('Zákazník nezanechal správu pred kontaktom')}</div>`;
 
     const notesVal = esc(lead.notes || '');
 
     const csatHtml = lead.csat_rating
       ? `<span style="font-size:0.8rem;color:#f59e0b;margin-left:0.35rem" title="CSAT hodnotenie">${'★'.repeat(lead.csat_rating)}${'☆'.repeat(5 - lead.csat_rating)}</span>`
       : '';
+    const conversionBadge = lead.converted_at
+      ? `<span style="font-size:0.77rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:99px;background:#dcfce7;color:#15803d;margin-left:0.35rem">💰 €${Number(lead.deal_value || 0).toLocaleString('sk')}</span>`
+      : '';
     const followUpHtml = lead.follow_up_sent_at
-      ? `<span style="font-size:0.72rem;color:#16a34a;white-space:nowrap">✅ Follow-up odoslaný</span>`
+      ? `<span style="font-size:0.72rem;color:#16a34a;white-space:nowrap">✅ ${t('Follow-up odoslaný')}</span>`
       : `<button class="btn btn-sm btn-secondary" style="font-size:0.75rem;white-space:nowrap" onclick="openFollowupModal('${lead.widgetId}','${lead.id}','${esc(lead.name)}','${esc(lead.email)}')">📧 Follow-up</button>`;
+    const convertHtml = `<button class="btn btn-sm btn-secondary" style="font-size:0.75rem;white-space:nowrap;${lead.converted_at ? 'color:#15803d;border-color:#bbf7d0' : ''}" onclick="openConvertModal('${lead.id}','${esc(lead.name)}',${lead.deal_value ?? 'null'},${lead.converted_at ? 'true' : 'false'})">${lead.converted_at ? `💰 ${t('Zmeniť')}` : `💰 ${t('Konverzia')}`}</button>`;
 
     return `
       <div class="lead-card" id="lead-${lead.id}">
@@ -1042,6 +1572,7 @@ function renderLeads() {
                 <span class="lead-name">${esc(lead.name)}</span>
                 <span class="lead-status-badge ${statusInfo.cls}">${statusInfo.label}</span>
                 ${csatHtml}
+                ${conversionBadge}
               </div>
               <div class="lead-meta">
                 <a class="lead-meta-item" href="mailto:${esc(lead.email)}">✉️ ${esc(lead.email)}</a>
@@ -1068,6 +1599,7 @@ function renderLeads() {
               <option value="closed" ${status === 'closed' ? 'selected' : ''}>🟢 Uzavretý</option>
             </select>
             ${followUpHtml}
+            ${convertHtml}
           </div>
           <div class="lead-notes-row">
             <textarea class="lead-notes-input" id="notes-${lead.id}" rows="2"
@@ -1165,7 +1697,7 @@ function renderKanban() {
           ${csatStars ? `<div style="font-size:0.72rem;color:#f59e0b">${csatStars}</div>` : ''}
           <div style="font-size:0.7rem;color:#94a3b8;margin-top:0.25rem">${date}${lead.widgetName ? ' · ' + esc(lead.widgetName) : ''}</div>
         </div>`;
-      }).join('') || `<div style="font-size:0.8rem;color:#94a3b8;padding:0.5rem 0;text-align:center">Žiadne</div>`;
+      }).join('') || `<div style="font-size:0.8rem;color:#94a3b8;padding:0.5rem 0;text-align:center">${t('Žiadne')}</div>`;
 
       return `<div style="background:${col.bg};border:1px solid #e2e8f0;border-radius:12px;padding:0.75rem"
         ondragover="event.preventDefault()" ondrop="kanbanDrop(event,'${col.key}')">
@@ -1604,8 +2136,15 @@ async function sendCoachMessage() {
       appendCoachMsg('assistant', d.reply);
       coachHistory.push({ role: 'user', content: message });
       coachHistory.push({ role: 'assistant', content: d.reply });
-      // Keep history reasonable
       if (coachHistory.length > 24) coachHistory = coachHistory.slice(-24);
+      if (d.widget_created) {
+        appendCoachWidgetCard(d.widget_created, false);
+        loadWidgets(); // refresh sidebar list
+      }
+      if (d.widget_updated) {
+        appendCoachWidgetCard(d.widget_updated, true);
+        loadWidgets();
+      }
     }
   } catch {
     typing.remove();
@@ -1641,6 +2180,44 @@ function appendCoachTyping() {
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
   return div;
+}
+
+function appendCoachWidgetCard(widget, isUpdate) {
+  const container = document.getElementById('coach-messages');
+  const card = document.createElement('div');
+  card.style.cssText = 'margin:0.5rem 0 0.5rem 2.5rem';
+  const label = isUpdate
+    ? `✏️ Widget <strong>${esc(widget.name)}</strong> aktualizovaný`
+    : `✅ Widget <strong>${esc(widget.name)}</strong> vytvorený`;
+  card.innerHTML = `
+    <div style="background:linear-gradient(135deg,#eff6ff,#dbeafe);border:1.5px solid #93c5fd;border-radius:12px;padding:1rem 1.15rem">
+      <div style="font-weight:700;color:#1e40af;margin-bottom:0.3rem;font-size:0.92rem">${label}</div>
+      <div style="font-size:0.82rem;color:#374151;margin-bottom:0.8rem">Chatbot <em>${esc(widget.bot_name)}</em> je pripravený. Dolaď ho priamo v dashboarde — farby, logo, znalostná báza, rezervácie.</div>
+      <button onclick="openCoachWidget('${esc(widget.id)}')" style="background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='#1d4ed8'" onmouseout="this.style.background='#2563eb'">
+        Otvoriť widget →
+      </button>
+    </div>
+  `;
+  container.appendChild(card);
+  container.scrollTop = container.scrollHeight;
+}
+
+async function openCoachWidget(widgetId) {
+  try {
+    await openWidget(widgetId);
+  } catch (e) {
+    console.error('openCoachWidget failed:', e);
+    showToast('Nepodarilo sa otvoriť widget.', 'error');
+  }
+}
+
+function startAiWidgetWizard() {
+  showView('coach');
+  // Pre-fill and send the trigger phrase
+  const input = document.getElementById('coach-input');
+  if (input) input.value = 'Chcem vytvoriť nový widget';
+  document.getElementById('coach-suggestions')?.style.setProperty('display', 'none');
+  sendCoachMessage();
 }
 
 function clearCoachHistory() {
@@ -1698,13 +2275,13 @@ async function loadUsageBar() {
     if (banner) {
       if (pct >= 100) {
         banner.style.display = '';
-        banner.innerHTML = `⛔ Mesačný limit vyčerpaný. Chatbot neodpovedá. <button class="btn btn-sm btn-primary" style="margin-left:0.5rem" onclick="openCreditsModal()">Dobiť kredity</button>`;
+        banner.innerHTML = `⛔ ${t('Mesačný limit vyčerpaný. Chatbot neodpovedá.')} <button class="btn btn-sm btn-primary" style="margin-left:0.5rem" onclick="openCreditsModal()">${t('Dobiť kredity')}</button>`;
         banner.style.background = '#fef2f2';
         banner.style.borderColor = '#fecaca';
         banner.style.color = '#b91c1c';
       } else if (pct >= 80) {
         banner.style.display = '';
-        banner.innerHTML = `⚠️ Zostáva ti ${d.base_remaining} odpovedí (${100 - pct} %). <button class="btn btn-sm btn-secondary" style="margin-left:0.5rem" onclick="buyCredits('p8r')">Dobiť 200 za €8</button>`;
+        banner.innerHTML = `⚠️ ${t('Zostáva ti')} ${d.base_remaining} ${t('odpovedí')} (${100 - pct} %). <button class="btn btn-sm btn-secondary" style="margin-left:0.5rem" onclick="buyCredits('p8r')">${t('Dobiť 200 za €8')}</button>`;
         banner.style.background = '#fffbeb';
         banner.style.borderColor = '#fcd34d';
         banner.style.color = '#92400e';
@@ -1717,15 +2294,201 @@ async function loadUsageBar() {
 
 function openCreditsModal() {
   document.getElementById('modal-credits').style.display = 'flex';
-  // Live preview for custom amount
   const input = document.getElementById('credits-custom-eur');
   const preview = document.getElementById('credits-custom-preview');
+  const customLabel = document.getElementById('credits-custom-label');
+  const wlSection = document.getElementById('credits-wl-section');
   input.value = '';
-  preview.textContent = '= 0 odpovedí';
-  input.oninput = () => {
-    const eur = Math.floor(Number(input.value) || 0);
-    preview.textContent = eur >= 1 ? `= ${eur * 20} odpovedí` : '= 0 odpovedí';
-  };
+  preview.textContent = `= 0 ${t('odpovedí')}`;
+
+  const isWL = _wlStatus !== null;
+  if (isWL) {
+    if (wlSection) wlSection.style.display = 'block';
+    if (customLabel) customLabel.innerHTML = `${t('Vlastná suma')} <span style="font-weight:400;color:#94a3b8">(≥€100 = 33 ${t('odp/€')}, ${t('ostatné')} = 20 ${t('odp/€')})</span>`;
+    input.oninput = () => {
+      const eur = Math.floor(Number(input.value) || 0);
+      const rate = eur >= 100 ? 33 : 20;
+      preview.textContent = eur >= 1 ? `= ${eur * rate} ${t('odpovedí')}${eur >= 100 ? ' ⭐' : ''}` : `= 0 ${t('odpovedí')}`;
+    };
+    loadWLCreditsSection();
+  } else {
+    if (wlSection) wlSection.style.display = 'none';
+    if (customLabel) customLabel.innerHTML = `${t('Vlastná suma')} <span style="font-weight:400;color:#94a3b8">(1 € = 20 ${t('odpovedí')})</span>`;
+    input.oninput = () => {
+      const eur = Math.floor(Number(input.value) || 0);
+      preview.textContent = eur >= 1 ? `= ${eur * 20} ${t('odpovedí')}` : `= 0 ${t('odpovedí')}`;
+    };
+  }
+  loadAutoReloadSettings();
+}
+
+async function loadWLCreditsSection() {
+  const pkgContainer = document.getElementById('credits-wl-packages');
+  const usageContainer = document.getElementById('credits-wl-usage');
+  if (!pkgContainer) return;
+
+  // Render WL packages
+  const wlPkgs = [
+    { id: 'wl_p50',  eur: 50,  cr: 1000, label: 'Štandard' },
+    { id: 'wl_p100', eur: 100, cr: 3300, label: 'Volume -40%', highlight: true },
+    { id: 'wl_p250', eur: 250, cr: 8250, label: 'Volume -40%', highlight: true },
+  ];
+  pkgContainer.innerHTML = wlPkgs.map(p => `
+    <button onclick="buyCredits('${p.id}')" style="padding:0.85rem 0.6rem;border:2px solid ${p.highlight ? '#7c3aed' : '#e2e8f0'};border-radius:12px;background:${p.highlight ? 'rgba(124,58,237,0.04)' : 'white'};cursor:pointer;text-align:left;position:relative">
+      ${p.highlight ? `<div style="position:absolute;top:0.3rem;right:0.4rem;font-size:0.6rem;font-weight:700;color:#7c3aed;background:#ede9fe;padding:1px 5px;border-radius:99px">${p.label}</div>` : ''}
+      <div style="font-size:1rem;font-weight:700;color:#1e293b">€${p.eur}</div>
+      <div style="font-size:0.72rem;color:#64748b;margin-top:2px">${p.cr.toLocaleString()} ${t('odpovedí')}</div>
+      <div style="font-size:0.65rem;color:#94a3b8;margin-top:1px">€${(p.eur/p.cr).toFixed(3)}/odp.</div>
+    </button>`).join('');
+
+  // Load per-widget usage
+  if (usageContainer) {
+    usageContainer.innerHTML = `<div style="font-size:0.78rem;color:#94a3b8">${t('Načítavam využitie...')}</div>`;
+    try {
+      const r = await apiFetch('/api/credits/widget-usage');
+      if (!r || !r.ok) { usageContainer.innerHTML = ''; return; }
+      const { usage } = await r.json();
+      if (!usage || !usage.length) { usageContainer.innerHTML = ''; return; }
+      const total = usage.reduce((s, w) => s + (w.response_count || 0), 0);
+      usageContainer.innerHTML = `
+        <div style="font-size:0.8rem;font-weight:700;color:#374151;margin-bottom:0.5rem">📊 Využitie tento mesiac (celkom: ${total})</div>
+        ${usage.map(w => {
+          const pct = total > 0 ? Math.round((w.response_count / total) * 100) : 0;
+          return `<div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem">
+            <div style="flex:1;min-width:0;font-size:0.75rem;color:#374151;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${w.name || w.bot_name}</div>
+            <div style="width:80px;height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden"><div style="height:100%;background:#7c3aed;border-radius:3px;width:${pct}%"></div></div>
+            <div style="font-size:0.72rem;color:#64748b;white-space:nowrap;min-width:36px;text-align:right">${w.response_count}</div>
+          </div>`;
+        }).join('')}`;
+    } catch { usageContainer.innerHTML = ''; }
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────
+   Auto-reload
+══════════════════════════════════════════════════════════════ */
+let _arSelectedEur = 8;
+
+async function loadAutoReloadSettings() {
+  try {
+    const r = await apiFetch('/api/credits/auto-reload');
+    if (!r || !r.ok) return;
+    const d = await r.json();
+
+    const cb = document.getElementById('ar-enabled');
+    if (cb) cb.checked = !!d.enabled;
+    const thr = document.getElementById('ar-threshold');
+    if (thr) thr.value = d.threshold ?? 50;
+
+    _arSelectedEur = d.amount_eur ?? 8;
+    selectArAmount(_arSelectedEur, true);
+    _updateArToggleUI(!!d.enabled);
+    document.getElementById('ar-settings').style.display = d.enabled ? '' : 'none';
+
+    if (d.has_card) {
+      document.getElementById('ar-no-card').style.display = 'none';
+      document.getElementById('ar-has-card').style.display = 'flex';
+      const brand = d.card_brand ? d.card_brand.charAt(0).toUpperCase() + d.card_brand.slice(1) : 'Karta';
+      document.getElementById('ar-card-label').textContent = `✅ ${brand} •••• ${d.card_last4 || '****'}`;
+    } else {
+      document.getElementById('ar-no-card').style.display = 'flex';
+      document.getElementById('ar-has-card').style.display = 'none';
+    }
+  } catch { /* ignore */ }
+}
+
+function toggleAutoReload() {
+  const enabled = document.getElementById('ar-enabled').checked;
+  _updateArToggleUI(enabled);
+  document.getElementById('ar-settings').style.display = enabled ? '' : 'none';
+}
+
+function _updateArToggleUI(enabled) {
+  const label = document.getElementById('ar-status-label');
+  const track = document.getElementById('ar-toggle-track');
+  const thumb = document.getElementById('ar-toggle-thumb');
+  if (label) { label.textContent = enabled ? t('Zapnuté') : t('Vypnuté'); label.style.color = enabled ? '#16a34a' : '#94a3b8'; }
+  if (track) track.style.background = enabled ? '#16a34a' : '#e2e8f0';
+  if (thumb) thumb.style.transform = enabled ? 'translateX(18px)' : 'translateX(0)';
+}
+
+function selectArAmount(eur, silent) {
+  if (eur !== 'custom') _arSelectedEur = Number(eur);
+  document.querySelectorAll('.ar-amount-btn').forEach(btn => {
+    const selected = String(btn.dataset.eur) === String(eur);
+    btn.style.borderColor = selected ? '#2563eb' : '#e2e8f0';
+    btn.style.background  = selected ? '#eff6ff' : 'white';
+  });
+  const customRow = document.getElementById('ar-custom-row');
+  if (customRow) customRow.style.display = eur === 'custom' ? 'flex' : 'none';
+  if (eur !== 'custom' && !silent) {
+    const preview = document.getElementById('ar-custom-preview');
+    if (preview) preview.textContent = 'vlastné';
+  }
+}
+
+function updateArCustomPreview() {
+  const eur = Math.floor(Number(document.getElementById('ar-custom-eur').value) || 0);
+  _arSelectedEur = eur >= 1 ? eur : 0;
+  document.getElementById('ar-custom-label').textContent = eur >= 1 ? `= ${eur * 20} ${t('odpovedí')}` : `= 0 ${t('odpovedí')}`;
+}
+
+async function setupAutoReloadCard() {
+  try {
+    const r = await apiFetch('/api/credits/setup-payment', { method: 'POST' });
+    if (!r) return;
+    const d = await r.json();
+    if (d.url) window.location.href = d.url;
+    else showToast(d.error || t('Chyba.'), 'error');
+  } catch { showToast(t('Chyba.'), 'error'); }
+}
+
+async function removeAutoReloadCard() {
+  if (!confirm(t('Odstrániť uloženú kartu a vypnúť auto-reload?'))) return;
+  try {
+    const r = await apiFetch('/api/credits/remove-card', { method: 'POST' });
+    if (!r) return;
+    showToast(t('Karta odstránená.'), 'success');
+    loadAutoReloadSettings();
+  } catch { }
+}
+
+async function saveAutoReloadSettings() {
+  const enabled = document.getElementById('ar-enabled').checked;
+  const threshold = parseInt(document.getElementById('ar-threshold').value) || 50;
+
+  // If custom amount selected, read from input
+  const customRow = document.getElementById('ar-custom-row');
+  let amountEur = _arSelectedEur;
+  if (customRow && customRow.style.display !== 'none') {
+    amountEur = Math.floor(Number(document.getElementById('ar-custom-eur').value) || 0);
+  }
+
+  if (enabled && amountEur < 1) { showToast(t('Zadajte sumu dobíjania.'), 'error'); return; }
+
+  const btn = document.getElementById('ar-save-btn');
+  const origText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '⏳ ' + t('Ukladám...');
+
+  try {
+    const r = await apiFetch('/api/credits/setup-reload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled, threshold, amount_eur: amountEur }),
+    });
+    if (!r) return;
+    const d = await r.json();
+    if (d.ok) {
+      showToast(t('Auto-reload nastavený!'), 'success');
+      loadAutoReloadSettings();
+    } else if (d.setup_url) {
+      window.location.href = d.setup_url;
+    } else {
+      showToast(d.error || t('Chyba.'), 'error');
+    }
+  } catch { showToast(t('Chyba.'), 'error'); }
+  finally { btn.disabled = false; btn.textContent = origText; }
 }
 
 async function buyCredits(packageId) {
@@ -1806,6 +2569,32 @@ async function redeemCredits() {
     showToast('Chyba.', 'error');
     btn.disabled = false;
     btn.textContent = '🎁 Uplatniť kredity';
+  }
+}
+
+async function redeemGiftCard() {
+  const input = document.getElementById('gift-card-code');
+  const btn = document.getElementById('btn-redeem-gc');
+  const code = input.value.trim().toUpperCase();
+  if (!code) { showToast('Zadajte kód darčekovej karty.', 'error'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const r = await apiFetch('/api/gift-cards/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code }),
+    });
+    if (!r) return;
+    const d = await r.json();
+    if (!r.ok) { showToast(d.error || 'Chyba pri uplatňovaní.', 'error'); return; }
+    input.value = '';
+    showToast(`🎉 Karta uplatnená! +€${parseFloat(d.amount_eur).toFixed(0)} kreditov.`);
+    loadAffiliateStatus(); // refresh credit balance
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Uplatniť';
   }
 }
 
@@ -2250,7 +3039,7 @@ function renderServicesList() {
   const el = document.getElementById('bk-services-list');
   if (!el) return;
   if (!_bookingServices.length) {
-    el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem;padding:0.5rem 0">Žiadne služby — zákazník uvidí iba výber dátumu a času.</div>';
+    el.innerHTML = `<div style="color:#94a3b8;font-size:0.875rem;padding:0.5rem 0">${t('Žiadne služby — zákazník uvidí iba výber dátumu a času.')}</div>`;
     return;
   }
   el.innerHTML = _bookingServices.map((s, i) => {
@@ -2379,7 +3168,7 @@ async function loadBookingOverrides() {
 function renderOverridesList() {
   const el = document.getElementById('bk-overrides-list');
   if (!el) return;
-  if (!_bookingOverrides.length) { el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem">Žiadne výnimky</div>'; return; }
+  if (!_bookingOverrides.length) { el.innerHTML = `<div style="color:#94a3b8;font-size:0.875rem">${t('Žiadne výnimky')}</div>`; return; }
   el.innerHTML = _bookingOverrides.map(o => `
     <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #f1f5f9;font-size:0.875rem">
       <span><strong>${o.date}</strong> — ${o.type === 'closed' ? 'Zatvorené' : `${o.start_time} – ${o.end_time}`}</span>
@@ -2485,7 +3274,7 @@ function showDayBookings(ds) {
   const dateLabel = `${d}. ${BK_MONTHS[mo-1]} ${y}`;
 
   if (!bks.length) {
-    el.innerHTML = `<div style="color:#94a3b8;font-size:0.875rem;padding:0.75rem 0">Žiadne rezervácie — ${dateLabel}</div>`;
+    el.innerHTML = `<div style="color:#94a3b8;font-size:0.875rem;padding:0.75rem 0">${t('Žiadne rezervácie')} — ${dateLabel}</div>`;
     return;
   }
 
@@ -2741,7 +3530,7 @@ function renderLmCards() {
             <a href="${escHtml(f.file_url)}" target="_blank" rel="noopener" style="color:#5b4fff;text-decoration:none">${escHtml(LM_LANG_LABELS[f.lang] || f.lang)}</a>
             <button onclick="deleteLmFile('${escHtml(lm.id)}','${escHtml(f.id)}')" style="background:none;border:none;cursor:pointer;color:#7c3aed;font-size:0.75rem;line-height:1;padding:0;margin-left:2px" title="Odstrániť">✕</button>
           </span>`).join(' ')
-      : '<span style="font-size:0.76rem;color:#94a3b8">Žiadne jazykové súbory</span>';
+      : `<span style="font-size:0.76rem;color:#94a3b8">${t('Žiadne jazykové súbory')}</span>`;
 
     return `
     <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1rem 1.1rem">
@@ -3135,13 +3924,13 @@ function renderInsights(data) {
           var opacity = (0.4 + (t.count / maxT) * 0.6).toFixed(2);
           return '<span style="background:rgba(91,79,255,' + opacity + ');color:white;border-radius:99px;padding:4px 12px;font-size:' + size + 'rem;font-weight:600" title="' + t.count + '×">' + escHtml(t.topic) + ' <span style="opacity:0.7;font-size:0.75em">' + t.count + '</span></span>';
         }).join('') + '</div>'
-      : '<div style="color:#94a3b8;font-size:0.85rem">Žiadne témy</div>';
+      : `<div style="color:#94a3b8;font-size:0.85rem">${t('Žiadne témy')}</div>`;
   }
 
   function renderBars(containerId, rows, labelMap, colorMap) {
     var el = document.getElementById(containerId);
     if (!el) return;
-    if (!rows || !rows.length) { el.innerHTML = '<div style="color:#94a3b8;font-size:0.85rem">Žiadne dáta</div>'; return; }
+    if (!rows || !rows.length) { el.innerHTML = `<div style="color:#94a3b8;font-size:0.85rem">${t('Žiadne dáta')}</div>`; return; }
     var maxVal = rows[0].count;
     el.innerHTML = rows.map(function(r) {
       var key = Object.keys(r).find(function(k) { return k !== 'count'; });
@@ -3179,13 +3968,22 @@ async function loadInbox() {
   if (!res || !res.ok) return;
   _inboxConvs = await res.json();
   renderInboxList();
+  // Wire back button (safe to call multiple times — replaces onclick)
+  const backBtn = document.getElementById('inbox-back-btn');
+  if (backBtn) backBtn.onclick = function () {
+    document.getElementById('inbox-list-panel')?.classList.remove('mob-hidden');
+    document.getElementById('inbox-transcript-panel').style.display = 'none';
+    document.getElementById('inbox-select-hint').style.display = 'block';
+    _activeConvId = null;
+    renderInboxList();
+  };
 }
 
 function renderInboxList() {
   const list = document.getElementById('inbox-list');
   if (!list) return;
   if (!_inboxConvs.length) {
-    list.innerHTML = '<div style="padding:2rem 1rem;text-align:center;color:#94a3b8;font-size:0.875rem">Žiadne konverzácie</div>';
+    list.innerHTML = `<div style="padding:2rem 1rem;text-align:center;color:#94a3b8;font-size:0.875rem">${t('Žiadne konverzácie')}</div>`;
     return;
   }
   list.innerHTML = _inboxConvs.map(c => {
@@ -3235,6 +4033,10 @@ async function openConversation(convId) {
     const hint  = document.getElementById('inbox-select-hint');
     panel.style.display = 'block';
     hint.style.display  = 'none';
+    // Mobile: hide list panel so transcript takes full width
+    if (window.innerWidth <= 768) {
+      document.getElementById('inbox-list-panel')?.classList.add('mob-hidden');
+    }
 
     document.getElementById('inbox-conv-title').textContent = conv?.lead_name || 'Anonymný návštevník';
     document.getElementById('inbox-conv-meta').textContent = conv ? `Session: ${conv.session_id.slice(0,16)}… · ${conv.msg_count} správ` : '';
@@ -3335,6 +4137,7 @@ function loadIntegrations() {
   document.getElementById('int-auto-reply-enabled').checked = Boolean(w.auto_reply_enabled);
   document.getElementById('int-auto-reply-msg').value  = w.auto_reply_message || '';
   document.getElementById('int-offline-msg').value     = w.offline_message   || '';
+  document.getElementById('int-demo-video-url').value  = w.demo_video_url    || '';
   toggleAutoReplyFields();
 
   // Business hours
@@ -3405,6 +4208,7 @@ async function saveIntegrations() {
     auto_reply_message: document.getElementById('int-auto-reply-msg').value.trim(),
     offline_message:    document.getElementById('int-offline-msg').value.trim(),
     business_hours:     JSON.stringify(readBhValue()),
+    demo_video_url:     document.getElementById('int-demo-video-url').value.trim() || null,
   };
   const res = await apiFetch(`/api/widgets/${currentWidget.id}`, {
     method: 'PUT',
@@ -3613,7 +4417,7 @@ async function loadFacebookSessions() {
   const list = document.getElementById('fb-sessions-list');
   if (!list) return;
   if (!sessions.length) {
-    list.innerHTML = '<div style="font-size:0.875rem;color:#94a3b8;padding:1rem 0">Zatiaľ žiadne Messenger konverzácie.</div>';
+    list.innerHTML = `<div style="font-size:0.875rem;color:#94a3b8;padding:1rem 0">${t('Zatiaľ žiadne Messenger konverzácie.')}</div>`;
     return;
   }
   list.innerHTML = sessions.map(s => {
@@ -3774,15 +4578,54 @@ function closeAccountModal() {
 }
 
 function switchAccTab(tab) {
-  const isPw = tab === 'pw';
-  document.getElementById('acc-panel-pw').style.display = isPw ? '' : 'none';
-  document.getElementById('acc-panel-email').style.display = isPw ? 'none' : '';
-  document.getElementById('acc-tab-pw').style.cssText = isPw
-    ? 'flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit'
-    : 'flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
-  document.getElementById('acc-tab-email').style.cssText = isPw
-    ? 'flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit'
-    : 'flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
+  const active   = 'flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
+  const inactive = 'flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
+  document.getElementById('acc-panel-pw').style.display    = tab === 'pw'    ? '' : 'none';
+  document.getElementById('acc-panel-email').style.display = tab === 'email' ? '' : 'none';
+  document.getElementById('acc-panel-lang').style.display  = tab === 'lang'  ? '' : 'none';
+  document.getElementById('acc-tab-pw').style.cssText    = tab === 'pw'    ? active : inactive;
+  document.getElementById('acc-tab-email').style.cssText = tab === 'email' ? active : inactive;
+  document.getElementById('acc-tab-lang').style.cssText  = tab === 'lang'  ? active : inactive;
+
+  if (tab === 'lang') _renderLangGrid();
+}
+
+function _renderLangGrid() {
+  const grid = document.getElementById('acc-lang-grid');
+  if (!grid || grid.dataset.built) return;
+  grid.dataset.built = '1';
+
+  const i18n = window.i18n;
+  if (!i18n) return;
+
+  const current = i18n.currentLang();
+  const langs = [
+    { code: 'sk', flag: '🇸🇰', name: 'Slovenčina' },
+    { code: 'en', flag: '🇬🇧', name: 'English' },
+    { code: 'de', flag: '🇩🇪', name: 'Deutsch' },
+    { code: 'fr', flag: '🇫🇷', name: 'Français' },
+    { code: 'es', flag: '🇪🇸', name: 'Español' },
+    { code: 'pl', flag: '🇵🇱', name: 'Polski' },
+    { code: 'cs', flag: '🇨🇿', name: 'Čeština' },
+    { code: 'hu', flag: '🇭🇺', name: 'Magyar' },
+    { code: 'ro', flag: '🇷🇴', name: 'Română' },
+    { code: 'hr', flag: '🇭🇷', name: 'Hrvatski' },
+  ];
+
+  grid.innerHTML = langs.map(l => {
+    const isActive = l.code === current;
+    return `<button onclick="window.i18n.setLang('${l.code}')"
+      style="display:flex;align-items:center;gap:0.5rem;padding:0.6rem 0.75rem;border-radius:8px;
+             border:1px solid ${isActive ? '#2563eb' : '#e2e8f0'};
+             background:${isActive ? '#eff6ff' : 'white'};
+             color:${isActive ? '#1d4ed8' : '#374151'};
+             font-size:0.85rem;font-weight:${isActive ? '700' : '500'};
+             cursor:pointer;font-family:inherit;text-align:left;width:100%">
+      <span style="font-size:1.1rem">${l.flag}</span>
+      <span>${l.name}</span>
+      ${isActive ? '<span style="margin-left:auto;font-size:0.7rem;background:#2563eb;color:white;padding:1px 6px;border-radius:4px">✓</span>' : ''}
+    </button>`;
+  }).join('');
 }
 
 async function doChangePassword() {
@@ -3851,4 +4694,1683 @@ async function doChangeEmail() {
   document.getElementById('acc-email-pw').value = '';
   okEl.textContent = `Email bol zmenený na ${data.email}.`;
   okEl.style.display = '';
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SEO Audit
+══════════════════════════════════════════════════════════════ */
+let seoAuditId = null;
+let seoPolling = null;
+let seoBoostCredits = 0;
+let seoScanStartTime = null;
+let seoProgressTimer = null;
+
+function updateSeoProgress() {
+  if (!seoScanStartTime) return;
+  const elapsed = (Date.now() - seoScanStartTime) / 1000;
+  // Logarithmic curve: fast start, slows near 90%
+  const pct = Math.min(90, Math.round(100 * (1 - Math.exp(-elapsed / 28))));
+  const steps = [
+    [0,  t('Kontrolujem štruktúru stránky…')],
+    [20, t('Sťahujem podstránky…')],
+    [40, t('Analyzujem SEO faktory…')],
+    [65, t('Kontrolujem meta tagy a rýchlosť…')],
+    [80, t('Generujem odporúčania…')],
+  ];
+  let label = steps[0][1];
+  for (const [threshold, text] of steps) { if (pct >= threshold) label = text; }
+  const bar = document.getElementById('seo-progress-bar');
+  const pctEl = document.getElementById('seo-progress-pct');
+  const stepEl = document.getElementById('seo-progress-step');
+  if (bar) bar.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + ' %';
+  if (stepEl) stepEl.textContent = label;
+}
+
+function startSeoProgressAnimation(url) {
+  clearInterval(seoProgressTimer);
+  const urlEl = document.getElementById('seo-progress-url');
+  if (urlEl) urlEl.textContent = url || '';
+  seoProgressTimer = setInterval(updateSeoProgress, 1000);
+  updateSeoProgress();
+}
+
+function stopSeoProgressAnimation(done) {
+  clearInterval(seoProgressTimer);
+  seoProgressTimer = null;
+  if (done) {
+    const bar = document.getElementById('seo-progress-bar');
+    const pctEl = document.getElementById('seo-progress-pct');
+    const stepEl = document.getElementById('seo-progress-step');
+    const labelEl = document.getElementById('seo-progress-label');
+    if (bar) bar.style.width = '100%';
+    if (pctEl) pctEl.textContent = '100 %';
+    if (stepEl) stepEl.textContent = t('Hotovo!');
+    if (labelEl) labelEl.textContent = t('Audit dokončený!');
+  }
+}
+
+async function loadSeoAudit() {
+  clearTimeout(seoPolling);
+  const banner = document.getElementById('seo-running-banner');
+  const noAudit = document.getElementById('seo-no-audit');
+  const resultWrap = document.getElementById('seo-result-wrap');
+
+  // Only show the spinner placeholder when not already showing progress banner
+  if (banner.style.display === 'none' || !banner.style.display) {
+    noAudit.style.display = 'none';
+    resultWrap.innerHTML =
+      `<div style="text-align:center;padding:3rem 1rem;color:#94a3b8"><div style="font-size:2rem;margin-bottom:0.5rem">⏳</div><div>${t('Načítavam audit...')}</div></div>`;
+  }
+
+  try {
+    const r = await apiFetch('/api/seo/latest');
+    resultWrap.innerHTML = '';
+
+    if (!r || !r.ok) {
+      stopSeoProgressAnimation(false);
+      banner.style.display = 'none';
+      noAudit.style.display = '';
+      return;
+    }
+    const ct = r.headers.get('content-type') || '';
+    if (!ct.includes('application/json')) {
+      stopSeoProgressAnimation(false);
+      banner.style.display = 'none';
+      noAudit.style.display = '';
+      return;
+    }
+    const d = await r.json();
+
+    seoBoostCredits = d.boost_credits ?? 0;
+
+    if (!d.audit) {
+      stopSeoProgressAnimation(false);
+      banner.style.display = 'none';
+      noAudit.style.display = '';
+      return;
+    }
+
+    seoAuditId = d.audit.id;
+    noAudit.style.display = 'none';
+
+    if (d.audit.status === 'running') {
+      banner.style.display = 'flex';
+      // If page refreshed mid-scan, start timer from now (we lost original start time)
+      if (!seoScanStartTime) seoScanStartTime = Date.now();
+      if (!seoProgressTimer) startSeoProgressAnimation(d.audit.url);
+      seoPolling = setTimeout(loadSeoAudit, 4000);
+      return;
+    }
+
+    // Done — flash to 100% then render
+    if (seoProgressTimer || seoScanStartTime) {
+      stopSeoProgressAnimation(true);
+      banner.style.display = 'flex';
+      await new Promise(res => setTimeout(res, 700));
+    }
+    banner.style.display = 'none';
+    stopSeoProgressAnimation(false);
+    seoScanStartTime = null;
+    renderSeoResult(d.audit, d.has_boost, seoBoostCredits);
+  } catch { /* ignore */ }
+}
+
+function seoScoreRing(score) {
+  const r = 30, cx = 40, cy = 40, sw = 8;
+  const circ = +(2 * Math.PI * r).toFixed(1);
+  const offset = +(circ * (1 - Math.max(0, Math.min(100, score)) / 100)).toFixed(1);
+  const color = score >= 70 ? '#16a34a' : score >= 45 ? '#d97706' : '#ef4444';
+  return `<svg viewBox="0 0 80 80" width="80" height="80" style="flex-shrink:0">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="${sw}"/>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${sw}"
+      stroke-linecap="round" stroke-dasharray="${circ}" stroke-dashoffset="${offset}"
+      transform="rotate(-90 ${cx} ${cy})"/>
+    <text x="${cx}" y="${cy + 6}" text-anchor="middle" fill="${color}" font-size="18" font-weight="700">${score}</text>
+  </svg>`;
+}
+
+function seoFindingRow(f, ai_fix) {
+  const colors = { critical: '#ef4444', warning: '#fbbf24', info: '#60a5fa' };
+  const badges = { critical: 'background:#fee2e2;color:#dc2626', warning: 'background:#fef3c7;color:#d97706', info: 'background:#dbeafe;color:#2563eb' };
+  const leftColor = colors[f.severity] || '#cbd5e1';
+  const badgeStyle = badges[f.severity] || 'background:#f1f5f9;color:#475569';
+  const aiHint = ai_fix && (f.type === 'title' || f.type === 'description')
+    ? `<div style="margin-top:0.4rem;padding:0.35rem 0.6rem;background:#eff6ff;border-radius:6px;font-size:0.78rem;color:#1d4ed8">✨ AI návrh: <em>${escHtml(f.type === 'title' ? (ai_fix.title || '') : (ai_fix.description || ''))}</em></div>` : '';
+  return `<div style="display:flex;border-bottom:1px solid #f1f5f9">
+    <div style="width:3px;flex-shrink:0;background:${leftColor}"></div>
+    <div style="padding:0.6rem 1rem;flex:1;min-width:0">
+      <div style="display:flex;align-items:flex-start;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.2rem">
+        <span style="font-size:0.7rem;font-weight:700;padding:0.15rem 0.45rem;border-radius:4px;${badgeStyle};white-space:nowrap;flex-shrink:0">${(f.severity || 'info').toUpperCase()}</span>
+        <span style="font-size:0.84rem;font-weight:600;color:#1e293b">${escHtml(f.issue)}</span>
+      </div>
+      <div style="font-size:0.81rem;color:#64748b">${escHtml(f.suggestion)}</div>
+      ${aiHint}
+    </div>
+  </div>`;
+}
+
+function seoTogglePage(id) {
+  const el = document.getElementById(id);
+  const icon = document.getElementById(id + '-icon');
+  if (!el) return;
+  const open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : '';
+  if (icon) icon.textContent = open ? '▶' : '▼';
+}
+
+function renderSeoResult(audit, hasBoost, credits) {
+  const wrap = document.getElementById('seo-result-wrap');
+  if (!wrap) return;
+  const score = audit.score ?? 0;
+  const s = audit.findings?.summary || {};
+  const date = audit.completed_at ? new Date(audit.completed_at * 1000).toLocaleDateString('sk') : '';
+
+  let html = `<div style="display:grid;grid-template-columns:auto 1fr;gap:1.25rem;align-items:center;padding:1.25rem 1.5rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:1rem;box-shadow:0 1px 3px rgba(0,0,0,0.05)">
+    ${seoScoreRing(score)}
+    <div>
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:#94a3b8;margin-bottom:0.15rem">SEO skóre</div>
+      <div style="font-size:0.95rem;font-weight:600;color:#1e293b;word-break:break-all;margin-bottom:0.1rem">${escHtml(audit.url || '')}</div>
+      ${date ? `<div style="font-size:0.78rem;color:#94a3b8;margin-bottom:0.5rem">Dokončené: ${date}</div>` : '<div style="margin-bottom:0.5rem"></div>'}
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap">
+        ${(s.critical ?? 0) > 0 ? `<span style="font-size:0.77rem;font-weight:600;padding:0.2rem 0.55rem;border-radius:99px;background:#fee2e2;color:#dc2626">🔴 ${s.critical} kritické</span>` : ''}
+        ${(s.warnings ?? 0) > 0 ? `<span style="font-size:0.77rem;font-weight:600;padding:0.2rem 0.55rem;border-radius:99px;background:#fef3c7;color:#d97706">🟡 ${s.warnings} varovaní</span>` : ''}
+        ${(s.info ?? 0) > 0 ? `<span style="font-size:0.77rem;font-weight:600;padding:0.2rem 0.55rem;border-radius:99px;background:#dbeafe;color:#2563eb">🔵 ${s.info} info</span>` : ''}
+        ${(s.critical ?? 0) === 0 && (s.warnings ?? 0) === 0 ? `<span style="font-size:0.77rem;font-weight:600;padding:0.2rem 0.55rem;border-radius:99px;background:#dcfce7;color:#16a34a">✓ ${t('Žiadne kritické problémy')}</span>` : ''}
+      </div>
+    </div>
+  </div>`;
+
+  const dm = audit.findings?.domain_metrics;
+  if (dm) {
+    html += `<div style="padding:1rem 1.5rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:1rem">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#94a3b8;margin-bottom:0.75rem">📊 Autorita domény (DataForSEO)</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;text-align:center">
+        <div><div style="font-size:1.5rem;font-weight:800;color:#2563eb;line-height:1.1">${dm.rank ?? '—'}</div><div style="font-size:0.72rem;color:#64748b;margin-top:0.15rem">Domain Rank</div></div>
+        <div><div style="font-size:1.5rem;font-weight:800;color:#1e293b;line-height:1.1">${(dm.backlinks || 0).toLocaleString('sk')}</div><div style="font-size:0.72rem;color:#64748b;margin-top:0.15rem">Backlinky</div></div>
+        <div><div style="font-size:1.5rem;font-weight:800;color:#1e293b;line-height:1.1">${(dm.referring_domains || 0).toLocaleString('sk')}</div><div style="font-size:0.72rem;color:#64748b;margin-top:0.15rem">Ref. domény</div></div>
+        <div><div style="font-size:1.5rem;font-weight:800;line-height:1.1;color:${(dm.broken_backlinks || 0) > 0 ? '#ef4444' : '#16a34a'}">${(dm.broken_backlinks || 0).toLocaleString('sk')}</div><div style="font-size:0.72rem;color:#64748b;margin-top:0.15rem">Nefunkčné</div></div>
+      </div>
+    </div>`;
+  }
+
+  if (!hasBoost) {
+    const hasToken = (credits ?? 0) > 0;
+    html += `<div style="padding:1.25rem 1.5rem;background:linear-gradient(135deg,#eff6ff 0%,#f8fafc 100%);border:1.5px solid #bfdbfe;border-radius:12px;margin-bottom:1rem">
+      <div style="font-size:1rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem">${hasToken ? `⚡ Máte ${credits} Boost token${credits > 1 ? 'y' : ''}` : '⚡ Growth Boost – Kompletná SEO oprava za €49'}</div>
+      <div style="font-size:0.84rem;color:#475569;margin-bottom:${hasToken ? '0.75rem' : '0.6rem'}">${hasToken ? 'Spustite audit a kliknite Odomknúť pre plné výsledky + hotové opravy.' : 'Jednorazová platba. Odomkne hotové AI opravy pre váš web:'}</div>
+      ${!hasToken ? `<div style="display:grid;grid-template-columns:1fr 1fr;gap:0.3rem 1.5rem;font-size:0.82rem;color:#374151;margin-bottom:0.6rem">
+        <div>✅ WordPress plugin</div><div>✅ HTML snippet</div>
+        <div>✅ Schema.org JSON-LD</div><div>✅ llms.txt</div>
+      </div>` : ''}
+      <div style="font-size:0.73rem;color:#94a3b8;margin-bottom:0.75rem">1 Boost token = 1 odomknutý audit · Boost tokeny ≠ AI kredity chatbota</div>
+      <div style="display:flex;flex-wrap:wrap;gap:0.5rem">
+        ${hasToken
+          ? `<button class="btn btn-primary btn-sm" onclick="unlockBoost()">🔓 Odomknúť tento audit (1 token)</button><button class="btn btn-secondary btn-sm" onclick="buyBoost()">+ Kúpiť ďalší – €49</button>`
+          : `<button class="btn btn-primary" onclick="buyBoost()">💳 Kúpiť Boost token – €49</button>`}
+      </div>
+    </div>`;
+  } else {
+    html += `<div style="padding:1rem 1.5rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;margin-bottom:1rem">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#15803d;margin-bottom:0.75rem">📦 Hotové opravy na stiahnutie</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0.5rem">
+        <button class="btn btn-secondary" onclick="downloadSeoFix('wordpress')" style="justify-content:flex-start;font-size:0.82rem">⬇ WordPress Plugin</button>
+        <button class="btn btn-secondary" onclick="downloadSeoFix('html')" style="justify-content:flex-start;font-size:0.82rem">⬇ HTML Snippet</button>
+        <button class="btn btn-secondary" onclick="downloadSeoFix('schema')" style="justify-content:flex-start;font-size:0.82rem">⬇ Schema.org JSON-LD</button>
+        <button class="btn btn-secondary" onclick="downloadSeoFix('llms')" style="justify-content:flex-start;font-size:0.82rem">⬇ llms.txt</button>
+      </div>
+    </div>`;
+  }
+
+  const siteFindings = audit.findings?.site_findings || [];
+  if (siteFindings.length > 0) {
+    html += `<div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+      <div style="padding:0.75rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;gap:0.5rem">
+        <span style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#475569">🌐 Problémy celého webu</span>
+        <span style="font-size:0.75rem;color:#94a3b8">(${siteFindings.length})</span>
+      </div>
+      ${siteFindings.map(f => seoFindingRow(f, null)).join('')}
+    </div>`;
+  }
+
+  if (!hasBoost) {
+    const teaser = audit.findings?.teaser || [];
+    const total = audit.findings?.total_findings ?? 0;
+    const remaining = total - teaser.length;
+    if (teaser.length > 0) {
+      html += `<div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <div style="padding:0.75rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#475569">📄 Náhľad problémov</div>
+        ${teaser.map(f => seoFindingRow(f, null)).join('')}
+        <div style="position:relative">
+          <div style="filter:blur(4px);pointer-events:none;user-select:none">
+            ${['Chýba meta description', 'Pomalé načítanie (LCP > 4s)', 'Schema.org nie je implementovaná'].map(t => `
+              <div style="display:flex;border-bottom:1px solid #f1f5f9">
+                <div style="width:3px;flex-shrink:0;background:#ef4444"></div>
+                <div style="padding:0.6rem 1rem;flex:1;display:flex;align-items:center;gap:0.5rem">
+                  <span style="font-size:0.7rem;font-weight:700;padding:0.15rem 0.45rem;border-radius:4px;background:#fee2e2;color:#dc2626;white-space:nowrap">CRITICAL</span>
+                  <span style="font-size:0.84rem;font-weight:600;color:#1e293b">${t}</span>
+                </div>
+              </div>`).join('')}
+          </div>
+          <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,0.85);border-radius:0 0 12px 12px;padding:1.5rem;text-align:center">
+            <div style="font-size:1.5rem;margin-bottom:0.4rem">🔒</div>
+            <div style="font-size:0.95rem;font-weight:700;color:#1e293b;margin-bottom:0.3rem">${remaining > 0 ? `+ ďalších ${remaining} problémov` : 'Plné výsledky uzamknuté'}</div>
+            <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.85rem">Odomknite plný audit vrátane AI opráv</div>
+            ${(credits ?? 0) > 0
+              ? `<button class="btn btn-primary btn-sm" onclick="unlockBoost()">🔓 Odomknúť (1 token)</button>`
+              : `<button class="btn btn-primary btn-sm" onclick="buyBoost()">💳 Growth Boost – €49</button>`}
+          </div>
+        </div>
+      </div>`;
+    }
+    wrap.innerHTML = html;
+    return;
+  }
+
+  const pages = audit.findings?.pages || [];
+  if (pages.length > 0) {
+    html += `<div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#94a3b8;margin-bottom:0.6rem">📄 Výsledky podľa stránok</div>`;
+    pages.forEach((p, i) => {
+      const ps = p.pagespeed;
+      const psColor = !ps ? '#94a3b8' : ps.score >= 75 ? '#16a34a' : ps.score >= 50 ? '#d97706' : '#ef4444';
+      const collapseId = `seo-pg-${i}`;
+      html += `<div style="margin-bottom:0.75rem;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+        <button onclick="seoTogglePage('${collapseId}')" style="width:100%;display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1.25rem;background:#f8fafc;border:none;border-bottom:1px solid #e2e8f0;cursor:pointer;font-family:inherit;text-align:left">
+          <span style="flex:1;font-size:0.83rem;font-weight:600;color:#374151;word-break:break-all;text-align:left">${escHtml(p.url)}</span>
+          ${ps ? `<span style="font-size:0.75rem;font-weight:700;color:${psColor};background:${psColor}18;padding:0.2rem 0.5rem;border-radius:99px;white-space:nowrap;flex-shrink:0">⚡ ${ps.score}/100</span>` : ''}
+          ${ps ? `<span style="font-size:0.7rem;color:#94a3b8;white-space:nowrap;flex-shrink:0">LCP ${ps.lcp || '?'}</span>` : ''}
+          <span id="${collapseId}-icon" style="font-size:0.7rem;color:#94a3b8;flex-shrink:0">▼</span>
+        </button>
+        <div id="${collapseId}">
+          ${p.findings.length === 0
+            ? `<div style="padding:0.75rem 1.25rem;font-size:0.83rem;color:#16a34a">✓ ${t('Žiadne problémy na tejto stránke')}</div>`
+            : p.findings.map(f => seoFindingRow(f, p.ai_fix)).join('')
+          }
+        </div>
+      </div>`;
+    });
+  }
+
+  wrap.innerHTML = html;
+}
+
+async function unlockBoost() {
+  try {
+    const r = await apiFetch('/api/seo/unlock', { method: 'POST' });
+    if (!r) throw new Error('Sieťová chyba');
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      if (r.status === 402) { buyBoost(); return; }
+      throw new Error(d.error || 'Chyba');
+    }
+    showToast('Audit odomknutý! Načítavam plné výsledky...', 'success');
+    loadSeoAudit();
+  } catch (err) {
+    showToast(err.message || 'Chyba pri odomykaní.', 'error');
+  }
+}
+
+function openSeoScanModal() {
+  document.getElementById('seo-scan-modal').style.display = 'flex';
+}
+
+function closeSeoScanModal() {
+  document.getElementById('seo-scan-modal').style.display = 'none';
+}
+
+async function startSeoScan() {
+  let url = document.getElementById('seo-scan-input').value.trim();
+  if (!url) { showToast('Zadajte URL.', 'error'); return; }
+  if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+
+  try {
+    const r = await apiFetch('/api/seo/start', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    if (!r) throw new Error('Sieťová chyba');
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Chyba');
+    seoAuditId = d.audit_id;
+    seoScanStartTime = Date.now();
+    closeSeoScanModal();
+    document.getElementById('seo-scan-input').value = '';
+    showToast('SEO analýza spustená!', 'success');
+    // Show banner immediately and start animation before first poll
+    const banner = document.getElementById('seo-running-banner');
+    if (banner) {
+      banner.style.display = 'flex';
+      const urlEl = document.getElementById('seo-progress-url');
+      if (urlEl) urlEl.textContent = url;
+    }
+    startSeoProgressAnimation(url);
+    loadSeoAudit();
+  } catch (err) {
+    showToast(err.message, 'error');
+  }
+}
+
+async function downloadSeoFix(type) {
+  try {
+    const r = await apiFetch(`/api/seo/fix/${type}`);
+    if (!r.ok) {
+      const d = await r.json().catch(() => ({}));
+      showToast(d.error || 'Chyba pri sťahovaní.', 'error');
+      return;
+    }
+    const blob = await r.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    const names = { wordpress: 'neoworkly-seo-fix.php', html: 'neoworkly-seo-fix.html', schema: 'neoworkly-schema.html', llms: 'llms.txt' };
+    a.download = names[type] || 'neoworkly-fix.txt';
+    a.click();
+  } catch {
+    showToast('Chyba pri sťahovaní.', 'error');
+  }
+}
+
+async function buyBoost() {
+  try {
+    const r = await apiFetch('/api/stripe/checkout-boost', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ from: 'dashboard' })
+    });
+    if (!r) throw new Error('Sieťová chyba');
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Chyba');
+    if (d.url) window.location.href = d.url;
+  } catch (err) {
+    showToast(err.message || 'Chyba pri platbe.', 'error');
+  }
+}
+
+// Handle ?tab=seo and ?success_boost=1 URL params on dashboard load
+(function() {
+  const p = new URLSearchParams(location.search);
+  const isSeo = p.get('tab') === 'seo';
+  const isBoostSuccess = p.get('success_boost') === '1';
+  const sessionId = p.get('session_id');
+
+  if (isSeo || isBoostSuccess) {
+    window.history.replaceState({}, '', '/dashboard');
+    document.addEventListener('DOMContentLoaded', async () => {
+      showView('seo');
+      if (isBoostSuccess) {
+        await handleBoostSuccess(sessionId);
+      }
+    }, { once: true });
+  }
+})();
+
+async function handleBoostSuccess(sessionId) {
+  // Try to claim (verify + unlock) using Stripe session_id
+  if (sessionId) {
+    try {
+      const r = await apiFetch('/api/seo/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: sessionId }),
+      });
+      if (r && r.ok) {
+        const d = await r.json().catch(() => ({}));
+        if (d.unlocked) {
+          showToast('Audit odomknutý! Plné výsledky sú dostupné.', 'success');
+          loadSeoAudit();
+          return;
+        }
+        if (!d.unlocked && d.boost_credits > 0) {
+          showToast('Boost token je pripravený. Spustite audit a kliknite Odomknúť.', 'success');
+          loadSeoAudit();
+          return;
+        }
+      }
+    } catch { /* fallthrough to polling */ }
+  }
+
+  // Fallback: poll until webhook fires (max 12s)
+  showToast('Overujem platbu…', 'success');
+  let attempts = 0;
+  const poll = async () => {
+    attempts++;
+    try {
+      const r = await apiFetch('/api/seo/latest');
+      if (r && r.ok) {
+        const d = await r.json().catch(() => ({}));
+        if (d.has_boost) {
+          showToast('Audit odomknutý! Plné výsledky sú dostupné.', 'success');
+          loadSeoAudit();
+          return;
+        }
+        if ((d.boost_credits ?? 0) > 0) {
+          await unlockBoost();
+          return;
+        }
+      }
+    } catch { /* ignore */ }
+    if (attempts < 6) {
+      setTimeout(poll, 2000);
+    } else {
+      showToast('Growth Boost aktivovaný! Obnovte stránku ak nevidíte výsledky.', 'success');
+      loadSeoAudit();
+    }
+  };
+  setTimeout(poll, 1500);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Money Mode
+══════════════════════════════════════════════════════════════ */
+
+async function loadMoneyStats() {
+  document.getElementById('money-content').innerHTML =
+    `<div style="text-align:center;padding:3rem 1rem;color:#94a3b8"><div style="font-size:2rem;margin-bottom:0.5rem">⏳</div><div>${t('Načítavam...')}</div></div>`;
+  try {
+    const r = await apiFetch('/api/money/stats');
+    if (!r || !r.ok) return;
+    const d = await r.json();
+    renderMoneyStats(d);
+  } catch { /* ignore */ }
+}
+
+function renderMoneyStats(d) {
+  const wrap = document.getElementById('money-content');
+  const hasData = d.total_conversions > 0;
+  let html = '';
+
+  // ROI headline
+  if (d.roi_multiple && d.roi_multiple >= 1) {
+    html += `<div style="padding:1.25rem 1.5rem;background:linear-gradient(135deg,#f0fdf4,#dcfce7);border:1.5px solid #bbf7d0;border-radius:12px;margin-bottom:1rem">
+      <div style="font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#15803d;margin-bottom:0.35rem">📈 ${t('ROI tohto mesiaca')}</div>
+      <div style="font-size:1.15rem;font-weight:800;color:#14532d">${t('Za tento mesiac ti Neoworkly zarobil')} <span style="color:#15803d">€${d.total_revenue.toLocaleString('sk')}</span> — ${t('to je')} <span style="color:#15803d">${d.roi_multiple}×</span> ${t('viac než stojí predplatné')}</div>
+    </div>`;
+  }
+
+  // KPI grid
+  const kpiColor = (val) => val ? '#1e293b' : '#94a3b8';
+  html += `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0.75rem;margin-bottom:1rem">
+    <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:${d.total_revenue > 0 ? '#15803d' : '#94a3b8'}">€${d.total_revenue.toLocaleString('sk')}</div>
+      <div style="font-size:0.72rem;color:#64748b;margin-top:0.2rem">${t('Zarobené')}</div>
+    </div>
+    <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:${kpiColor(d.total_conversions)}">${d.total_conversions}</div>
+      <div style="font-size:0.72rem;color:#64748b;margin-top:0.2rem">${t('Konverzie')}</div>
+    </div>
+    <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:${kpiColor(d.conversion_rate)}">${d.conversion_rate}%</div>
+      <div style="font-size:0.72rem;color:#64748b;margin-top:0.2rem">Conversion rate</div>
+    </div>
+    <div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;text-align:center">
+      <div style="font-size:1.75rem;font-weight:800;color:${d.revenue_per_credit ? '#2563eb' : '#94a3b8'}">${d.revenue_per_credit ? '€' + d.revenue_per_credit : '—'}</div>
+      <div style="font-size:0.72rem;color:#64748b;margin-top:0.2rem">/ 1 ${t('kredit')}</div>
+    </div>
+  </div>`;
+
+  // Conversion funnel chart
+  if (d.total_leads > 0) {
+    const withEmail = d.leads_with_email ?? 0;
+    const converted = d.total_conversions;
+    const p1 = 100;
+    const p2 = Math.round((withEmail / d.total_leads) * 100);
+    const p3 = withEmail > 0 ? Math.round((converted / withEmail) * 100) : 0;
+    const bar = (pct, color) => `<div style="height:28px;border-radius:6px;background:${color};width:${Math.max(pct,2)}%;transition:width 0.4s;display:flex;align-items:center;padding-left:0.5rem;font-size:0.72rem;font-weight:700;color:white;white-space:nowrap;overflow:hidden">${pct > 8 ? pct + '%' : ''}</div>`;
+    html += `<div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+      <div style="padding:0.75rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#475569">📊 ${t('Konverzný lievik')}</div>
+      <div style="padding:1rem 1.25rem;display:flex;flex-direction:column;gap:0.6rem">
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:120px;font-size:0.78rem;color:#475569;flex-shrink:0">${t('Všetky leady')}</div>
+          <div style="flex:1">${bar(p1,'#6366f1')}</div>
+          <div style="width:40px;text-align:right;font-size:0.78rem;font-weight:700;color:#6366f1">${d.total_leads}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:120px;font-size:0.78rem;color:#475569;flex-shrink:0">${t('S emailom')}</div>
+          <div style="flex:1">${bar(p2,'#3b82f6')}</div>
+          <div style="width:40px;text-align:right;font-size:0.78rem;font-weight:700;color:#3b82f6">${withEmail}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem">
+          <div style="width:120px;font-size:0.78rem;color:#475569;flex-shrink:0">${t('Konvertovaní')}</div>
+          <div style="flex:1">${bar(p3,'#22c55e')}</div>
+          <div style="width:40px;text-align:right;font-size:0.78rem;font-weight:700;color:#22c55e">${converted}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Missed revenue alert
+  if (d.missed_revenue) {
+    html += `<div style="padding:1rem 1.5rem;background:#fef3c7;border:1px solid #fbbf24;border-radius:12px;margin-bottom:1rem;display:flex;align-items:flex-start;gap:0.75rem">
+      <span style="font-size:1.25rem;flex-shrink:0">⚠️</span>
+      <div>
+        <div style="font-size:0.875rem;font-weight:700;color:#92400e">${t('Váš chatbot bol bez kreditov')}</div>
+        <div style="font-size:0.82rem;color:#92400e;margin-top:0.15rem">${t('Odhadovaná strata:')} <strong>€${d.missed_revenue}</strong> ${t('za nevybavené konverzácie. Dobite kredity, aby chatbot neprichádzal o zákazníkov.')}</div>
+        <button class="btn btn-primary btn-sm" style="margin-top:0.5rem" onclick="showView('widgets');setTimeout(()=>document.querySelector('[onclick*=credits]')?.click(),300)">${t('Dobiť kredity')} →</button>
+      </div>
+    </div>`;
+  }
+
+  // Top conversions
+  if (d.top_conversions && d.top_conversions.length > 0) {
+    html += `<div style="margin-bottom:1rem;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+      <div style="padding:0.75rem 1.25rem;background:#f8fafc;border-bottom:1px solid #e2e8f0;font-size:0.72rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#475569">🏆 ${t('Posledné konverzie')}</div>
+      ${d.top_conversions.map(c => {
+        const date = c.converted_at ? new Date(c.converted_at * 1000).toLocaleDateString('sk') : '';
+        return `<div style="padding:0.75rem 1.25rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:flex-start;gap:0.75rem">
+          <div style="flex-shrink:0;width:36px;height:36px;border-radius:50%;background:#dcfce7;display:flex;align-items:center;justify-content:center;font-size:0.85rem;font-weight:700;color:#15803d">${(c.name || '?').charAt(0).toUpperCase()}</div>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap">
+              <span style="font-size:0.875rem;font-weight:600">${escHtml(c.name)}</span>
+              <span style="font-size:0.8rem;font-weight:700;color:#15803d">€${Number(c.deal_value || 0).toLocaleString('sk')}</span>
+              ${date ? `<span style="font-size:0.72rem;color:#94a3b8">${date}</span>` : ''}
+            </div>
+            ${c.chat_summary ? `<div style="font-size:0.78rem;color:#64748b;margin-top:0.15rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(c.chat_summary.slice(0, 100))}${c.chat_summary.length > 100 ? '…' : ''}</div>` : ''}
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  // Empty state / guide
+  if (!hasData) {
+    html += `<div style="padding:1.5rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:1rem">
+      <div style="font-size:0.875rem;font-weight:700;color:#374151;margin-bottom:0.5rem">📋 ${t('Ako začať sledovať ROI')}</div>
+      <ol style="font-size:0.82rem;color:#475569;padding-left:1.25rem;line-height:2">
+        <li>${t('Choď do')} <strong>${t('Kontakty')}</strong> — ${t('nájdi lead, ktorý si konvertoval na zákazníka')}</li>
+        <li>${t('Klikni na tlačidlo')} <strong>💰 ${t('Konverzia')}</strong> ${t('a zadaj hodnotu obchodu')}</li>
+        <li>${t('Vrát sa sem — uvidíš €/kredit, ROI multiple a ďalšie metriky')}</li>
+      </ol>
+    </div>`;
+  }
+
+  // CTA to reactivation
+  html += `<div style="padding:1.25rem 1.5rem;background:linear-gradient(135deg,#eff6ff,#f8fafc);border:1.5px solid #bfdbfe;border-radius:12px;display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+    <div>
+      <div style="font-size:0.95rem;font-weight:700;color:#1e293b">${t('Získaj +€300 z existujúcich leadov')}</div>
+      <div style="font-size:0.82rem;color:#475569;margin-top:0.1rem">${t('Leady, čo ešte nekúpili, stačí správne osloviť — AI správu vygenerujeme za 10 sekúnd.')}</div>
+    </div>
+    <button class="btn btn-primary" onclick="showView('reactivation')">🔁 ${t('Reaktivovať leady →')}</button>
+  </div>`;
+
+  wrap.innerHTML = html;
+}
+
+/* ── Convert Modal ──────────────────────────────────────────────── */
+function openConvertModal(leadId, name, currentValue, alreadyConverted) {
+  document.getElementById('convert-lead-id').value = leadId;
+  document.getElementById('convert-lead-name').textContent = name;
+  document.getElementById('convert-deal-value').value = currentValue != null ? currentValue : '';
+  document.getElementById('convert-remove-btn').style.display = alreadyConverted ? '' : 'none';
+  document.getElementById('modal-convert').style.display = 'flex';
+  setTimeout(() => document.getElementById('convert-deal-value').focus(), 50);
+}
+
+function closeConvertModal() {
+  document.getElementById('modal-convert').style.display = 'none';
+}
+
+async function saveConversion(remove = false) {
+  const leadId = document.getElementById('convert-lead-id').value;
+  const dealValue = remove ? null : parseFloat(document.getElementById('convert-deal-value').value);
+  if (!remove && (isNaN(dealValue) || dealValue < 0)) {
+    showToast('Zadajte platnú sumu.', 'error'); return;
+  }
+  try {
+    const r = await apiFetch(`/api/money/${leadId}/convert`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ deal_value: remove ? null : dealValue }),
+    });
+    if (!r || !r.ok) throw new Error('Chyba');
+    closeConvertModal();
+    showToast(remove ? 'Konverzia zrušená.' : `💰 Konverzia €${dealValue} uložená!`, 'success');
+    const lead = allLeads.find(l => l.id === leadId);
+    if (lead) {
+      lead.deal_value = remove ? null : dealValue;
+      lead.converted_at = remove ? null : Math.floor(Date.now() / 1000);
+    }
+    renderLeads();
+  } catch { showToast('Chyba pri ukladaní.', 'error'); }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   Lead Reactivation
+══════════════════════════════════════════════════════════════ */
+
+let _coldLeadsHours = 24;
+
+async function loadColdLeads(hours = 24) {
+  _coldLeadsHours = hours;
+  // Update filter button styles
+  [1, 24, 72, 168].forEach(h => {
+    const btn = document.getElementById(`react-filter-${h}`);
+    if (!btn) return;
+    btn.className = h === hours ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm';
+  });
+
+  document.getElementById('reactivation-content').innerHTML =
+    `<div style="text-align:center;padding:3rem 1rem;color:#94a3b8"><div style="font-size:2rem;margin-bottom:0.5rem">⏳</div><div>${t('Načítavam...')}</div></div>`;
+  try {
+    const r = await apiFetch(`/api/reactivation/cold-leads?hours=${hours}`);
+    if (!r || !r.ok) return;
+    const d = await r.json();
+    renderColdLeads(d.leads || [], hours);
+  } catch { /* ignore */ }
+}
+
+function renderColdLeads(leads, hours) {
+  const wrap = document.getElementById('reactivation-content');
+  if (leads.length === 0) {
+    wrap.innerHTML = `<div style="text-align:center;padding:3rem 1rem;color:#94a3b8">
+      <div style="font-size:2.5rem;margin-bottom:0.75rem">✅</div>
+      <div style="font-size:1rem;font-weight:600;color:#64748b;margin-bottom:0.3rem">${t('Žiadne studené leady')}</div>
+      <div style="font-size:0.875rem">${t('Všetky leady boli kontaktované v posledných')} ${hours} ${t('hod.')}</div>
+    </div>
+    ${reactInfoCard()}`;
+    return;
+  }
+
+  const hoursLabel = hours === 1 ? t('1 hodinu') : hours === 24 ? t('24 hodín') : hours === 72 ? t('3 dni') : t('7 dní');
+  let html = `<div style="font-size:0.82rem;color:#64748b;margin-bottom:0.75rem">${leads.length} lead${leads.length > 1 ? 'ov' : ''} ${t('bez odpovede viac ako')} ${hoursLabel}</div>`;
+
+  leads.forEach(lead => {
+    const hLabel = lead.hours_cold >= 24
+      ? `${Math.round(lead.hours_cold / 24)} ${t('dní')}`
+      : `${lead.hours_cold} ${t('hod.')}`;
+    html += `<div style="padding:1rem 1.25rem;background:#fff;border:1px solid #e2e8f0;border-radius:12px;margin-bottom:0.75rem">
+      <div style="display:flex;align-items:flex-start;gap:0.75rem;flex-wrap:wrap">
+        <div style="flex-shrink:0;width:38px;height:38px;border-radius:50%;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:0.9rem;font-weight:700;color:#2563eb">${(lead.name || '?').charAt(0).toUpperCase()}</div>
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.2rem">
+            <span style="font-size:0.9rem;font-weight:600;color:#1e293b">${escHtml(lead.name)}</span>
+            <span style="font-size:0.75rem;color:#94a3b8">🕐 ${hLabel} ${t('studenej')}</span>
+            ${lead.reactivation_count > 0 ? `<span style="font-size:0.72rem;color:#d97706;background:#fef3c7;padding:0.1rem 0.4rem;border-radius:4px">${t('Reaktivovaný')} ${lead.reactivation_count}×</span>` : ''}
+          </div>
+          ${lead.chat_summary ? `<div style="font-size:0.8rem;color:#64748b;margin-bottom:0.5rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(lead.chat_summary.slice(0, 120))}${lead.chat_summary.length > 120 ? '…' : ''}</div>` : `<div style="font-size:0.8rem;color:#94a3b8;margin-bottom:0.5rem;font-style:italic">${t('Žiadne zhrnutie konverzácie')}</div>`}
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="openReactivationModal('${lead.id}','${escHtml(lead.name).replace(/'/g,"\\'")}')">✨ ${t('Reaktivovať AI správou')}</button>
+            <span style="font-size:0.78rem;color:#94a3b8;align-self:center">${escHtml(lead.email)}</span>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  html += reactInfoCard();
+  wrap.innerHTML = html;
+}
+
+function reactInfoCard() {
+  return `<div style="margin-top:1rem;padding:1rem 1.25rem;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px">
+    <div style="font-size:0.82rem;font-weight:700;color:#475569;margin-bottom:0.5rem">💡 ${t('Ako to funguje')}</div>
+    <div style="font-size:0.8rem;color:#64748b;line-height:1.8">
+      1. ${t('Vyber lead → AI vygeneruje personalizovanú správu na základe ich konverzácie')}<br>
+      2. ${t('Prezri si návrh, uprav podľa potreby → odošli emailom jedným kliknutím')}<br>
+      3. ${t('Lead dostane osobnú správu, nie spam — konverzný rate výrazne vyšší')}
+    </div>
+  </div>`;
+}
+
+/* ── Reactivation Modal ─────────────────────────────────────────── */
+function openReactivationModal(leadId, leadName) {
+  document.getElementById('react-lead-id').value = leadId;
+  document.getElementById('react-modal-title').textContent = `✨ ${t('AI správa pre')} ${leadName}`;
+  document.getElementById('react-modal-meta').textContent = t('Generujem personalizovanú správu...');
+  document.getElementById('react-modal-loading').style.display = '';
+  document.getElementById('react-modal-body').style.display = 'none';
+  document.getElementById('modal-reactivation').style.display = 'flex';
+  fetchReactivationPreview(leadId);
+}
+
+function closeReactivationModal() {
+  document.getElementById('modal-reactivation').style.display = 'none';
+}
+
+async function fetchReactivationPreview(leadId) {
+  try {
+    const r = await apiFetch(`/api/reactivation/preview/${leadId}`, { method: 'POST' });
+    if (!r || !r.ok) throw new Error('Chyba');
+    const d = await r.json();
+    document.getElementById('react-message').value = d.message;
+    document.getElementById('react-modal-meta').textContent = t('AI správa vygenerovaná — môžeš upraviť pred odoslaním');
+    document.getElementById('react-modal-loading').style.display = 'none';
+    document.getElementById('react-modal-body').style.display = '';
+  } catch {
+    document.getElementById('react-modal-meta').textContent = t('Chyba pri generovaní — napíš správu manuálne');
+    document.getElementById('react-modal-loading').style.display = 'none';
+    document.getElementById('react-modal-body').style.display = '';
+    document.getElementById('react-message').value = '';
+  }
+}
+
+function regenerateReactivation() {
+  const leadId = document.getElementById('react-lead-id').value;
+  document.getElementById('react-modal-loading').style.display = '';
+  document.getElementById('react-modal-body').style.display = 'none';
+  fetchReactivationPreview(leadId);
+}
+
+async function sendReactivation() {
+  const leadId = document.getElementById('react-lead-id').value;
+  const message = document.getElementById('react-message').value.trim();
+  if (!message) { showToast('Napíšte správu.', 'error'); return; }
+  const btn = document.getElementById('react-send-btn');
+  btn.disabled = true; btn.textContent = 'Odosiela...';
+  try {
+    const r = await apiFetch(`/api/reactivation/send/${leadId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message }),
+    });
+    if (!r || !r.ok) throw new Error('Chyba');
+    closeReactivationModal();
+    showToast('📧 Reaktivačná správa odoslaná!', 'success');
+    loadColdLeads(_coldLeadsHours);
+  } catch { showToast('Chyba pri odosielaní.', 'error'); }
+  btn.disabled = false; btn.textContent = '📧 Odoslať email';
+}
+
+/* ── Follow-up Sequences ──────────────────────────────────────── */
+
+let _sequenceSteps = [];
+
+async function loadSequences() {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/sequences/${currentWidget.id}`);
+  if (!r || !r.ok) return;
+  const d = await r.json();
+  renderSequences(d.sequence);
+}
+
+function renderSequences(seq) {
+  const wrap = document.getElementById('sequences-wrap');
+  if (!wrap) return;
+
+  _sequenceSteps = seq ? (seq.steps || []) : [];
+  const enabled = seq ? seq.enabled : true;
+  const name = seq ? seq.name : 'Automatická sekvencia';
+
+  wrap.innerHTML = `
+    <div class="panel" style="margin-bottom:1.5rem">
+      <div class="panel-header">
+        <div>
+          <div class="panel-title">📨 Automatická sekvencia emailov</div>
+          <div class="panel-subtitle">Automaticky odosielajte emaily novým leandom v nastavených intervaloch (drip kampaň)</div>
+        </div>
+        ${seq ? `<button class="btn btn-sm btn-danger" onclick="deleteSequence()">Vymazať sekvenciu</button>` : ''}
+      </div>
+
+      <div class="form-group">
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+          <input type="checkbox" id="seq-enabled" style="width:16px;height:16px" ${enabled ? 'checked' : ''}>
+          Sekvencia aktívna
+        </label>
+        <div class="hint">Ak je vypnutá, nové leady sa nezaradia do sekvencie.</div>
+      </div>
+
+      <div class="form-group">
+        <label>Názov sekvencie</label>
+        <input type="text" class="form-control" id="seq-name" value="${escHtml(name)}" placeholder="Automatická sekvencia">
+      </div>
+
+      <div style="margin-bottom:1rem">
+        <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.75rem">Kroky sekvencie <span style="color:#94a3b8;font-size:0.8rem">(max 5)</span></div>
+        <div id="seq-steps-list"></div>
+        <button class="btn btn-secondary btn-sm" onclick="addSequenceStep()" id="seq-add-btn" style="margin-top:0.75rem">+ Pridať krok</button>
+      </div>
+
+      <div style="display:flex;gap:0.75rem;margin-top:1rem">
+        <button class="btn btn-primary" onclick="saveSequence()">Uložiť sekvenciu</button>
+      </div>
+    </div>
+  `;
+
+  renderSequenceSteps();
+}
+
+function renderSequenceSteps() {
+  const list = document.getElementById('seq-steps-list');
+  if (!list) return;
+
+  if (_sequenceSteps.length === 0) {
+    list.innerHTML = `<div style="color:#94a3b8;font-size:0.875rem;padding:0.5rem 0">${t('Zatiaľ žiadne kroky. Pridajte prvý krok sekvencie.')}</div>`;
+  } else {
+    list.innerHTML = _sequenceSteps.map((step, idx) => `
+      <div style="border:1px solid #e2e8f0;border-radius:10px;padding:1rem;margin-bottom:0.75rem;background:#f8fafc">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+          <strong style="font-size:0.875rem">Krok ${idx + 1}</strong>
+          <button class="btn btn-sm btn-danger" onclick="removeSequenceStep(${idx})">Odstrániť</button>
+        </div>
+        <div class="form-group" style="margin-bottom:0.65rem">
+          <label style="font-size:0.8rem">Odoslať po (hodiny od zachytenia leadu)</label>
+          <input type="number" class="form-control" id="seq-delay-${idx}" value="${step.delay_hours || 24}" min="0" style="width:120px">
+        </div>
+        <div class="form-group" style="margin-bottom:0.65rem">
+          <label style="font-size:0.8rem">Predmet emailu</label>
+          <input type="text" class="form-control" id="seq-subject-${idx}" value="${escHtml(step.subject || '')}" placeholder="napr. Nadväzujem na náš chatbot...">
+        </div>
+        <div class="form-group" style="margin-bottom:0">
+          <label style="font-size:0.8rem">Správa <span style="color:#94a3b8;font-weight:400">— použite <code>{{name}}</code> pre meno zákazníka</span></label>
+          <textarea class="form-control" id="seq-message-${idx}" rows="4" placeholder="Ahoj {{name}}, nadväzujem na váš záujem...">${escHtml(step.message || '')}</textarea>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const addBtn = document.getElementById('seq-add-btn');
+  if (addBtn) addBtn.style.display = _sequenceSteps.length >= 5 ? 'none' : '';
+}
+
+function addSequenceStep() {
+  if (_sequenceSteps.length >= 5) return;
+  // Collect current values first
+  collectSequenceSteps();
+  _sequenceSteps.push({ delay_hours: 24, subject: '', message: '' });
+  renderSequenceSteps();
+}
+
+function removeSequenceStep(idx) {
+  collectSequenceSteps();
+  _sequenceSteps.splice(idx, 1);
+  renderSequenceSteps();
+}
+
+function collectSequenceSteps() {
+  // Read current form values into _sequenceSteps
+  _sequenceSteps = _sequenceSteps.map((step, idx) => {
+    const delayEl = document.getElementById(`seq-delay-${idx}`);
+    const subjectEl = document.getElementById(`seq-subject-${idx}`);
+    const messageEl = document.getElementById(`seq-message-${idx}`);
+    return {
+      delay_hours: delayEl ? parseFloat(delayEl.value) || 24 : (step.delay_hours || 24),
+      subject: subjectEl ? subjectEl.value.trim() : (step.subject || ''),
+      message: messageEl ? messageEl.value.trim() : (step.message || ''),
+    };
+  });
+}
+
+async function saveSequence() {
+  if (!currentWidget) return;
+  collectSequenceSteps();
+
+  const nameEl = document.getElementById('seq-name');
+  const enabledEl = document.getElementById('seq-enabled');
+
+  const payload = {
+    name: nameEl ? nameEl.value.trim() || 'Automatická sekvencia' : 'Automatická sekvencia',
+    enabled: enabledEl ? enabledEl.checked : true,
+    steps: _sequenceSteps,
+  };
+
+  const r = await apiFetch(`/api/sequences/${currentWidget.id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!r || !r.ok) {
+    showToast('Chyba pri ukladaní sekvencie.', 'error');
+    return;
+  }
+  const d = await r.json();
+  showToast('Sekvencia uložená!', 'success');
+  renderSequences(d.sequence);
+}
+
+async function deleteSequence() {
+  if (!currentWidget) return;
+  if (!confirm('Naozaj vymazať sekvenciu? Naplánované úlohy zostanú v rade.')) return;
+
+  const r = await apiFetch(`/api/sequences/${currentWidget.id}`, { method: 'DELETE' });
+  if (!r || !r.ok) {
+    showToast('Chyba pri mazaní sekvencie.', 'error');
+    return;
+  }
+  showToast('Sekvencia vymazaná.', 'success');
+  _sequenceSteps = [];
+  renderSequences(null);
+}
+
+function escHtml(str) {
+  return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── WhatsApp Business ────────────────────────────────────────────── */
+async function loadWaStatus() {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/whatsapp/status/${currentWidget.id}`);
+  if (!r || !r.ok) return;
+  const d = await r.json();
+  const disconnected = document.getElementById('wa-panel-disconnected');
+  const connected    = document.getElementById('wa-panel-connected');
+  if (!disconnected || !connected) return;
+  if (d.connected) {
+    disconnected.style.display = 'none';
+    connected.style.display = '';
+    const phoneEl = document.getElementById('wa-connected-phone');
+    const idEl    = document.getElementById('wa-connected-id');
+    const urlEl   = document.getElementById('wa-webhook-url');
+    if (phoneEl) phoneEl.textContent = d.phone_display || 'WhatsApp Business';
+    if (idEl)    idEl.textContent    = `Phone Number ID: ${d.phone_number_id}`;
+    if (urlEl)   urlEl.textContent   = `${location.origin}/api/whatsapp/webhook`;
+  } else {
+    disconnected.style.display = '';
+    connected.style.display    = 'none';
+  }
+}
+
+function generateWaVerifyToken() {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let token = '';
+  for (let i = 0; i < 24; i++) token += chars[Math.floor(Math.random() * chars.length)];
+  const el = document.getElementById('wa-verify-token');
+  if (el) el.value = token;
+}
+
+async function connectWhatsApp() {
+  if (!currentWidget) return;
+  const phoneNumberId = document.getElementById('wa-phone-number-id')?.value.trim();
+  const accessToken   = document.getElementById('wa-access-token')?.value.trim();
+  const phoneDisplay  = document.getElementById('wa-phone-display')?.value.trim();
+  const verifyToken   = document.getElementById('wa-verify-token')?.value.trim();
+  if (!phoneNumberId || !accessToken || !verifyToken) {
+    showToast('Vyplňte Phone Number ID, Access Token a Verify Token.', 'error'); return;
+  }
+  const r = await apiFetch(`/api/whatsapp/connect/${currentWidget.id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ phone_number_id: phoneNumberId, access_token: accessToken, phone_display: phoneDisplay, verify_token: verifyToken }),
+  });
+  if (!r || !r.ok) { showToast('Chyba pri pripájaní WhatsApp.', 'error'); return; }
+  showToast('✅ WhatsApp prepojený!', 'success');
+  loadWaStatus();
+}
+
+async function disconnectWhatsApp() {
+  if (!currentWidget) return;
+  if (!confirm('Odpojiť WhatsApp? Bot prestane odpovedať na správy.')) return;
+  const r = await apiFetch(`/api/whatsapp/disconnect/${currentWidget.id}`, { method: 'DELETE' });
+  if (!r || !r.ok) { showToast('Chyba pri odpájaní.', 'error'); return; }
+  showToast('WhatsApp odpojený.', 'success');
+  loadWaStatus();
+}
+
+
+/* ── Neoworkly Person ─────────────────────────────────────────────── */
+
+async function loadPersonProfile() {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/person/${currentWidget.id}`);
+  if (!r) return;
+
+  if (r.status === 403) {
+    document.getElementById('person-upsell-overlay').style.display = 'block';
+    document.getElementById('person-content').style.display = 'none';
+    _personBilling = 'monthly';
+    selectPersonBilling('monthly');
+    return;
+  }
+
+  document.getElementById('person-upsell-overlay').style.display = 'none';
+  document.getElementById('person-content').style.display = '';
+
+  if (!r.ok) return;
+  const d = await r.json();
+
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+  setVal('person-name', d.person_name);
+  setVal('person-intro', d.person_intro);
+  setVal('person-how-i-think', d.how_i_think);
+  setVal('person-my-style', d.my_style);
+  setVal('person-know-how', d.know_how);
+  setVal('person-real-answers', d.real_answers);
+  setVal('person-never-say', d.never_say);
+
+  const cb = document.getElementById('person-active');
+  if (cb) { cb.checked = Boolean(d.active); _updatePersonToggle(); }
+
+  _renderPersonEmbed();
+  loadEmailConfig();
+}
+
+let _personBilling = 'monthly';
+
+function selectPersonBilling(billing) {
+  _personBilling = billing;
+  const monthly = billing === 'monthly';
+  document.getElementById('person-billing-monthly').style.cssText = monthly
+    ? 'border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;background:#7c3aed;color:white;transition:all 0.15s'
+    : 'border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all 0.15s';
+  document.getElementById('person-billing-yearly').style.cssText = monthly
+    ? 'border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all 0.15s'
+    : 'border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;background:#7c3aed;color:white;transition:all 0.15s';
+  document.getElementById('person-upsell-price-monthly').style.display = monthly ? 'block' : 'none';
+  document.getElementById('person-upsell-price-yearly').style.display = monthly ? 'none' : 'block';
+  const note = document.getElementById('person-upsell-note');
+  if (note) note.textContent = monthly ? 'Zrušiť môžete kedykoľvek. Fakturuje sa mesačne.' : 'Zrušiť môžete kedykoľvek. Fakturuje sa ročne — ušetríte 2 mesiace.';
+}
+
+async function subscribePersonAddon() {
+  const btn = document.querySelector('#person-upsell-overlay button[onclick="subscribePersonAddon()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Presmerovanie…'; }
+  try {
+    const r = await apiFetch('/api/stripe/checkout-person', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ billing: _personBilling }),
+    });
+    if (!r || !r.ok) { showToast('Chyba pri vytváraní platby.', 'error'); return; }
+    const { url } = await r.json();
+    if (url) window.location.href = url;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Aktivovať Person add-on'; }
+  }
+}
+
+function _updatePersonToggle() {
+  const cb = document.getElementById('person-active');
+  const track = document.getElementById('person-toggle-track');
+  const thumb = document.getElementById('person-toggle-thumb');
+  if (!cb || !track || !thumb) return;
+  const on = cb.checked;
+  track.style.background = on ? '#2563eb' : '#e2e8f0';
+  thumb.style.transform = on ? 'translateX(18px)' : 'translateX(0)';
+}
+
+let _personEmbedTab = 'bubble';
+
+function switchPersonEmbedTab(tab) {
+  _personEmbedTab = tab;
+  const bubblePanel = document.getElementById('person-embed-bubble');
+  const inlinePanel = document.getElementById('person-embed-inline');
+  const btnBubble   = document.getElementById('person-embed-tab-bubble');
+  const btnInline   = document.getElementById('person-embed-tab-inline');
+  if (bubblePanel) bubblePanel.style.display = tab === 'bubble' ? '' : 'none';
+  if (inlinePanel) inlinePanel.style.display  = tab === 'inline' ? '' : 'none';
+  if (btnBubble) {
+    btnBubble.style.background = tab === 'bubble' ? '#2563eb' : '#f1f5f9';
+    btnBubble.style.color      = tab === 'bubble' ? 'white'   : '#374151';
+    btnBubble.style.border     = tab === 'bubble' ? 'none'    : '1px solid #e2e8f0';
+  }
+  if (btnInline) {
+    btnInline.style.background = tab === 'inline' ? '#2563eb' : '#f1f5f9';
+    btnInline.style.color      = tab === 'inline' ? 'white'   : '#374151';
+    btnInline.style.border     = tab === 'inline' ? 'none'    : '1px solid #e2e8f0';
+  }
+}
+
+function _renderPersonEmbed() {
+  if (!currentWidget) return;
+  const origin = location.origin;
+  const wid = currentWidget.id;
+
+  const bubbleEl = document.getElementById('person-embed-code-bubble');
+  if (bubbleEl)
+    bubbleEl.textContent = `<script>\nwindow.NeoworklyConfig = {\n  widgetId: '${wid}',\n  mode: 'person'\n};\n<\/script>\n<script src="${origin}/widget.js" async><\/script>`;
+
+  const containerEl = document.getElementById('person-embed-code-container');
+  if (containerEl)
+    containerEl.textContent = `<div id="neoworkly-person" style="height:600px;border-radius:12px;overflow:hidden;"></div>`;
+
+  const inlineEl = document.getElementById('person-embed-code-inline');
+  if (inlineEl)
+    inlineEl.textContent = `<script>\nwindow.NeoworklyConfig = {\n  widgetId: '${wid}',\n  mode: 'person',\n  inline: true,\n  container: '#neoworkly-person'\n};\n<\/script>\n<script src="${origin}/widget.js" async><\/script>`;
+}
+
+function copyPersonEmbed(which) {
+  let text = '';
+  if (which === 'bubble') text = document.getElementById('person-embed-code-bubble')?.textContent || '';
+  else if (which === 'container') text = document.getElementById('person-embed-code-container')?.textContent || '';
+  else if (which === 'inline') text = document.getElementById('person-embed-code-inline')?.textContent || '';
+  if (text) navigator.clipboard.writeText(text).then(() => showToast('Kód skopírovaný!', 'success'));
+}
+
+async function savePersonProfile() {
+  if (!currentWidget) return;
+  const getVal = id => document.getElementById(id)?.value || '';
+  const active = document.getElementById('person-active')?.checked ? 1 : 0;
+
+  const body = {
+    person_name: getVal('person-name'),
+    person_intro: getVal('person-intro'),
+    how_i_think: getVal('person-how-i-think'),
+    my_style: getVal('person-my-style'),
+    know_how: getVal('person-know-how'),
+    real_answers: getVal('person-real-answers'),
+    never_say: getVal('person-never-say'),
+    active,
+  };
+
+  const r = await apiFetch(`/api/person/${currentWidget.id}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!r || !r.ok) { showToast('Chyba pri ukladaní.', 'error'); return; }
+  showToast('✅ Person profil uložený!', 'success');
+}
+
+/* ── Person Email Channel ─────────────────────────────────────────── */
+
+let _emailSecret = '';
+
+async function loadEmailConfig() {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/person/${currentWidget.id}/email-config`);
+  if (!r || !r.ok) return;
+  const d = await r.json();
+
+  const cb = document.getElementById('email-channel-active');
+  if (cb) { cb.checked = Boolean(d.email_channel_active); _updateEmailToggle(); }
+
+  const addrEl = document.getElementById('email-channel-address');
+  if (addrEl) addrEl.value = d.email_address || '';
+
+  _emailSecret = d.email_webhook_secret || '';
+  _renderEmailSecret();
+  _renderEmailWorker();
+}
+
+function _updateEmailToggle() {
+  const cb = document.getElementById('email-channel-active');
+  const track = document.getElementById('email-toggle-track');
+  const thumb = document.getElementById('email-toggle-thumb');
+  const label = document.getElementById('email-toggle-label');
+  if (!cb || !track || !thumb) return;
+  const on = cb.checked;
+  track.style.background = on ? '#7c3aed' : '#e2e8f0';
+  thumb.style.transform = on ? 'translateX(18px)' : 'translateX(0)';
+  if (label) label.textContent = on ? 'Zapnuté' : 'Vypnuté';
+}
+
+function _renderEmailSecret() {
+  const el = document.getElementById('email-webhook-secret');
+  if (!el) return;
+  el.textContent = _emailSecret || '(uložte profil pre vygenerovanie secretu)';
+}
+
+function _renderEmailWorker() {
+  const el = document.getElementById('email-worker-code');
+  if (!el) return;
+  const baseUrl = location.origin;
+  el.textContent = `export default {
+  async email(message, env, ctx) {
+    const chunks = [];
+    const reader = message.raw.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
+    }
+    let len = 0; for (const c of chunks) len += c.length;
+    const combined = new Uint8Array(len);
+    let off = 0; for (const c of chunks) { combined.set(c, off); off += c.length; }
+    const raw = new TextDecoder('utf-8', { fatal: false }).decode(combined);
+
+    const subject = message.headers.get('subject') || '';
+    const messageId = message.headers.get('message-id') || '';
+    const inReplyTo = message.headers.get('in-reply-to')
+                   || message.headers.get('references') || '';
+    const body = extractPlainText(raw);
+    if (!body.trim()) return;
+
+    await fetch('https://neoworkly.com/api/email/inbound', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Neoworkly-Secret': env.NEOWORKLY_SECRET,
+      },
+      body: JSON.stringify({
+        from: message.from, to: message.to,
+        subject, messageId, inReplyTo, body,
+      }),
+    });
+  }
+};
+
+function extractPlainText(raw) {
+  const sep = raw.indexOf('\\r\\n\\r\\n');
+  if (sep === -1) return raw.slice(0, 4000);
+  const hdrs = raw.slice(0, sep).toLowerCase();
+  const bodyPart = raw.slice(sep + 4);
+  const ctMatch = hdrs.match(/content-type:\\s*([^\\r\\n;]+)/);
+  const ct = ctMatch ? ctMatch[1].trim() : 'text/plain';
+  if (ct.startsWith('text/plain')) return clean(bodyPart);
+  if (ct.startsWith('multipart/')) {
+    const bm = hdrs.match(/boundary="?([^"\\r\\n;]+)"?/);
+    if (!bm) return clean(bodyPart);
+    const boundary = '--' + bm[1].trim();
+    for (const part of raw.split(boundary)) {
+      const pe = part.indexOf('\\r\\n\\r\\n');
+      if (pe === -1) continue;
+      if (part.slice(0, pe).toLowerCase().includes('content-type: text/plain'))
+        return clean(part.slice(pe + 4));
+    }
+  }
+  return clean(bodyPart.replace(/<[^>]+>/g, ' '));
+}
+
+function clean(t) {
+  return t.split('\\n').filter(l => !l.trim().startsWith('>')).join('\\n').trim().slice(0, 4000);
+}`;
+}
+
+async function saveEmailConfig() {
+  if (!currentWidget) return;
+  _updateEmailToggle();
+  const active = document.getElementById('email-channel-active')?.checked ? 1 : 0;
+  const address = (document.getElementById('email-channel-address')?.value || '').trim();
+
+  const r = await apiFetch(`/api/person/${currentWidget.id}/email-config`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email_channel_active: active, email_address: address }),
+  });
+  if (!r || !r.ok) { showToast('Chyba pri ukladaní.', 'error'); return; }
+  const d = await r.json();
+  _emailSecret = d.email_webhook_secret || _emailSecret;
+  _renderEmailSecret();
+  _renderEmailWorker();
+  showToast(active ? '📧 Email kanál zapnutý!' : 'Email kanál vypnutý.', 'success');
+}
+
+async function regenerateEmailSecret() {
+  if (!currentWidget) return;
+  if (!confirm('Obnová secretu zneplatní existujúci Cloudflare Worker. Pokračovať?')) return;
+  const r = await apiFetch(`/api/person/${currentWidget.id}/email-config/regenerate-secret`, { method: 'POST' });
+  if (!r || !r.ok) { showToast('Chyba.', 'error'); return; }
+  const d = await r.json();
+  _emailSecret = d.email_webhook_secret;
+  _renderEmailSecret();
+  showToast('Secret obnovený. Aktualizujte Worker premenné.', 'success');
+}
+
+function copyEmailSecret() {
+  if (!_emailSecret) return;
+  navigator.clipboard.writeText(_emailSecret).then(() => showToast('Secret skopírovaný!', 'success'));
+}
+
+function copyEmailWorker() {
+  const el = document.getElementById('email-worker-code');
+  if (el?.textContent) navigator.clipboard.writeText(el.textContent).then(() => showToast('Worker skript skopírovaný!', 'success'));
+}
+
+/* ── Person Ingest (URL / PDF) ─────────────────────────────────────── */
+
+let _ingestSuggestions = null;
+
+function _setIngestLoading(on) {
+  document.getElementById('ingest-loading').style.display = on ? '' : 'none';
+  document.getElementById('ingest-url-btn').disabled = on;
+  document.getElementById('ingest-pdf-btn').disabled = on;
+  if (on) document.getElementById('ingest-results').style.display = 'none';
+}
+
+function _showIngestResults(data) {
+  _ingestSuggestions = data;
+
+  const sourceEl = document.getElementById('ingest-source-title');
+  if (sourceEl) sourceEl.textContent = data.source_title || '';
+
+  const summaryEl = document.getElementById('ingest-summary');
+  if (summaryEl) summaryEl.textContent = data.summary || '';
+
+  const fieldsEl = document.getElementById('ingest-fields');
+  if (fieldsEl) {
+    const FIELD_LABELS = {
+      how_i_think: '🧠 Ako rozmýšľam',
+      my_style: '✍️ Tvoj štýl',
+      know_how: '💡 Know-how',
+      real_answers: '💬 Reálne odpovede',
+      never_say: '🚫 Čo nikdy nehovoriť',
+    };
+    fieldsEl.innerHTML = '';
+    for (const [key, label] of Object.entries(FIELD_LABELS)) {
+      const val = (data[key] || '').trim();
+      if (!val) continue;
+      const div = document.createElement('div');
+      div.style.cssText = 'background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.6rem 0.8rem';
+      div.innerHTML = `<div style="font-weight:600;color:#374151;margin-bottom:0.3rem">${label}</div><div style="color:#64748b;white-space:pre-wrap;font-size:0.8rem">${val.replace(/</g,'&lt;')}</div>`;
+      fieldsEl.appendChild(div);
+    }
+  }
+
+  document.getElementById('ingest-results').style.display = '';
+}
+
+async function ingestPersonUrl() {
+  if (!currentWidget) return;
+  const url = (document.getElementById('ingest-url')?.value || '').trim();
+  if (!url) { showToast('Zadajte URL.', 'error'); return; }
+  _setIngestLoading(true);
+  try {
+    const r = await apiFetch(`/api/person/${currentWidget.id}/ingest/url`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    });
+    if (!r) return;
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Chyba pri spracovaní.', 'error'); return; }
+    _showIngestResults(data);
+    showToast('Obsah spracovaný!', 'success');
+  } catch (e) {
+    showToast('Chyba pri spracovaní.', 'error');
+  } finally {
+    _setIngestLoading(false);
+  }
+}
+
+async function ingestPersonPdf() {
+  if (!currentWidget) return;
+  const fileInput = document.getElementById('ingest-pdf');
+  if (!fileInput?.files?.length) { showToast('Vyberte PDF súbor.', 'error'); return; }
+  _setIngestLoading(true);
+  const fd = new FormData();
+  fd.append('file', fileInput.files[0]);
+  try {
+    const r = await fetch(`/api/person/${currentWidget.id}/ingest/pdf`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${localStorage.getItem('nd_token')}` },
+      body: fd,
+    });
+    if (r.status === 401) { logout(); return; }
+    const data = await r.json();
+    if (!r.ok) { showToast(data.error || 'Chyba pri spracovaní.', 'error'); return; }
+    _showIngestResults(data);
+    showToast('PDF spracované!', 'success');
+  } catch (e) {
+    showToast('Chyba pri spracovaní.', 'error');
+  } finally {
+    _setIngestLoading(false);
+  }
+}
+
+function applyIngestResults() {
+  if (!_ingestSuggestions) return;
+  const append = (id, val) => {
+    if (!val?.trim()) return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = el.value.trim() ? `${el.value.trim()}\n\n${val.trim()}` : val.trim();
+  };
+  append('person-how-i-think', _ingestSuggestions.how_i_think);
+  append('person-my-style',    _ingestSuggestions.my_style);
+  append('person-know-how',    _ingestSuggestions.know_how);
+  append('person-real-answers',_ingestSuggestions.real_answers);
+  append('person-never-say',   _ingestSuggestions.never_say);
+  discardIngestResults();
+  showToast('Poznatky doplnené do polí. Nezabudnite uložiť!', 'success');
+}
+
+function discardIngestResults() {
+  _ingestSuggestions = null;
+  document.getElementById('ingest-results').style.display = 'none';
+}
+
+/* ── Person Training ──────────────────────────────────────────────── */
+
+let _ptHistory = [];      // [{role:'customer'|'trainer', content}]
+let _ptTimer = null;
+let _ptSecsLeft = 1800;   // 30 min
+let _ptWaiting = false;   // waiting for AI question
+let _ptResults = null;    // extracted profile from analysis
+
+function openPersonTraining() {
+  if (!currentWidget) return;
+  _ptHistory = [];
+  _ptSecsLeft = 1800;
+  _ptWaiting = false;
+  _ptResults = null;
+
+  const modal = document.getElementById('modal-person-training');
+  modal.style.display = 'flex';
+  document.getElementById('pt-messages').innerHTML = '';
+  document.getElementById('pt-answer').value = '';
+  document.getElementById('pt-analyzing').style.display = 'none';
+  document.getElementById('pt-results').style.display = 'none';
+  document.getElementById('pt-input-area').style.display = 'flex';
+  document.getElementById('pt-finish-btn').style.display = '';
+  document.getElementById('pt-status-badge').textContent = '● Prebieha';
+  document.getElementById('pt-status-badge').style.background = '#dcfce7';
+  document.getElementById('pt-status-badge').style.color = '#166534';
+  _updatePtTimer();
+
+  _ptTimer = setInterval(() => {
+    _ptSecsLeft--;
+    _updatePtTimer();
+    if (_ptSecsLeft <= 0) {
+      clearInterval(_ptTimer);
+      _ptTimer = null;
+      finishPersonTraining();
+    }
+  }, 1000);
+
+  // Get first AI question
+  _ptAskNextQuestion();
+}
+
+function closePersonTraining() {
+  if (_ptTimer) { clearInterval(_ptTimer); _ptTimer = null; }
+  document.getElementById('modal-person-training').style.display = 'none';
+}
+
+function _updatePtTimer() {
+  const m = Math.floor(_ptSecsLeft / 60);
+  const s = _ptSecsLeft % 60;
+  const el = document.getElementById('pt-timer');
+  if (el) el.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function _ptAddMessage(role, content) {
+  const msgs = document.getElementById('pt-messages');
+  if (!msgs) return;
+
+  const isCustomer = role === 'customer';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = `display:flex;flex-direction:column;align-items:${isCustomer ? 'flex-start' : 'flex-end'}`;
+
+  const label = document.createElement('div');
+  label.textContent = isCustomer ? '🤔 Zákazník' : '🧑 Vy';
+  label.style.cssText = 'font-size:0.7rem;font-weight:600;color:#94a3b8;margin-bottom:0.2rem';
+
+  const bubble = document.createElement('div');
+  bubble.style.cssText = `max-width:82%;padding:0.65rem 0.9rem;border-radius:${isCustomer ? '4px 14px 14px 14px' : '14px 4px 14px 14px'};font-size:0.88rem;line-height:1.55;${isCustomer ? 'background:#f1f5f9;color:#1e293b' : 'background:#7c3aed;color:white'}`;
+  bubble.textContent = content;
+
+  wrap.appendChild(label);
+  wrap.appendChild(bubble);
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  return bubble;
+}
+
+function _ptAddTypingIndicator() {
+  const msgs = document.getElementById('pt-messages');
+  if (!msgs) return null;
+  const wrap = document.createElement('div');
+  wrap.id = 'pt-typing';
+  wrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-start';
+
+  const label = document.createElement('div');
+  label.textContent = '🤔 Zákazník';
+  label.style.cssText = 'font-size:0.7rem;font-weight:600;color:#94a3b8;margin-bottom:0.2rem';
+
+  const bubble = document.createElement('div');
+  bubble.style.cssText = 'background:#f1f5f9;padding:0.65rem 0.9rem;border-radius:4px 14px 14px 14px;display:flex;gap:4px;align-items:center';
+  bubble.innerHTML = '<span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pt-pulse 1s infinite"></span><span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pt-pulse 1s 0.2s infinite"></span><span style="width:7px;height:7px;border-radius:50%;background:#94a3b8;animation:pt-pulse 1s 0.4s infinite"></span>';
+
+  wrap.appendChild(label);
+  wrap.appendChild(bubble);
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+  return wrap;
+}
+
+async function _ptAskNextQuestion() {
+  if (_ptWaiting) return;
+  _ptWaiting = true;
+
+  const sendBtn = document.getElementById('pt-send-btn');
+  const input = document.getElementById('pt-answer');
+  if (sendBtn) sendBtn.disabled = true;
+  if (input) input.disabled = true;
+
+  const typingEl = _ptAddTypingIndicator();
+
+  try {
+    const token = localStorage.getItem('neoworkly_token') || sessionStorage.getItem('neoworkly_token');
+    const response = await fetch(`/api/person/${currentWidget.id}/training/question`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ history: _ptHistory }),
+    });
+
+    if (typingEl) typingEl.remove();
+
+    if (!response.ok) throw new Error('Server error');
+
+    // Stream the answer
+    const label = document.createElement('div');
+    label.textContent = '🤔 Zákazník';
+    label.style.cssText = 'font-size:0.7rem;font-weight:600;color:#94a3b8;margin-bottom:0.2rem';
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText = 'max-width:82%;padding:0.65rem 0.9rem;border-radius:4px 14px 14px 14px;font-size:0.88rem;line-height:1.55;background:#f1f5f9;color:#1e293b';
+
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:flex-start';
+    wrap.appendChild(label);
+    wrap.appendChild(bubble);
+
+    const msgs = document.getElementById('pt-messages');
+    if (msgs) { msgs.appendChild(wrap); msgs.scrollTop = msgs.scrollHeight; }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let fullText = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        try {
+          const d = JSON.parse(line.slice(6));
+          if (d.text) { fullText += d.text; bubble.textContent = fullText; if (msgs) msgs.scrollTop = msgs.scrollHeight; }
+          if (d.done) fullText = d.fullText || fullText;
+        } catch {}
+      }
+    }
+
+    if (fullText) _ptHistory.push({ role: 'customer', content: fullText });
+
+  } catch (err) {
+    if (typingEl) typingEl.remove();
+    console.error('[training question]', err);
+  } finally {
+    _ptWaiting = false;
+    if (sendBtn) sendBtn.disabled = false;
+    if (input) { input.disabled = false; input.focus(); }
+  }
+}
+
+async function sendTrainingAnswer() {
+  if (_ptWaiting) return;
+  const input = document.getElementById('pt-answer');
+  const text = input?.value.trim();
+  if (!text) return;
+
+  input.value = '';
+  _ptHistory.push({ role: 'trainer', content: text });
+  _ptAddMessage('trainer', text);
+
+  await _ptAskNextQuestion();
+}
+
+async function finishPersonTraining() {
+  if (_ptTimer) { clearInterval(_ptTimer); _ptTimer = null; }
+
+  const trainerTurns = _ptHistory.filter(h => h.role === 'trainer').length;
+  if (trainerTurns < 3) {
+    showToast('Odpovedajte aspoň na 3 otázky pred dokončením.', 'error');
+    return;
+  }
+
+  document.getElementById('pt-input-area').style.display = 'none';
+  document.getElementById('pt-finish-btn').style.display = 'none';
+  document.getElementById('pt-status-badge').textContent = '● Analyzujem';
+  document.getElementById('pt-status-badge').style.background = '#fef3c7';
+  document.getElementById('pt-status-badge').style.color = '#92400e';
+  document.getElementById('pt-analyzing').style.display = 'flex';
+
+  try {
+    const token = localStorage.getItem('neoworkly_token') || sessionStorage.getItem('neoworkly_token');
+    const r = await fetch(`/api/person/${currentWidget.id}/training/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+      body: JSON.stringify({ history: _ptHistory }),
+    });
+
+    document.getElementById('pt-analyzing').style.display = 'none';
+
+    if (!r.ok) {
+      const e = await r.json().catch(() => ({}));
+      showToast(e.error || 'Chyba pri analýze.', 'error');
+      return;
+    }
+
+    _ptResults = await r.json();
+
+    // Show results
+    const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
+    setText('pt-res-think',   _ptResults.how_i_think);
+    setText('pt-res-style',   _ptResults.my_style);
+    setText('pt-res-knowhow', _ptResults.know_how);
+    setText('pt-res-answers', _ptResults.real_answers);
+    setText('pt-res-never',   _ptResults.never_say);
+
+    document.getElementById('pt-results').style.display = 'block';
+    document.getElementById('pt-status-badge').textContent = '✅ Hotovo';
+    document.getElementById('pt-status-badge').style.background = '#dbeafe';
+    document.getElementById('pt-status-badge').style.color = '#1d4ed8';
+
+  } catch (err) {
+    document.getElementById('pt-analyzing').style.display = 'none';
+    showToast('Chyba pri analýze.', 'error');
+  }
+}
+
+function acceptTrainingResults() {
+  if (!_ptResults) return;
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+  setVal('person-how-i-think', _ptResults.how_i_think);
+  setVal('person-my-style',    _ptResults.my_style);
+  setVal('person-know-how',    _ptResults.know_how);
+  setVal('person-real-answers',_ptResults.real_answers);
+  setVal('person-never-say',   _ptResults.never_say);
+
+  closePersonTraining();
+  showToast('✅ Profil bol naplnený z tréningu. Nezabudnite uložiť.', 'success');
+}
+
+function discardTrainingResults() {
+  _ptResults = null;
+  document.getElementById('pt-results').style.display = 'none';
+  document.getElementById('pt-analyzing').style.display = 'none';
+  document.getElementById('pt-input-area').style.display = 'flex';
+  document.getElementById('pt-finish-btn').style.display = '';
+  document.getElementById('pt-status-badge').textContent = '● Pokračovanie';
+  document.getElementById('pt-status-badge').style.background = '#dcfce7';
+  document.getElementById('pt-status-badge').style.color = '#166534';
+  _ptSecsLeft = Math.max(_ptSecsLeft, 60); // at least 1 min left
+  _ptTimer = setInterval(() => {
+    _ptSecsLeft--;
+    _updatePtTimer();
+    if (_ptSecsLeft <= 0) { clearInterval(_ptTimer); finishPersonTraining(); }
+  }, 1000);
 }

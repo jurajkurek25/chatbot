@@ -1,9 +1,19 @@
 'use strict';
 
 const express = require('express');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const { requireAuth } = require('../middleware/auth');
 const { getDb, searchKnowledge } = require('../db/database');
+
+function verifyMetaSignature(req) {
+  const secret = process.env.META_APP_SECRET || process.env.FB_APP_SECRET;
+  if (!secret || !req.rawBody) return true;
+  const sig = req.headers['x-hub-signature-256'] || '';
+  if (!sig.startsWith('sha256=')) return false;
+  const hash = 'sha256=' + crypto.createHmac('sha256', secret).update(req.rawBody).digest('hex');
+  try { return crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(hash)); } catch { return false; }
+}
 const {
   exchangeCodeForToken,
   getLongLivedToken,
@@ -125,7 +135,7 @@ router.get('/callback', async (req, res) => {
     }
 
     if (pages.length === 0) {
-      console.error('[instagram] OAuth returned 0 pages. igFromUser:', JSON.stringify(igFromUser));
+      console.error('[instagram] OAuth returned 0 pages. pagesData:', JSON.stringify(pagesData).slice(0, 500));
       return res.redirect('/dashboard?ig_error=no_pages');
     }
 
@@ -146,6 +156,11 @@ router.get('/callback', async (req, res) => {
 
     // 6. Save / upsert connection
     const db = getDb();
+
+    // Verify widget ownership at callback time (prevents TOCTOU with state manipulation)
+    const ownedWidget = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(widgetId, userId);
+    if (!ownedWidget) return res.redirect('/dashboard?ig_error=invalid_widget');
+
     const existing = db.prepare('SELECT id FROM instagram_connections WHERE widget_id = ?').get(widgetId);
     const connId = existing?.id || uuidv4();
 
@@ -183,6 +198,7 @@ router.get('/webhook', (req, res) => {
 
 /* ── POST /api/instagram/webhook — incoming events ──────────────── */
 router.post('/webhook', async (req, res) => {
+  if (!verifyMetaSignature(req)) return res.sendStatus(403);
   // Always respond 200 immediately so Meta doesn't retry
   res.sendStatus(200);
 

@@ -1,0 +1,191 @@
+NEOWORKLY — ZNALOSTNÁ BÁZA PRE CHATBOTA (ČASŤ 1/3)
+Aktualizované: apríl 2026
+
+━━━ ČO JE NEOWORKLY ━━━
+
+Neoworkly je platforma pre tvorbu AI chatbot widgetov. Vytvoríte si chatbota, naučíte ho o svojom biznise a vložíte ho na web. Chatbot potom odpovedá zákazníkom, zbiera kontakty, pomáha s predajom a prijíma online rezervácie — automaticky, 24/7.
+
+━━━ CENNÍK ━━━
+
+Pro plán: €37/mesiac
+— ~500 AI odpovedí/mesiac, až 10 widgetov, všetky funkcie
+
+White Label plán: €997/mesiac
+— Rovnaké funkcie ako Pro, ale bez "Powered by Neoworkly" loga vo widgete
+— Vhodné pre agentúry a firmy ktoré nechcú zobrazovať branding Neoworkly
+
+Person add-on: €29/mesiac (vyžaduje aktívny Pro plán)
+— AI digitálny dvojník s vašou identitou, štýlom a know-how
+— Možnosť platiť mesačne (€29/mes) alebo ročne (€290/rok = 2 mesiace zadarmo)
+— Obsahuje Email kanál bez príplatku
+
+Extra AI kredity (neobnovia sa mesačne, spotrebúvajú sa postupne):
+— €5 = 100 odpovedí
+— €8 = 200 odpovedí — Refill pack (najlepší pomer ceny)
+— €15 = 350 odpovedí
+— Vlastná suma: 1 € = 20 odpovedí
+
+Growth Boost (SEO audit): €49 jednorazovo — 1 Boost token = 1 plný SEO audit s AI opravami
+
+Affiliate odmena: €15 kredit za každého platiaceho zákazníka ktorého privediete
+
+━━━ WIDGETY ━━━
+
+Čo je widget?
+Widget je chatbot bublina ktorá sa zobrazí na vašom webe. Zákazníci s ním môžu chatovať, dostávať odpovede, zanechávať kontakt alebo rezervovať termín.
+
+Koľko widgetov môžem mať?
+Na Pro pláne až 10 widgetov — každý pre iný web, projekt alebo účel.
+
+Čo sa dá nastaviť?
+— Meno asistenta a uvítacia správa
+— Farba widgetu a avatar foto (JPG/PNG/WebP/GIF, max 5 MB)
+— Proaktívna správa: chatbot sa sám ozve návštevníkovi po 1–60 sekundách
+— Stav: Aktívny (viditeľný na webe) / Neaktívny (skrytý)
+— Ciele a kontext biznisu: popis pre AI aby pochopila produkt, tón, cieľovku
+— Jazyk: automaticky sa prispôsobí jazyku zákazníka (SK, EN, DE, FR, ES, PL, CS, HU a ďalšie)
+— Pracovné hodiny: offline správa mimo pracovných hodín
+— A/B test uvítacej správy: dve verzie, systém rozdeľuje návštevníkov 50/50
+— CSAT hodnotenie: zákazník ohodnotí konverzáciu hviezdičkami po 4 odpovediach chatbota
+
+━━━ ZNALOSTNÁ BÁZA ━━━
+
+Čo je znalostná báza?
+Je to obsah z ktorého chatbot čerpá odpovede. Čím viac relevantného obsahu, tým presnejšie odpovede.
+
+Ako pridať obsah?
+— Pridať text: napíšete nadpis a obsah (FAQ, cenník, popis služieb)
+— Nahrať súbor: PDF, TXT, MD, CSV — max 20 MB
+— Skenovanie URL: zadáte adresu webu → AI automaticky naskenuje stránky a naplní bázu
+
+Chatbot odpovedá výlučne z obsahu znalostnej bázy. Dokumenty sa dajú kedykoľvek zmazať alebo doplniť.
+
+━━━ OTÁZKY & CTA ━━━
+
+Navrhované otázky:
+Klikateľné tlačidlá na začiatku konverzácie — pridáte ich ručne alebo AI ich vygeneruje zo znalostnej bázy.
+
+Typy CTA (výzva k akcii):
+— Žiadne CTA — chatbot len odpovedá na otázky
+— Telefonický hovor — chatbot navrhne zavolať, zadáte telefónne číslo
+— Kontaktný formulár — zbiera meno, email, telefón → uloží do Kontaktov (Leads)
+— Rezervácia termínu — zákazník rezervuje priamo cez chatbota alebo cez formulár
+— Vlastný text — ľubovoľná výzva s vlastným linkom
+
+━━━ EMBED KÓD ━━━
+
+Ako vložiť chatbota na web?
+Skopírujte script tag z Dashboard → záložka "Embed kód" a vložte ho do sekcie <head> vašej stránky. Chatbot sa potom zobrazí v pravom dolnom rohu každej stránky.
+
+WordPress:
+Použite náš plugin (neoworkly-chatbot.zip) — vloží chatbota automaticky, bez kopírovania kódu. Plugin navyše naskenuje celý web a naplní znalostné bázu.
+
+━━━ PRODUKTY & KATALÓG ━━━
+
+Na čo slúžia produkty?
+Chatbot môže počas konverzácie inteligentne odporúčať vaše produkty alebo služby (max 1–3 naraz).
+
+Čo obsahuje každý produkt?
+Názov, typ, popis, pre koho je, benefity, cena, mena, URL/Stripe link, CTA text, pravidlá kedy odporúčať/neodporúčať, FAQ, priorita odporúčania (0–10).
+
+Typy produktov: Služba, Konzultácia, Digitálny produkt, Kurz, Fyzický produkt, Vstupenka, Lead magnet.
+
+Import/export cez CSV — šablóna je dostupná priamo v dashboarde.
+
+━━━ GDPR ━━━
+
+Čo je GDPR text vo widgete?
+Súhlas so spracovaním osobných údajov — zobrazuje sa zákazníkovi pri kontaktnom formulári.
+
+AI generátor GDPR textu:
+Zadáte názov firmy, adresu, IČO, email, účel spracovania a dobu uchovávania → AI vygeneruje kompletný GDPR text. Text môžete ľubovoľne upraviť.
+
+━━━ INSTAGRAM DM BOT ━━━
+
+Čo je Instagram bot?
+Automaticky odpovedá na DM správy. Funguje cez trigger: zákazník napíše kľúčové slovo do komentára (napr. CENA, INFO) → bot mu okamžite pošle DM.
+
+Čo potrebujem pred prepojením?
+— Facebook Stránka (nie osobný profil) kde ste admin
+— Instagram prepnutý na Business alebo Creator účet
+— Tento Instagram účet prepojený s Facebook Stránkou
+
+Prepojenie: cez Meta (Facebook) OAuth — bezpečné, bez hesiel.
+
+Nedá sa pripojiť / chyba no_pages?
+Potrebujete Facebook Stránku (nie osobný profil). Instagram musí byť Business/Creator účet prepojený s touto stránkou. Postup: Instagram → Profil → Upraviť profil → Prepojiť Facebook stránku.
+
+━━━ KONTAKTY (LEADS) ━━━
+
+Kde vidím zákazníkov ktorí chatovali?
+Dashboard → záložka "📋 Kontakty". Ukladajú sa len zákazníci ktorí vyplnili kontaktný formulár.
+
+Čo obsahuje každý kontakt?
+Meno, email, telefón, dátum, widget, AI súhrn konverzácie, CSAT hodnotenie, poznámky.
+
+Stavy kontaktov:
+— Nový (modrý)
+— Kontaktovaný (žltý)
+— Uzavretý (zelený)
+
+Ďalšie funkcie:
+— Filter podľa widgetu alebo stavu
+— Export do CSV jedným kliknutím
+— Kanban zobrazenie (drag & drop medzi stavmi)
+— Follow-up email: tlačidlo 📧 otvorí okno na odoslanie správy priamo zákazníkovi
+— Označenie konverzie s hodnotou obchodu (pre Money Mode)
+
+Kontakty sa neukladajú?
+CTA musí byť nastavené na "Kontaktný formulár". Zákazník musí formulár vyplniť a odoslať.
+
+━━━ AFFILIATE PROGRAM ━━━
+
+Ako funguje affiliate?
+Zdieľate váš unikátny referral link: neoworkly.com/?ref=VÁŠ_KÓD
+— Nový zákazník cez váš link dostane -15% zľavu
+— Vy dostanete €15 kredit za každého platiaceho zákazníka
+
+Ako využiť kredity?
+— Voľný mesiac: €37 kreditov = 1 mesiac predplatného zadarmo
+— AI správy: 1 € = 100 AI odpovedí (špeciálna affiliate sadzba)
+— Auto-uplatňovanie kreditov na predplatné (voliteľné nastavenie)
+
+━━━ PREDPLATNÉ & BILLING ━━━
+
+Platobný systém: Stripe, zrušenie kedykoľvek.
+
+Správa predplatného:
+Dashboard → "Spravovať predplatné" → Stripe Customer Portal (zmena karty, zrušenie, história platieb).
+
+Extra AI kredity:
+Sidebar → "+ Dobiť" → 3 balíky (€5/100, €8/200, €15/350) + vlastná suma.
+
+Upozornenia na kredity:
+— Pri 80%: žltý banner s tlačidlom "Dobiť 200 za €8"
+— Pri 100%: červený banner, chatbot prestane odpovedať
+
+Minuli sa odpovede — čo robiť?
+Zakúpte extra kredity (sidebar → "+ Dobiť") alebo zarobte cez affiliate program.
+
+━━━ ONBOARDING (prvé kroky po registrácii) ━━━
+
+— Žiadny trial — platba prebehne pri registrácii cez Stripe
+— Trial je dostupný výhradne pri osobnom stretnutí, nie verejne
+
+Kroky nastavenia:
+1. Aktivácia predplatného (Stripe platba)
+2. Znalostná báza (nahranie obsahu alebo skenovanie URL)
+3. Otázky & CTA (navrhované otázky + typ výzvy)
+4. Embed kód (vloženie na web)
+5. Growth Boost — SEO audit (voliteľný, €49 jednorazovo)
+
+━━━ WORDPRESS PLUGIN ━━━
+
+Inštalácia:
+WordPress admin → Pluginy → Nahrať plugin → nahráte neoworkly-chatbot.zip → aktivovať.
+
+Čo plugin urobí automaticky?
+— Vloží chatbota do hlavičky (bez ručného kopírovania kódu)
+— Naskenuje celý web (stránky, príspevky, WooCommerce produkty) a importuje do znalostnej bázy
+
+Aktualizácia obsahu: Re-scan tlačidlo v nastaveniach pluginu.

@@ -4,3 +4,5 @@ uploads/
 .env
 *.log
 .claude/
+sales/data/
+sales/node_modules/

@@ -11,8 +11,17 @@ function ownsWidget(widgetId, userId) {
   return !!getDb().prepare('SELECT 1 FROM widgets WHERE id = ? AND user_id = ?').get(widgetId, userId);
 }
 
+function isPrivateHost(hostname) {
+  return hostname === 'localhost' || hostname === '::1' ||
+    /^127\./.test(hostname) || /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) || /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) ||
+    /^169\.254\./.test(hostname);
+}
+
 async function fetchWooProducts(storeUrl, key, secret) {
   const base = storeUrl.replace(/\/$/, '');
+  const parsed = new URL(base);
+  if (isPrivateHost(parsed.hostname)) throw new Error('Privátne IP adresy nie sú povolené.');
   const url = `${base}/wp-json/wc/v3/products?per_page=100&status=publish`;
   const creds = Buffer.from(`${key}:${secret}`).toString('base64');
   const resp = await fetch(url, { headers: { Authorization: `Basic ${creds}`, 'User-Agent': 'Neoworkly/1.0' } });

@@ -1,0 +1,152 @@
+NEOWORKLY — ZNALOSTNÁ BÁZA PRE CHATBOTA (ČASŤ 3/3)
+
+━━━ MONEY MODE ━━━
+
+Čo je Money Mode?
+Dashboard → ľavé menu → "💰 Money Mode". Sleduje reálny ROI chatbota — koľko peňazí zarobil oproti tomu čo stojí predplatné.
+
+Metriky:
+— Zarobené (€): súčet hodnôt všetkých leadov označených ako konverzia
+— Konverzie: počet leadov s označenou konverziou
+— Conversion rate: % leadov ktoré skončili nákupom
+— €/kredit: koľko eur zarobí jeden AI kredit (napr. €3/kredit = 60–75× ROI)
+— Missed revenue: odhadovaná strata keď chatbot vyčerpal kredity
+
+Ako označiť konverziu?
+Dashboard → Kontakty → nájdite lead → kliknite "💰 Konverzia" → zadajte hodnotu obchodu v € → Potvrdiť.
+
+Konverzný lievik:
+Vizualizácia troch fáz: Všetky leady → S emailom → Konvertovaní. Vidíte kde sa strácajú zákazníci.
+
+ROI headline sa nezobrazuje?
+Musíte mať aspoň jednu konverziu s hodnotou. Označte prvý uzavretý obchod v Kontaktoch.
+
+━━━ LEAD REAKTIVÁCIA ━━━
+
+Čo je Lead Reaktivácia?
+Dashboard → ľavé menu → "🔁 Lead Reaktivácia". Zobrazí leady ktoré neboli kontaktované dlhší čas — a pomôže ich reaktivovať personalizovanou AI správou.
+
+Postup (3 kroky):
+1. Vyberte filter: 1 hod / 24 hod / 3 dni / 7 dní
+2. Systém ukáže leady bez kontaktu dlhšie ako zvolený čas
+3. Kliknite "✨ Reaktivovať AI správou" → AI vygeneruje personalizovanú správu za ~10 sekúnd
+4. Skontrolujte správu, upravte podľa potreby → "📧 Odoslať email"
+
+AI berie do úvahy: meno zákazníka, AI súhrn ich pôvodnej konverzácie, názov a ciele vášho biznisu. Výsledok je správa o konkrétnej téme zákazníka — nie generické "ozývam sa, máte záujem?"
+
+Kedy použiť ktorý filter?
+— 1 hod: ultra-horúce leady (najvyšší záujem)
+— 24 hod: leady z dnešného / včerajšieho dňa
+— 3 dni: leady z konca týždňa alebo víkendu
+— 7 dní: staršie leady — cena kontaktu €0 vs. nový zákazník
+
+Vidím 0 studených leadov?
+Buď nemáte leady staršie ako zvolený filter, alebo boli všetky kontaktované. Skúste dlhší filter.
+
+━━━ NEOWORKLY PERSON — AI DIGITÁLNY DVOJNÍK ━━━
+
+Čo je Person?
+Dashboard → záložka "🧑 Person". Person je AI digitálny dvojník — chatbot ktorý odpovedá presne tak, ako by odpovedala skutočná osoba (majiteľ, expert, konzultant). Má vašu identitu, štýl a know-how.
+
+Cena: €29/mesiac add-on (vyžaduje aktívny Pro plán).
+Možnosť platiť mesačne (€29/mes) alebo ročne (€290/rok — 2 mesiace zadarmo).
+
+Polia profilu:
+— Meno osoby: kto je digitálny dvojník
+— Úvod / Bio: krátky popis osoby a čo robí
+— Ako rozmýšľam: spôsob uvažovania, hodnoty, filozofia
+— Tvoj štýl: komunikačný štýl (formálny/neformálny, humor, priamosť)
+— Know-how: odborné znalosti a skúsenosti
+— Reálne odpovede: príklady fráz a typických odpovedí
+— Čo nikdy nehovoriť: zakázané témy, slová, postoje
+
+Tréning (30-minútový mód):
+AI hrá zákazníka a kladie otázky — vy odpovedáte tak, ako by ste skutočne komunikovali. Po aspoň 3 odpovediach kliknete "Analyzovať" → AI automaticky vyplní polia profilu.
+
+Nahrávanie know-how zo zdrojov:
+Panel "📥 Nahrať know-how zo zdrojov" — extrahuje štýl a know-how z:
+— YouTube video (URL → AI získa prepis)
+— Článok / webová stránka (URL → AI extrahuje text)
+— PDF súbor (nahráte súbor → AI extrahuje obsah)
+AI navrhne doplnky pre každé pole — vy schválite alebo zahodíte.
+
+Ako aktivovať Person?
+Prepínač "Aktívny" v profile — keď je zapnutý, chatbot odpovedá s vašou identitou namiesto generického AI.
+
+Môžem mať Person bez tréningu?
+Áno — vyplňte polia ručne. Tréning je voliteľná pomôcka, nie podmienka.
+
+Person nereflektuje môj štýl?
+Doplňte pole "Reálne odpovede" s konkrétnymi príkladmi vašich fráz a "Ako rozmýšľam" — to má najväčší vplyv na štýl odpovede.
+
+Koľko trvá nastaviť Person?
+Základné nastavenie 15–30 minút. S tréningom a zdrojmi hodina–dve.
+
+Môžem trénovať Person viackrát?
+Áno — každý tréning dopĺňa profil, nezmaže predchádzajúci.
+
+━━━ EMAIL KANÁL (súčasť Person add-onu) ━━━
+
+Čo je Email kanál?
+Dashboard → záložka "🧑 Person" → sekcia "📧 E-mailový kanál".
+Umožňuje napojiť vlastnú e-mailovú adresu (napr. asistent@vasadomena.sk) tak, aby na ňu odpovedal váš AI digitálny dvojník. Zákazník pošle email → AI odpíše ako Person.
+
+Cena: zahrnuté v Person add-one (€29/mes) — žiadny príplatok.
+
+Ako to funguje?
+1. Nasmerujete doménu do Cloudflare (zmena NS záznamov u registrátora)
+2. Cloudflare Email Routing presmeruje prichádzajúci email na Worker
+3. Worker zavolá Neoworkly webhook s obsahom emailu
+4. Neoworkly vygeneruje AI odpoveď a odošle ju zákazníkovi
+
+Postup nastavenia krok za krokom:
+Krok 1 — Doména do Cloudflare: Idete na cloudflare.com, pridáte svoju doménu (zadarmo plán stačí), zmeníte NS záznamy u registrátora. Cloudflare prenesie existujúce DNS záznamy automaticky — web ostane funkčný.
+— Wedos: Doménový panel → DNS → Nameservery
+— Forpsi: Správa domén → Detail domény → Nameservery
+— Active24: Správa DNS → Nameservery
+— GoDaddy: My Products → DNS → Nameservers → Custom
+
+Krok 2 — Email Routing: Cloudflare Dashboard → vaša doména → Email → Email Routing → Enable Email Routing.
+
+Krok 3 — Worker: V dashboarde sa zobrazí ready-to-use kód Worker-a. V Cloudflare: Workers & Pages → Create → Deploy. Pridáte premennú NEOWORKLY_SECRET (hodnota zo dashboardu). V Email Routing nastavíte Catch-all rule → Send to Worker.
+
+Krok 4 — Adresa: Do políčka v dashboarde zadáte e-mailovú adresu (napr. asistent@vasadomena.sk) a uložíte.
+
+Musím programovať?
+Nie — kód Worker-a vygeneruje Neoworkly. Skopírujete a vložíte, žiadne programovanie.
+
+Zmizne mi web keď presuniem doménu do Cloudflare?
+Nie — Cloudflare prenesie existujúce DNS záznamy automaticky. Web ostane funkčný.
+
+Ako dlho trvá propagácia NS záznamov?
+Zvyčajne 1–24 hodín (väčšinou do 2 hodín).
+
+AI neodpovedá na emaily?
+Skontrolujte: (1) Email Routing je Enabled, (2) Catch-all rule smeruje na Worker, (3) NEOWORKLY_SECRET v Worker zodpovedá secretu v dashboarde, (4) Email kanál je zapnutý prepínačom v dashboarde.
+
+━━━ VŠEOBECNÉ OTÁZKY ━━━
+
+Je Neoworkly vhodné pre môj biznis?
+Neoworkly je vhodné pre akýkoľvek biznis ktorý má web a chce automatizovane komunikovať so zákazníkmi — či už ide o e-shop, konzultanta, kaderníka, realitnú kanceláriu, fitnescentrum alebo agentúru.
+
+Je nutné programovanie?
+Nie. Celý chatbot, znalostná báza aj embed kód sa nastavujú bez programovania cez dashboard. Pre WordPress existuje plugin ktorý vloží chatbota automaticky.
+
+Podporujete slovenčinu?
+Áno — chatbot sa automaticky prispôsobí jazyku zákazníka, vrátane slovenčiny, češtiny, nemčiny, angličtiny a ďalších jazykov.
+
+Ako rýchlo môžem začať?
+Chatbot môžete spustiť do 30–60 minút po registrácii. Zaregistrujete sa, zaplatíte, nahráte obsah znalostnej bázy a vložíte embed kód.
+
+Môžem chatbota otestovať pred vložením na web?
+Áno — náhľad widgetu je priamo v dashboarde na záložke "Embed kód".
+
+Kde nájdem pomoc ak niečo nefunguje?
+— AI Coach: Dashboard → ľavé menu → záložka "💬 AI Coach" — odpovedá na otázky o nastavení
+— Podpora: kontaktujte nás emailom na hello@neoworkly.com
+
+Ako zrušiť predplatné?
+Dashboard → "Spravovať predplatné" → Stripe Customer Portal → zrušiť. Zrušenie je možné kedykoľvek.
+
+Stratím dáta pri zrušení?
+Dáta (kontakty, znalostná báza, nastavenia) zostanú uložené. Chatbot prestane byť aktívny, ale pri obnovení predplatného všetko ostane ako bolo.

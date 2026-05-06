@@ -334,10 +334,23 @@ function initDatabase() {
       email TEXT NOT NULL,
       role TEXT NOT NULL DEFAULT 'readonly' CHECK(role IN ('readonly','editor')),
       invite_token TEXT,
+      invite_expires_at INTEGER,
       accepted INTEGER NOT NULL DEFAULT 0,
       member_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       UNIQUE(owner_user_id, email)
+    );
+
+    /* ── SEO audits ──────────────────────────────────────────── */
+    CREATE TABLE IF NOT EXISTS seo_audits (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      url TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      score INTEGER,
+      findings_json TEXT NOT NULL DEFAULT '{}',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      completed_at INTEGER
     );
   `);
 
@@ -390,10 +403,170 @@ function initDatabase() {
     `ALTER TABLE widgets ADD COLUMN ecomail_list_id TEXT`,
     `ALTER TABLE widgets ADD COLUMN ecomail_list_name TEXT`,
     `ALTER TABLE users ADD COLUMN subscription_plan TEXT NOT NULL DEFAULT 'pro'`,
+    `ALTER TABLE users ADD COLUMN growth_boost_paid INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN boost_credits INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE seo_audits ADD COLUMN boost_unlocked INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE widgets ADD COLUMN suggested_questions_i18n TEXT NOT NULL DEFAULT '{}'`,
     `ALTER TABLE users ADD COLUMN password_reset_token TEXT`,
     `ALTER TABLE users ADD COLUMN password_reset_expires INTEGER`,
     `ALTER TABLE shopify_connections RENAME COLUMN neuradesk_user_id TO neoworkly_user_id`,
+    `ALTER TABLE leads ADD COLUMN deal_value REAL`,
+    `ALTER TABLE leads ADD COLUMN converted_at INTEGER`,
+    `ALTER TABLE leads ADD COLUMN last_reactivation_at INTEGER`,
+    `ALTER TABLE leads ADD COLUMN reactivation_count INTEGER NOT NULL DEFAULT 0`,
+    `CREATE TABLE IF NOT EXISTS followup_sequences (
+  id TEXT PRIMARY KEY,
+  widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+  name TEXT NOT NULL DEFAULT 'Automatická sekvencia',
+  enabled INTEGER NOT NULL DEFAULT 1,
+  steps TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `CREATE TABLE IF NOT EXISTS followup_jobs (
+  id TEXT PRIMARY KEY,
+  lead_id TEXT NOT NULL,
+  widget_id TEXT NOT NULL,
+  sequence_id TEXT NOT NULL,
+  step_index INTEGER NOT NULL DEFAULT 0,
+  send_at INTEGER NOT NULL,
+  sent_at INTEGER,
+  failed INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `CREATE TABLE IF NOT EXISTS whatsapp_connections (
+  id TEXT PRIMARY KEY,
+  widget_id TEXT NOT NULL UNIQUE REFERENCES widgets(id) ON DELETE CASCADE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  phone_number_id TEXT NOT NULL,
+  access_token TEXT NOT NULL,
+  phone_display TEXT,
+  verify_token TEXT NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `CREATE TABLE IF NOT EXISTS whatsapp_conversations (
+  id TEXT PRIMARY KEY,
+  connection_id TEXT NOT NULL REFERENCES whatsapp_connections(id) ON DELETE CASCADE,
+  wa_contact_id TEXT NOT NULL,
+  contact_name TEXT,
+  last_message_at INTEGER,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  UNIQUE(connection_id, wa_contact_id)
+)`,
+    `CREATE TABLE IF NOT EXISTS whatsapp_messages (
+  id TEXT PRIMARY KEY,
+  conversation_id TEXT NOT NULL REFERENCES whatsapp_conversations(id) ON DELETE CASCADE,
+  role TEXT NOT NULL,
+  content TEXT NOT NULL,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `ALTER TABLE widgets ADD COLUMN demo_video_url TEXT`,
+    `ALTER TABLE users ADD COLUMN auto_reload_enabled INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN auto_reload_threshold INTEGER NOT NULL DEFAULT 50`,
+    `ALTER TABLE users ADD COLUMN auto_reload_amount_eur INTEGER NOT NULL DEFAULT 8`,
+    `ALTER TABLE users ADD COLUMN stripe_payment_method_id TEXT`,
+    `ALTER TABLE users ADD COLUMN auto_reload_card_last4 TEXT`,
+    `ALTER TABLE users ADD COLUMN auto_reload_card_brand TEXT`,
+    `ALTER TABLE users ADD COLUMN auto_reload_last_at INTEGER`,
+    `ALTER TABLE users ADD COLUMN person_addon_active INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN person_addon_subscription_id TEXT`,
+    `CREATE TABLE IF NOT EXISTS person_profiles (
+  id TEXT PRIMARY KEY,
+  widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+  person_name TEXT NOT NULL DEFAULT '',
+  person_intro TEXT NOT NULL DEFAULT '',
+  how_i_think TEXT NOT NULL DEFAULT '',
+  my_style TEXT NOT NULL DEFAULT '',
+  know_how TEXT NOT NULL DEFAULT '',
+  real_answers TEXT NOT NULL DEFAULT '',
+  never_say TEXT NOT NULL DEFAULT '',
+  active INTEGER NOT NULL DEFAULT 1,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  UNIQUE(widget_id)
+)`,
+    `ALTER TABLE person_profiles ADD COLUMN email_channel_active INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE person_profiles ADD COLUMN email_address TEXT`,
+    `ALTER TABLE person_profiles ADD COLUMN email_webhook_secret TEXT`,
+    `CREATE TABLE IF NOT EXISTS email_conversations (
+  id TEXT PRIMARY KEY,
+  widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+  thread_id TEXT NOT NULL,
+  from_email TEXT NOT NULL,
+  from_name TEXT,
+  subject TEXT NOT NULL DEFAULT '',
+  history TEXT NOT NULL DEFAULT '[]',
+  created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+  last_reply_at INTEGER,
+  UNIQUE(widget_id, thread_id)
+)`,
+    `CREATE TABLE IF NOT EXISTS gift_cards (
+  id TEXT PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  amount_eur REAL NOT NULL,
+  buyer_email TEXT,
+  buyer_name TEXT,
+  recipient_email TEXT,
+  message TEXT,
+  stripe_session_id TEXT,
+  used INTEGER NOT NULL DEFAULT 0,
+  used_by TEXT,
+  created_at TEXT DEFAULT (datetime('now')),
+  redeemed_at TEXT
+)`,
+    `ALTER TABLE users ADD COLUMN white_label_extra_slots INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN white_label_extra_sub_id TEXT`,
+    `ALTER TABLE users ADD COLUMN referral_bonus_count INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN dunning_sent_at INTEGER`,
+    `ALTER TABLE team_members ADD COLUMN invite_expires_at INTEGER`,
+    `CREATE TABLE IF NOT EXISTS stripe_events (
+  event_id TEXT PRIMARY KEY,
+  processed_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `CREATE TABLE IF NOT EXISTS credit_transactions (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  amount INTEGER NOT NULL,
+  note TEXT,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `CREATE TABLE IF NOT EXISTS winback_jobs (
+  id TEXT PRIMARY KEY,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  user_email TEXT NOT NULL,
+  user_name TEXT NOT NULL,
+  send_at INTEGER NOT NULL,
+  sent_at INTEGER,
+  failed INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `ALTER TABLE widgets ADD COLUMN proactive_sequence TEXT NOT NULL DEFAULT '[]'`,
+    `CREATE TABLE IF NOT EXISTS ai_training_samples (
+  id TEXT PRIMARY KEY,
+  source TEXT NOT NULL,
+  system_prompt TEXT,
+  user_input TEXT NOT NULL,
+  assistant_output TEXT NOT NULL,
+  tool_calls TEXT,
+  widget_id TEXT,
+  quality INTEGER NOT NULL DEFAULT 0,
+  flagged INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `CREATE TABLE IF NOT EXISTS sales_promo_codes (
+  id TEXT PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  type TEXT NOT NULL DEFAULT 'trial',
+  value_days INTEGER NOT NULL DEFAULT 30,
+  max_uses INTEGER NOT NULL DEFAULT 1,
+  uses INTEGER NOT NULL DEFAULT 0,
+  salesperson_name TEXT,
+  notes TEXT,
+  expires_at INTEGER,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
+    `ALTER TABLE users ADD COLUMN sales_ref TEXT`,
+    `ALTER TABLE users ADD COLUMN sales_promo_used TEXT`,
+    `ALTER TABLE widgets ADD COLUMN promotions TEXT NOT NULL DEFAULT '[]'`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

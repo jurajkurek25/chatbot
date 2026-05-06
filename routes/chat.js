@@ -3,11 +3,23 @@
 const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb, searchKnowledge } = require('../db/database');
-const { streamChatResponse, summarizeConversation, analyzeConversationTrends } = require('../services/claude');
+const { streamChatResponse, streamPersonResponse, summarizeConversation, analyzeConversationTrends } = require('../services/claude');
 const { sendLeadNotification, sendUsageNotification } = require('../services/email');
 const { BASE_RESPONSES, nextMonthReset, maybeResetUsage } = require('./credits');
 
 const router = express.Router();
+
+// SSRF protection helper — shared with seo.js
+function isPrivateHost(hostname) {
+  return (
+    hostname === 'localhost' || hostname === '::1' ||
+    /^127\./.test(hostname) ||
+    /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) ||
+    /^169\.254\./.test(hostname)
+  );
+}
 
 // Simple in-memory rate limiter: max 30 messages per IP per 10 minutes
 const rateLimitMap = new Map();
@@ -29,7 +41,7 @@ function checkRateLimit(ip) {
 router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
-    SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
+    SELECT id, user_id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
            suggested_questions_i18n, active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text,
            hide_branding, business_hours, offline_message, csat_enabled, welcome_message_b
     FROM widgets WHERE id = ?
@@ -42,6 +54,8 @@ router.get('/:widgetId/config', (req, res) => {
   // hide_branding is only active on the White Label plan
   const owner = db.prepare('SELECT subscription_plan FROM users WHERE id = ?').get(widget.user_id);
   const isWhiteLabel = owner?.subscription_plan === 'white_label';
+
+  const personProfile = db.prepare('SELECT person_name, person_intro, active FROM person_profiles WHERE widget_id = ?').get(req.params.widgetId);
 
   res.json({
     id: widget.id,
@@ -74,6 +88,11 @@ router.get('/:widgetId/config', (req, res) => {
     csat_enabled: Boolean(widget.csat_enabled),
     ab_variant: Math.random() < 0.5 ? 'a' : 'b',
     welcome_message_b: widget.welcome_message_b || '',
+    person: personProfile ? {
+      name: personProfile.person_name || '',
+      intro: personProfile.person_intro || '',
+      active: Boolean(personProfile.active),
+    } : null,
   });
 });
 
@@ -117,12 +136,23 @@ router.post('/:widgetId/chat', async (req, res) => {
     return res.status(404).json({ error: 'Widget nenájdený.' });
   }
 
-  // Check monthly usage limit
+  // Load owner and enforce subscription + credit limits
   const owner = db.prepare(
-    'SELECT id, email, name, ai_responses_this_month, ai_responses_reset_at, extra_response_credits, usage_notified_80, usage_notified_100 FROM users WHERE id = ?'
+    'SELECT id, email, name, ai_responses_this_month, ai_responses_reset_at, extra_response_credits, usage_notified_80, usage_notified_100, subscription_status, free_until, person_addon_active FROM users WHERE id = ?'
   ).get(widget.user_id);
 
   if (owner) {
+    // Enforce subscription: must be active or within free_until grace period
+    const now = Math.floor(Date.now() / 1000);
+    const subActive = owner.subscription_status === 'active' || owner.subscription_status === 'past_due' ||
+                      (owner.free_until && owner.free_until > now);
+    if (!subActive) {
+      return res.status(402).json({
+        error: 'Predplatné chatbota vypršalo.',
+        code: 'SUBSCRIPTION_INACTIVE',
+      });
+    }
+
     const thisMonth = maybeResetUsage(db, owner.id, owner);
     const extra = owner.extra_response_credits || 0;
 
@@ -134,7 +164,7 @@ router.post('/:widgetId/chat', async (req, res) => {
     }
   }
 
-  const { message, sessionId, history = [], pageContext } = req.body;
+  const { message, sessionId, history = [], pageContext, mode } = req.body;
   if (!message || !message.trim()) {
     return res.status(400).json({ error: 'Správa je povinná.' });
   }
@@ -181,7 +211,23 @@ router.post('/:widgetId/chat', async (req, res) => {
       ? { url: pageContext.url.slice(0, 512), title: String(pageContext.title || '').slice(0, 200) }
       : null;
 
-    const fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+    let fullText;
+    if (mode === 'person') {
+      // Person add-on requires active addon subscription + active base subscription
+      if (!owner?.person_addon_active) {
+        res.write(`data: ${JSON.stringify({ error: 'Person add-on nie je aktívny.', code: 'PERSON_ADDON_INACTIVE' })}\n\n`);
+        res.end();
+        return;
+      }
+      const personProfile = db.prepare('SELECT * FROM person_profiles WHERE widget_id = ? AND active = 1').get(widget.id);
+      if (personProfile) {
+        fullText = await streamPersonResponse(widget, personProfile, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+      } else {
+        fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+      }
+    } else {
+      fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+    }
 
     // Save assistant response + track usage
     if (fullText && owner) {
@@ -198,9 +244,32 @@ router.post('/:widgetId/chat', async (req, res) => {
 
       if (currentMonth < BASE_RESPONSES) {
         db.prepare('UPDATE users SET ai_responses_this_month = ai_responses_this_month + 1 WHERE id = ?').run(owner.id);
-      } else if (currentExtra > 0) {
-        db.prepare('UPDATE users SET extra_response_credits = extra_response_credits - 1 WHERE id = ?').run(owner.id);
+      } else {
+        // Atomic decrement: only if > 0 to prevent race-condition underflow
+        db.prepare('UPDATE users SET extra_response_credits = extra_response_credits - 1 WHERE id = ? AND extra_response_credits > 0').run(owner.id);
       }
+
+      // Auto-reload: check if extra credits dropped below threshold
+      setImmediate(async () => {
+        try {
+          const u = db.prepare(
+            'SELECT extra_response_credits, auto_reload_enabled, auto_reload_threshold, auto_reload_amount_eur, stripe_payment_method_id, stripe_customer_id, auto_reload_last_at FROM users WHERE id = ?'
+          ).get(owner.id);
+          const now = Math.floor(Date.now() / 1000);
+          const recentlyTriggered = u.auto_reload_last_at && (now - u.auto_reload_last_at) < 600;
+          if (
+            u.auto_reload_enabled &&
+            !recentlyTriggered &&
+            (u.extra_response_credits ?? 0) <= (u.auto_reload_threshold ?? 50) &&
+            u.stripe_payment_method_id &&
+            u.stripe_customer_id &&
+            (u.auto_reload_amount_eur ?? 0) >= 1
+          ) {
+            const { triggerAutoReload } = require('./credits');
+            triggerAutoReload(owner.id, u).catch(() => {});
+          }
+        } catch { /* ignore */ }
+      });
 
       // Usage notifications (async)
       const newCount = currentMonth + 1;
@@ -346,6 +415,7 @@ router.post('/:widgetId/leads', async (req, res) => {
         const https = require('https');
         const http = require('http');
         const wUrl = new URL(widget.webhook_url);
+        if (isPrivateHost(wUrl.hostname)) throw new Error('Private host blocked');
         const payload = JSON.stringify({ event: 'new_lead', widget_id: widgetRow.id, name: name.trim(), email: email.trim(), phone: phone?.trim()||null, created_at: new Date().toISOString() });
         const mod = wUrl.protocol === 'https:' ? https : http;
         const hReq = mod.request({ hostname: wUrl.hostname, path: wUrl.pathname + wUrl.search, method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) } }, () => {});
@@ -361,6 +431,7 @@ router.post('/:widgetId/leads', async (req, res) => {
         const https = require('https');
         const http = require('http');
         const sUrl = new URL(widget.slack_webhook_url);
+        if (isPrivateHost(sUrl.hostname)) throw new Error('Private host blocked');
         const text = `🔔 Nový lead: *${name.trim()}* (${email.trim()})${phone ? ` | ${phone.trim()}` : ''} – widget *${widgetRow.name || widgetRow.bot_name}*`;
         const payload = JSON.stringify({ text });
         const mod = sUrl.protocol === 'https:' ? https : http;
@@ -386,6 +457,26 @@ router.post('/:widgetId/leads', async (req, res) => {
       });
     } catch (err) {
       console.error('Lead email error:', err.message);
+    }
+
+    // Schedule follow-up sequence jobs if configured for this widget
+    try {
+      const seq = db.prepare(
+        'SELECT * FROM followup_sequences WHERE widget_id = ? AND enabled = 1'
+      ).get(widgetRow.id);
+      if (seq) {
+        const steps = JSON.parse(seq.steps || '[]');
+        const now = Math.floor(Date.now() / 1000);
+        const { v4: jobUuid } = require('uuid');
+        for (let i = 0; i < steps.length; i++) {
+          const delaySeconds = Math.max(0, (steps[i].delay_hours || 0)) * 3600;
+          db.prepare(
+            'INSERT INTO followup_jobs (id, lead_id, widget_id, sequence_id, step_index, send_at) VALUES (?, ?, ?, ?, ?, ?)'
+          ).run(jobUuid(), leadId, widgetRow.id, seq.id, i, now + delaySeconds);
+        }
+      }
+    } catch (err) {
+      console.error('Sequence scheduling error:', err.message);
     }
   });
 });
@@ -432,5 +523,40 @@ router.get('/:widgetId/live-reply', (req, res) => {
 function safeParseJSON(str, fallback) {
   try { return JSON.parse(str); } catch { return fallback; }
 }
+
+/* ── Popup session store (in-memory, short TTL) ──────────────────── */
+const _popupSessions = new Map();
+setInterval(() => {
+  const now = Date.now();
+  for (const [k, v] of _popupSessions) {
+    if (v.expires < now) _popupSessions.delete(k);
+  }
+}, 30000);
+
+// POST /api/widget/:widgetId/popup-session — called by widget before opening popup
+router.post('/:widgetId/popup-session', (req, res) => {
+  const { sid, hist } = req.body || {};
+  if (!sid) return res.status(400).json({ error: 'missing sid' });
+  const token = uuidv4();
+  _popupSessions.set(token, {
+    wid: req.params.widgetId,
+    sid: String(sid).slice(0, 128),
+    hist: Array.isArray(hist) ? hist.slice(-30) : [],
+    expires: Date.now() + 45000, // 45 second TTL — enough to open popup
+  });
+  res.json({ token });
+});
+
+// GET /api/widget/:widgetId/popup-session?t=TOKEN — called by chat-popup.html
+router.get('/:widgetId/popup-session', (req, res) => {
+  const token = (req.query.t || '').slice(0, 64);
+  const session = _popupSessions.get(token);
+  if (session && session.wid === req.params.widgetId && session.expires > Date.now()) {
+    _popupSessions.delete(token); // one-time use
+    res.json({ sid: session.sid, hist: session.hist });
+  } else {
+    res.json(null);
+  }
+});
 
 module.exports = router;

@@ -1,6 +1,7 @@
 'use strict';
 
 const Anthropic = require('@anthropic-ai/sdk');
+const { logTrainingSample } = require('./training-logger');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -71,7 +72,37 @@ function buildSystemPrompt(widget, knowledgeItems, products = [], pageContext = 
     goalsSection = `\n\n## KONTEXT BIZNISU A PRODUKTU\n${widget.goals}`;
   }
 
+  let videoSection = '';
+  if (widget.demo_video_url?.trim()) {
+    videoSection = `\n\n## DEMO VIDEO\nAk zákazník požiada o ukážku alebo demo, môžeš zdieľať tento odkaz: ${widget.demo_video_url}\nOdkaz pošli priamo v správe ako text URL — chatbot ho automaticky zobrazí ako video.`;
+  }
+
   const productsSection = buildProductsSection(products);
+
+  let promotionsSection = '';
+  const _now = Math.floor(Date.now() / 1000);
+  const _rawPromos = typeof widget.promotions === 'string'
+    ? (() => { try { return JSON.parse(widget.promotions); } catch { return []; } })()
+    : (Array.isArray(widget.promotions) ? widget.promotions : []);
+  const _activePromos = _rawPromos.filter(p =>
+    p && p.title &&
+    (!p.start_at || p.start_at <= _now) &&
+    (!p.end_at   || p.end_at   >= _now)
+  );
+  if (_activePromos.length > 0) {
+    promotionsSection = '\n\n## AKTUÁLNE AKCIE A ZĽAVY\nTieto akcie sú práve aktívne – ponúkaj ich zákazníkom prirodzene (keď prejavujú záujem, hovoria o cene alebo váhajú):\n';
+    _activePromos.forEach((p, i) => {
+      promotionsSection += `\n${i + 1}. **${p.title}**`;
+      if (p.discount_text) promotionsSection += ` (${p.discount_text})`;
+      if (p.description)   promotionsSection += `: ${p.description}`;
+      if (p.end_at) {
+        const daysLeft = Math.ceil((p.end_at - _now) / 86400);
+        if (daysLeft <= 7) promotionsSection += ` — platí ešte ${daysLeft} ${daysLeft === 1 ? 'deň' : daysLeft < 5 ? 'dni' : 'dní'}!`;
+        else promotionsSection += ` — platí do ${new Date(p.end_at * 1000).toLocaleDateString('sk-SK')}`;
+      }
+    });
+    promotionsSection += '\n→ Ponúkni akciu prirodzene keď zákazník hovorí o cene, váha alebo sa pýta na podmienky.';
+  }
 
   let pageContextSection = '';
   if (pageContext?.url) {
@@ -127,7 +158,7 @@ Keď zákazník prejaví záujem alebo súhlas:
 - Odpovedaj VŽDY v jazyku zákazníka (podľa toho ako píše – sk, en, de, fr, es, pl, cs, hu, ro, hr alebo iný).
 - Nikdy si nevymýšľaj fakty, ceny, mená, kontakty ani referencie.
 - Nebuď agresívny ani nátlakový – predávaj cez dôveru a pochopenie.
-- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
+- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${videoSection}${productsSection}${knowledgeSection}${promotionsSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
 }
 
 function loadProducts(widgetId) {
@@ -231,6 +262,80 @@ Booking URL (priamy odkaz): ${bookingUrl}
 KRITICKÉ: Použi JEDEN token (__DIRECTBOOK__ ALEBO __BOOKING__) IBA raz za konverzáciu. NIKDY nezobrazuj formulár automaticky.`;
 }
 
+/* ── Person mode: system prompt builder ────────────────────────── */
+function buildPersonPrompt(widget, personProfile, knowledgeItems = [], pageContext = null) {
+  const name = personProfile.person_name?.trim() || widget.bot_name;
+
+  let trainingSection = '';
+  if (personProfile.how_i_think?.trim())
+    trainingSection += `\n\n## AKO ROZMÝŠĽAM\n${personProfile.how_i_think}`;
+  if (personProfile.my_style?.trim())
+    trainingSection += `\n\n## MÔJ ŠTÝL KOMUNIKÁCIE\n${personProfile.my_style}`;
+  if (personProfile.know_how?.trim())
+    trainingSection += `\n\n## KNOW-HOW A EXPERTÍZA\n${personProfile.know_how}`;
+  if (personProfile.real_answers?.trim())
+    trainingSection += `\n\n## REÁLNE ODPOVEDE (príklady môjho štýlu)\n${personProfile.real_answers}`;
+  if (personProfile.never_say?.trim())
+    trainingSection += `\n\n## ČO NIKDY NEHOVORÍM\nTieto veci vynechaj – nikdy ich nespomínaj:\n${personProfile.never_say}`;
+
+  let knowledgeSection = '';
+  if (knowledgeItems.length > 0) {
+    knowledgeSection = '\n\n## ZNALOSTNÁ BÁZA\n';
+    knowledgeItems.forEach((item, i) => {
+      knowledgeSection += `\n### ${i + 1}. ${item.title}\n${item.content}\n`;
+    });
+  }
+
+  let pageContextSection = '';
+  if (pageContext?.url) {
+    pageContextSection = `\n\n## AKTUÁLNA STRÁNKA\nPoužívateľ sa nachádza na: ${pageContext.url}`;
+    if (pageContext.title) pageContextSection += `\nNázov: ${pageContext.title}`;
+  }
+
+  const intro = personProfile.person_intro?.trim();
+
+  return `Si ${name}${intro ? ` – ${intro}` : ''}.
+
+## TVOJA IDENTITA
+Nie si generický chatbot. Si digitálna verzia ${name} – so skutočným štýlom, názormi a spôsobom myslenia. Hovoríš ako ${name}, nie ako asistent.
+
+## PRAVIDLÁ
+- Odpovedaj VŽDY v jazyku, v ktorom ti píše používateľ.
+- Buď autentický: krátky, priamy, osobný. Nie formálny, nie robotický.
+- Ak niečo nevieš s istotou, povedz to úprimne – nevymýšľaj.
+- Max 3–4 vety na odpoveď, pokiaľ situácia nevyžaduje viac.
+- Nekončíš každú správu predajnou výzvou – si tu pre ľudí, nie pre konverzie.${trainingSection}${knowledgeSection}${pageContextSection}`;
+}
+
+/* ── Person mode: streaming response ──────────────────────────── */
+async function streamPersonResponse(widget, personProfile, knowledgeItems, history, userMessage, res, pageContext = null) {
+  const systemPrompt = buildPersonPrompt(widget, personProfile, knowledgeItems, pageContext);
+  const messages = [
+    ...history.map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userMessage },
+  ];
+
+  let fullResponse = '';
+
+  const stream = await client.messages.stream({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 1000,
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+    messages,
+  });
+
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      fullResponse += event.delta.text;
+      res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+    }
+  }
+
+  res.write(`data: ${JSON.stringify({ done: true, fullText: fullResponse })}\n\n`);
+  res.end();
+  return fullResponse;
+}
+
 /* ── Streaming chat response ───────────────────────────────────── */
 async function streamChatResponse(widget, knowledgeItems, history, userMessage, res, pageContext = null) {
   const products        = loadProducts(widget.id);
@@ -247,9 +352,11 @@ async function streamChatResponse(widget, knowledgeItems, history, userMessage, 
   let fullResponse = '';
 
   const stream = await client.messages.stream({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-4-6',
     max_tokens: 1200,
-    system: systemPrompt,
+    // Prompt caching: system prompt is cached after first call per widget
+    // Saves ~70% on input tokens for repeat calls (same widget, same KB)
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
     messages,
   });
 
@@ -262,6 +369,16 @@ async function streamChatResponse(widget, knowledgeItems, history, userMessage, 
 
   res.write(`data: ${JSON.stringify({ done: true, fullText: fullResponse })}\n\n`);
   res.end();
+
+  logTrainingSample({
+    source: 'chat',
+    systemPrompt,
+    userInput: userMessage,
+    assistantOutput: fullResponse,
+    widgetId: widget.id,
+    quality: 0,
+  });
+
   return fullResponse;
 }
 
@@ -285,7 +402,7 @@ async function generateSuggestedQuestions(knowledgeItems, goals, ctaType) {
 
   try {
     const response = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 400,
       messages: [{
         role: 'user',
@@ -313,7 +430,25 @@ Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
   }
 }
 
-/* ── Non-streaming response (for Instagram DMs) ───────────────── */
+/* ── Non-streaming Person response (for email channel) ────────── */
+async function getPersonResponseText(widget, personProfile, knowledgeItems, history, userMessage) {
+  const systemPrompt = buildPersonPrompt(widget, personProfile, knowledgeItems);
+  const messages = [
+    ...history.map(m => ({ role: m.role, content: m.content })),
+    { role: 'user', content: userMessage },
+  ];
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 800,
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
+    messages,
+  });
+
+  return response.content.find(b => b.type === 'text')?.text?.trim() || '';
+}
+
+/* ── Non-streaming response (for Instagram / WhatsApp DMs) ────── */
 async function getChatResponseText(widget, knowledgeItems, history, userMessage) {
   const products = loadProducts(widget.id);
   const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products);
@@ -323,9 +458,9 @@ async function getChatResponseText(widget, knowledgeItems, history, userMessage)
   ];
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-4-6',
     max_tokens: 600,
-    system: systemPrompt,
+    system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
     messages,
   });
 
@@ -342,7 +477,7 @@ async function summarizeConversation(messages) {
 
   try {
     const response = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-haiku-4-5-20251001',
       max_tokens: 500,
       messages: [{
         role: 'user',
@@ -469,4 +604,164 @@ Text musí byť zrozumiteľný pre bežného človeka, nie príliš dlhý (max 3
   return response.content[0]?.text?.trim() || '';
 }
 
-module.exports = { streamChatResponse, getChatResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };
+/* ── Person training: AI plays customer, asks questions ────────── */
+async function streamTrainingQuestion(widget, personProfile, history, res) {
+  const name = personProfile?.person_name?.trim() || widget.bot_name;
+  const context = widget.goals?.trim() ? `\nKontext biznisu: ${widget.goals}` : '';
+  const existing = personProfile
+    ? [
+        personProfile.know_how?.trim() ? `Expertíza: ${personProfile.know_how}` : '',
+        personProfile.how_i_think?.trim() ? `Myslenie: ${personProfile.how_i_think}` : '',
+      ].filter(Boolean).join('\n')
+    : '';
+
+  const exchangeCount = history.filter(h => h.role === 'trainer').length;
+  let depthHint = '';
+  if (exchangeCount < 4) {
+    depthHint = 'Začni ľahkými úvodnými otázkami – kto si, čo robíš, čo ťa k tomu priviedlo.';
+  } else if (exchangeCount < 10) {
+    depthHint = 'Pýtaj sa hlbšie – ako riešiš problémy, čo si myslíš o konkrétnych témach z tvojho odboru, aký máš prístup.';
+  } else {
+    depthHint = 'Použi aj trochu výzvy – pýtaj sa na hraničné situácie, nesúhlasné scenáre, nepríjemné otázky. Chceš vidieť ako reaguje pod tlakom.';
+  }
+
+  const systemPrompt = `Si zákazník/follower, ktorý sa práve zoznámil s osobou menom ${name}.${context}${existing ? `\n${existing}` : ''}
+
+Tvoja úloha je klásť prirodzené, konverzačné otázky – jednu naraz – aby si zistil ako ${name} rozmýšľa, aký má štýl komunikácie a čo vie.
+
+${depthHint}
+
+PRAVIDLÁ:
+- Vždy iba jedna otázka, max 2 vety.
+- Buď autentický zákazník/follower – žiadny interview formát.
+- Nadväzuj na predchádzajúce odpovede ak sú k dispozícii.
+- Odpovedaj v jazyku, v ktorom s tebou hovorí ${name}.`;
+
+  // Build messages: Claude=customer(assistant), trainer=user
+  const messages = [
+    { role: 'user', content: 'Začni rozhovor – polož svoju prvú otázku.' },
+    ...history.flatMap(h => {
+      if (h.role === 'customer') return [{ role: 'assistant', content: h.content }];
+      if (h.role === 'trainer')  return [{ role: 'user',      content: h.content }];
+      return [];
+    }),
+  ];
+
+  let fullResponse = '';
+  const stream = await client.messages.stream({
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 200,
+    system: systemPrompt,
+    messages,
+  });
+
+  for await (const event of stream) {
+    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+      fullResponse += event.delta.text;
+      res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+    }
+  }
+  res.write(`data: ${JSON.stringify({ done: true, fullText: fullResponse })}\n\n`);
+  res.end();
+  return fullResponse;
+}
+
+/* ── Person training: analyze session, extract style DNA ─────── */
+async function analyzeTrainingSession(widget, history) {
+  const trainerTurns = history.filter(h => h.role === 'trainer').map(h => h.content);
+  if (trainerTurns.length < 2) throw new Error('Príliš krátky tréning.');
+
+  const conversationText = history
+    .map(h => `${h.role === 'customer' ? 'ZÁKAZNÍK' : 'OSOBA'}: ${h.content}`)
+    .join('\n\n');
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2000,
+    system: `Si expert na analýzu komunikačného štýlu. Analyzuješ rozhovor a extrahuješ DNA komunikácie skutočnej osoby.
+Vráť VÝHRADNE validný JSON (bez markdown, bez úvodu, bez komentárov) v tomto formáte:
+{
+  "how_i_think": "...",
+  "my_style": "...",
+  "know_how": "...",
+  "real_answers": "...",
+  "never_say": "..."
+}`,
+    messages: [{
+      role: 'user',
+      content: `Analyzuj nasledujúci tréningový rozhovor. Extrahuj komunikačné DNA osoby (nie zákazníka).
+
+KONVERZÁCIA:
+${conversationText}
+
+POKYNY PRE KAŽDÉ POLE:
+- how_i_think: Ako táto osoba rozmýšľa? Aké má hodnoty, princípy, filozofiu? Čo z jej odpovedí prezrádza jej worldview? (2-4 vety, osobná forma "Rozmýšľam tak, že...")
+- my_style: Aký je jej štýl komunikácie? Dĺžka viet, tón, formálnosť, humor, emócie, tempo? (2-3 vety, "Píšem/hovorím...")
+- know_how: V čom je expert? Aké témy ovláda, akú má hĺbku znalostí, z akej praxe vychádza? (3-5 viet)
+- real_answers: 3-4 ukážkové Q&A páry zachytávajúce jej štýl. Formát: "Otázka: ...\nOdpoveď: ...\n\n" (použiť reálne alebo blízko reálnych formulácií z rozhovoru)
+- never_say: Čo táto osoba nikdy nehovorí? Aké frázy, témy alebo postoje sa vyhýba? (na základe čoho NEpovedala, čoho sa zriekla, ako odpovedala opatrne)
+
+Vráť LEN JSON.`,
+    }],
+  });
+
+  const raw = response.content[0]?.text?.trim() || '{}';
+  try {
+    return JSON.parse(raw);
+  } catch {
+    // try to extract JSON from raw if model added text
+    const match = raw.match(/\{[\s\S]*\}/);
+    return match ? JSON.parse(match[0]) : {};
+  }
+}
+
+/* ── Person: analyze ingested content (article / video / PDF) ──── */
+async function analyzeIngestedContent(sourceTitle, extractedText, currentProfile) {
+  const existingCtx = currentProfile
+    ? [
+        currentProfile.how_i_think?.trim() ? `Ako rozmýšľam: ${currentProfile.how_i_think}` : '',
+        currentProfile.my_style?.trim()    ? `Môj štýl: ${currentProfile.my_style}` : '',
+        currentProfile.know_how?.trim()    ? `Know-how: ${currentProfile.know_how}` : '',
+      ].filter(Boolean).join('\n')
+    : '';
+
+  const profileCtx = existingCtx
+    ? `\nExistujúci profil (NEDUPLIKUJ, iba doplň nové poznatky):\n${existingCtx}\n`
+    : '';
+
+  const response = await client.messages.create({
+    model: 'claude-sonnet-4-6',
+    max_tokens: 2500,
+    system: `Si expert na analýzu obsahu a extrakciu komunikačnej DNA autora.
+Analyzuješ texty (prepisy videí, články, PDF) a extrahuješ z nich expertízu a komunikačný štýl autora.
+Vráť VÝHRADNE validný JSON bez markdown blokov.`,
+    messages: [{
+      role: 'user',
+      content: `Analyzuj obsah zo zdroja "${sourceTitle}". Extrahuj z neho poznatky pre Person profil digitálneho dvojníka AUTORA tohto obsahu (nie poslucháča).
+${profileCtx}
+OBSAH:
+${extractedText.slice(0, 15000)}
+
+Vráť JSON (každé pole je STRING – nové poznatky na doplnenie, prázdny reťazec ak nič relevantné):
+{
+  "source_title": "${sourceTitle}",
+  "summary": "1-2 vety: o čom obsah je a čo z neho vyplýva o autorovi",
+  "how_i_think": "Nové poznatky o myšlienkovom štýle, hodnotách, filozofii autora z tohto obsahu",
+  "my_style": "Nové poznatky o komunikačnom štýle autora (tón, dĺžka, formálnosť, humor...)",
+  "know_how": "Expertné poznatky, skúsenosti a oblasti z tohto obsahu",
+  "real_answers": "2-3 ukážkové Q&A zachytávajúce hlas autora. Formát: Otázka: ...\\nOdpoveď: ...\\n\\n",
+  "never_say": "Čo z obsahu naznačuje čoho sa autor vyhýba alebo čo by nikdy nepovedal"
+}`,
+    }],
+  });
+
+  const raw = response.content[0]?.text?.trim() || '{}';
+  try {
+    return JSON.parse(raw);
+  } catch {
+    const match = raw.match(/\{[\s\S]*\}/);
+    return match ? JSON.parse(match[0]) : {};
+  }
+}
+
+module.exports = { streamChatResponse, streamPersonResponse, streamTrainingQuestion, analyzeTrainingSession, analyzeIngestedContent, getChatResponseText, getPersonResponseText, generateSuggestedQuestions, summarizeConversation, generateGdprText, loadLeadMagnets, analyzeConversationTrends };

@@ -300,6 +300,32 @@
     .ob-body p { font-size: .8rem; color: var(--muted2); line-height: 1.5; }
     .ob-time { display: inline-flex; align-items: center; gap: .3rem; font-size: .7rem; color: var(--success); font-weight: 600; background: rgba(31,216,154,0.1); border: 1px solid rgba(31,216,154,0.18); border-radius: 100px; padding: .18rem .55rem; margin-top: .5rem; }
 
+    /* ── AI WIZARD / RÝCHLY ONBOARDING ── */
+    .wizard-section { padding: 72px var(--px); background: var(--bg); border-top: 1px solid var(--border); }
+    .wizard-intro { max-width: 700px; margin: 0 auto 2.5rem; }
+    .wizard-layout { max-width: 1050px; margin: 0 auto; display: flex; flex-direction: column; gap: 2rem; }
+    .wizard-chat { background: linear-gradient(145deg, #0d0d22, #12122e); border: 1px solid rgba(91,79,255,0.22); border-radius: 18px; overflow: hidden; box-shadow: 0 0 50px rgba(91,79,255,0.1); }
+    .wizard-chat-header { padding: .75rem 1.1rem; background: linear-gradient(135deg, #5b4fff, #7c6fff); display: flex; align-items: center; gap: .6rem; font-size: .84rem; font-weight: 700; color: #fff; }
+    .wizard-chat-body { padding: 1rem; display: flex; flex-direction: column; gap: .6rem; min-height: 280px; }
+    .wc-bot { background: var(--bg3); border: 1px solid var(--border); border-radius: 12px 12px 12px 3px; padding: .6rem .85rem; font-size: .84rem; color: var(--muted2); max-width: 88%; line-height: 1.5; }
+    .wc-user { background: linear-gradient(135deg, #5b4fff, #7c6fff); color: #fff; border-radius: 12px 12px 3px 12px; padding: .6rem .85rem; font-size: .84rem; max-width: 88%; align-self: flex-end; line-height: 1.5; }
+    .wc-typing { display: flex; gap: 5px; align-items: center; padding: .4rem .6rem; }
+    .wc-typing span { width: 7px; height: 7px; background: var(--accent2); border-radius: 50%; opacity: .5; animation: nd-bounce .9s infinite ease-in-out; }
+    .wc-typing span:nth-child(2) { animation-delay: .18s; }
+    .wc-typing span:nth-child(3) { animation-delay: .36s; }
+    .wizard-chat-result { padding: .65rem 1rem; background: rgba(34,197,94,0.08); border-top: 1px solid rgba(34,197,94,0.2); color: #4ade80; font-size: .82rem; font-weight: 500; }
+    .wizard-steps { display: flex; flex-direction: column; gap: .8rem; }
+    .wizard-step { display: flex; gap: .9rem; align-items: flex-start; background: var(--bg2); border: 1px solid var(--border); border-radius: 14px; padding: .95rem 1.1rem; transition: border-color .2s; }
+    .wizard-step:hover { border-color: rgba(91,79,255,0.3); }
+    .ws-icon { font-size: 1.35rem; line-height: 1; flex-shrink: 0; width: 2rem; text-align: center; margin-top: .05rem; }
+    .ws-body h4 { font-size: .9rem; font-weight: 700; margin-bottom: .2rem; color: var(--text); }
+    .ws-body p { font-size: .82rem; color: var(--muted2); line-height: 1.58; margin: 0; }
+    @media (min-width: 900px) {
+      .wizard-layout { flex-direction: row; align-items: flex-start; gap: 3rem; }
+      .wizard-chat { flex: 1; }
+      .wizard-steps { flex: 1; }
+    }
+
     /* ── VICTORY ── */
     .victory-section { padding: 72px var(--px); }
     .victory-section .section-label { color: var(--success); }
@@ -376,6 +402,45 @@
       .bk-promo-content, .bk-mockup { flex:1; }
       .bk-cta-row { flex-direction:row; }
       .bk-cta-row .btn-primary { display:inline-block; width:auto; }
+    }
+
+    /* ── AI DVOJNÍK (Person) ── */
+    .person-section { padding: 72px var(--px); background: var(--bg); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .person-inner { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: 3rem; }
+    .person-content .section-label { text-align: left; color: #a78bfa; }
+    .person-content .section-h2 { text-align: left; }
+    .person-content > p { color: var(--muted2); line-height: 1.75; margin-bottom: .9rem; font-size: .96rem; }
+    .person-content > p strong { color: var(--text); }
+    .person-list { display: flex; flex-direction: column; gap: .85rem; margin-top: 1.25rem; }
+    .person-list-item { display: flex; gap: .9rem; align-items: flex-start; }
+    .person-list-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(124,58,237,0.12); border: 1px solid rgba(124,58,237,0.22); display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; }
+    .person-list-item p { font-size: .88rem; color: var(--muted2); line-height: 1.6; margin: 0; }
+    .person-list-item p strong { color: var(--text); }
+    .person-addon-badge { display: inline-flex; align-items: center; gap: .5rem; background: rgba(124,58,237,0.15); border: 1px solid rgba(124,58,237,0.3); border-radius: 100px; padding: .35rem 1rem; font-size: .8rem; font-weight: 700; color: #c4b5fd; margin-top: 1.5rem; }
+    .person-cta-row { display: flex; flex-direction: column; gap: .55rem; margin-top: 1.5rem; }
+    .btn-person { background: linear-gradient(135deg,#7c3aed,#a855f7); border: none; color: white; padding: .85rem 1.75rem; border-radius: 12px; font-size: .97rem; font-weight: 700; cursor: pointer; font-family: inherit; transition: all .2s; box-shadow: 0 0 30px rgba(124,58,237,0.3); }
+    .btn-person:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(124,58,237,0.45); }
+    /* Person mockup */
+    .person-mockup { background: var(--bg3); border: 1px solid var(--border2); border-radius: 16px; overflow: hidden; box-shadow: 0 8px 40px rgba(0,0,0,0.4); }
+    .person-mockup-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: .55rem .85rem; display: flex; align-items: center; gap: .5rem; }
+    .person-mockup-dot { width: 9px; height: 9px; border-radius: 50%; }
+    .person-mockup-title { font-size: .72rem; color: var(--muted); margin-left: .4rem; }
+    .person-mockup-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); }
+    .person-mockup-tab { padding: .45rem .9rem; font-size: .72rem; color: var(--muted); border-bottom: 2px solid transparent; }
+    .person-mockup-tab.active { color: #a78bfa; border-bottom-color: #7c3aed; }
+    .person-mockup-chat { display: flex; flex-direction: column; height: 280px; }
+    .person-mockup-msgs { flex: 1; overflow: hidden; padding: .85rem; display: flex; flex-direction: column; gap: .6rem; background: #0a0a14; }
+    .pmsg { max-width: 80%; padding: .5rem .75rem; border-radius: 10px; font-size: .78rem; line-height: 1.5; }
+    .pmsg-bot { background: var(--surface); color: var(--muted2); align-self: flex-start; border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+    .pmsg-bot strong { color: #a78bfa; font-size: .68rem; display: block; margin-bottom: .15rem; }
+    .pmsg-user { background: linear-gradient(135deg,#7c3aed,#a855f7); color: white; align-self: flex-end; border-bottom-right-radius: 3px; }
+    .person-mockup-input { border-top: 1px solid var(--border); padding: .6rem .85rem; display: flex; gap: .5rem; align-items: center; background: var(--bg3); }
+    .person-mockup-inp { flex: 1; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: .4rem .65rem; font-size: .75rem; color: var(--muted); }
+    @media(min-width:900px) {
+      .person-inner { flex-direction: row; align-items: center; gap: 5rem; }
+      .person-content, .person-mockup { flex: 1; }
+      .person-cta-row { flex-direction: row; }
+      .person-cta-row .btn-person { display: inline-block; width: auto; }
     }
 
     /* ── FAQ ── */
@@ -483,8 +548,8 @@
       <a href="#pain">Problém</a>
       <a href="#features">Funkcie</a>
       <a href="#booking">📅 Rezervácie</a>
-      <a href="#instagram">Instagram</a>
-      <a href="#facebook">Facebook</a>
+      <a href="#channels">Kanály</a>
+      <a href="#roi">💰 ROI</a>
       <a href="/wordpress">WordPress</a>
       <a href="#pricing">Cena</a>
     </div>
@@ -501,8 +566,8 @@
     <a href="#pain" onclick="closeMobileNav()">Problém</a>
     <a href="#features" onclick="closeMobileNav()">Funkcie</a>
     <a href="#booking" onclick="closeMobileNav()">📅 Rezervácie</a>
-    <a href="#instagram" onclick="closeMobileNav()">Instagram</a>
-    <a href="#facebook" onclick="closeMobileNav()">Facebook</a>
+    <a href="#channels" onclick="closeMobileNav()">Kanály</a>
+    <a href="#roi" onclick="closeMobileNav()">💰 ROI</a>
     <a href="/wordpress" onclick="closeMobileNav()">WordPress</a>
     <a href="#pricing" onclick="closeMobileNav()">Cena</a>
     <div class="nav-mobile-cta">
@@ -671,11 +736,11 @@
       <div class="feature-card"><div class="feature-tag analytics">Analytika</div><div class="feature-icon">⊞</div><h3>Kanban pipeline leadov</h3><p>Prepnite CRM z tabuľky na kanban board. <strong>Drag &amp; drop kartičky</strong> medzi stĺpcami Nový / Kontaktovaný / Uzavretý. Vizuálny prehľad celého obchodného pipeline.</p></div>
     </div>
     <div class="feat-panel" id="panel-marketing">
+      <div class="feature-card"><div class="feature-tag marketing">Drip kampane</div><div class="feature-icon">📨</div><h3>Follow-up sekvencie – automatické emaily</h3><p>Lead zanechá kontakt → systém automaticky spustí emailovú sekvenciu: hneď, po 24h, po 3 dňoch… <strong>Až 5 krokov s vlastným textom</strong>, oneskorením a predmetom. Pracuje bez vás.</p></div>
+      <div class="feature-card"><div class="feature-tag marketing">Reaktivácia</div><div class="feature-icon">🔁</div><h3>Lead Reaktivácia – AI píše za vás</h3><p>Studené leady čo nekúpili? AI vygeneruje <strong>personalizovanú re-engagement správu</strong> na základe ich pôvodnej konverzácie. Odošlite jedným kliknutím. Konverzný rate výrazne vyšší než hromadný email.</p></div>
       <div class="feature-card"><div class="feature-tag marketing">Email marketing</div><div class="feature-icon">📩</div><h3>Ecomail – automatický email marketing</h3><p>Každý nový lead sa <strong>automaticky pridá do vášho Ecomail zoznamu</strong>. AI navyše pridá tagy podľa zámeru zákazníka (intent-buying, urgency-immediate…) – perfektná segmentácia bez práce.</p></div>
       <div class="feature-card"><div class="feature-tag marketing">Lead magnet</div><div class="feature-icon">🧲</div><h3>Lead Magnety – PDF výmenou za email</h3><p>Nahráte PDF, e-book alebo iný súbor. Chatbot ho <strong>ponúkne zákazníkovi výmenou za email</strong>. Kontakt sa uloží, súbor sa odošle. Budujete zoznam automaticky.</p></div>
-      <div class="feature-card"><div class="feature-tag marketing">Email</div><div class="feature-icon">📧</div><h3>Follow-up email z dashboardu</h3><p>Pri každom leade kliknete jedno tlačidlo a napíšete správu – <strong>odošle sa priamo na zákazníkov email</strong>. Žiadny externý mail klient, žiadne kopírovanie. Rýchlo, jednoducho.</p></div>
       <div class="feature-card"><div class="feature-tag marketing">Integrácie</div><div class="feature-icon">🔗</div><h3>Webhooks – Make, Zapier, Slack</h3><p>Každý nový lead spustí <strong>POST request na vašu URL</strong>. Napojte Make.com, Zapier alebo Slack. Automaticky pridajte lead do Google Sheets, CRM alebo pošlite Slack notifikáciu.</p></div>
-      <div class="feature-card"><div class="feature-tag marketing">Tím</div><div class="feature-icon">👥</div><h3>Pozvite tím – viacero prístupov</h3><p>Pozvite zamestnancov alebo agentúru emailom. <strong>Každý člen dostane vlastný prístup</strong> bez zdieľania hesla. Spravujete v Integrácie → Tím. Odovzdanie správy bez rizika.</p></div>
       <div class="feature-card"><div class="feature-tag marketing">Branding</div><div class="feature-icon">🏷️</div><h3>White-label – čistý branding</h3><p>Skryjete „Powered by Neoworkly" jedným prepínačom. <strong>Zákazník vidí len vašu značku.</strong> Ideálne pre agentúry, ktoré chatbota dodávajú klientom pod vlastným menom.</p></div>
     </div>
   </div>
@@ -844,6 +909,69 @@
         <div class="fb-input">Napíšte správu...</div>
         <button class="fb-send">▶</button>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHATSAPP + CHANNELS -->
+<section class="ig-section" id="channels" style="background:var(--bg);border-top:1px solid var(--border)">
+  <div class="ig-inner">
+    <div class="ig-content">
+      <span class="section-label" style="text-align:left;color:#25d366">💬 WhatsApp Business Bot</span>
+      <h2 class="section-h2" style="text-align:left">Zákazník píše na WhatsApp →<br><span class="grad-text">AI odpovie okamžite</span></h2>
+      <p>Rovnaký AI z vášho webu teraz aj na WhatsApp Business čísle. Zákazník napíše správu – chatbot odpovedá z vašej znalostnej bázy. <strong>Bez extra predplatného, bez ManyChat, v cene €37/mes.</strong></p>
+      <p>Prepojíte cez Meta for Developers — Phone Number ID + Access Token + Webhook. Raz nastavíte, funguje navždy.</p>
+      <div class="ig-list">
+        <div class="ig-list-item"><div class="ig-list-icon" style="background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.22)">💬</div><p><strong>Rovnaká znalostná báza</strong> ako web chatbot – zákazník dostane presné odpovede</p></div>
+        <div class="ig-list-item"><div class="ig-list-icon" style="background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.22)">🔗</div><p><strong>Meta Cloud API</strong> – bezpečné prepojenie cez Phone Number ID a Access Token</p></div>
+        <div class="ig-list-item"><div class="ig-list-icon" style="background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.22)">🌐</div><p><strong>Všetky 3 kanály v cene:</strong> Web widget + Instagram DM + WhatsApp + Facebook Messenger</p></div>
+        <div class="ig-list-item"><div class="ig-list-icon" style="background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.22)">🎥</div><p><strong>Video v chate</strong> – AI pošle YouTube/Vimeo embed priamo v bubline, zákazník si ho pozrie bez opustenia konverzácie</p></div>
+      </div>
+    </div>
+    <div class="ig-visual" style="border-color:rgba(37,211,102,0.2)">
+      <div class="ig-phone-bar" style="background:rgba(37,211,102,0.12)">
+        <div style="width:26px;height:26px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;color:white;font-size:.85rem;flex-shrink:0">💬</div>
+        <div><div class="ig-phone-name">VášBiznis AI</div><div class="ig-phone-status" style="color:#25d366">● Online</div></div>
+      </div>
+      <div class="ig-messages">
+        <div><div class="ig-msg-label">WhatsApp správa od zákazníka</div><div class="ig-msg them">Ahoj, máte ešte termíny na tento týždeň?</div></div>
+        <div class="ig-msg us" style="background:linear-gradient(135deg,#25d366,#128c7e)">Ahoj! Áno, mám voľné v stredu o 10:00 a v piatok o 14:00. Ktorý by vám sedel? 📅</div>
+        <div class="ig-msg them">Streda o 10:00 super</div>
+        <div class="ig-msg us" style="background:linear-gradient(135deg,#25d366,#128c7e)">Skvelé! Môžem dostať vaše meno a email? Pošlem potvrdenie. ✉️</div>
+      </div>
+      <div class="ig-input-bar">
+        <div class="ig-input">Napíšte správu...</div>
+        <button class="ig-send" style="background:#25d366">Odoslať</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MONEY MODE / ROI -->
+<section class="section-wrap" id="roi" style="background:var(--bg2);border-top:1px solid var(--border);border-bottom:1px solid var(--border)">
+  <div class="inner">
+    <span class="section-label" style="color:#22c55e">💰 Money Mode</span>
+    <h2 class="section-h2">Viete presne koľko vám<br><span class="grad-text">chatbot zarobil tento mesiac?</span></h2>
+    <p class="section-sub">Žiadne iné riešenie vám to neukáže. Neoworkly sleduje každý uzavretý obchod a spočíta reálny ROI — koľko eur zarobil chatbot oproti mesačnému predplatnému.</p>
+    <div style="display:grid;grid-template-columns:1fr;gap:1rem;margin-bottom:2rem">
+      <div class="victory-card">
+        <div class="victory-icon">📊</div>
+        <h4 style="color:#86efac">Konverzný lievik</h4>
+        <p>Vizualizácia celého predajného procesu: Všetky návštevy → Leady s emailom → Konvertovaní zákazníci. Vidíte kde sa zákazníci strácajú a kde je priestor na zlepšenie.</p>
+      </div>
+      <div class="victory-card">
+        <div class="victory-icon">💶</div>
+        <h4 style="color:#86efac">€/kredit — skutočný ROI</h4>
+        <p>Jeden AI kredit vás stojí €0.04–0.05. Ak zarobí €3, máte 75× návratnosť. Money Mode vám ukáže toto číslo automaticky — a motivuje vás investovať do kreditov strategicky.</p>
+      </div>
+      <div class="victory-card">
+        <div class="victory-icon">🔁</div>
+        <h4 style="color:#86efac">Lead Reaktivácia</h4>
+        <p>Studené leady, čo nekúpili? AI vygeneruje personalizovaný email na základe ich pôvodnej konverzácie. Odošlete jedným kliknutím. Nulové náklady, vyšší conversion rate ako cold email.</p>
+      </div>
+    </div>
+    <div style="text-align:center">
+      <button class="btn-primary" style="display:inline-block;width:auto" onclick="showAuth('register')">Chcem vedieť koľko zarábam →</button>
     </div>
   </div>
 </section>
@@ -1021,6 +1149,61 @@
   </div>
 </section>
 
+<!-- AI WIZARD / RÝCHLY ONBOARDING -->
+<section class="wizard-section" id="ai-wizard">
+  <div class="inner wizard-intro">
+    <span class="section-label" style="color:var(--accent2)">🤖 AI Sprievodca</span>
+    <h2 class="section-h2">Chatbot za 2 minúty.<br><span class="grad-text">AI sa opýta, vy len odpoviete.</span></h2>
+    <p class="section-sub">Nemusíte vedieť nič o technológiách. Coach AI vás konverzáciou prevedie celým nastavením — od nuly po live widget s rezerváciami.</p>
+  </div>
+  <div class="wizard-layout">
+    <div class="wizard-chat">
+      <div class="wizard-chat-header">💬 Neoworkly Coach AI</div>
+      <div class="wizard-chat-body">
+        <div class="wc-bot">Ahoj! Pomôžem vám vytvoriť chatbota. Ako sa volá vaša firma a čo ponúkate?</div>
+        <div class="wc-user">Mám kaderníctvo v Bratislave — strihy, farbenie, svadobné účesy.</div>
+        <div class="wc-bot">Skvelé! Aký tón má chatbot mať — priateľský „ty" alebo formálny?</div>
+        <div class="wc-user">Priateľský, zákazníci sú väčšinou ženy 20–50.</div>
+        <div class="wc-bot">Chcete aj online rezervácie? Môžem nastaviť booking priamo teraz — stačí mi vedieť aké služby a otváracie hodiny máte.</div>
+        <div class="wc-user">Áno! Strih 60 min / 35€, farbenie 120 min / 70€. Otvorení Po–Pi 9–18.</div>
+        <div class="wc-typing"><span></span><span></span><span></span></div>
+      </div>
+      <div class="wizard-chat-result">✅ Widget „Kaderníctvo" vytvorený + booking nastavený za 90 sekúnd</div>
+    </div>
+    <div class="wizard-steps">
+      <div class="wizard-step">
+        <div class="ws-icon">💬</div>
+        <div class="ws-body">
+          <h4>Povedzte AI o vašom biznise</h4>
+          <p>Meno firmy, čo predávate, pre koho — bežná konverzácia. AI sa dopýta ak niečo chýba.</p>
+        </div>
+      </div>
+      <div class="wizard-step">
+        <div class="ws-icon">✨</div>
+        <div class="ws-body">
+          <h4>AI vytvorí chatbota za vás</h4>
+          <p>Meno asistenta, uvítacia správa, navrhované otázky, celý systémový prompt — vygenerované automaticky.</p>
+        </div>
+      </div>
+      <div class="wizard-step">
+        <div class="ws-icon">📅</div>
+        <div class="ws-body">
+          <h4>Rezervácie? Aj to nastaví AI</h4>
+          <p>Povedzte aké služby a otváracie hodiny máte. Booking systém nakonfigurovaný v tej istej konverzácii.</p>
+        </div>
+      </div>
+      <div class="wizard-step">
+        <div class="ws-icon">🚀</div>
+        <div class="ws-body">
+          <h4>Chatbot live za 2 minúty</h4>
+          <p>Vložte 1 riadok kódu na web. Chatbot predáva, zbiera kontakty a prijíma rezervácie automaticky.</p>
+        </div>
+      </div>
+      <a href="/onboarding" class="btn-primary" style="display:inline-flex;align-items:center;gap:.5rem;margin-top:.25rem">Vytvoriť chatbota s AI →</a>
+    </div>
+  </div>
+</section>
+
 <!-- HOW -->
 <section class="section-wrap" id="how">
   <div class="inner-sm">
@@ -1056,6 +1239,83 @@
   </div>
 </section>
 
+<!-- AI DVOJNÍK -->
+<section class="person-section" id="person">
+  <div class="person-inner">
+    <div class="person-content">
+      <span class="section-label">Pre tvorcov &amp; osobné značky</span>
+      <h2 class="section-h2">Váš <span class="grad-text" style="background:linear-gradient(135deg,#7c3aed,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent">AI dvojník</span>,<br>ktorý odpovedá za vás 24/7</h2>
+      <p>Máte kurz, membership, SaaS produkt alebo osobnú značku? Vaši zákazníci majú otázky – aj keď spíte, natáčate alebo ste na dovolenke. <strong>AI dvojník odpovedá presne tak, ako by ste odpovedali vy.</strong></p>
+      <p>Nie generický chatbot. Trénujete ho na svojom štýle, know-how, reálnych odpovediach – a on preberá váš hlas. Zákazník hovorí s vami, nie s botom.</p>
+
+      <div class="person-list">
+        <div class="person-list-item">
+          <div class="person-list-icon">🎓</div>
+          <p><strong>Kurzy &amp; membership sekcie</strong> – vložíte priamo do členskej zóny. Žiaci sa pýtajú, AI dvojník odpovedá za vás ako mentor.</p>
+        </div>
+        <div class="person-list-item">
+          <div class="person-list-icon">📱</div>
+          <p><strong>SaaS dashboardy</strong> – nová záložka v produkte vášho klienta. AI dvojník odpovedá na onboarding otázky a pomáha s produktom.</p>
+        </div>
+        <div class="person-list-item">
+          <div class="person-list-icon">🧑‍💼</div>
+          <p><strong>Koučing &amp; konzultácie</strong> – klienti dostanú vašu odpoveď kedykoľvek. Šetríte hodiny na rovnakých otázkach, venujete sa práci s hodnotou.</p>
+        </div>
+        <div class="person-list-item">
+          <div class="person-list-icon">🪟</div>
+          <p><strong>Inline embed</strong> – nie bublina v rohu, ale súčasť vašej stránky. Jeden riadok kódu a chat sa vyplní do vášho elementu.</p>
+        </div>
+      </div>
+
+      <div class="person-addon-badge">
+        ✦ Add-on k Pro plánu · <span style="color:white">+€29/mesiac</span>
+      </div>
+
+      <div class="person-cta-row">
+        <button class="btn-person" onclick="showAuth('register')">Chcem AI dvojníka</button>
+      </div>
+    </div>
+
+    <!-- Mockup: SaaS dashboard with inline Person chat -->
+    <div class="person-mockup">
+      <div class="person-mockup-bar">
+        <div class="person-mockup-dot" style="background:#ff5f57"></div>
+        <div class="person-mockup-dot" style="background:#febc2e"></div>
+        <div class="person-mockup-dot" style="background:#28c840"></div>
+        <span class="person-mockup-title">MemberDashboard · Moja zóna</span>
+      </div>
+      <div class="person-mockup-tabs">
+        <div class="person-mockup-tab">📚 Kurzy</div>
+        <div class="person-mockup-tab">📊 Pokrok</div>
+        <div class="person-mockup-tab active">🧑 AI Mentor</div>
+        <div class="person-mockup-tab">⚙️ Nastavenia</div>
+      </div>
+      <div class="person-mockup-chat">
+        <div class="person-mockup-msgs">
+          <div class="pmsg pmsg-bot">
+            <strong>Juraj AI · Mentor</strong>
+            Ahoj! Som tu pre otázky ku kurzu. Kde sa práve nachádzaš – pri akej téme?
+          </div>
+          <div class="pmsg pmsg-user">V module 3, neviem ako nastaviť Facebook Ads pre cold traffic</div>
+          <div class="pmsg pmsg-bot">
+            <strong>Juraj AI · Mentor</strong>
+            Dobrá otázka. Pre cold traffic začni vždy broad audience – nech algoritmus nájde podobných ľudí sám. Daj budget min. €10/deň a nechaj bežať 3–5 dní bez zásahov. Potom pozri CPM – ak je nad €25, zmeň kreatívu.
+          </div>
+          <div class="pmsg pmsg-user">A čo retargeting, kedy naň prepnúť?</div>
+          <div class="pmsg pmsg-bot">
+            <strong>Juraj AI · Mentor</strong>
+            Retargeting má zmysel od 1000+ návštevníkov/mesiac. Pod tým nemáš dosť dát. Modul 5 to rozoberá detailne – skoč tam až keď bude cold traffic stabilný.
+          </div>
+        </div>
+        <div class="person-mockup-input">
+          <div class="person-mockup-inp">Napíšte otázku...</div>
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#7c3aed,#a855f7);display:flex;align-items:center;justify-content:center;font-size:.7rem;color:white;flex-shrink:0">▶</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- PRICING -->
 <section class="pricing-section" id="pricing">
   <div class="inner" style="max-width:900px">
@@ -1079,23 +1339,22 @@
           <div class="credit-row"><span>Ľubovoľná suma</span><span>1€ = 20 odpovedí</span></div>
         </div>
         <ul class="pricing-features">
-          <li><strong>Predajný AI framework</strong> (Discovery → Close)</li>
-          <li>Proaktívna bublina – chatbot osloví zákazníka sám</li>
-          <li>Sledovanie stránky – AI vie čo zákazník prezerá</li>
-          <li>Produktový katalóg s AI odporúčaním</li>
-          <li>Až 10 chatbotov / widgetov na rôznych weboch</li>
-          <li>Instagram DM Bot (náhrada ManyChat)</li>
-          <li><strong>Facebook Messenger Bot</strong> – automatické odpovede cez Messenger</li>
+          <li><strong>Predajný AI framework</strong> (Discovery → Close) — nie len chatbot</li>
+          <li><strong>4 kanály:</strong> Web + Instagram DM + WhatsApp + Facebook Messenger</li>
+          <li><strong>Follow-up sekvencie</strong> – automatické emaily po zachytení leadu</li>
+          <li><strong>💰 Money Mode</strong> – ROI tracking, konverzný lievik, €/kredit metrika</li>
+          <li><strong>🔁 Lead Reaktivácia</strong> – AI píše personalizované re-engagement emaily</li>
+          <li><strong>🎥 Video v chate</strong> – YouTube/Vimeo embed priamo v bubline</li>
           <li><strong>Online rezervácie</strong> – booking stránka + embed + Google Calendar</li>
-          <li>Znalostná báza: PDF, TXT, CSV, MD + URL scraping</li>
-          <li><strong>AI Coach</strong> – zákaznícka podpora</li>
-          <li><strong>CRM</strong> – tabuľka + kanban + CSV export</li>
-          <li><strong>Live Inbox</strong> – prevezmete chat od AI kedykoľvek</li>
-          <li><strong>Ecomail</strong> – automatický email marketing s AI tagmi</li>
-          <li><strong>Lead Magnety</strong> – PDF výmenou za email</li>
-          <li>Analytika, CSAT, A/B test, Webhooks, Tím, WooCommerce</li>
-          <li>Pracovné hodiny + offline správa</li>
-          <li>GDPR súhlas · Affiliate systém · Stripe billing portál</li>
+          <li>Proaktívna bublina + sledovanie stránky (page context)</li>
+          <li>Produktový katalóg s AI odporúčaním (WooCommerce/Shopify import)</li>
+          <li>Až 10 widgetov na rôznych weboch</li>
+          <li>Znalostná báza: PDF, TXT, CSV, URL scraping, WooCommerce</li>
+          <li><strong>CRM</strong> – tabuľka + kanban + CSV export · Live Inbox takeover</li>
+          <li><strong>Ecomail</strong> + Lead Magnety + Webhooks (Zapier/Make/Slack)</li>
+          <li><strong>AI Coach</strong> · CSAT · A/B test · Analytika · Tím · GDPR</li>
+          <li><strong>📈 SEO Audit</strong> – 15+ faktorov, Growth Boost za €49 (nepovinný)</li>
+          <li>Affiliate: +€15 kredit za každé odporúčanie</li>
         </ul>
         <p class="pricing-urgency">⚡ Každý deň bez AI obchodníka = ďalší zákazník, čo odišiel</p>
         <button class="btn-pricing" onclick="showAuth('register')">Začať teraz – prvý mesiac bez rizika</button>
@@ -1119,6 +1378,32 @@
         <p class="pricing-fine">Zrušenie kedykoľvek · Žiadne skryté poplatky · Platba kartou cez Stripe</p>
       </div>
 
+      <!-- AI DVOJNÍK ADD-ON -->
+      <div style="background:var(--bg3);border:1px solid rgba(124,58,237,0.35);border-radius:24px;padding:1.75rem 1.5rem;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#7c3aed,#a855f7,#c084fc)"></div>
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap;margin-bottom:1rem">
+          <div>
+            <div style="display:inline-block;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;font-size:.68rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;padding:.25rem .8rem;border-radius:100px;margin-bottom:.75rem">Add-on</div>
+            <div style="font-size:1.05rem;font-weight:700;color:var(--text);margin-bottom:.2rem">🧑 AI dvojník <span style="font-size:.75rem;font-weight:400;color:var(--muted2)">(Person)</span></div>
+            <div style="font-size:.82rem;color:var(--muted2)">Pre koučov, tvorcov kurzov, SaaS produkty a osobné značky</div>
+          </div>
+          <div style="text-align:right;flex-shrink:0">
+            <div style="font-size:1.5rem;font-weight:800;background:linear-gradient(135deg,#a78bfa,#c084fc);-webkit-background-clip:text;-webkit-text-fill-color:transparent">+€29<span style="font-size:.85rem;font-weight:500;-webkit-text-fill-color:var(--muted2)">/mes</span></div>
+            <div style="font-size:.72rem;color:var(--muted)">k Pro plánu</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem .75rem;margin-bottom:1.25rem">
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> AI trénovaná na vašom štýle</div>
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> Inline embed do ľubovoľnej stránky</div>
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> 30-min interaktívny tréning</div>
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> Vlastná uvítacia správa &amp; meno</div>
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> Funguje v kurzoch, SaaS, webe</div>
+          <div style="font-size:.82rem;color:var(--muted2);display:flex;gap:.4rem"><span style="color:#a78bfa;flex-shrink:0">✓</span> Zdieľa kredity s Pro plánom</div>
+        </div>
+        <button onclick="showAuth('register')" style="width:100%;background:linear-gradient(135deg,#7c3aed,#a855f7);border:none;color:white;padding:.85rem;border-radius:12px;font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;box-shadow:0 0 24px rgba(124,58,237,0.3);transition:all .2s" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">Začať s AI dvojníkom</button>
+        <p style="font-size:.74rem;color:var(--muted);margin-top:.6rem;text-align:center">Vyžaduje aktívny Pro plán · Zrušenie kedykoľvek</p>
+      </div>
+
     </div>
   </div>
 </section>
@@ -1140,6 +1425,9 @@
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Funguje aj Facebook Messenger Bot? <span>+</span></button><div class="faq-a">Áno. Prepojíte Facebook Stránku cez Page Access Token (z Facebook Developers). Bot potom automaticky odpovedá na Messenger správy z vašej znalostnej bázy – rovnako ako web chatbot. Nastavíte kľúčové slová a uvítaciu správu. Live Takeover cez Inbox funguje aj na Messenger konverzáciách. Všetko v cene €37/mes.</div></div>
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo je Ecomail integrácia a na čo slúži? <span>+</span></button><div class="faq-a">Ecomail je slovenský email marketing nástroj. Po prepojení sa každý nový lead zo chatbota automaticky pridá do vášho Ecomail zoznamu. AI navyše pridá tagy podľa zámeru zákazníka (napr. intent-buying, urgency-immediate) – máte segmentovaný zoznam bez manuálnej práce. Nastavenie: Integrácie → Ecomail → vložte API kľúč → vyberte zoznam.</div></div>
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo sú Lead Magnety a ako fungujú? <span>+</span></button><div class="faq-a">Lead magnet je PDF alebo iný súbor, ktorý chatbot ponúkne zákazníkovi výmenou za jeho email. Nahráte súbor v záložke Lead Magnety. Chatbot ho automaticky ponúkne vhodným zákazníkom – zákazník zadá email, súbor sa mu odošle a kontakt sa uloží. Ideálne pre e-booky, cenníky, príručky alebo zľavové kupóny.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Funguje aj WhatsApp Business Bot? <span>+</span></button><div class="faq-a">Áno. Prepojíte WhatsApp Business číslo cez Meta for Developers (Phone Number ID + Access Token). Zákazníci píšu na vaše WhatsApp číslo – AI okamžite odpovie z rovnakej znalostnej bázy ako web chatbot. Nastavenie trvá ~15 minút. Všetko v cene €37/mes.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo sú follow-up sekvencie (drip kampane)? <span>+</span></button><div class="faq-a">Keď zákazník zanechá kontakt v chatbote, systém automaticky spustí emailovú sekvenciu: napr. poďakovanie hneď, follow-up po 24h, ponuka po 3 dňoch. Nastavíte až 5 krokov s vlastným predmetom a textom. Pracuje bez vás – zákazník dostane sériu e-mailov presne keď je záujem ešte čerstvý.</div></div>
+      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Čo je Money Mode a ako mi pomôže? <span>+</span></button><div class="faq-a">Money Mode je dashboard kde vidíte presne koľko € zarobil váš chatbot. Označíte uzavreté obchody hodnotou → systém vypočíta ROI (napr. €3/kredit = 75× návratnosť), ukáže konverzný lievik a odhadnú stratu ak chatbot vyčerpal kredity. Žiadne iné riešenie vám toto neukáže.</div></div>
       <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">Môžem zrušiť kedykoľvek? <span>+</span></button><div class="faq-a">Áno. Kliknutím v Stripe portáli – bez telefonátov, formulárov, vysvetľovania. Chatbot ostane aktívny do konca zaplateného mesiaca. Dáta si exportujete pred odchodom.</div></div>
     </div>
   </div>
@@ -1148,12 +1436,16 @@
 <!-- FOOTER CTA -->
 <section class="footer-cta">
   <div class="footer-cta-glow"></div>
-  <h2>Zákazník, čo práve čaká na vašom webe<br>alebo komentuje na Instagrame –<br><span class="grad-text">si zaslúži odpoveď teraz.</span></h2>
-  <p>Dajte mu AI obchodníka. Automaticky. Okamžite. 24/7.</p>
-  <div class="footer-cta-btn">
-    <button class="btn-primary" onclick="showAuth('register')">Spustiť AI obchodníka – €37/mesiac</button>
+  <h2>Web + WhatsApp + Instagram + Facebook.<br>Drip kampane. ROI tracking. Rezervácie.<br><span class="grad-text">Všetko za €37/mes.</span></h2>
+  <p>Kým čítate toto, zákazník čaká na odpoveď. Dajte mu AI obchodníka, ktorý nikdy nespí.</p>
+  <div style="display:flex;flex-direction:column;gap:.5rem;align-items:center;max-width:500px;margin:0 auto 1rem">
+    <button class="btn-primary" style="width:100%;font-size:1.05rem;padding:1rem" onclick="showAuth('register')">Spustiť AI obchodníka – €37/mesiac →</button>
+    <div style="display:flex;gap:1.25rem;flex-wrap:wrap;justify-content:center;font-size:.8rem;color:var(--muted)">
+      <span>✓ Live za 10 minút</span>
+      <span>✓ Bez záväzkov</span>
+      <span>✓ Zrušenie kedykoľvek</span>
+    </div>
   </div>
-  <p class="footer-cta-fine">Nastavenie za 10 minút · Zrušenie kedykoľvek</p>
 </section>
 
 <footer class="footer">
@@ -1211,6 +1503,12 @@
         <label>Referral kód <small>(voliteľné)</small></label>
         <input type="text" name="referralCode" id="input-referral-code" placeholder="napr. JANA4X2K" style="text-transform:uppercase" autocomplete="off">
         <div id="referral-valid-note" style="display:none;font-size:.75rem;color:#1fd89a;margin-top:.25rem">🎁 Kód je platný – dostanete 15% zľavu!</div>
+      </div>
+      <div class="field" id="promo-field">
+        <label>Promo kód <small>(voliteľné)</small></label>
+        <input type="text" id="input-promo-code" placeholder="napr. LETO2026" style="text-transform:uppercase" autocomplete="off">
+        <div id="promo-valid-note" style="display:none;font-size:.75rem;color:#1fd89a;margin-top:.25rem">🎁 Kód je platný!</div>
+        <div id="promo-invalid-note" style="display:none;font-size:.75rem;color:#f87171;margin-top:.25rem">❌ Neplatný promo kód.</div>
       </div>
       <div class="checkbox-group">
         <input type="checkbox" id="agree-privacy" name="agreePrivacy" required>
@@ -1309,6 +1607,20 @@
     } catch {}
   }
 
+  async function validatePromoCode(code) {
+    const validNote = document.getElementById('promo-valid-note');
+    const invalidNote = document.getElementById('promo-invalid-note');
+    if (validNote) validNote.style.display = 'none';
+    if (invalidNote) invalidNote.style.display = 'none';
+    if (!code || code.length < 3) return;
+    try {
+      const r = await fetch(`/api/promo-codes/validate/${encodeURIComponent(code)}`);
+      const d = await r.json();
+      if (validNote) validNote.style.display = d.valid ? '' : 'none';
+      if (invalidNote) invalidNote.style.display = d.valid ? 'none' : '';
+    } catch {}
+  }
+
   // ── LOGIN ──
   async function handleLogin(e) {
     e.preventDefault();
@@ -1349,6 +1661,8 @@
 
     const referralCode =
       (document.getElementById('input-referral-code')?.value || '').trim().toUpperCase() || undefined;
+    const salesRef = sessionStorage.getItem('nd_sales_ref') || undefined;
+    const promoCode = (document.getElementById('input-promo-code')?.value || '').trim().toUpperCase() || undefined;
 
     try {
       const res = await fetch('/api/auth/register', {
@@ -1359,6 +1673,8 @@
           email: f.email.value,
           password: f.password.value,
           referralCode,
+          salesRef,
+          promoCode,
           agreePrivacy: true,
           agreeTerms: true,
           policyVersion: '2026-04'
@@ -1458,6 +1774,13 @@
       return;
     }
 
+    // Direct login link: /?auth=login  or  /?auth=register
+    const authParam = params.get('auth');
+    if (authParam === 'login' || authParam === 'register') {
+      showAuth(authParam);
+      return;
+    }
+
     const refCode = params.get('ref');
     if (refCode) {
       const inp = document.getElementById('input-referral-code');
@@ -1465,10 +1788,28 @@
       showAuth('register');
     }
 
+    const salesRefParam = params.get('sales_ref');
+    if (salesRefParam) {
+      sessionStorage.setItem('nd_sales_ref', salesRefParam);
+      showAuth('register');
+    }
+
+    const promoParam = params.get('promo');
+    if (promoParam) {
+      const promoInp = document.getElementById('input-promo-code');
+      if (promoInp) { promoInp.value = promoParam.toUpperCase(); validatePromoCode(promoParam.toUpperCase()); }
+      showAuth('register');
+    }
+
+    if (params.get('register') === '1') showAuth('register');
+
     const inp = document.getElementById('input-referral-code');
     if (inp) inp.addEventListener('blur', () => validateReferralCode(inp.value.trim()));
+
+    const promoInp2 = document.getElementById('input-promo-code');
+    if (promoInp2) promoInp2.addEventListener('blur', () => validatePromoCode(promoInp2.value.trim()));
   });
 </script>
-<script src="/i18n.js?v=2"></script>
+<script src="/i18n.js?v=3"></script>
 </body>
 </html>

@@ -4,6 +4,7 @@ const express = require('express');
 const Stripe = require('stripe');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
+const { sendPaymentFailedEmail, sendPaymentReceiptEmail } = require('../services/email');
 
 const router = express.Router();
 
@@ -14,7 +15,7 @@ function getStripe() {
 // POST /api/stripe/checkout — create Stripe Checkout Session
 router.post('/checkout', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, referred_by FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, referred_by, referral_credits FROM users WHERE id = ?').get(req.userId);
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
 
   if (user.subscription_status === 'active') {
@@ -24,15 +25,41 @@ router.post('/checkout', requireAuth, async (req, res) => {
   const stripe = getStripe();
   const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
 
-  const { plan } = req.body; // 'pro' (default) or 'white_label'
-  const isWhiteLabel = plan === 'white_label' && process.env.STRIPE_PRICE_ID_WHITE_LABEL;
+  const { plan, billing } = req.body; // plan: 'pro' | 'white_label'; billing: 'monthly' | 'yearly'
+  const isWhiteLabel = plan === 'white_label';
+  const wlYearly = isWhiteLabel && billing === 'yearly' && process.env.STRIPE_PRICE_ID_WHITE_LABEL_YEARLY;
 
   // White label plan takes precedence; otherwise use discounted price for referrals
-  const priceId = isWhiteLabel
-    ? process.env.STRIPE_PRICE_ID_WHITE_LABEL
-    : (user.referred_by && process.env.STRIPE_PRICE_ID_DISCOUNTED
-        ? process.env.STRIPE_PRICE_ID_DISCOUNTED
-        : process.env.STRIPE_PRICE_ID);
+  const priceId = wlYearly
+    ? process.env.STRIPE_PRICE_ID_WHITE_LABEL_YEARLY
+    : isWhiteLabel && process.env.STRIPE_PRICE_ID_WHITE_LABEL
+      ? process.env.STRIPE_PRICE_ID_WHITE_LABEL
+      : (user.referred_by && process.env.STRIPE_PRICE_ID_DISCOUNTED
+          ? process.env.STRIPE_PRICE_ID_DISCOUNTED
+          : process.env.STRIPE_PRICE_ID);
+
+  if (!priceId) return res.status(500).json({ error: 'Cenový plán nie je nakonfigurovaný.' });
+
+  // Apply gift card / referral credits as a one-time Stripe coupon (only for Pro, partial credit)
+  const credits = parseFloat(user.referral_credits || 0);
+  const PRO_PRICE = 37;
+  let discounts = [];
+  let creditApplied = 0;
+  if (!isWhiteLabel && credits > 0 && credits < PRO_PRICE) {
+    try {
+      const coupon = await stripe.coupons.create({
+        amount_off: Math.round(credits * 100),
+        currency: 'eur',
+        duration: 'once',
+        name: `Darčekový kredit €${credits.toFixed(2)}`,
+        max_redemptions: 1,
+      });
+      discounts = [{ coupon: coupon.id }];
+      creditApplied = credits;
+    } catch (couponErr) {
+      console.error('[stripe] Failed to create credit coupon:', couponErr.message);
+    }
+  }
 
   try {
     // Get or create Stripe customer
@@ -47,22 +74,74 @@ router.post('/checkout', requireAuth, async (req, res) => {
       db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
     }
 
-    const session = await stripe.checkout.sessions.create({
+    const sessionParams = {
       customer: customerId,
       payment_method_types: ['card'],
       line_items: [{ price: priceId, quantity: 1 }],
       mode: 'subscription',
       success_url: `${baseUrl}/onboarding?success=1&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${baseUrl}/?canceled=1`,
-      allow_promotion_codes: true,
+      allow_promotion_codes: discounts.length === 0, // disable promo codes when coupon applied
       billing_address_collection: 'auto',
       locale: 'sk',
-      metadata: { plan: isWhiteLabel ? 'white_label' : 'pro' },
+      metadata: {
+        plan: isWhiteLabel ? 'white_label' : 'pro',
+        ...(creditApplied > 0 && { credit_applied: creditApplied.toFixed(2) }),
+      },
+    };
+    if (discounts.length > 0) sessionParams.discounts = discounts;
+
+    const session = await stripe.checkout.sessions.create(sessionParams);
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('Stripe checkout error:', err.message);
+    res.status(500).json({ error: 'Chyba pri vytváraní platby: ' + err.message });
+  }
+});
+
+// POST /api/stripe/checkout-boost — Growth Boost one-time payment
+router.post('/checkout-boost', requireAuth, async (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, growth_boost_paid FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+  if (user.growth_boost_paid) return res.json({ url: '/dashboard?tab=seo' });
+
+  const priceId = process.env.STRIPE_PRICE_ID_GROWTH_BOOST;
+  if (!priceId) return res.status(500).json({ error: 'Growth Boost price nie je nakonfigurovaná.' });
+
+  const stripe = getStripe();
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
+  try {
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
+      customerId = customer.id;
+      db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+    }
+
+    const from = req.body?.from === 'dashboard' ? 'dashboard' : 'onboarding';
+    const successUrl = from === 'dashboard'
+      ? `${baseUrl}/dashboard?tab=seo&success_boost=1&session_id={CHECKOUT_SESSION_ID}`
+      : `${baseUrl}/onboarding?success_boost=1&session_id={CHECKOUT_SESSION_ID}`;
+    const cancelUrl = from === 'dashboard'
+      ? `${baseUrl}/dashboard?tab=seo`
+      : `${baseUrl}/onboarding?step=5`;
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: 'payment',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      locale: 'sk',
+      metadata: { type: 'growth_boost', userId: user.id },
     });
 
     res.json({ url: session.url });
   } catch (err) {
-    console.error('Stripe checkout error:', err.message);
+    console.error('Growth Boost checkout error:', err.message);
     res.status(500).json({ error: 'Chyba pri vytváraní platby: ' + err.message });
   }
 });
@@ -82,6 +161,14 @@ router.post('/webhook', async (req, res) => {
 
   const db = getDb();
   const stripe = getStripe();
+
+  // Webhook idempotency: ignore duplicate deliveries from Stripe
+  try {
+    db.prepare('INSERT INTO stripe_events (event_id) VALUES (?)').run(event.id);
+  } catch {
+    // Unique constraint violation → already processed
+    return res.json({ received: true, duplicate: true });
+  }
 
   // Helper: find user by stripe_customer_id, with email fallback
   // If found via email, also saves the customer_id for future lookups
@@ -110,13 +197,107 @@ router.post('/webhook', async (req, res) => {
     case 'checkout.session.completed': {
       const session = event.data.object;
 
+      // Gift card purchase — generate code and store in DB
+      if (session.mode === 'payment' && session.metadata?.type === 'gift_card') {
+        const { generateCode } = require('./gift-cards');
+        const amountEur = parseFloat(session.metadata.amount_eur || '0');
+        if (amountEur > 0) {
+          const { v4: uuidv4 } = require('uuid');
+          let code;
+          let attempts = 0;
+          do { code = generateCode(); attempts++; } while (
+            db.prepare('SELECT id FROM gift_cards WHERE code = ?').get(code) && attempts < 10
+          );
+          db.prepare(`INSERT INTO gift_cards (id, code, amount_eur, buyer_email, buyer_name, recipient_email, message, stripe_session_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+            .run(uuidv4(), code, amountEur,
+              session.metadata.buyer_email || session.customer_details?.email || '',
+              session.metadata.buyer_name || '',
+              session.metadata.recipient_email || '',
+              session.metadata.message || '',
+              session.id);
+          console.log(`[gift-card] Code ${code} generated (€${amountEur}, session ${session.id})`);
+          const { sendGiftCardEmail } = require('../services/email');
+          sendGiftCardEmail({
+            code,
+            amountEur,
+            buyerEmail:     session.metadata.buyer_email || session.customer_details?.email || '',
+            buyerName:      session.metadata.buyer_name || '',
+            recipientEmail: session.metadata.recipient_email || '',
+            message:        session.metadata.message || '',
+          }).catch(err => console.error('[gift-card] Email error:', err.message));
+        }
+        break;
+      }
+
+      // Growth Boost one-time payment
+      if (session.mode === 'payment' && session.metadata?.type === 'growth_boost') {
+        const userId = session.metadata.userId;
+        if (userId) {
+          db.prepare('UPDATE users SET boost_credits = boost_credits + 1 WHERE id = ?').run(userId);
+
+          // Auto-unlock the latest completed audit so user sees results immediately
+          const latestAudit = db.prepare(`
+            SELECT id FROM seo_audits
+            WHERE user_id = ? AND status = 'done' AND boost_unlocked = 0
+            ORDER BY completed_at DESC LIMIT 1
+          `).get(userId);
+          if (latestAudit) {
+            db.prepare('UPDATE seo_audits SET boost_unlocked = 1 WHERE id = ?').run(latestAudit.id);
+            db.prepare('UPDATE users SET boost_credits = boost_credits - 1 WHERE id = ?').run(userId);
+            console.log(`[growth_boost] auto-unlocked audit ${latestAudit.id} for user ${userId}`);
+          } else {
+            console.log(`[growth_boost] +1 credit for user ${userId} (no audit to auto-unlock)`);
+          }
+        }
+        break;
+      }
+
       // Credit top-up (one-time payment)
       if (session.mode === 'payment' && session.metadata?.type === 'credits') {
         const credits = parseInt(session.metadata.credits || '0', 10);
         const userId = session.metadata.userId;
         if (credits > 0 && userId) {
           db.prepare('UPDATE users SET extra_response_credits = extra_response_credits + ? WHERE id = ?').run(credits, userId);
+          // Log credit transaction
+          db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+            .run(require('uuid').v4(), userId, 'purchase', credits, `Stripe session ${session.id}`);
           console.log(`[credits] +${credits} credits added to user ${userId}`);
+        }
+        // If save_card was requested, save the payment method for auto-reload
+        if (session.metadata?.save_card === '1' && session.payment_intent && userId) {
+          try {
+            const pi = await stripe.paymentIntents.retrieve(session.payment_intent);
+            if (pi.payment_method) {
+              const pm = await stripe.paymentMethods.retrieve(pi.payment_method);
+              db.prepare(
+                'UPDATE users SET stripe_payment_method_id = ?, auto_reload_card_last4 = ?, auto_reload_card_brand = ? WHERE id = ?'
+              ).run(pi.payment_method, pm.card?.last4 || '', pm.card?.brand || '', userId);
+              console.log(`[credits] Saved payment method ${pi.payment_method} for user ${userId}`);
+            }
+          } catch (e) {
+            console.error('[credits] Failed to save payment method:', e.message);
+          }
+        }
+        break;
+      }
+
+      // Card setup for auto-reload (mode: 'setup')
+      if (session.mode === 'setup' && session.metadata?.type === 'setup_payment_method') {
+        const userId = session.metadata.userId;
+        if (userId && session.setup_intent) {
+          try {
+            const si = await stripe.setupIntents.retrieve(session.setup_intent);
+            if (si.payment_method) {
+              const pm = await stripe.paymentMethods.retrieve(si.payment_method);
+              db.prepare(
+                'UPDATE users SET stripe_payment_method_id = ?, auto_reload_card_last4 = ?, auto_reload_card_brand = ? WHERE id = ?'
+              ).run(si.payment_method, pm.card?.last4 || '', pm.card?.brand || '', userId);
+              console.log(`[setup_pm] Saved payment method ${si.payment_method} for user ${userId}`);
+            }
+          } catch (e) {
+            console.error('[setup_pm] Failed to save payment method:', e.message);
+          }
         }
         break;
       }
@@ -126,17 +307,59 @@ router.post('/webhook', async (req, res) => {
 
         if (user) {
           const plan = session.metadata?.plan || 'pro';
+
+          // Person add-on subscription
+          if (plan === 'person_addon') {
+            db.prepare('UPDATE users SET person_addon_active = 1, person_addon_subscription_id = ? WHERE id = ?')
+              .run(session.subscription, user.id);
+            console.log(`[person] Add-on activated for user ${user.id}`);
+            break;
+          }
+
+          // White Label extra client slots subscription
+          if (plan === 'wl_extra_slots') {
+            const slots = parseInt(session.metadata?.slots || '0', 10);
+            db.prepare('UPDATE users SET white_label_extra_slots = ?, white_label_extra_sub_id = ? WHERE id = ?')
+              .run(slots, session.subscription, user.id);
+            console.log(`[wl-slots] ${slots} extra slots activated for user ${user.id}`);
+            break;
+          }
+
           db.prepare(`UPDATE users SET subscription_status = 'active', subscription_id = ?, subscription_plan = ? WHERE id = ?`)
             .run(session.subscription, plan, user.id);
           db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(user.id);
           console.log(`[stripe] Subscription activated for user ${user.id}`);
 
-          // Award 15€ credit to referrer (only on first activation)
+          // Deduct gift card credits that were applied as a coupon discount
+          const creditApplied = parseFloat(session.metadata?.credit_applied || '0');
+          if (creditApplied > 0) {
+            db.prepare('UPDATE users SET referral_credits = MAX(0, referral_credits - ?) WHERE id = ?').run(creditApplied, user.id);
+            console.log(`[gift-card] Deducted €${creditApplied} credit after Stripe activation for user ${user.id}`);
+          }
+
+          // Send receipt email
+          const userFull = db.prepare('SELECT email, name FROM users WHERE id = ?').get(user.id);
+          if (userFull) {
+            const amtFormatted = session.amount_total ? `€${(session.amount_total / 100).toFixed(2)}` : null;
+            sendPaymentReceiptEmail({ toEmail: userFull.email, name: userFull.name, plan, amountFormatted: amtFormatted }).catch(() => {});
+          }
+
+          // Award 15€ credit to referrer (only on first activation, with abuse guards)
           if (user.referred_by) {
-            const already = db.prepare('SELECT referral_credits FROM users WHERE id = ?').get(user.id);
-            if (!already?.referral_credits) {
-              db.prepare('UPDATE users SET referral_credits = referral_credits + 15 WHERE id = ?').run(user.referred_by);
-              console.log(`[affiliate] +15€ credit awarded to referrer ${user.referred_by}`);
+            // Check via credit_transactions — prevents double-reward if user resubscribes
+            const alreadyRewarded = db.prepare(
+              "SELECT id FROM credit_transactions WHERE note = ? AND type = 'affiliate_reward'"
+            ).get(`ref:${user.id}`);
+            if (!alreadyRewarded) {
+              const referrer = db.prepare('SELECT id, referral_bonus_count FROM users WHERE id = ?').get(user.referred_by);
+              // Guard: cap at 200 lifetime referral bonuses per referrer, no self-referral
+              const bonusCount = referrer?.referral_bonus_count || 0;
+              if (referrer && bonusCount < 200 && referrer.id !== user.id) {
+                db.prepare('UPDATE users SET referral_credits = referral_credits + 15, referral_bonus_count = referral_bonus_count + 1 WHERE id = ?').run(user.referred_by);
+                db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+                  .run(require('uuid').v4(), user.referred_by, 'affiliate_reward', 1500, `ref:${user.id}`);
+                console.log(`[affiliate] +15€ credit awarded to referrer ${user.referred_by} (bonus #${bonusCount + 1})`);
+              }
             }
           }
         } else {
@@ -148,12 +371,41 @@ router.post('/webhook', async (req, res) => {
     case 'customer.subscription.updated': {
       const sub = event.data.object;
       const isActive = sub.status === 'active' || sub.status === 'trialing';
-      const status = isActive ? 'active' : 'inactive';
       const subPriceId = sub.items?.data?.[0]?.price?.id;
-      const plan = subPriceId === process.env.STRIPE_PRICE_ID_WHITE_LABEL ? 'white_label' : 'pro';
 
+      // Person add-on subscription (monthly or yearly)
+      if (subPriceId === process.env.STRIPE_PRICE_ID_PERSON || subPriceId === process.env.STRIPE_PRICE_ID_PERSON_YEARLY) {
+        const user = await resolveUser(sub.customer);
+        if (user) {
+          db.prepare('UPDATE users SET person_addon_active = ?, person_addon_subscription_id = ? WHERE id = ?')
+            .run(isActive ? 1 : 0, sub.id, user.id);
+          console.log(`[person] Add-on ${isActive ? 'active' : 'inactive'} for user ${user.id}`);
+        }
+        break;
+      }
+
+      // White Label extra slots subscription — sync quantity
+      if (subPriceId === process.env.STRIPE_PRICE_ID_WL_EXTRA_SLOT) {
+        const user = await resolveUser(sub.customer);
+        if (user) {
+          const qty = isActive ? (sub.items?.data?.[0]?.quantity || 0) : 0;
+          db.prepare('UPDATE users SET white_label_extra_slots = ?, white_label_extra_sub_id = ? WHERE id = ?')
+            .run(qty, isActive ? sub.id : null, user.id);
+          console.log(`[wl-slots] Extra slots ${isActive ? `set to ${qty}` : 'deactivated'} for user ${user.id}`);
+        }
+        break;
+      }
+
+      const status = isActive ? 'active' : 'inactive';
+      const isWLPrice = subPriceId === process.env.STRIPE_PRICE_ID_WHITE_LABEL || subPriceId === process.env.STRIPE_PRICE_ID_WHITE_LABEL_YEARLY;
+      const plan = isWLPrice ? 'white_label' : 'pro';
       const user = await resolveUser(sub.customer);
       if (user) {
+        // If downgrading from WL to Pro via Stripe, reset hide_branding on all widgets
+        if (user.subscription_plan === 'white_label' && plan === 'pro') {
+          db.prepare('UPDATE widgets SET hide_branding = 0 WHERE user_id = ?').run(user.id);
+          console.log(`[stripe] WL→Pro downgrade via webhook for user ${user.id} — hide_branding reset`);
+        }
         db.prepare('UPDATE users SET subscription_status = ?, subscription_id = ?, subscription_plan = ? WHERE id = ?')
           .run(status, sub.id, plan, user.id);
         db.prepare('UPDATE widgets SET active = ? WHERE user_id = ?').run(isActive ? 1 : 0, user.id);
@@ -162,10 +414,51 @@ router.post('/webhook', async (req, res) => {
     }
     case 'customer.subscription.deleted': {
       const sub = event.data.object;
+      const subPriceId = sub.items?.data?.[0]?.price?.id;
+
+      // Person add-on cancelled (monthly or yearly)
+      if (subPriceId === process.env.STRIPE_PRICE_ID_PERSON || subPriceId === process.env.STRIPE_PRICE_ID_PERSON_YEARLY) {
+        const user = await resolveUser(sub.customer);
+        if (user) {
+          db.prepare('UPDATE users SET person_addon_active = 0, person_addon_subscription_id = NULL WHERE id = ?').run(user.id);
+          console.log(`[person] Add-on cancelled for user ${user.id}`);
+        }
+        break;
+      }
+
+      // White Label extra slots cancelled
+      if (subPriceId === process.env.STRIPE_PRICE_ID_WL_EXTRA_SLOT) {
+        const user = await resolveUser(sub.customer);
+        if (user) {
+          db.prepare('UPDATE users SET white_label_extra_slots = 0, white_label_extra_sub_id = NULL WHERE id = ?').run(user.id);
+          console.log(`[wl-slots] Extra slots cancelled for user ${user.id}`);
+        }
+        break;
+      }
+
       const user = await resolveUser(sub.customer);
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('inactive', user.id);
         db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(user.id);
+
+        // If WL plan cancelled, reset hide_branding on all widgets so branding re-appears correctly
+        const cancelledUser = db.prepare('SELECT subscription_plan FROM users WHERE id = ?').get(user.id);
+        if (cancelledUser?.subscription_plan === 'white_label') {
+          db.prepare('UPDATE widgets SET hide_branding = 0 WHERE user_id = ?').run(user.id);
+          db.prepare("UPDATE users SET subscription_plan = 'pro' WHERE id = ?").run(user.id);
+          console.log(`[stripe] WL cancelled for user ${user.id} — hide_branding reset`);
+        }
+
+        // Schedule win-back email 7 days later (skip if one already queued)
+        const { v4: uuidv4 } = require('uuid');
+        const sendAt = Math.floor(Date.now() / 1000) + 7 * 24 * 3600;
+        const userFull = db.prepare('SELECT email, name FROM users WHERE id = ?').get(user.id);
+        const existing = db.prepare('SELECT id FROM winback_jobs WHERE user_id = ? AND sent_at IS NULL AND failed = 0').get(user.id);
+        if (userFull && !existing) {
+          db.prepare('INSERT INTO winback_jobs (id, user_id, user_email, user_name, send_at) VALUES (?, ?, ?, ?, ?)')
+            .run(uuidv4(), user.id, userFull.email, userFull.name, sendAt);
+          console.log(`[winback] Scheduled email for user ${user.id} at ${new Date(sendAt * 1000).toISOString()}`);
+        }
       }
       break;
     }
@@ -175,12 +468,210 @@ router.post('/webhook', async (req, res) => {
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('past_due', user.id);
         db.prepare('UPDATE widgets SET active = 0 WHERE user_id = ?').run(user.id);
+
+        // Send dunning email (track attempt number via dunning_sent_at)
+        const userFull = db.prepare('SELECT email, name, dunning_sent_at FROM users WHERE id = ?').get(user.id);
+        if (userFull) {
+          const now = Math.floor(Date.now() / 1000);
+          const lastDunning = userFull.dunning_sent_at || 0;
+          // Send dunning email at most once per 3 days to avoid spam
+          if (now - lastDunning > 3 * 24 * 3600) {
+            db.prepare('UPDATE users SET dunning_sent_at = ? WHERE id = ?').run(now, user.id);
+            const invoiceUrl = inv.hosted_invoice_url || null;
+            const attemptNumber = inv.attempt_count || 1;
+            sendPaymentFailedEmail({ toEmail: userFull.email, name: userFull.name, invoiceUrl, attemptNumber }).catch(() => {});
+          }
+        }
+      }
+      break;
+    }
+    case 'payment_intent.succeeded': {
+      const pi = event.data.object;
+      if (pi.metadata?.type === 'auto_reload') {
+        const credits = parseInt(pi.metadata.credits || '0', 10);
+        const userId = pi.metadata.userId;
+        if (credits > 0 && userId) {
+          // Skip if credits were already added synchronously in triggerAutoReload
+          const noteKey = `auto_reload:${pi.id}`;
+          const already = db.prepare('SELECT id FROM credit_transactions WHERE note = ?').get(noteKey);
+          if (!already) {
+            const { v4: uuidv4 } = require('uuid');
+            db.prepare('UPDATE users SET extra_response_credits = extra_response_credits + ? WHERE id = ?').run(credits, userId);
+            db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+              .run(uuidv4(), userId, 'auto_reload', credits, noteKey);
+            console.log(`[auto_reload] +${credits} credits added to user ${userId} via webhook`);
+          } else {
+            console.log(`[auto_reload] Credits for PI ${pi.id} already added (sync), skipping webhook duplicate`);
+          }
+        }
       }
       break;
     }
   }
 
   res.json({ received: true });
+});
+
+// POST /api/stripe/checkout-person — subscribe to Person add-on (monthly or yearly)
+router.post('/checkout-person', requireAuth, async (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, person_addon_active FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+
+  if (user.subscription_status !== 'active') {
+    return res.status(402).json({ error: 'Person add-on vyžaduje aktívny Pro plán.' });
+  }
+  if (user.person_addon_active) {
+    return res.json({ url: '/dashboard' });
+  }
+
+  const billing = req.body?.billing === 'yearly' ? 'yearly' : 'monthly';
+  const priceId = billing === 'yearly'
+    ? process.env.STRIPE_PRICE_ID_PERSON_YEARLY
+    : process.env.STRIPE_PRICE_ID_PERSON;
+  if (!priceId) return res.status(500).json({ error: 'Person add-on price nie je nakonfigurovaná.' });
+
+  const stripe = getStripe();
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
+  try {
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
+      customerId = customer.id;
+      db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [{ price: priceId, quantity: 1 }],
+      mode: 'subscription',
+      success_url: `${baseUrl}/dashboard?person_activated=1&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${baseUrl}/dashboard`,
+      locale: 'sk',
+      metadata: { plan: 'person_addon', userId: user.id },
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('[person checkout]', err.message);
+    res.status(500).json({ error: 'Chyba pri vytváraní platby: ' + err.message });
+  }
+});
+
+// POST /api/stripe/checkout-wl-slots — monthly subscription for extra White Label client slots (€15/slot/mes)
+router.post('/checkout-wl-slots', requireAuth, async (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_status, subscription_plan, white_label_extra_sub_id FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+  if (user.subscription_plan !== 'white_label') {
+    return res.status(403).json({ error: 'Extra sloty sú dostupné len pre White Label plán.' });
+  }
+
+  const priceId = process.env.STRIPE_PRICE_ID_WL_EXTRA_SLOT;
+  if (!priceId) return res.status(500).json({ error: 'Extra slot price nie je nakonfigurovaná (STRIPE_PRICE_ID_WL_EXTRA_SLOT).' });
+
+  const slots = parseInt(req.body?.slots || '1', 10);
+  if (!slots || slots < 1 || slots > 200) {
+    return res.status(400).json({ error: 'Počet slotov musí byť medzi 1 a 200.' });
+  }
+
+  const stripe = getStripe();
+  const baseUrl = process.env.BASE_URL || 'http://localhost:3000';
+
+  try {
+    let customerId = user.stripe_customer_id;
+    if (!customerId) {
+      const customer = await stripe.customers.create({ email: user.email, name: user.name, metadata: { userId: user.id } });
+      customerId = customer.id;
+      db.prepare('UPDATE users SET stripe_customer_id = ? WHERE id = ?').run(customerId, user.id);
+    }
+
+    // If user already has an extra-slots subscription, update its quantity instead of new checkout
+    if (user.white_label_extra_sub_id) {
+      try {
+        const existingSub = await stripe.subscriptions.retrieve(user.white_label_extra_sub_id);
+        if (existingSub.status === 'active' || existingSub.status === 'trialing') {
+          const itemId = existingSub.items.data[0]?.id;
+          if (itemId) {
+            await stripe.subscriptions.update(user.white_label_extra_sub_id, {
+              items: [{ id: itemId, quantity: slots }],
+              proration_behavior: 'create_prorations',
+            });
+            db.prepare('UPDATE users SET white_label_extra_slots = ? WHERE id = ?').run(slots, user.id);
+            console.log(`[wl-slots] Updated existing sub ${user.white_label_extra_sub_id} to ${slots} slots`);
+            return res.json({ updated: true, slots });
+          }
+        }
+      } catch (e) {
+        console.error('[wl-slots] Failed to update existing sub, creating new:', e.message);
+      }
+    }
+
+    const session = await stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      mode: 'subscription',
+      line_items: [{ price: priceId, quantity: slots }],
+      success_url: `${baseUrl}/dashboard?wl_slots_added=${slots}`,
+      cancel_url: `${baseUrl}/dashboard`,
+      locale: 'sk',
+      metadata: { plan: 'wl_extra_slots', userId: user.id, slots: String(slots) },
+    });
+
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error('[wl-slots checkout]', err.message);
+    res.status(500).json({ error: 'Chyba pri vytváraní platby: ' + err.message });
+  }
+});
+
+// POST /api/stripe/change-plan — upgrade/downgrade between Pro and White Label (with proration)
+router.post('/change-plan', requireAuth, async (req, res) => {
+  const db = getDb();
+  const user = db.prepare('SELECT id, email, name, stripe_customer_id, subscription_id, subscription_status, subscription_plan FROM users WHERE id = ?').get(req.userId);
+  if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
+  if (user.subscription_status !== 'active') {
+    return res.status(402).json({ error: 'Zmena plánu vyžaduje aktívne predplatné.' });
+  }
+
+  const { plan, billing } = req.body; // plan: 'pro' | 'white_label'; billing: 'monthly' | 'yearly'
+  if (!['pro', 'white_label'].includes(plan)) return res.status(400).json({ error: 'Neplatný plán.' });
+  if (plan === user.subscription_plan) return res.json({ ok: true, message: 'Ste už na tomto pláne.' });
+
+  const wlYearly = plan === 'white_label' && billing === 'yearly';
+  const newPriceId = wlYearly
+    ? process.env.STRIPE_PRICE_ID_WHITE_LABEL_YEARLY
+    : plan === 'white_label'
+      ? process.env.STRIPE_PRICE_ID_WHITE_LABEL
+      : process.env.STRIPE_PRICE_ID;
+
+  if (!newPriceId) return res.status(500).json({ error: 'Cenový plán nie je nakonfigurovaný.' });
+
+  const stripe = getStripe();
+  try {
+    const sub = await stripe.subscriptions.retrieve(user.subscription_id);
+    const itemId = sub.items.data[0]?.id;
+    if (!itemId) return res.status(500).json({ error: 'Chyba pri načítaní predplatného.' });
+
+    await stripe.subscriptions.update(user.subscription_id, {
+      items: [{ id: itemId, price: newPriceId }],
+      proration_behavior: 'create_prorations',
+    });
+
+    db.prepare("UPDATE users SET subscription_plan = ? WHERE id = ?").run(plan, user.id);
+    // If downgrading from WL, reset hide_branding
+    if (user.subscription_plan === 'white_label' && plan === 'pro') {
+      db.prepare('UPDATE widgets SET hide_branding = 0 WHERE user_id = ?').run(user.id);
+    }
+
+    console.log(`[stripe] Plan changed for user ${user.id}: ${user.subscription_plan} → ${plan}`);
+    res.json({ ok: true, plan });
+  } catch (err) {
+    console.error('[stripe] change-plan error:', err.message);
+    res.status(500).json({ error: 'Chyba pri zmene plánu: ' + err.message });
+  }
 });
 
 // POST /api/stripe/portal — customer billing portal
@@ -206,7 +697,7 @@ router.post('/portal', requireAuth, async (req, res) => {
 // If user has no stripe_customer_id yet, searches Stripe by email to auto-link
 router.get('/status', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until, person_addon_active, white_label_extra_slots, white_label_extra_sub_id FROM users WHERE id = ?').get(req.userId);
   const now = Math.floor(Date.now() / 1000);
   const inFreePeriod = user?.free_until && user.free_until > now;
 
@@ -239,6 +730,9 @@ router.get('/status', requireAuth, async (req, res) => {
     onboarding_done: Boolean(user?.onboarding_done),
     free_until: user?.free_until || null,
     in_free_period: !!inFreePeriod,
+    person_addon: Boolean(user?.person_addon_active),
+    white_label_extra_slots: user?.white_label_extra_slots || 0,
+    white_label_extra_sub_id: user?.white_label_extra_sub_id || null,
   });
 });
 

@@ -195,6 +195,8 @@ function generateSlots(cfg, date, gcalBusy = []) {
   ).all(cfg.id, date);
 
   const step = cfg.slot_duration + cfg.buffer_between;
+  if (step <= 0) return []; // Guard against zero/negative duration → infinite loop
+
   const slots = [];
 
   for (let cur = winStart; cur + cfg.slot_duration <= winEnd; cur += step) {
@@ -315,27 +317,39 @@ router.post('/:widgetId/public/book', async (req, res) => {
   const resolvedServiceName = resolvedService?.name || serviceName || null;
 
   const id = uuidv4();
-  // Try full INSERT first (with service columns); fall back to base INSERT if columns missing
-  try {
-    db.prepare(`
-      INSERT INTO bookings (id, booking_config_id, widget_id, customer_name, customer_email, customer_phone,
-        date, start_time, end_time, status, session_id, service_id, service_name)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?)
-    `).run(id, cfg.id, widget.id, customerName.trim(), customerEmail.trim(),
-           customerPhone ? customerPhone.trim() : null,
-           date, slot.start_time, slot.end_time,
-           sessionId || null, resolvedService?.id || null, resolvedServiceName);
-  } catch {
-    // Fallback: service_id / service_name columns may not exist yet (pending migration)
-    db.prepare(`
-      INSERT INTO bookings (id, booking_config_id, widget_id, customer_name, customer_email, customer_phone,
-        date, start_time, end_time, status, session_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?)
-    `).run(id, cfg.id, widget.id, customerName.trim(), customerEmail.trim(),
-           customerPhone ? customerPhone.trim() : null,
-           date, slot.start_time, slot.end_time,
-           sessionId || null);
-  }
+
+  // Atomic transaction: re-check slot availability inside transaction to prevent double-booking
+  let booked = false;
+  const doInsert = db.transaction(() => {
+    const conflict = db.prepare(
+      "SELECT id FROM bookings WHERE booking_config_id = ? AND date = ? AND start_time = ? AND status != 'cancelled'"
+    ).get(cfg.id, date, slot.start_time);
+    if (conflict) return false;
+
+    try {
+      db.prepare(`
+        INSERT INTO bookings (id, booking_config_id, widget_id, customer_name, customer_email, customer_phone,
+          date, start_time, end_time, status, session_id, service_id, service_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?)
+      `).run(id, cfg.id, widget.id, customerName.trim(), customerEmail.trim(),
+             customerPhone ? customerPhone.trim() : null,
+             date, slot.start_time, slot.end_time,
+             sessionId || null, resolvedService?.id || null, resolvedServiceName);
+    } catch {
+      db.prepare(`
+        INSERT INTO bookings (id, booking_config_id, widget_id, customer_name, customer_email, customer_phone,
+          date, start_time, end_time, status, session_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?)
+      `).run(id, cfg.id, widget.id, customerName.trim(), customerEmail.trim(),
+             customerPhone ? customerPhone.trim() : null,
+             date, slot.start_time, slot.end_time,
+             sessionId || null);
+    }
+    return true;
+  });
+
+  booked = doInsert();
+  if (!booked) return res.status(409).json({ error: 'Termín bol práve obsadený iným zákazníkom. Vyberte iný čas.' });
 
   // Async: GCal sync + AI summary
   const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
@@ -446,7 +460,7 @@ router.put('/:widgetId/config', requireAuth, (req, res) => {
     WHERE id = ?
   `).run(
     timezone || cfg.timezone,
-    parseInt(slotDuration) || cfg.slot_duration,
+    Math.max(1, parseInt(slotDuration) || cfg.slot_duration),
     parseInt(bufferBetween) >= 0 ? parseInt(bufferBetween) : cfg.buffer_between,
     parseInt(minNotice) >= 0 ? parseInt(minNotice) : cfg.min_notice,
     parseInt(maxAdvanceDays) || cfg.max_advance_days,

@@ -29,6 +29,15 @@
       <button class="nav-item" onclick="showView('coach')" id="nav-coach">
         <span class="nav-icon">🎓</span> AI Coach
       </button>
+      <button class="nav-item" onclick="showView('money')" id="nav-money">
+        <span class="nav-icon">💰</span> Money Mode
+      </button>
+      <button class="nav-item" onclick="showView('reactivation')" id="nav-reactivation">
+        <span class="nav-icon">🔁</span> Lead Reaktivácia
+      </button>
+      <button class="nav-item" onclick="showView('seo')" id="nav-seo">
+        <span class="nav-icon">🚀</span> SEO Audit
+      </button>
     </div>
 
     <div class="sidebar-section" id="widget-nav-section" style="display:none">
@@ -57,6 +66,9 @@
       <button class="nav-item" onclick="showTab('facebook')" id="nav-facebook">
         <span class="nav-icon">💬</span> Facebook Messenger
       </button>
+      <button class="nav-item" onclick="showTab('whatsapp')" id="nav-whatsapp">
+        <span class="nav-icon">💬</span> WhatsApp
+      </button>
       <button class="nav-item" onclick="showTab('booking')" id="nav-booking">
         <span class="nav-icon">📅</span> Rezervácie
       </button>
@@ -72,6 +84,12 @@
       </button>
       <button class="nav-item" onclick="showTab('integrations')" id="nav-integrations">
         <span class="nav-icon">🔗</span> Integrácie
+      </button>
+      <button class="nav-item" onclick="showTab('sequences')" id="nav-sequences">
+        <span class="nav-icon">📨</span> Sekvencia emailov
+      </button>
+      <button class="nav-item" onclick="showTab('person')" id="nav-person">
+        <span class="nav-icon">🧑</span> Person
       </button>
     </div>
 
@@ -129,6 +147,17 @@
 
       <!-- ── View: Widget List ─────────────────────────── -->
       <div id="view-widgets">
+
+        <!-- Feature discovery strip -->
+        <div id="feature-tips-strip" style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.25rem;padding:0.85rem 1rem;background:linear-gradient(135deg,#eff6ff,#f0f9ff);border:1px solid #bfdbfe;border-radius:12px;align-items:center">
+          <span style="font-size:0.78rem;font-weight:700;color:#1e40af;white-space:nowrap">💡 Objavte:</span>
+          <button onclick="showView('money')" style="background:#dbeafe;border:none;border-radius:8px;padding:0.3rem 0.75rem;font-size:0.78rem;font-weight:600;color:#1d4ed8;cursor:pointer">💰 Money Mode</button>
+          <button onclick="showTab('whatsapp')" style="background:#dcfce7;border:none;border-radius:8px;padding:0.3rem 0.75rem;font-size:0.78rem;font-weight:600;color:#166534;cursor:pointer">💬 WhatsApp Bot</button>
+          <button onclick="showTab('sequences')" style="background:#fef9c3;border:none;border-radius:8px;padding:0.3rem 0.75rem;font-size:0.78rem;font-weight:600;color:#854d0e;cursor:pointer">📨 Follow-up sekvencie</button>
+          <button onclick="showView('reactivation')" style="background:#fce7f3;border:none;border-radius:8px;padding:0.3rem 0.75rem;font-size:0.78rem;font-weight:600;color:#9d174d;cursor:pointer">🔄 Lead Reaktivácia</button>
+          <button onclick="showView('coach')" style="background:#f3e8ff;border:none;border-radius:8px;padding:0.3rem 0.75rem;font-size:0.78rem;font-weight:600;color:#6b21a8;cursor:pointer">🎓 AI Coach</button>
+        </div>
+
         <div id="widget-list-loading" class="empty-state">
           <div style="font-size:2rem">⏳</div>
           <p>Načítavam widgety...</p>
@@ -137,7 +166,7 @@
         <div id="widget-empty" class="empty-state" style="display:none">
           <div class="empty-state-icon">💬</div>
           <h3>Zatiaľ žiadne widgety</h3>
-          <p>Vytvorte svoj prvý AI chatbot widget!</p>
+          <p>Vytvorte svoj prvý AI chatbot widget a zachytávajte leady 24/7!</p>
           <br>
           <button class="btn btn-primary" onclick="openCreateWidgetModal()">+ Vytvoriť widget</button>
         </div>
@@ -181,6 +210,50 @@
 
           <div id="leads-list"></div>
           <div id="leads-kanban" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- ── View: Money Mode ──────────────────────── -->
+      <div id="view-money" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
+          <div>
+            <h2 style="margin:0 0 0.25rem;font-size:1.35rem;font-weight:800">💰 Money Mode</h2>
+            <p style="margin:0;color:#64748b;font-size:0.875rem">Sledujte koľko vám Neoworkly skutočne zarobil</p>
+          </div>
+          <button class="btn btn-secondary" onclick="loadMoneyStats()">↺ Obnoviť</button>
+        </div>
+        <div id="money-content">
+          <div style="text-align:center;padding:3rem 1rem;color:#94a3b8">
+            <div style="font-size:2rem;margin-bottom:0.5rem">⏳</div>
+            <div>Načítavam...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── View: Lead Reaktivácia ─────────────────── -->
+      <div id="view-reactivation" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
+          <div>
+            <h2 style="margin:0 0 0.25rem;font-size:1.35rem;font-weight:800">🔁 Lead Reaktivácia</h2>
+            <p style="margin:0;color:#64748b;font-size:0.875rem">Reaktivuj existujúcich leadov bez nového trafficu — najlacnejší spôsob ako rásť</p>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1.25rem;flex-wrap:wrap">
+          <span style="font-size:0.82rem;color:#64748b;font-weight:600">Leady bez odpovede viac ako:</span>
+          <div style="display:flex;gap:0.35rem">
+            <button id="react-filter-1" class="btn btn-secondary btn-sm" onclick="loadColdLeads(1)">1 hod</button>
+            <button id="react-filter-24" class="btn btn-primary btn-sm" onclick="loadColdLeads(24)">24 hod</button>
+            <button id="react-filter-72" class="btn btn-secondary btn-sm" onclick="loadColdLeads(72)">3 dni</button>
+            <button id="react-filter-168" class="btn btn-secondary btn-sm" onclick="loadColdLeads(168)">7 dní</button>
+          </div>
+        </div>
+
+        <div id="reactivation-content">
+          <div style="text-align:center;padding:3rem 1rem;color:#94a3b8">
+            <div style="font-size:2rem;margin-bottom:0.5rem">⏳</div>
+            <div>Načítavam...</div>
+          </div>
         </div>
       </div>
 
@@ -274,6 +347,23 @@
           </div>
 
           <!-- How it works -->
+          <!-- Gift card redemption -->
+          <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #e2e8f0">
+            <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.75rem">🎁 Uplatniť darčekovú kartu</div>
+            <div style="display:flex;gap:0.5rem;align-items:center">
+              <input id="gift-card-code" type="text" placeholder="NEOW-XXXX-XXXX-XXXX" maxlength="19"
+                style="flex:1;border:2px solid #e2e8f0;border-radius:8px;padding:0.55rem 0.85rem;font-size:0.9rem;font-family:'Courier New',monospace;letter-spacing:0.05em;outline:none"
+                oninput="this.value=this.value.toUpperCase()" onfocus="this.style.borderColor='#7c3aed'" onblur="this.style.borderColor='#e2e8f0'">
+              <button onclick="redeemGiftCard()" id="btn-redeem-gc"
+                style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:0.55rem 1.1rem;font-size:0.875rem;font-weight:600;cursor:pointer;white-space:nowrap">
+                Uplatniť
+              </button>
+            </div>
+            <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.4rem">
+              Kód nájdete na darčekovej karte (formát NEOW-XXXX-XXXX-XXXX). Kredity sa pripíšu okamžite.
+            </div>
+          </div>
+
           <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #e2e8f0">
             <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.75rem">Ako funguje affiliate?</div>
             <div style="display:grid;gap:0.5rem;font-size:0.875rem;color:#374151">
@@ -282,6 +372,61 @@
               <div>💰 <strong>Vy dostanete 15 €</strong> kredit na účet za každého platiaceho zákazníka</div>
               <div>🎁 <strong>37 € kreditov = 1 mesiac zadarmo</strong> – predplatné sa pozastaví, kredity sa odpočítajú</div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── View: SEO Audit ───────────────────────────── -->
+      <div id="view-seo" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap">
+          <div>
+            <h2 style="margin:0 0 0.25rem;font-size:1.35rem;font-weight:800">🚀 SEO Audit</h2>
+            <p style="margin:0;color:#64748b;font-size:0.875rem">Naskenujte web, odhaľte SEO problémy a stiahnite hotové opravy.</p>
+          </div>
+          <button class="btn btn-primary" onclick="openSeoScanModal()">+ Nový sken</button>
+        </div>
+
+        <div id="seo-running-banner" style="display:none;flex-direction:column;gap:0.75rem;padding:1.25rem 1.5rem;background:#eff6ff;border:1px solid #bfdbfe;border-radius:14px;margin-bottom:1.25rem">
+          <div style="display:flex;align-items:center;gap:0.75rem">
+            <div id="seo-progress-spinner" style="width:20px;height:20px;border:3px solid #bfdbfe;border-top-color:#2563eb;border-radius:50%;animation:spin 0.9s linear infinite;flex-shrink:0"></div>
+            <div style="flex:1">
+              <div style="font-size:0.875rem;font-weight:600;color:#1e40af" id="seo-progress-label">Analyzujem váš web…</div>
+              <div style="font-size:0.78rem;color:#3b82f6;margin-top:0.1rem" id="seo-progress-url"></div>
+            </div>
+            <div style="font-size:0.78rem;font-weight:600;color:#2563eb;white-space:nowrap" id="seo-progress-pct">0 %</div>
+          </div>
+          <div style="height:8px;background:#dbeafe;border-radius:99px;overflow:hidden">
+            <div id="seo-progress-bar" style="height:100%;width:0%;background:linear-gradient(90deg,#2563eb,#60a5fa);border-radius:99px;transition:width 1s ease"></div>
+          </div>
+          <div style="font-size:0.75rem;color:#60a5fa" id="seo-progress-step">Kontrolujem štruktúru stránky…</div>
+        </div>
+        <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+        <div id="seo-no-audit" style="display:none;text-align:center;padding:4rem 1rem;color:#94a3b8">
+          <div style="font-size:3rem;margin-bottom:0.75rem">🔍</div>
+          <div style="font-size:1rem;font-weight:600;color:#64748b;margin-bottom:0.4rem">Zatiaľ žiadny audit</div>
+          <div style="font-size:0.875rem">Kliknite "+ Nový sken" a zadajte URL vášho webu.</div>
+        </div>
+
+        <div id="seo-result-wrap"></div>
+      </div>
+
+      <!-- SEO Scan Modal -->
+      <div id="seo-scan-modal" class="modal-overlay" style="display:none" onclick="if(event.target===this)closeSeoScanModal()">
+        <div class="modal-box" style="max-width:480px">
+          <div class="modal-header">
+            <h3>🔍 Nový SEO sken</h3>
+            <button class="modal-close" onclick="closeSeoScanModal()">✕</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label class="form-label">URL webu</label>
+              <input type="url" class="form-control" id="seo-scan-input" placeholder="https://vasafirma.sk">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeSeoScanModal()">Zrušiť</button>
+            <button class="btn btn-primary" onclick="startSeoScan()">Spustiť sken</button>
           </div>
         </div>
       </div>
@@ -301,12 +446,12 @@
 
           <!-- Suggestions -->
           <div class="coach-suggestions" id="coach-suggestions">
+            <button class="coach-chip" style="background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;font-weight:700" onclick="coachAsk(this)">🤖 Vytvoriť nový widget s AI</button>
             <button class="coach-chip" onclick="coachAsk(this)">Ako vložím chatbot na web?</button>
             <button class="coach-chip" onclick="coachAsk(this)">Chatbot odpovedá zle, čo robím?</button>
             <button class="coach-chip" onclick="coachAsk(this)">Ako pripojiť Instagram?</button>
             <button class="coach-chip" onclick="coachAsk(this)">Ako získať viac AI kreditov zadarmo?</button>
             <button class="coach-chip" onclick="coachAsk(this)">Čo je affiliate program?</button>
-            <button class="coach-chip" onclick="coachAsk(this)">Ako nastaviť GDPR súhlas?</button>
           </div>
 
           <!-- Messages -->
@@ -417,9 +562,15 @@
               <div id="proactive-fields">
                 <div class="form-row">
                   <div class="form-group">
-                    <label>Správa (text bubliny)</label>
+                    <label>Správa (text bubliny) <span style="font-weight:400;color:#94a3b8">(predvolená)</span></label>
                     <input type="text" class="form-control" id="s-proactive-message"
                       placeholder="napr. Ahoj! Môžem vám s niečím pomôcť? 👋">
+                    <div id="proactive-langs-container"></div>
+                    <div style="display:flex;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;align-items:center">
+                      <button type="button" id="btn-add-proactive-lang" class="btn btn-secondary btn-sm">+ Pridať jazyk</button>
+                      <button type="button" id="btn-auto-translate-proactive" class="btn btn-secondary btn-sm" onclick="autoTranslateProactive()">🌍 Auto-preložiť</button>
+                    </div>
+                    <div class="hint" style="margin-top:0.4rem">Pre viacjazyčné weby – widget automaticky rozpozná jazyk stránky zákazníka.</div>
                   </div>
                   <div class="form-group" style="max-width:160px">
                     <label>Zobrazí sa po (sek.)</label>
@@ -427,6 +578,22 @@
                   </div>
                 </div>
               </div>
+            </div>
+
+            <!-- Proactive Sequence -->
+            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px dashed #e2e8f0">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.25rem">📣 Ďalšie proaktívne správy</div>
+              <div class="hint" style="margin-bottom:0.85rem">Správy ktoré sa zobrazia automaticky v správnom momente – keď je návštevník dlho neaktívny, keď chatbot položil otázku bez odpovede, alebo po určitom čase od načítania. Nenásilné, dajú sa nastaviť aby sa opakovali.</div>
+              <div id="proactive-seq-list"></div>
+              <button type="button" id="btn-add-proactive-seq" class="btn btn-secondary btn-sm" style="margin-top:0.75rem">+ Pridať správu</button>
+            </div>
+
+            <!-- Promotions / Offers -->
+            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #e2e8f0">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.25rem">🏷️ Akcie a zľavy</div>
+              <div class="hint" style="margin-bottom:0.85rem">Chatbot aktívne ponúka tieto akcie zákazníkom keď prejavujú záujem alebo váhajú pri cene. Môžete nastaviť začiatok aj koniec vopred – chatbot ich zobrazí len keď sú aktívne.</div>
+              <div id="promotions-list"></div>
+              <button type="button" class="btn btn-secondary btn-sm" style="margin-top:0.75rem" onclick="addPromotion()">+ Pridať akciu</button>
             </div>
           </div>
         </div>
@@ -890,6 +1057,75 @@
 
         </div>
 
+        <!-- WhatsApp Tab -->
+        <div id="tab-whatsapp" class="tab-panel">
+
+          <!-- Disconnected state -->
+          <div class="panel" style="margin-bottom:1.5rem" id="wa-panel-disconnected">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">💬 WhatsApp Business Bot</div>
+                <div class="panel-subtitle">Bot automaticky odpovedá na správy cez váš WhatsApp Business účet</div>
+              </div>
+            </div>
+
+            <div class="ig-how-it-works" style="margin-bottom:1.5rem">
+              <div class="ig-step"><span class="ig-step-num">1</span><span>V Meta for Developers vytvorte aplikáciu a pridajte WhatsApp produkt</span></div>
+              <div class="ig-step"><span class="ig-step-num">2</span><span>Skopírujte Phone Number ID a vygenerujte Access Token</span></div>
+              <div class="ig-step"><span class="ig-step-num">3</span><span>Zadajte Webhook URL nižšie do Meta nastavení a overte ho</span></div>
+              <div class="ig-step"><span class="ig-step-num">4</span><span>Zákazníci píšu na vaše číslo – bot okamžite odpovie</span></div>
+            </div>
+
+            <div class="form-group">
+              <label>Phone Number ID <span style="font-weight:400;color:#94a3b8">(z Meta for Developers → WhatsApp → API Setup)</span></label>
+              <input type="text" class="form-control" id="wa-phone-number-id" placeholder="123456789012345">
+            </div>
+            <div class="form-group">
+              <label>Access Token <span style="font-weight:400;color:#94a3b8">(Permanent Token z System User, alebo dočasný token na testovanie)</span></label>
+              <input type="password" class="form-control" id="wa-access-token" placeholder="EAABx...">
+            </div>
+            <div class="form-group">
+              <label>Zobrazované číslo <span style="font-weight:400;color:#94a3b8">(nepovinné, napr. +421 900 123 456)</span></label>
+              <input type="text" class="form-control" id="wa-phone-display" placeholder="+421 900 123 456">
+            </div>
+            <div class="form-group">
+              <label>Verify Token <span style="font-weight:400;color:#94a3b8">(váš vlastný tajný reťazec pre overenie webhooku)</span></label>
+              <div style="display:flex;gap:0.5rem">
+                <input type="text" class="form-control" id="wa-verify-token" placeholder="moj_tajny_token_123" style="flex:1">
+                <button class="btn btn-secondary" onclick="generateWaVerifyToken()" style="flex-shrink:0">Generovať</button>
+              </div>
+            </div>
+            <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:1rem;padding:0.75rem" onclick="connectWhatsApp()">
+              💬 Pripojiť WhatsApp
+            </button>
+            <div style="text-align:center;font-size:0.78rem;color:#94a3b8;margin-top:0.5rem">
+              Údaje sa uložia bezpečne. Webhook URL nájdete nižšie po pripojení.
+            </div>
+          </div>
+
+          <!-- Connected state -->
+          <div class="panel" style="display:none;margin-bottom:1.5rem" id="wa-panel-connected">
+            <div class="panel-header">
+              <div style="display:flex;align-items:center;gap:0.75rem">
+                <div style="width:40px;height:40px;border-radius:50%;background:#25d366;display:flex;align-items:center;justify-content:center;color:white;font-size:1.1rem;flex-shrink:0">💬</div>
+                <div>
+                  <div class="panel-title" id="wa-connected-phone">WhatsApp Business</div>
+                  <div class="panel-subtitle" id="wa-connected-id"></div>
+                </div>
+              </div>
+              <div style="display:flex;gap:0.5rem;align-items:center">
+                <span class="ig-connected-badge">✅ Prepojené</span>
+                <button class="btn btn-sm btn-danger" onclick="disconnectWhatsApp()">Odpojiť</button>
+              </div>
+            </div>
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem 1rem;font-size:0.82rem;color:#166534;margin-top:0.5rem">
+              <strong>Webhook URL</strong> (nastav v Meta for Developers → WhatsApp → Configuration → Webhooks):<br>
+              <code id="wa-webhook-url" style="font-size:0.8rem;word-break:break-all"></code>
+            </div>
+          </div>
+
+        </div>
+
         <!-- Embed Tab -->
         <div id="tab-embed" class="tab-panel">
           <div class="panel">
@@ -1341,11 +1577,11 @@
             <button class="btn btn-secondary" onclick="loadInbox()">↺ Obnoviť</button>
           </div>
 
-          <div style="display:grid;grid-template-columns:300px 1fr;gap:1.25rem;align-items:start" id="inbox-layout">
+          <div id="inbox-layout">
             <!-- Conversation list -->
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+            <div id="inbox-list-panel">
               <div style="padding:0.75rem 1rem;border-bottom:1px solid #e2e8f0;font-size:0.78rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.05em">Konverzácie</div>
-              <div id="inbox-list" style="max-height:65vh;overflow-y:auto">
+              <div id="inbox-list" class="inbox-list-scroll">
                 <div id="inbox-empty" style="padding:2rem 1rem;text-align:center;color:#94a3b8;font-size:0.875rem">Žiadne konverzácie</div>
               </div>
             </div>
@@ -1353,16 +1589,19 @@
             <!-- Transcript panel -->
             <div id="inbox-transcript-panel" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;display:none">
               <div style="padding:0.75rem 1rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap">
-                <div>
-                  <div id="inbox-conv-title" style="font-weight:700;color:#1e293b;font-size:0.92rem"></div>
-                  <div id="inbox-conv-meta" style="font-size:0.75rem;color:#64748b;margin-top:0.1rem"></div>
+                <div style="display:flex;align-items:center;gap:0.6rem;min-width:0">
+                  <button id="inbox-back-btn" class="btn btn-sm btn-secondary" style="flex-shrink:0;padding:0.25rem 0.6rem;font-size:0.8rem">← Späť</button>
+                  <div style="min-width:0">
+                    <div id="inbox-conv-title" style="font-weight:700;color:#1e293b;font-size:0.92rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+                    <div id="inbox-conv-meta" style="font-size:0.75rem;color:#64748b;margin-top:0.1rem"></div>
+                  </div>
                 </div>
-                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
+                <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;flex-shrink:0">
                   <span id="inbox-live-badge" style="display:none;background:#dcfce7;color:#16a34a;font-size:0.72rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:99px">● LIVE</span>
                   <button id="inbox-takeover-btn" class="btn btn-sm btn-secondary" onclick="toggleLiveTakeover()">Prevziať chat</button>
                 </div>
               </div>
-              <div id="inbox-messages" style="padding:1rem;max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:0.6rem"></div>
+              <div id="inbox-messages" class="inbox-msgs-scroll"></div>
               <!-- Agent reply input (visible only during live takeover) -->
               <div id="inbox-agent-reply" style="display:none;padding:0.75rem 1rem;border-top:1px solid #e2e8f0;gap:0.5rem;flex-wrap:nowrap;align-items:center">
                 <input type="text" id="inbox-agent-input" class="form-control" placeholder="Napíšte správu zákazníkovi..." style="flex:1;font-size:0.875rem" onkeydown="if(event.key==='Enter')sendAgentMessage()">
@@ -1568,6 +1807,21 @@
             </div>
           </div>
 
+          <!-- Demo Video -->
+          <div class="panel" style="margin-bottom:1.5rem">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">🎥 Demo video / GIF</div>
+                <div class="panel-subtitle">Bot môže zdieľať video keď zákazník požiada o ukážku — YouTube, Vimeo, MP4 alebo GIF</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>URL videa <span style="font-weight:400;color:#94a3b8">(napr. https://youtu.be/xxxxx alebo https://vimeo.com/xxxxx)</span></label>
+              <input type="url" class="form-control" id="int-demo-video-url" placeholder="https://youtu.be/..." style="font-size:0.85rem">
+              <div style="font-size:0.78rem;color:#64748b;margin-top:0.35rem">Bot automaticky vloží video priamo do chatu. Zákazník si ho môže pozrieť bez opustenia stránky.</div>
+            </div>
+          </div>
+
           <!-- A/B Testing -->
           <div class="panel" style="margin-bottom:1.5rem">
             <div class="panel-header">
@@ -1635,9 +1889,521 @@
           </div>
         </div>
 
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- Sequences tab                                          -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div id="tab-sequences" class="tab-panel">
+          <div class="tab-header">
+            <h2 class="tab-title">📨 Sekvencia emailov</h2>
+          </div>
+          <div id="sequences-wrap" style="padding:0.5rem 0"></div>
+        </div>
+
+        <!-- ── Person tab ──────────────────────────────────────── -->
+        <div id="tab-person" class="tab-panel">
+
+          <!-- Upsell overlay — shown when person_addon_active = false -->
+          <div id="person-upsell-overlay" style="display:none;position:relative;z-index:10;background:white;border-radius:16px;padding:2.5rem 2rem;text-align:center;box-shadow:0 4px 24px rgba(124,58,237,0.10);border:2px solid #ede9fe;margin-bottom:1.5rem">
+            <div style="font-size:2.5rem;margin-bottom:0.75rem">🧑</div>
+            <h2 style="font-size:1.35rem;font-weight:700;color:#1e293b;margin:0 0 0.5rem">Neoworkly Person</h2>
+            <p style="color:#64748b;font-size:0.9rem;max-width:420px;margin:0 auto 1.25rem">Vytvorte AI digitálnu verziu seba – odpovedá presne tak, ako vy. Dostupné pre Pro aj White Label plán.</p>
+            <!-- Billing toggle -->
+            <div style="display:inline-flex;background:#f1f5f9;border-radius:8px;padding:3px;margin-bottom:1.25rem;gap:2px">
+              <button id="person-billing-monthly" onclick="selectPersonBilling('monthly')" style="border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;background:#7c3aed;color:white;transition:all 0.15s">Mesačne</button>
+              <button id="person-billing-yearly" onclick="selectPersonBilling('yearly')" style="border:none;border-radius:6px;padding:0.4rem 1rem;font-size:0.85rem;font-weight:600;cursor:pointer;background:transparent;color:#64748b;transition:all 0.15s">Ročne <span style="font-size:0.75rem;color:#16a34a;font-weight:700">−2 mesiace</span></button>
+            </div>
+            <div id="person-upsell-price-monthly" style="font-size:1.5rem;font-weight:800;color:#7c3aed;margin-bottom:1.25rem">+€29 <span style="font-size:0.9rem;font-weight:500;color:#94a3b8">/ mesiac</span></div>
+            <div id="person-upsell-price-yearly" style="font-size:1.5rem;font-weight:800;color:#7c3aed;margin-bottom:1.25rem">+€290 <span style="font-size:0.9rem;font-weight:500;color:#94a3b8">/ rok</span> <span style="font-size:0.8rem;color:#16a34a;font-weight:600">(~€24,17/mes)</span></div>
+            <button onclick="subscribePersonAddon()" style="background:linear-gradient(135deg,#7c3aed,#6d28d9);color:white;border:none;border-radius:10px;padding:0.75rem 2rem;font-size:1rem;font-weight:700;cursor:pointer">Aktivovať Person add-on</button>
+            <p id="person-upsell-note" style="font-size:0.75rem;color:#94a3b8;margin:0.75rem 0 0">Zrušiť môžete kedykoľvek. Fakturuje sa mesačne.</p>
+          </div>
+
+          <!-- Main content — hidden until add-on is active -->
+          <div id="person-content">
+          <div class="tab-header" style="flex-wrap:wrap;gap:0.75rem">
+            <div>
+              <h2 class="tab-title">🧑 Neoworkly Person</h2>
+              <p style="font-size:0.82rem;color:#64748b;margin:0.25rem 0 0">Vytvorte digitálnu verziu seba – AI ktorá odpovedá presne tak, ako by odpovedali vy.</p>
+            </div>
+            <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+              <button onclick="openPersonTraining()" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:0.55rem 1.1rem;font-size:0.875rem;font-weight:600;cursor:pointer;white-space:nowrap">🎯 Spustiť tréning</button>
+              <button onclick="savePersonProfile()" style="background:#2563eb;color:white;border:none;border-radius:8px;padding:0.55rem 1.25rem;font-size:0.875rem;font-weight:600;cursor:pointer;white-space:nowrap">💾 Uložiť</button>
+            </div>
+          </div>
+
+          <!-- Enable toggle -->
+          <div class="panel" style="margin-bottom:1rem">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:1rem">
+              <div>
+                <div style="font-size:0.9rem;font-weight:600;color:#1e293b">Person mód aktívny</div>
+                <div style="font-size:0.78rem;color:#64748b;margin-top:2px">Keď je vypnutý, widget v Person móde sa správa ako štandardný chatbot.</div>
+              </div>
+              <div style="position:relative;width:42px;height:24px;flex-shrink:0">
+                <input type="checkbox" id="person-active" onchange="_updatePersonToggle()" style="position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1">
+                <div id="person-toggle-track" style="width:42px;height:24px;border-radius:12px;background:#e2e8f0;transition:background 0.2s;position:absolute;top:0;left:0"></div>
+                <div id="person-toggle-thumb" style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Identity -->
+          <div class="panel" style="margin-bottom:1rem">
+            <div class="panel-header" style="margin-bottom:0.75rem">
+              <div>
+                <div class="panel-title">Identita</div>
+                <div class="panel-subtitle">Ako sa Person predstaví návštevníkovi</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Meno <span style="font-size:0.75rem;color:#94a3b8">(zobrazí sa v chate namiesto názvu chatbota)</span></label>
+              <input type="text" id="person-name" placeholder="napr. Juraj Kurečka" style="width:100%" maxlength="80">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>Úvodná správa <span style="font-size:0.75rem;color:#94a3b8">(čo Person napíše na začiatku)</span></label>
+              <textarea id="person-intro" rows="2" placeholder="napr. Ahoj! Som Juraj. Rád pomôžem s otázkami o marketingu a podnikaní." style="width:100%;resize:vertical"></textarea>
+            </div>
+          </div>
+
+          <!-- Training sections -->
+          <div class="panel" style="margin-bottom:1rem">
+            <div class="panel-header" style="margin-bottom:0.75rem">
+              <div>
+                <div class="panel-title">Tréning osobnosti</div>
+                <div class="panel-subtitle">Čím viac napíšete, tým autentickejšie bude Person odpovedať ako vy</div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:1rem">
+              <div>
+                <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:0.35rem">🧠 Ako rozmýšľam</label>
+                <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.4rem">Vaš filozofický pohľad, hodnoty, princípy rozhodovania. Ako pristupujete k problémom?</div>
+                <textarea id="person-how-i-think" rows="4" placeholder="napr. Verím, že každý problém má jednoduché riešenie – treba len nájsť správny uhol pohľadu. Preferujem dáta pred intuíciou, ale intuíciu nezanedbávam..." style="width:100%;resize:vertical"></textarea>
+              </div>
+
+              <div>
+                <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:0.35rem">✍️ Tvoj štýl</label>
+                <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.4rem">Ako píšete/hovoríte? Formálne alebo neformálne? Dlhé alebo krátke vety? Humor? Emócie?</div>
+                <textarea id="person-my-style" rows="4" placeholder="napr. Píšem krátko a k veci. Nepoužívam korporátny jazyk. Niekedy si dovolím jemný humor. Tykám ak mi tykajú..." style="width:100%;resize:vertical"></textarea>
+              </div>
+
+              <div>
+                <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:0.35rem">💡 Know-how</label>
+                <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.4rem">V čom ste expert? Čo viete lepšie ako ktokoľvek iný? Aké máte skúsenosti?</div>
+                <textarea id="person-know-how" rows="4" placeholder="napr. 10 rokov v digitálnom marketingu. Vybudoval som 3 úspešné SaaS produkty. Špecialistom som na growth hacking a SEO pre B2B..." style="width:100%;resize:vertical"></textarea>
+              </div>
+
+              <div>
+                <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:0.35rem">💬 Reálne odpovede</label>
+                <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.4rem">Príklady vašich skutočných odpovedí na časté otázky. Pomôže AI zachytiť váš ton.</div>
+                <textarea id="person-real-answers" rows="5" placeholder="Otázka: Koľko stojí spolupráca?&#10;Odpoveď: Závisí od rozsahu, ale štartujem od 500€/mes. Najlepšie je dohodnúť si 15-min call a rozprávame konkrétne.&#10;&#10;Otázka: Berieš aj malé projekty?&#10;Odpoveď: Berem, ale len ak vidím potenciál. Nemám rád keď sa projekt zasekne kvôli rozpočtu..." style="width:100%;resize:vertical"></textarea>
+              </div>
+
+              <div>
+                <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:0.35rem">🚫 Čo nikdy nehovoriť</label>
+                <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.4rem">Frázy, témy alebo postoje ktoré by ste nikdy nepoužili. AI sa im vyhne.</div>
+                <textarea id="person-never-say" rows="3" placeholder="napr. Nehovorím 'určite', keď si nie som istý. Nevenujem sa politike. Nesľubujem konkrétne výsledky bez analýzy..." style="width:100%;resize:vertical"></textarea>
+              </div>
+            </div>
+          </div>
+
+          <!-- Know-how sources -->
+          <div class="panel" style="margin-bottom:1rem">
+            <div class="panel-header" style="margin-bottom:1rem">
+              <div>
+                <div class="panel-title">📥 Nahrať know-how zo zdrojov</div>
+                <div class="panel-subtitle">Pridajte YouTube video, článok alebo PDF – AI z toho sama vytvorí profil</div>
+              </div>
+            </div>
+
+            <!-- URL input -->
+            <div style="margin-bottom:0.75rem">
+              <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:0.4rem">YouTube video alebo URL článku</label>
+              <div style="display:flex;gap:0.5rem">
+                <input type="url" id="ingest-url" placeholder="https://youtube.com/watch?v=... alebo https://blog.com/clanek" style="flex:1;min-width:0">
+                <button onclick="ingestPersonUrl()" id="ingest-url-btn" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:0.55rem 1rem;font-size:0.875rem;font-weight:600;cursor:pointer;white-space:nowrap">Spracovať</button>
+              </div>
+              <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.3rem">Podporuje YouTube (auto-prepis), WordPress, Medium, vlastné blogy a články</div>
+            </div>
+
+            <div style="text-align:center;color:#94a3b8;font-size:0.8rem;margin:0.75rem 0">— alebo —</div>
+
+            <!-- PDF upload -->
+            <div style="margin-bottom:0.75rem">
+              <label style="font-weight:600;font-size:0.85rem;color:#374151;display:block;margin-bottom:0.4rem">PDF súbor <span style="font-size:0.75rem;color:#94a3b8">(kniha, prezentácia, prednáška – max 20 MB)</span></label>
+              <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
+                <input type="file" id="ingest-pdf" accept=".pdf" style="flex:1;min-width:0;font-size:0.85rem">
+                <button onclick="ingestPersonPdf()" id="ingest-pdf-btn" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:0.55rem 1rem;font-size:0.875rem;font-weight:600;cursor:pointer;white-space:nowrap">Nahrať PDF</button>
+              </div>
+            </div>
+
+            <!-- Processing indicator -->
+            <div id="ingest-loading" style="display:none;text-align:center;padding:1.25rem 0;color:#7c3aed;font-size:0.9rem;font-weight:600">
+              <span style="display:inline-block;margin-right:0.5rem">⏳</span>Spracovávam obsah, čakajte…
+            </div>
+
+            <!-- Results -->
+            <div id="ingest-results" style="display:none;margin-top:1rem;border-top:1px solid #e2e8f0;padding-top:1rem">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem">
+                <div>
+                  <div style="font-weight:700;font-size:0.95rem;color:#1e293b">AI navrhuje tieto doplnky</div>
+                  <div id="ingest-source-title" style="font-size:0.78rem;color:#7c3aed;margin-top:2px"></div>
+                </div>
+                <div style="display:flex;gap:0.5rem">
+                  <button onclick="applyIngestResults()" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:0.45rem 1rem;font-size:0.82rem;font-weight:600;cursor:pointer">Použiť výsledky</button>
+                  <button onclick="discardIngestResults()" style="background:#f1f5f9;color:#64748b;border:1px solid #e2e8f0;border-radius:8px;padding:0.45rem 0.75rem;font-size:0.82rem;cursor:pointer">Zahodiť</button>
+                </div>
+              </div>
+              <!-- Summary -->
+              <div id="ingest-summary" style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.65rem 0.85rem;font-size:0.82rem;color:#166534;margin-bottom:0.75rem"></div>
+              <!-- Field previews -->
+              <div id="ingest-fields" style="display:flex;flex-direction:column;gap:0.5rem;font-size:0.82rem"></div>
+            </div>
+          </div>
+
+          <!-- Embed code -->
+          <!-- Embed options -->
+          <div class="panel">
+            <div class="panel-header" style="margin-bottom:1rem">
+              <div>
+                <div class="panel-title">Vloženie Person widgetu</div>
+                <div class="panel-subtitle">Vyberte spôsob integrácie podľa vášho use-case</div>
+              </div>
+            </div>
+
+            <!-- Tab switcher -->
+            <div style="display:flex;gap:0.4rem;margin-bottom:1rem">
+              <button id="person-embed-tab-bubble" onclick="switchPersonEmbedTab('bubble')"
+                style="flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.45rem 0.75rem;font-size:0.8rem;font-weight:600;cursor:pointer">
+                💬 Floating bublina
+              </button>
+              <button id="person-embed-tab-inline" onclick="switchPersonEmbedTab('inline')"
+                style="flex:1;background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:8px;padding:0.45rem 0.75rem;font-size:0.8rem;font-weight:600;cursor:pointer">
+                🪟 Inline (do stránky)
+              </button>
+            </div>
+
+            <!-- Bubble embed -->
+            <div id="person-embed-bubble">
+              <p style="font-size:0.78rem;color:#64748b;margin-bottom:0.6rem">Klasická bublina v rohu stránky – rovnaká ako štandardný chatbot, len s Person režimom.</p>
+              <div id="person-embed-code-bubble" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem;font-family:monospace;font-size:0.72rem;color:#374151;white-space:pre-wrap;word-break:break-all;margin-bottom:0.6rem"></div>
+              <button onclick="copyPersonEmbed('bubble')" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer">📋 Kopírovať kód</button>
+            </div>
+
+            <!-- Inline embed -->
+            <div id="person-embed-inline" style="display:none">
+              <p style="font-size:0.78rem;color:#64748b;margin-bottom:0.6rem">Person sa vykreslí priamo do vášho elementu – ideálne pre SaaS dashboard, členskú sekciu kurzu alebo dedikovanú stránku.</p>
+
+              <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.85rem;margin-bottom:0.75rem;font-size:0.78rem;color:#92400e">
+                <strong>Ako to funguje:</strong> Vložte prázdny <code style="background:#fde68a;padding:1px 4px;border-radius:3px">&lt;div&gt;</code> s výškou na miesto kde chcete chat, pridajte kód nižšie a widget sa vyplní celý priestor.
+              </div>
+
+              <div style="margin-bottom:0.5rem;font-size:0.78rem;font-weight:600;color:#374151">Krok 1 — kontajner (HTML)</div>
+              <div id="person-embed-code-container" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem;font-family:monospace;font-size:0.72rem;color:#374151;white-space:pre-wrap;word-break:break-all;margin-bottom:0.75rem"></div>
+
+              <div style="margin-bottom:0.5rem;font-size:0.78rem;font-weight:600;color:#374151">Krok 2 — script (pred &lt;/body&gt;)</div>
+              <div id="person-embed-code-inline" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem;font-family:monospace;font-size:0.72rem;color:#374151;white-space:pre-wrap;word-break:break-all;margin-bottom:0.6rem"></div>
+
+              <div style="display:flex;gap:0.5rem">
+                <button onclick="copyPersonEmbed('container')" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer">📋 Kopírovať kontajner</button>
+                <button onclick="copyPersonEmbed('inline')" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.4rem 1rem;font-size:0.82rem;cursor:pointer">📋 Kopírovať script</button>
+              </div>
+            </div>
+          </div>
+          <!-- Email channel -->
+          <div class="panel" style="margin-top:1rem">
+
+            <!-- Marketing header -->
+            <div style="background:linear-gradient(135deg,#f5f3ff,#ede9fe);border-radius:12px;padding:1.25rem;margin-bottom:1.25rem">
+              <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem;flex-wrap:wrap">
+                <div>
+                  <div style="font-size:1.05rem;font-weight:700;color:#1e293b;margin-bottom:0.35rem">&#128231; Vaša AI na firemnom e-maile</div>
+                  <div style="font-size:0.85rem;color:#4b5563;margin-bottom:0.75rem">Klienti píšu na <strong>asistent@vasafirma.sk</strong> &ndash; AI odpovedá za sekundy, 24/7, bez vás.</div>
+                  <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+                    <span style="background:white;border:1px solid #c4b5fd;color:#7c3aed;border-radius:20px;padding:0.2rem 0.65rem;font-size:0.75rem;font-weight:600">&#10003; Pôsobí profesionálne</span>
+                    <span style="background:white;border:1px solid #c4b5fd;color:#7c3aed;border-radius:20px;padding:0.2rem 0.65rem;font-size:0.75rem;font-weight:600">&#10003; Vaša doména, nie gmail</span>
+                    <span style="background:white;border:1px solid #c4b5fd;color:#7c3aed;border-radius:20px;padding:0.2rem 0.65rem;font-size:0.75rem;font-weight:600">&#10003; Rovnaká AI ako chatbot</span>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:0.6rem;flex-shrink:0">
+                  <span style="font-size:0.8rem;color:#6b7280" id="email-toggle-label">Vypnuté</span>
+                  <div style="position:relative;width:42px;height:24px">
+                    <input type="checkbox" id="email-channel-active" onchange="saveEmailConfig()" style="position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1">
+                    <div id="email-toggle-track" style="width:42px;height:24px;border-radius:12px;background:#e2e8f0;transition:background 0.2s;position:absolute;top:0;left:0"></div>
+                    <div id="email-toggle-thumb" style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Email address -->
+            <div class="form-group" style="margin-bottom:1.25rem">
+              <label style="font-weight:600">E-mailová adresa asistenta</label>
+              <input type="email" id="email-channel-address" placeholder="asistent@vasafirma.sk" style="width:100%" onblur="saveEmailConfig()">
+              <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.3rem">Adresu si vyberte ľubovoľne &ndash; nastavíte ju v 4. kroku nižšie.</div>
+            </div>
+
+            <div style="font-size:0.8rem;font-weight:700;color:#94a3b8;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:0.75rem">Nastavenie (raz, cca 15 minút)</div>
+
+            <!-- STEP 1 -->
+            <details style="margin-bottom:0.5rem;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+              <summary style="display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;cursor:pointer;background:#f8fafc;list-style:none;user-select:none">
+                <span style="background:#7c3aed;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">1</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:0.9rem;color:#1e293b">Presunúť DNS na Cloudflare</div>
+                  <div style="font-size:0.75rem;color:#64748b">Bezplatné &bull; 5&ndash;10 minút &bull; doména bude fungovať rovnako</div>
+                </div>
+                <span style="color:#94a3b8;font-size:0.8rem">&#9660;</span>
+              </summary>
+              <div style="padding:1rem;background:white;font-size:0.85rem;color:#374151;display:flex;flex-direction:column;gap:0.85rem">
+                <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:0.65rem 0.85rem;font-size:0.82rem;color:#92400e">
+                  <strong>Prečo je to potrebné?</strong> Cloudflare spravuje DNS záznamy vašej domény a umožňuje príjem e-mailov. Je to <strong>bezplatná služba</strong> &ndash; nič neplatíte, doména funguje ďalej normálne.
+                </div>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.5rem">1a. Vytvorte bezplatný účet na cloudflare.com</div>
+                  <a href="https://dash.cloudflare.com/sign-up" target="_blank" rel="noopener" style="display:inline-flex;align-items:center;gap:0.4rem;background:#f97316;color:white;border-radius:8px;padding:0.45rem 1rem;font-size:0.82rem;font-weight:600;text-decoration:none">Otvoriť Cloudflare registráciu &#8594;</a>
+                </div>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.5rem">1b. Pridajte vašu doménu</div>
+                  <div style="color:#64748b">V Cloudflare kliknite <strong>"Add a Site"</strong> &#8594; zadajte doménu (napr. <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px">vasafirma.sk</code>) &#8594; vyberte <strong>Free plán</strong>.<br><br>Cloudflare naskenuje existujúce DNS záznamy a ukáže vám <strong>2 nameservery</strong> (napr. <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px">aria.ns.cloudflare.com</code>). Tieto skopírujte.</div>
+                </div>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.6rem">1c. Nastavte nameservery u svojho registrátora</div>
+                  <div style="color:#64748b;margin-bottom:0.65rem">Vyberte kde máte doménu registrovanú:</div>
+                  <div style="display:flex;flex-direction:column;gap:0.4rem">
+                    <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                      <summary style="padding:0.5rem 0.75rem;cursor:pointer;background:#f8fafc;font-weight:600;font-size:0.82rem">&#127480;&#127472; Wedos.sk / &#127464;&#127487; Wedos.cz</summary>
+                      <div style="padding:0.65rem 0.75rem;font-size:0.8rem;color:#374151">Prihláste sa &#8594; <strong>Domény</strong> &#8594; kliknite na vašu doménu &#8594; záložka <strong>DNS záznamy</strong> &#8594; sekcia <strong>Nameservery</strong> &#8594; Zmeniť na vlastné &#8594; vložte oba nameservery z Cloudflare.</div>
+                    </details>
+                    <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                      <summary style="padding:0.5rem 0.75rem;cursor:pointer;background:#f8fafc;font-weight:600;font-size:0.82rem">Forpsi.sk / Forpsi.cz</summary>
+                      <div style="padding:0.65rem 0.75rem;font-size:0.8rem;color:#374151">Prihláste sa &#8594; <strong>Môj účet &#8594; Domény</strong> &#8594; kliknite na doménu &#8594; <strong>Spravovať doménu &#8594; Zmena NS záznamov</strong> &#8594; vložte oba nameservery.</div>
+                    </details>
+                    <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                      <summary style="padding:0.5rem 0.75rem;cursor:pointer;background:#f8fafc;font-weight:600;font-size:0.82rem">Active24</summary>
+                      <div style="padding:0.65rem 0.75rem;font-size:0.8rem;color:#374151">Prihláste sa &#8594; <strong>Správa domény</strong> &#8594; <strong>Nameservery</strong> &#8594; zadajte oba nameservery z Cloudflare.</div>
+                    </details>
+                    <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                      <summary style="padding:0.5rem 0.75rem;cursor:pointer;background:#f8fafc;font-weight:600;font-size:0.82rem">GoDaddy</summary>
+                      <div style="padding:0.65rem 0.75rem;font-size:0.8rem;color:#374151">My Domains &#8594; kliknite na doménu &#8594; <strong>DNS &#8594; Nameservers &#8594; Change</strong> &#8594; vyberte "I'll use my own nameservers" &#8594; vložte oba.</div>
+                    </details>
+                    <details style="border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
+                      <summary style="padding:0.5rem 0.75rem;cursor:pointer;background:#f8fafc;font-weight:600;font-size:0.82rem">Iný registrátor</summary>
+                      <div style="padding:0.65rem 0.75rem;font-size:0.8rem;color:#374151">Hľadajte v nastaveniach domény sekciu <strong>"Nameservery"</strong>, <strong>"NS záznamy"</strong> alebo <strong>"DNS servers"</strong>. Vložte oba nameservery z Cloudflare. Pri problémoch kontaktujte podporu registrátora &ndash; zmena NS je štandardná požiadavka.</div>
+                    </details>
+                  </div>
+                </div>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.65rem 0.85rem;font-size:0.82rem;color:#166534">
+                  &#9203; Zmena NS sa prejaví do <strong>5&ndash;30 minút</strong> (výnimočne až 24 hodín). Dovtedy doména funguje normálne.
+                </div>
+              </div>
+            </details>
+
+            <!-- STEP 2 -->
+            <details style="margin-bottom:0.5rem;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+              <summary style="display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;cursor:pointer;background:#f8fafc;list-style:none;user-select:none">
+                <span style="background:#7c3aed;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">2</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:0.9rem;color:#1e293b">Zapnúť Email Routing v Cloudflare</div>
+                  <div style="font-size:0.75rem;color:#64748b">2 kliknutia &bull; Cloudflare to nastaví automaticky</div>
+                </div>
+                <span style="color:#94a3b8;font-size:0.8rem">&#9660;</span>
+              </summary>
+              <div style="padding:1rem;background:white;font-size:0.85rem;color:#374151;display:flex;flex-direction:column;gap:0.6rem">
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">a</span>
+                  <span>V Cloudflare kliknite na vašu doménu &#8594; v ľavom menu <strong>Email &#8594; Email Routing</strong></span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">b</span>
+                  <span>Kliknite <strong>"Enable Email Routing"</strong> &#8594; Cloudflare automaticky pridá MX záznamy (nemusíte nič robiť)</span>
+                </div>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.6rem 0.85rem;font-size:0.82rem;color:#166534;margin-top:0.25rem">
+                  &#10003; Hotovo &ndash; Email Routing je aktívny.
+                </div>
+              </div>
+            </details>
+
+            <!-- STEP 3 -->
+            <details style="margin-bottom:0.5rem;border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+              <summary style="display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;cursor:pointer;background:#f8fafc;list-style:none;user-select:none">
+                <span style="background:#7c3aed;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">3</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:0.9rem;color:#1e293b">Nasadiť AI Worker skript</div>
+                  <div style="font-size:0.75rem;color:#64748b">Kopírovanie, nie programovanie &bull; 3 minúty</div>
+                </div>
+                <span style="color:#94a3b8;font-size:0.8rem">&#9660;</span>
+              </summary>
+              <div style="padding:1rem;background:white;font-size:0.85rem;color:#374151;display:flex;flex-direction:column;gap:0.85rem">
+                <div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:0.6rem 0.85rem;font-size:0.82rem;color:#92400e">
+                  <strong>Nebojte sa &ndash; nekódujete nič.</strong> Skopírujete hotový kód a vložíte ho. Cloudflare Worker je jednoducho &ldquo;pravidlo&rdquo;, čo má Cloudflare urobiť s prijatým e-mailom.
+                </div>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.4rem">3a. Vytvorte Worker</div>
+                  <div style="color:#64748b">V Cloudflare kliknite v ľavom menu <strong>Workers &amp; Pages &#8594; Create</strong> &#8594; <strong>Create Worker</strong> &#8594; pomenujte ho napr. <code style="background:#f1f5f9;padding:1px 5px;border-radius:4px">neoworkly-email</code> &#8594; kliknite <strong>Deploy</strong>.</div>
+                </div>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.4rem">3b. Vložte AI skript</div>
+                  <div style="color:#64748b;margin-bottom:0.5rem">Kliknite <strong>Edit code</strong> &#8594; zmažte všetok predvolený kód &#8594; skopírujte a vložte skript nižšie &#8594; <strong>Deploy</strong>.</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.4rem">
+                    <span style="font-size:0.78rem;color:#94a3b8">Hotový skript (len kopírovať):</span>
+                    <button onclick="copyEmailWorker()" style="background:#7c3aed;color:white;border:none;border-radius:6px;padding:0.35rem 0.85rem;font-size:0.78rem;font-weight:600;cursor:pointer">&#128203; Kopírovať skript</button>
+                  </div>
+                  <pre id="email-worker-code" style="background:#0f172a;color:#e2e8f0;border-radius:8px;padding:0.85rem;font-size:0.7rem;overflow-x:auto;margin:0;white-space:pre-wrap;word-break:break-all;max-height:180px;overflow-y:auto"></pre>
+                </div>
+                <div>
+                  <div style="font-weight:600;margin-bottom:0.4rem">3c. Pridajte tajný kľúč</div>
+                  <div style="color:#64748b;margin-bottom:0.5rem">V nastaveniach Workera kliknite <strong>Settings &#8594; Variables &#8594; Add variable</strong>:</div>
+                  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.65rem 0.85rem">
+                    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem">
+                      <div>
+                        <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.2rem">Variable name:</div>
+                        <code style="font-size:0.85rem;color:#7c3aed;font-weight:700">NEOWORKLY_SECRET</code>
+                      </div>
+                      <div style="flex:1;min-width:0;margin:0 0.75rem">
+                        <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:0.2rem">Value (váš unikátny kľúč):</div>
+                        <div id="email-webhook-secret" style="font-family:monospace;font-size:0.8rem;color:#1e293b;background:#f1f5f9;padding:0.3rem 0.5rem;border-radius:6px;word-break:break-all">(uložte profil pre vygenerovanie)</div>
+                      </div>
+                      <div style="display:flex;gap:0.4rem;flex-shrink:0">
+                        <button onclick="copyEmailSecret()" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:6px;padding:0.35rem 0.75rem;font-size:0.78rem;cursor:pointer">&#128203; Kopírovať</button>
+                        <button onclick="regenerateEmailSecret()" title="Vygeneruje nový kľúč" style="background:#fef2f2;color:#dc2626;border:1px solid #fecaca;border-radius:6px;padding:0.35rem 0.6rem;font-size:0.78rem;cursor:pointer">&#128260;</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.4rem">Zaškrtnite <strong>"Encrypt"</strong> pre bezpečnejšie uloženie. Potom kliknite <strong>Save and Deploy</strong>.</div>
+                </div>
+              </div>
+            </details>
+
+            <!-- STEP 4 -->
+            <details style="border:1px solid #e2e8f0;border-radius:10px;overflow:hidden">
+              <summary style="display:flex;align-items:center;gap:0.75rem;padding:0.85rem 1rem;cursor:pointer;background:#f8fafc;list-style:none;user-select:none">
+                <span style="background:#7c3aed;color:white;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0">4</span>
+                <div style="flex:1">
+                  <div style="font-weight:600;font-size:0.9rem;color:#1e293b">Prepojiť e-mailovú adresu s Workerom</div>
+                  <div style="font-size:0.75rem;color:#64748b">Posledný krok &ndash; 2 minúty</div>
+                </div>
+                <span style="color:#94a3b8;font-size:0.8rem">&#9660;</span>
+              </summary>
+              <div style="padding:1rem;background:white;font-size:0.85rem;color:#374151;display:flex;flex-direction:column;gap:0.6rem">
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">a</span>
+                  <span>V Cloudflare &#8594; vaša doména &#8594; <strong>Email &#8594; Email Routing &#8594; Routing Rules</strong></span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">b</span>
+                  <span>Kliknite <strong>"Create address"</strong> &#8594; zadajte prefix (napr. <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">asistent</code>) &#8594; ako akciu vyberte <strong>"Send to a Worker"</strong> &#8594; vyberte váš Worker</span>
+                </div>
+                <div style="display:flex;gap:0.75rem;align-items:flex-start">
+                  <span style="background:#e0e7ff;color:#4338ca;border-radius:50%;width:20px;height:20px;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;flex-shrink:0">c</span>
+                  <span>Zadajte výslednú e-mailovú adresu (napr. <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px">asistent@vasafirma.sk</code>) do poľa vyššie &#8594; zapnite kanál &#8594; <strong>uložte</strong></span>
+                </div>
+                <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.65rem 0.85rem;font-size:0.82rem;color:#166534;margin-top:0.25rem">
+                  &#127881; <strong>Hotovo!</strong> Pošlite si testovací e-mail na vašu novú adresu a AI by mala odpovedať do 10 sekúnd.
+                </div>
+              </div>
+            </details>
+
+          </div>
+
+          </div><!-- /#person-content -->
+        </div>
+
       </div>
     </div>
   </main>
+</div>
+
+<!-- Person Training Modal -->
+<div id="modal-person-training" style="display:none;position:fixed;inset:0;background:rgba(15,23,42,0.85);z-index:1200;flex-direction:column">
+
+  <!-- Header bar -->
+  <div style="background:white;border-bottom:1px solid #e2e8f0;padding:0.85rem 1.25rem;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div style="display:flex;align-items:center;gap:0.75rem">
+      <div style="font-size:1rem;font-weight:700;color:#1e293b">🎯 Tréning Person</div>
+      <div id="pt-status-badge" style="font-size:0.72rem;font-weight:600;padding:2px 8px;border-radius:99px;background:#dcfce7;color:#166534">● Prebieha</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:1rem">
+      <div style="text-align:right">
+        <div id="pt-timer" style="font-size:1.2rem;font-weight:700;color:#7c3aed;font-variant-numeric:tabular-nums">30:00</div>
+        <div style="font-size:0.68rem;color:#94a3b8">zostatok</div>
+      </div>
+      <button onclick="finishPersonTraining()" id="pt-finish-btn" style="background:#7c3aed;color:white;border:none;border-radius:8px;padding:0.45rem 1rem;font-size:0.82rem;font-weight:600;cursor:pointer">✅ Dokončiť</button>
+      <button onclick="closePersonTraining()" style="background:none;border:none;font-size:1.3rem;cursor:pointer;color:#64748b;line-height:1">×</button>
+    </div>
+  </div>
+
+  <!-- Chat area -->
+  <div style="flex:1;overflow:hidden;display:flex;flex-direction:column;max-width:760px;width:100%;margin:0 auto;padding:0 1rem">
+    <div id="pt-messages" style="flex:1;overflow-y:auto;padding:1.25rem 0;display:flex;flex-direction:column;gap:0.75rem">
+      <!-- messages injected by JS -->
+    </div>
+
+    <!-- Input area -->
+    <div id="pt-input-area" style="padding:0.75rem 0 1rem;border-top:1px solid #e2e8f0;display:flex;gap:0.6rem;align-items:flex-end">
+      <textarea id="pt-answer" placeholder="Napíšte vašu odpoveď..." rows="2"
+        style="flex:1;border:1px solid #e2e8f0;border-radius:10px;padding:0.65rem 0.85rem;font-size:0.9rem;resize:none;font-family:inherit;outline:none;line-height:1.5"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendTrainingAnswer()}"></textarea>
+      <button id="pt-send-btn" onclick="sendTrainingAnswer()" style="background:#7c3aed;color:white;border:none;border-radius:10px;padding:0.65rem 1.1rem;font-size:0.9rem;font-weight:600;cursor:pointer;white-space:nowrap;height:fit-content">Odoslať</button>
+    </div>
+  </div>
+
+  <!-- Analysis overlay (hidden by default) -->
+  <div id="pt-analyzing" style="display:none;position:absolute;inset:0;background:rgba(255,255,255,0.95);flex-direction:column;align-items:center;justify-content:center;gap:1.5rem">
+    <div style="font-size:2.5rem">🔍</div>
+    <div style="font-size:1.1rem;font-weight:700;color:#1e293b">Analyzujem váš štýl...</div>
+    <div style="font-size:0.85rem;color:#64748b;text-align:center;max-width:320px">AI číta všetky vaše odpovede a extrahuje DNA vašej komunikácie.</div>
+    <div style="display:flex;gap:4px">
+      <div style="width:8px;height:8px;border-radius:50%;background:#7c3aed;animation:pt-pulse 1.2s ease-in-out infinite"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:#7c3aed;animation:pt-pulse 1.2s ease-in-out 0.2s infinite"></div>
+      <div style="width:8px;height:8px;border-radius:50%;background:#7c3aed;animation:pt-pulse 1.2s ease-in-out 0.4s infinite"></div>
+    </div>
+  </div>
+
+  <!-- Results overlay (hidden by default) -->
+  <div id="pt-results" style="display:none;position:absolute;inset:0;background:white;overflow-y:auto">
+    <div style="max-width:760px;margin:0 auto;padding:2rem 1.25rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:0.75rem">
+        <div>
+          <div style="font-size:1.25rem;font-weight:700;color:#1e293b">✨ Tréning dokončený!</div>
+          <div style="font-size:0.82rem;color:#64748b;margin-top:0.25rem">AI extrahovala váš komunikačný profil. Skontrolujte a uložte.</div>
+        </div>
+        <div style="display:flex;gap:0.5rem">
+          <button onclick="discardTrainingResults()" style="background:#f1f5f9;color:#374151;border:1px solid #e2e8f0;border-radius:8px;padding:0.5rem 1rem;font-size:0.85rem;cursor:pointer">🔄 Zahodiť</button>
+          <button onclick="acceptTrainingResults()" style="background:#16a34a;color:white;border:none;border-radius:8px;padding:0.5rem 1.25rem;font-size:0.85rem;font-weight:600;cursor:pointer">✅ Prijať a uložiť</button>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:0.75rem">
+        <div class="panel">
+          <div style="font-weight:600;font-size:0.85rem;color:#374151;margin-bottom:0.5rem">🧠 Ako rozmýšľam</div>
+          <div id="pt-res-think" style="font-size:0.85rem;color:#475569;line-height:1.6;white-space:pre-wrap"></div>
+        </div>
+        <div class="panel">
+          <div style="font-weight:600;font-size:0.85rem;color:#374151;margin-bottom:0.5rem">✍️ Štýl komunikácie</div>
+          <div id="pt-res-style" style="font-size:0.85rem;color:#475569;line-height:1.6;white-space:pre-wrap"></div>
+        </div>
+        <div class="panel">
+          <div style="font-weight:600;font-size:0.85rem;color:#374151;margin-bottom:0.5rem">💡 Know-how</div>
+          <div id="pt-res-knowhow" style="font-size:0.85rem;color:#475569;line-height:1.6;white-space:pre-wrap"></div>
+        </div>
+        <div class="panel">
+          <div style="font-weight:600;font-size:0.85rem;color:#374151;margin-bottom:0.5rem">💬 Reálne odpovede</div>
+          <div id="pt-res-answers" style="font-size:0.85rem;color:#475569;line-height:1.6;white-space:pre-wrap"></div>
+        </div>
+        <div class="panel">
+          <div style="font-weight:600;font-size:0.85rem;color:#374151;margin-bottom:0.5rem">🚫 Čo nikdy nehovoriť</div>
+          <div id="pt-res-never" style="font-size:0.85rem;color:#475569;line-height:1.6;white-space:pre-wrap"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <style>
+    @keyframes pt-pulse {
+      0%,100% { opacity:0.3; transform:scale(0.8); }
+      50% { opacity:1; transform:scale(1.2); }
+    }
+  </style>
 </div>
 
 <!-- Lead Magnet Upload Modal -->
@@ -1713,6 +2479,52 @@
     <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem">
       <button class="btn btn-secondary" onclick="closeFollowupModal()">Zrušiť</button>
       <button class="btn btn-primary" id="followup-send-btn" onclick="sendFollowupEmail()">Odoslať</button>
+    </div>
+  </div>
+</div>
+
+<!-- Convert Lead Modal -->
+<div id="modal-convert" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;padding:0.75rem" onclick="if(event.target===this)closeConvertModal()">
+  <div class="modal-box" style="max-width:400px;width:100%" onclick="event.stopPropagation()">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:0.25rem">💰 Označiť ako konverziu</h2>
+    <div id="convert-lead-name" style="font-size:0.82rem;color:#64748b;margin-bottom:1rem"></div>
+    <input type="hidden" id="convert-lead-id">
+    <div class="form-group">
+      <label class="form-label">Hodnota obchodu (€)</label>
+      <input type="number" class="form-control" id="convert-deal-value" placeholder="napr. 250" min="0" step="0.01">
+      <div style="font-size:0.75rem;color:#94a3b8;margin-top:0.35rem">Ak nevieš presnú sumu, zadaj odhadovanú hodnotu.</div>
+    </div>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;margin-top:1rem;flex-wrap:wrap">
+      <button class="btn btn-secondary" onclick="closeConvertModal()">Zrušiť</button>
+      <button class="btn btn-danger btn-sm" id="convert-remove-btn" style="display:none" onclick="saveConversion(true)">Zrušiť konverziu</button>
+      <button class="btn btn-primary" onclick="saveConversion(false)">💰 Uložiť</button>
+    </div>
+  </div>
+</div>
+
+<!-- Reactivation Preview Modal -->
+<div id="modal-reactivation" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;padding:0.75rem" onclick="if(event.target===this)closeReactivationModal()">
+  <div class="modal-box" style="max-width:520px;width:100%" onclick="event.stopPropagation()">
+    <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:0.25rem" id="react-modal-title">✨ AI správa</h2>
+    <div id="react-modal-meta" style="font-size:0.82rem;color:#64748b;margin-bottom:1rem"></div>
+    <input type="hidden" id="react-lead-id">
+    <div id="react-modal-loading" style="text-align:center;padding:2rem;color:#64748b">
+      <div style="font-size:1.5rem;margin-bottom:0.5rem">✨</div>
+      <div style="font-size:0.875rem">AI generuje správu...</div>
+    </div>
+    <div id="react-modal-body" style="display:none">
+      <div class="form-group">
+        <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+          <span>Správa (môžeš upraviť)</span>
+          <button class="btn btn-secondary btn-sm" onclick="regenerateReactivation()">↺ Regenerovať</button>
+        </label>
+        <textarea id="react-message" class="form-control" rows="6"></textarea>
+      </div>
+      <div style="font-size:0.75rem;color:#94a3b8;margin-bottom:1rem">Správa bude odoslaná z tvojho emailu (SMTP) na adresu zákazníka.</div>
+      <div style="display:flex;gap:0.75rem;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="closeReactivationModal()">Zrušiť</button>
+        <button class="btn btn-primary" id="react-send-btn" onclick="sendReactivation()">📧 Odoslať email</button>
+      </div>
     </div>
   </div>
 </div>
@@ -1860,7 +2672,7 @@
 
 <!-- Credits Modal -->
 <div id="modal-credits" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:center;justify-content:center;padding:0.75rem;" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-box" onclick="event.stopPropagation()">
+  <div class="modal-box" onclick="event.stopPropagation()" style="max-width:480px;max-height:90vh;overflow-y:auto">
     <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:0.25rem">Dobiť AI kredity</h2>
     <p style="font-size:0.875rem;color:#64748b;margin-bottom:1.5rem">Kredity sa neobnovia mesačne – spotrebúvajú sa postupne</p>
 
@@ -1885,9 +2697,16 @@
       </button>
     </div>
 
+    <!-- WL volume packages (shown only for WL users) -->
+    <div id="credits-wl-section" style="display:none;border-top:1px solid #e2e8f0;padding-top:1.25rem;margin-bottom:1.25rem">
+      <div style="font-size:0.875rem;font-weight:700;color:#7c3aed;margin-bottom:0.65rem">🏢 White Label – Hromadné balíky</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.65rem" id="credits-wl-packages"></div>
+      <div id="credits-wl-usage" style="margin-top:1rem"></div>
+    </div>
+
     <!-- Custom amount -->
     <div style="border-top:1px solid #e2e8f0;padding-top:1.25rem">
-      <label style="font-size:0.875rem;font-weight:600;color:#374151;display:block;margin-bottom:0.5rem">Vlastná suma <span style="font-weight:400;color:#94a3b8">(1 € = 20 odpovedí)</span></label>
+      <label id="credits-custom-label" style="font-size:0.875rem;font-weight:600;color:#374151;display:block;margin-bottom:0.5rem">Vlastná suma <span style="font-weight:400;color:#94a3b8">(1 € = 20 odpovedí)</span></label>
       <div style="display:flex;gap:0.5rem;align-items:center">
         <div style="position:relative;flex:1">
           <span style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:#64748b;font-weight:600">€</span>
@@ -1895,6 +2714,61 @@
         </div>
         <span style="font-size:0.8rem;color:#94a3b8;white-space:nowrap" id="credits-custom-preview">= 0 odpovedí</span>
         <button class="btn btn-primary" onclick="buyCustomCredits()">Kúpiť</button>
+      </div>
+    </div>
+
+    <!-- Auto-reload section -->
+    <div style="border-top:1px solid #e2e8f0;padding-top:1.25rem;margin-top:1.25rem">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.6rem">
+        <div>
+          <div style="font-size:0.875rem;font-weight:700;color:#374151">🔄 Automatické dobíjanie</div>
+          <div style="font-size:0.75rem;color:#94a3b8;margin-top:1px">Dobí sa automaticky keď kredity klesnú pod limit</div>
+        </div>
+        <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+          <div style="position:relative;width:42px;height:24px">
+            <input type="checkbox" id="ar-enabled" onchange="toggleAutoReload()" style="position:absolute;opacity:0;width:100%;height:100%;margin:0;cursor:pointer;z-index:1">
+            <div id="ar-toggle-track" style="width:42px;height:24px;border-radius:12px;background:#e2e8f0;transition:background 0.2s;position:absolute;top:0;left:0"></div>
+            <div id="ar-toggle-thumb" style="width:18px;height:18px;border-radius:50%;background:white;position:absolute;top:3px;left:3px;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></div>
+          </div>
+          <span id="ar-status-label" style="font-size:0.78rem;font-weight:600;color:#94a3b8;min-width:52px">Vypnuté</span>
+        </label>
+      </div>
+
+      <div id="ar-settings" style="display:none">
+        <!-- Threshold -->
+        <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:0.85rem;background:#f8fafc;border-radius:10px;padding:0.65rem 0.75rem">
+          <span style="font-size:0.82rem;color:#64748b;white-space:nowrap">Dobiť keď klesne pod</span>
+          <input type="number" id="ar-threshold" min="0" max="9999" step="10" value="50" class="form-control" style="width:75px;padding:0.35rem 0.5rem;font-size:0.875rem;text-align:center">
+          <span style="font-size:0.78rem;color:#94a3b8">odpovedí</span>
+        </div>
+
+        <!-- Amount -->
+        <div style="margin-bottom:0.85rem">
+          <div style="font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;font-weight:600">Suma dobíjania</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:0.4rem">
+            <button class="ar-amount-btn" data-eur="5" onclick="selectArAmount(5)" style="padding:0.5rem 0.3rem;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:0.78rem;font-weight:600;line-height:1.4">€5<br><span style="font-weight:400;font-size:0.7rem;color:#94a3b8">100 odp.</span></button>
+            <button class="ar-amount-btn" data-eur="8" onclick="selectArAmount(8)" style="padding:0.5rem 0.3rem;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:0.78rem;font-weight:600;line-height:1.4">€8<br><span style="font-weight:400;font-size:0.7rem;color:#94a3b8">200 odp.</span></button>
+            <button class="ar-amount-btn" data-eur="15" onclick="selectArAmount(15)" style="padding:0.5rem 0.3rem;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:0.78rem;font-weight:600;line-height:1.4">€15<br><span style="font-weight:400;font-size:0.7rem;color:#94a3b8">350 odp.</span></button>
+            <button class="ar-amount-btn" data-eur="custom" onclick="selectArAmount('custom')" style="padding:0.5rem 0.3rem;border:2px solid #e2e8f0;border-radius:8px;background:white;cursor:pointer;font-size:0.78rem;font-weight:600;line-height:1.4">Iné<br><span id="ar-custom-preview" style="font-weight:400;font-size:0.7rem;color:#94a3b8">vlastné</span></button>
+          </div>
+          <div id="ar-custom-row" style="display:none;margin-top:0.5rem;align-items:center;gap:0.5rem">
+            <span style="color:#64748b;font-size:0.82rem;font-weight:600">€</span>
+            <input type="number" id="ar-custom-eur" min="1" step="1" placeholder="napr. 10" class="form-control" style="width:80px;padding:0.35rem 0.5rem;font-size:0.875rem" oninput="updateArCustomPreview()">
+            <span id="ar-custom-label" style="font-size:0.78rem;color:#94a3b8">= 0 odpovedí</span>
+          </div>
+        </div>
+
+        <!-- Card status -->
+        <div id="ar-no-card" style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.75rem;background:#fef9c3;border:1px solid #fde68a;border-radius:8px;margin-bottom:0.75rem">
+          <span style="font-size:0.82rem;color:#92400e;font-weight:500">⚠️ Uložte kartu pre auto-reload</span>
+          <button class="btn btn-primary" style="font-size:0.78rem;padding:0.3rem 0.7rem;white-space:nowrap" onclick="setupAutoReloadCard()">💳 Uložiť kartu</button>
+        </div>
+        <div id="ar-has-card" style="display:none;align-items:center;justify-content:space-between;padding:0.6rem 0.75rem;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;margin-bottom:0.75rem">
+          <span id="ar-card-label" style="font-size:0.82rem;color:#15803d;font-weight:600">✅ Karta uložená</span>
+          <button class="btn btn-secondary" style="font-size:0.78rem;padding:0.3rem 0.7rem" onclick="removeAutoReloadCard()">Odstrániť</button>
+        </div>
+
+        <button class="btn btn-primary" style="width:100%" onclick="saveAutoReloadSettings()" id="ar-save-btn">Uložiť nastavenia</button>
       </div>
     </div>
 
@@ -1964,6 +2838,7 @@
     <div style="display:flex;gap:0.35rem;margin-bottom:1.5rem;background:#f1f5f9;border-radius:10px;padding:0.2rem">
       <button id="acc-tab-pw" onclick="switchAccTab('pw')" style="flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">Zmena hesla</button>
       <button id="acc-tab-email" onclick="switchAccTab('email')" style="flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">Zmena emailu</button>
+      <button id="acc-tab-lang" onclick="switchAccTab('lang')" style="flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">🌐 Jazyk</button>
     </div>
 
     <!-- Change password -->
@@ -1985,6 +2860,12 @@
       <button class="btn btn-primary" style="width:100%" onclick="doChangePassword()">Zmeniť heslo</button>
     </div>
 
+    <!-- Language selection -->
+    <div id="acc-panel-lang" style="display:none">
+      <p style="font-size:0.85rem;color:#64748b;margin:0 0 1rem">Vyberte jazyk rozhrania Neoworkly. Zmena sa prejaví okamžite.</p>
+      <div id="acc-lang-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem"></div>
+    </div>
+
     <!-- Change email -->
     <div id="acc-panel-email" style="display:none">
       <div class="form-group">
@@ -2002,7 +2883,7 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=9"></script>
-<script src="/i18n.js?v=2"></script>
+<script src="/js/dashboard.js?v=23"></script>
+<script src="/i18n.js?v=3"></script>
 </body>
 </html>

@@ -16,8 +16,9 @@ const avatarStorage = multer.diskStorage({
     cb(null, dir);
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-    cb(null, `avatar-${req.params.id}${ext}`);
+    const ALLOWED_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `avatar-${req.params.id}${ALLOWED_EXTS.has(ext) ? ext : '.jpg'}`);
   },
 });
 const uploadAvatar = multer({
@@ -54,6 +55,7 @@ router.get('/leads/all', (req, res) => {
     SELECT l.id, l.name, l.email, l.phone, l.status, l.notes, l.chat_summary,
            l.gdpr_consent, l.created_at, l.widget_id, l.csat_rating,
            l.follow_up_sent_at, l.ab_variant,
+           l.deal_value, l.converted_at, l.last_reactivation_at, l.reactivation_count,
            w.name AS widget_name, w.bot_name
     FROM leads l
     JOIN widgets w ON w.id = l.widget_id
@@ -80,6 +82,33 @@ router.post('/', (req, res) => {
   }
 
   const db = getDb();
+
+  const user = db.prepare('SELECT subscription_plan, subscription_status, free_until, white_label_extra_slots FROM users WHERE id = ?').get(req.userId);
+
+  // Block creation when subscription is not active
+  const nowTs = Math.floor(Date.now() / 1000);
+  const subActive = user?.subscription_status === 'active' || user?.subscription_status === 'past_due' ||
+                    (user?.free_until && user.free_until > nowTs);
+  if (!subActive) {
+    return res.status(403).json({ error: 'Vytvorenie widgetu vyžaduje aktívne predplatné.' });
+  }
+
+  // Enforce widget limits per plan
+  const widgetCount = db.prepare('SELECT COUNT(*) AS cnt FROM widgets WHERE user_id = ?').get(req.userId).cnt;
+  const isWL = user?.subscription_plan === 'white_label';
+  const limit = isWL ? (40 + (user.white_label_extra_slots || 0)) : 10;
+  if (widgetCount >= limit) {
+    return res.status(403).json({
+      error: isWL
+        ? `Dosiahli ste limit ${limit} klientov. Dokúpte ďalšie sloty (€15/klient).`
+        : 'Dosiahli ste limit 10 widgetov na Pro pláne.',
+      limit_reached: true,
+      is_white_label: isWL,
+      current: widgetCount,
+      limit,
+    });
+  }
+
   const id = uuidv4();
 
   db.prepare(`
@@ -109,12 +138,23 @@ router.put('/:id', (req, res) => {
 
   const { name, bot_name, welcome_message, primary_color, goals, cta_type, cta_config, suggested_questions,
           suggested_questions_i18n, active,
-          proactive_enabled, proactive_delay, proactive_message, gdpr_text,
+          proactive_enabled, proactive_delay, proactive_message, proactive_sequence, gdpr_text,
           webhook_url, slack_webhook_url, hide_branding, csat_enabled,
           ab_test_enabled, welcome_message_b, auto_reply_enabled, auto_reply_message,
-          offline_message, business_hours } = req.body;
+          offline_message, business_hours, demo_video_url, promotions } = req.body;
 
   const db = getDb();
+
+  // Block manual reactivation when subscription is not active
+  if (active === true || active === 1 || active === '1') {
+    const subUser = db.prepare('SELECT subscription_status, free_until FROM users WHERE id = ?').get(req.userId);
+    const nowSub = Math.floor(Date.now() / 1000);
+    const subOk = subUser?.subscription_status === 'active' || subUser?.subscription_status === 'past_due' ||
+                  (subUser?.free_until && subUser.free_until > nowSub);
+    if (!subOk) {
+      return res.status(403).json({ error: 'Aktivácia widgetu vyžaduje aktívne predplatné.' });
+    }
+  }
 
   // White-label is only available on the White Label plan
   if (hide_branding) {
@@ -138,6 +178,7 @@ router.put('/:id', (req, res) => {
       proactive_enabled = ?,
       proactive_delay = ?,
       proactive_message = ?,
+      proactive_sequence = ?,
       gdpr_text = ?,
       webhook_url = ?,
       slack_webhook_url = ?,
@@ -148,7 +189,9 @@ router.put('/:id', (req, res) => {
       auto_reply_enabled = ?,
       auto_reply_message = ?,
       offline_message = ?,
-      business_hours = ?
+      business_hours = ?,
+      demo_video_url = ?,
+      promotions = ?
     WHERE id = ?
   `).run(
     name !== undefined ? name.trim() : widget.name,
@@ -163,7 +206,8 @@ router.put('/:id', (req, res) => {
     active !== undefined ? (active ? 1 : 0) : widget.active,
     proactive_enabled !== undefined ? (proactive_enabled ? 1 : 0) : (widget.proactive_enabled || 0),
     proactive_delay !== undefined ? Math.max(1, Math.min(60, parseInt(proactive_delay) || 4)) : (widget.proactive_delay || 4),
-    proactive_message !== undefined ? String(proactive_message).slice(0, 500) : (widget.proactive_message || ''),
+    proactive_message !== undefined ? String(proactive_message).slice(0, 5000) : (widget.proactive_message || ''),
+    proactive_sequence !== undefined ? JSON.stringify(Array.isArray(proactive_sequence) ? proactive_sequence.slice(0, 20) : []) : (widget.proactive_sequence || '[]'),
     gdpr_text !== undefined ? String(gdpr_text).slice(0, 5000) : (widget.gdpr_text || ''),
     webhook_url !== undefined ? (webhook_url ? String(webhook_url).slice(0, 512) : null) : (widget.webhook_url || null),
     slack_webhook_url !== undefined ? (slack_webhook_url ? String(slack_webhook_url).slice(0, 512) : null) : (widget.slack_webhook_url || null),
@@ -175,6 +219,8 @@ router.put('/:id', (req, res) => {
     auto_reply_message !== undefined ? String(auto_reply_message || '').slice(0, 2000) : (widget.auto_reply_message || ''),
     offline_message !== undefined ? String(offline_message || '').slice(0, 500) : (widget.offline_message || ''),
     business_hours !== undefined ? (typeof business_hours === 'string' ? business_hours : JSON.stringify(business_hours)) : (widget.business_hours || '{}'),
+    demo_video_url !== undefined ? (demo_video_url ? String(demo_video_url).slice(0, 512) : null) : (widget.demo_video_url || null),
+    promotions !== undefined ? JSON.stringify(Array.isArray(promotions) ? promotions.slice(0, 20) : []) : (widget.promotions || '[]'),
     widget.id
   );
 
@@ -385,6 +431,7 @@ function parseWidget(w) {
     proactive_enabled: Boolean(w.proactive_enabled),
     proactive_delay: w.proactive_delay || 4,
     proactive_message: w.proactive_message || '',
+    proactive_sequence: safeParseJSON(w.proactive_sequence, []),
     gdpr_text: w.gdpr_text || '',
     hide_branding: Boolean(w.hide_branding),
     csat_enabled: Boolean(w.csat_enabled),
@@ -396,6 +443,8 @@ function parseWidget(w) {
     webhook_url: w.webhook_url || null,
     slack_webhook_url: w.slack_webhook_url || null,
     business_hours: safeParseJSON(w.business_hours, {}),
+    demo_video_url: w.demo_video_url || null,
+    promotions: safeParseJSON(w.promotions, []),
   };
 }
 

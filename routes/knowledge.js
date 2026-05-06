@@ -80,6 +80,10 @@ router.post('/:widgetId/upload', upload.single('file'), async (req, res) => {
 
   try {
     const content = await parseFile(req.file.path, req.file.mimetype, req.file.originalname);
+    if (content.length > 200000) {
+      cleanupFile(req.file.path);
+      return res.status(400).json({ error: 'Obsah je príliš dlhý (max 200 000 znakov).' });
+    }
     const title = (req.body.title || req.file.originalname).trim();
     const item = insertKnowledgeItem(req.params.widgetId, title, content, 'pdf');
     cleanupFile(req.file.path);

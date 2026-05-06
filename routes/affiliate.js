@@ -7,7 +7,7 @@ const { getDb } = require('../db/database');
 const router = express.Router();
 router.use(requireAuth);
 
-const MONTHLY_PRICE = 29;       // € za 1 voľný mesiac
+const MONTHLY_PRICE = 37;       // € za 1 voľný mesiac (= cena Pro plánu)
 const AI_CREDITS_PER_EUR = 100; // AI odpovedí za 1 € (rovnaká sadzba ako platené balíky)
 
 // GET /api/affiliate/status
@@ -77,7 +77,7 @@ router.post('/redeem', async (req, res) => {
   // free_until = teraz + počet voľných mesiacov (30 dní každý)
   const freeUntil = now + freeMonths * 30 * 24 * 3600;
 
-  // Pause Stripe subscription if active
+  // Pause Stripe subscription if active — must succeed before we deduct credits
   if (user.subscription_id && user.subscription_status === 'active') {
     try {
       const Stripe = require('stripe');
@@ -90,11 +90,11 @@ router.post('/redeem', async (req, res) => {
       });
     } catch (err) {
       console.error('[affiliate] Stripe pause error:', err.message);
-      // Continue anyway — we still grant the free period server-side
+      return res.status(502).json({ error: 'Nepodarilo sa pozastaviť predplatné. Skúste znova neskôr.' });
     }
   }
 
-  // Deduct credits, set free_until, enable redeem flag
+  // Deduct credits, set free_until, enable redeem flag — only after Stripe pause succeeded
   db.prepare(`
     UPDATE users
     SET referral_credits = referral_credits - ?,
@@ -103,6 +103,11 @@ router.post('/redeem', async (req, res) => {
         subscription_status = 'active'
     WHERE id = ?
   `).run(creditsToUse, freeUntil, req.userId);
+
+  // Log credit transaction
+  const { v4: uuidv4 } = require('uuid');
+  db.prepare('INSERT OR IGNORE INTO credit_transactions (id, user_id, type, amount, note) VALUES (?, ?, ?, ?, ?)')
+    .run(uuidv4(), req.userId, 'affiliate_redeem', -Math.round(creditsToUse * 100), `${freeMonths} free months`);
 
   res.json({
     ok: true,

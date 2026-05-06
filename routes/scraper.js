@@ -23,6 +23,16 @@ router.post('/scan', async (req, res) => {
   try { new URL(url); } catch {
     return res.status(400).json({ error: 'Neplatná URL adresa.' });
   }
+  // SSRF protection: block private/loopback addresses
+  const _scHost = new URL(url).hostname;
+  if (
+    _scHost === 'localhost' || _scHost === '::1' ||
+    /^127\./.test(_scHost) || /^10\./.test(_scHost) ||
+    /^192\.168\./.test(_scHost) || /^172\.(1[6-9]|2[0-9]|3[01])\./.test(_scHost) ||
+    /^169\.254\./.test(_scHost)
+  ) {
+    return res.status(400).json({ error: 'Privátne IP adresy nie sú povolené.' });
+  }
 
   // Validate widget ownership
   const db = getDb();

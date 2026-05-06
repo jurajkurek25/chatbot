@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin – Tréningové dáta</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, sans-serif; background: #f5f5f5; color: #222; min-height: 100vh; }
+
+    .header {
+      background: #111; color: #fff; padding: 16px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .header h1 { font-size: 18px; font-weight: 600; }
+    .header button { background: #333; color: #ccc; border: none; padding: 6px 14px; border-radius: 5px; cursor: pointer; font-size: 13px; }
+    .header button:hover { background: #444; }
+
+    .container { max-width: 900px; margin: 32px auto; padding: 0 16px; }
+
+    .card {
+      background: #fff; border-radius: 10px; padding: 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.08); margin-bottom: 20px;
+    }
+    .card h2 { font-size: 13px; font-weight: 700; margin-bottom: 16px; color: #888; text-transform: uppercase; letter-spacing: .06em; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+    .stat-box { background: #f8f8f8; border-radius: 8px; padding: 16px; text-align: center; }
+    .stat-box .num { font-size: 32px; font-weight: 700; color: #111; }
+    .stat-box .label { font-size: 12px; color: #888; margin-top: 4px; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th { text-align: left; padding: 8px 12px; background: #f2f2f2; font-weight: 600; }
+    td { padding: 8px 12px; border-bottom: 1px solid #f0f0f0; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 100px; font-size: 11px; font-weight: 600; }
+    .badge-good { background: #d4f5e2; color: #1a7a43; }
+    .badge-neutral { background: #e8e8e8; color: #555; }
+    .badge-bad { background: #fde8e8; color: #c0392b; }
+
+    .filters { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+    .filters label { font-size: 13px; color: #555; display: flex; flex-direction: column; gap: 4px; }
+    .filters select, .filters input {
+      padding: 8px 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; background: #fff;
+    }
+
+    .btn { padding: 10px 20px; border: none; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn-primary { background: #111; color: #fff; }
+    .btn-secondary { background: #e8e8e8; color: #333; }
+
+    .actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+    #status { font-size: 13px; color: #888; margin-top: 10px; min-height: 20px; }
+
+    .preview-box {
+      background: #1a1a1a; color: #e8e8e8; border-radius: 8px; padding: 16px;
+      font-family: monospace; font-size: 12px; line-height: 1.6;
+      max-height: 300px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+      margin-top: 16px; display: none;
+    }
+
+    /* Login */
+    .login-wrap { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+    .login-card { background: #fff; border-radius: 12px; padding: 40px 36px; box-shadow: 0 2px 16px rgba(0,0,0,.1); width: 100%; max-width: 380px; }
+    .login-card h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+    .login-card p { font-size: 13px; color: #888; margin-bottom: 24px; }
+    .login-card input {
+      width: 100%; padding: 12px 14px; border: 1.5px solid #ddd; border-radius: 8px;
+      font-size: 15px; margin-bottom: 14px; font-family: monospace; letter-spacing: .05em;
+    }
+    .login-card input:focus { outline: none; border-color: #111; }
+    .login-card .btn { width: 100%; padding: 13px; font-size: 15px; }
+    .login-error { color: #c0392b; font-size: 13px; margin-top: 10px; text-align: center; }
+  </style>
+</head>
+<body>
+
+<!-- Login -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <h1>Admin prístup</h1>
+    <p>Zadajte administrátorský kľúč</p>
+    <input type="password" id="keyInput" placeholder="Váš admin kľúč..." autocomplete="off"
+           onkeydown="if(event.key==='Enter') doLogin()" />
+    <button class="btn btn-primary" onclick="doLogin()">Prihlásiť sa</button>
+    <div class="login-error" id="loginError"></div>
+  </div>
+</div>
+
+<!-- Main -->
+<div id="mainUI" style="display:none">
+  <div class="header">
+    <h1>Tréningové dáta</h1>
+    <button onclick="logout()">Odhlásiť</button>
+  </div>
+
+  <div class="container">
+
+    <div class="card">
+      <h2>Štatistiky</h2>
+      <div class="stats-grid">
+        <div class="stat-box"><div class="num" id="statTotal">—</div><div class="label">Celkom ukážok</div></div>
+        <div class="stat-box"><div class="num" id="statGood">—</div><div class="label">Kvalitné (quality=1)</div></div>
+        <div class="stat-box"><div class="num" id="statChat">—</div><div class="label">Chat</div></div>
+        <div class="stat-box"><div class="num" id="statCoach">—</div><div class="label">Coach</div></div>
+      </div>
+      <div style="margin-top:14px;font-size:12px;color:#aaa" id="dateRange"></div>
+    </div>
+
+    <div class="card">
+      <h2>Rozpad podľa zdroja a kvality</h2>
+      <table>
+        <thead><tr><th>Zdroj</th><th>Kvalita</th><th>Počet</th></tr></thead>
+        <tbody id="breakdownBody"><tr><td colspan="3" style="color:#aaa;padding:12px">Načítavam...</td></tr></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Export</h2>
+      <div class="filters">
+        <label>Zdroj
+          <select id="filterSource">
+            <option value="">Všetky</option>
+            <option value="chat">chat</option>
+            <option value="coach">coach</option>
+            <option value="demo">demo</option>
+          </select>
+        </label>
+        <label>Kvalita
+          <select id="filterQuality">
+            <option value="">Všetky</option>
+            <option value="1">1 — dobré</option>
+            <option value="0">0 — neutrálne</option>
+            <option value="-1">-1 — chybové</option>
+          </select>
+        </label>
+        <label>Formát
+          <select id="filterFormat">
+            <option value="jsonl">JSONL (fine-tuning)</option>
+            <option value="json">JSON (čitateľný)</option>
+          </select>
+        </label>
+        <label>Limit
+          <input type="number" id="filterLimit" value="10000" min="1" style="width:90px" />
+        </label>
+      </div>
+      <div class="actions">
+        <button class="btn btn-primary" onclick="downloadData()">⬇ Stiahnuť</button>
+        <button class="btn btn-secondary" onclick="previewData()">👁 Náhľad (5 riadkov)</button>
+        <button class="btn btn-secondary" onclick="loadStats()">↺ Obnoviť</button>
+      </div>
+      <div id="status"></div>
+      <div class="preview-box" id="previewBox"></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  const STORAGE_KEY = 'nd_admin_key';
+  let adminKey = '';
+
+  function headers() {
+    return { 'x-admin-key': adminKey };
+  }
+
+  async function doLogin() {
+    const val = document.getElementById('keyInput').value.trim();
+    if (!val) return;
+    adminKey = val;
+    let status = 0;
+    try {
+      const res = await fetch('/api/admin/training-stats', { headers: headers() });
+      status = res.status;
+      if (!res.ok) throw new Error();
+      sessionStorage.setItem(STORAGE_KEY, adminKey);
+      showMain();
+      await loadStats();
+    } catch {
+      const msg = status === 503
+        ? 'ADMIN_KEYS nie sú nastavené na serveri (chýba v .env).'
+        : 'Neplatný kľúč.';
+      document.getElementById('loginError').textContent = msg;
+      adminKey = '';
+    }
+  }
+
+  function logout() {
+    sessionStorage.removeItem(STORAGE_KEY);
+    adminKey = '';
+    document.getElementById('mainUI').style.display = 'none';
+    document.getElementById('loginWrap').style.display = 'flex';
+    document.getElementById('keyInput').value = '';
+    document.getElementById('loginError').textContent = '';
+  }
+
+  function showMain() {
+    document.getElementById('loginWrap').style.display = 'none';
+    document.getElementById('mainUI').style.display = 'block';
+  }
+
+  async function loadStats() {
+    const res = await fetch('/api/admin/training-stats', { headers: headers() });
+    if (!res.ok) return;
+    const data = await res.json();
+
+    document.getElementById('statTotal').textContent = data.total;
+    const good  = data.breakdown.filter(r => r.quality === 1).reduce((s, r) => s + r.count, 0);
+    const chat  = data.breakdown.filter(r => r.source === 'chat').reduce((s, r) => s + r.count, 0);
+    const coach = data.breakdown.filter(r => r.source === 'coach').reduce((s, r) => s + r.count, 0);
+    document.getElementById('statGood').textContent  = good;
+    document.getElementById('statChat').textContent  = chat;
+    document.getElementById('statCoach').textContent = coach;
+
+    const fmt = ts => ts ? new Date(ts).toLocaleDateString('sk-SK') : '—';
+    document.getElementById('dateRange').textContent = `Od: ${fmt(data.oldest)}  ·  Do: ${fmt(data.newest)}`;
+
+    const tbody = document.getElementById('breakdownBody');
+    if (!data.breakdown.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="color:#aaa;padding:12px">Žiadne dáta</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.breakdown.map(r => {
+      const badge = r.quality === 1
+        ? '<span class="badge badge-good">dobré</span>'
+        : r.quality === -1
+          ? '<span class="badge badge-bad">chyba</span>'
+          : '<span class="badge badge-neutral">neutrálne</span>';
+      return `<tr><td>${r.source}</td><td>${badge}</td><td><strong>${r.count}</strong></td></tr>`;
+    }).join('');
+  }
+
+  function buildUrl(limit) {
+    const source  = document.getElementById('filterSource').value;
+    const quality = document.getElementById('filterQuality').value;
+    const format  = document.getElementById('filterFormat').value;
+    let url = `/api/admin/training-data?format=${format}&limit=${limit}`;
+    if (source) url += `&source=${source}`;
+    if (quality !== '') url += `&quality=${quality}`;
+    return url;
+  }
+
+  async function downloadData() {
+    const limit  = document.getElementById('filterLimit').value || 10000;
+    const format = document.getElementById('filterFormat').value;
+    const status = document.getElementById('status');
+    status.textContent = 'Generujem súbor...';
+    try {
+      const res = await fetch(buildUrl(limit), { headers: headers() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const ext  = format === 'json' ? 'json' : 'jsonl';
+      const a    = document.createElement('a');
+      a.href     = URL.createObjectURL(blob);
+      a.download = `training-data-${Date.now()}.${ext}`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+      status.textContent = `Stiahnuté · ${(blob.size / 1024).toFixed(1)} KB`;
+    } catch (e) {
+      status.textContent = `Chyba: ${e.message}`;
+    }
+  }
+
+  async function previewData() {
+    const box    = document.getElementById('previewBox');
+    const status = document.getElementById('status');
+    status.textContent = 'Načítavam náhľad...';
+    box.style.display  = 'none';
+    try {
+      const res  = await fetch(buildUrl(5), { headers: headers() });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const text = await res.text();
+      box.textContent   = text || '(prázdne)';
+      box.style.display = 'block';
+      status.textContent = '';
+    } catch (e) {
+      status.textContent = `Chyba: ${e.message}`;
+    }
+  }
+
+  // Auto-login from sessionStorage (same tab session only)
+  window.addEventListener('load', () => {
+    const saved = sessionStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      adminKey = saved;
+      showMain();
+      loadStats();
+    }
+  });
+</script>
+</body>
+</html>

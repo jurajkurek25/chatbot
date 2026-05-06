@@ -12,6 +12,20 @@ const { sendPasswordReset } = require('../services/email');
 const router = express.Router();
 const SALT_ROUNDS = 12;
 
+// In-memory rate limiter (matches chat.js pattern)
+const _rl = new Map();
+function rateLimit(key, maxHits, windowMs) {
+  const now = Date.now();
+  let e = _rl.get(key);
+  if (!e || now > e.resetAt) e = { hits: 0, resetAt: now + windowMs };
+  e.hits++;
+  _rl.set(key, e);
+  return e.hits > maxHits;
+}
+function clientIp(req) {
+  return req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || '';
+}
+
 function generateReferralCode(name) {
   const base = name.replace(/[^a-zA-Z]/g, '').slice(0, 4).toUpperCase() || 'USR';
   const rand = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -29,7 +43,11 @@ function uniqueReferralCode(db, name) {
 
 // POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { email, password, name, referralCode } = req.body;
+  if (rateLimit('reg:' + clientIp(req), 5, 60 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Príliš veľa pokusov. Skúste neskôr.' });
+  }
+
+  const { email, password, name, referralCode, salesRef, promoCode } = req.body;
 
   if (!email || !password || !name) {
     return res.status(400).json({ error: 'Email, heslo a meno sú povinné.' });
@@ -48,11 +66,18 @@ router.post('/register', async (req, res) => {
   }
 
   // Validate referral code if provided
+  // Self-referral prevention: reject if referrer has same non-generic email domain
+  const GENERIC_DOMAINS = new Set(['gmail.com','yahoo.com','hotmail.com','outlook.com','icloud.com','protonmail.com','seznam.cz','centrum.cz','azet.sk','post.sk','me.com','live.com','msn.com','googlemail.com']);
   let referredById = null;
   if (referralCode) {
-    const referrer = db.prepare('SELECT id FROM users WHERE referral_code = ?').get(referralCode.toUpperCase().trim());
+    const referrer = db.prepare('SELECT id, email FROM users WHERE referral_code = ?').get(referralCode.toUpperCase().trim());
     if (referrer) {
-      referredById = referrer.id;
+      const newDomain = email.toLowerCase().split('@')[1] || '';
+      const refDomain = referrer.email.toLowerCase().split('@')[1] || '';
+      const isSameDomain = newDomain === refDomain && !GENERIC_DOMAINS.has(newDomain);
+      if (!isSameDomain) {
+        referredById = referrer.id;
+      }
     }
   }
 
@@ -64,6 +89,21 @@ router.post('/register', async (req, res) => {
     db.prepare(
       'INSERT INTO users (id, email, password_hash, name, referral_code, referred_by) VALUES (?, ?, ?, ?, ?, ?)'
     ).run(id, email.toLowerCase(), passwordHash, name.trim(), myReferralCode, referredById);
+
+    // Apply sales_ref if provided
+    if (salesRef) {
+      db.prepare('UPDATE users SET sales_ref = ? WHERE id = ?').run(String(salesRef).slice(0, 50), id);
+    }
+    // Auto-apply promo code if provided
+    if (promoCode) {
+      const promo = db.prepare('SELECT * FROM sales_promo_codes WHERE code = ?').get(promoCode.toUpperCase().trim());
+      const nowTs = Math.floor(Date.now() / 1000);
+      if (promo && promo.uses < promo.max_uses && (!promo.expires_at || promo.expires_at > nowTs)) {
+        const newFreeUntil = nowTs + promo.value_days * 86400;
+        db.prepare('UPDATE users SET free_until = ?, sales_promo_used = ? WHERE id = ?').run(newFreeUntil, promo.code, id);
+        db.prepare('UPDATE sales_promo_codes SET uses = uses + 1 WHERE id = ?').run(promo.id);
+      }
+    }
 
     const token = signToken(id);
     return res.status(201).json({
@@ -79,6 +119,10 @@ router.post('/register', async (req, res) => {
 
 // POST /api/auth/login
 router.post('/login', async (req, res) => {
+  if (rateLimit('login:' + clientIp(req), 10, 10 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Príliš veľa pokusov. Skúste neskôr.' });
+  }
+
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -106,7 +150,7 @@ router.post('/login', async (req, res) => {
 });
 
 function signToken(userId) {
-  return jwt.sign({ userId }, process.env.JWT_SECRET || 'changeme', { expiresIn: '30d' });
+  return jwt.sign({ userId }, process.env.JWT_SECRET || 'changeme', { algorithm: 'HS256', expiresIn: '30d' });
 }
 
 // POST /api/auth/change-password
@@ -167,6 +211,10 @@ router.post('/change-email', requireAuth, async (req, res) => {
 
 // POST /api/auth/forgot-password
 router.post('/forgot-password', async (req, res) => {
+  if (rateLimit('fp:' + clientIp(req), 3, 10 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Príliš veľa pokusov. Skúste neskôr.' });
+  }
+
   const { email } = req.body;
   if (!email) return res.status(400).json({ error: 'Email je povinný.' });
 

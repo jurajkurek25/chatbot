@@ -6,6 +6,16 @@ const { URL } = require('url');
 
 const MAX_PAGES       = 20;
 const TIMEOUT_MS      = 8000;
+
+function isPrivateHost(hostname) {
+  return (
+    hostname === 'localhost' || hostname === '::1' ||
+    /^127\./.test(hostname) || /^10\./.test(hostname) ||
+    /^192\.168\./.test(hostname) ||
+    /^172\.(1[6-9]|2[0-9]|3[01])\./.test(hostname) ||
+    /^169\.254\./.test(hostname)
+  );
+}
 const MAX_BODY_BYTES  = 300 * 1024; // 300 KB per page
 const MAX_CONTENT_LEN = 6000;       // chars stored per page
 const CRAWL_DELAY_MS  = 150;        // polite delay between requests
@@ -20,7 +30,7 @@ function fetchPage(rawUrl, redirects = 0) {
     const lib = parsed.protocol === 'https:' ? https : http;
     const req = lib.get(rawUrl, {
       headers: {
-        'User-Agent': 'NeoworklyBot/1.0 (knowledge-scanner)',
+        'User-Agent': 'Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)',
         'Accept': 'text/html,application/xhtml+xml',
         'Accept-Language': 'sk,cs,en',
       },
@@ -29,9 +39,10 @@ function fetchPage(rawUrl, redirects = 0) {
       // Follow redirects
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         try {
-          const next = new URL(res.headers.location, rawUrl).href;
+          const nextUrl = new URL(res.headers.location, rawUrl);
+          if (isPrivateHost(nextUrl.hostname)) return reject(new Error('Redirect to private host blocked'));
           res.resume();
-          resolve(fetchPage(next, redirects + 1));
+          resolve(fetchPage(nextUrl.href, redirects + 1));
         } catch { reject(new Error('Bad redirect')); }
         return;
       }
@@ -61,8 +72,6 @@ function extractContent(html, pageUrl) {
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
     .replace(/<nav[\s\S]*?<\/nav>/gi, '')
-    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
-    .replace(/<header[\s\S]*?<\/header>/gi, '')
     .replace(/<aside[\s\S]*?<\/aside>/gi, '')
     .replace(/<form[\s\S]*?<\/form>/gi, '')
     .replace(/<!--[\s\S]*?-->/g, '');

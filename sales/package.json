@@ -1,0 +1,20 @@
+{
+  "name": "neoworkly-sales",
+  "version": "1.0.0",
+  "description": "Neoworkly Sales Training & Prospecting Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0",
+    "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^9.4.3",
+    "cheerio": "^1.0.0",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "dotenv": "^16.4.5",
+    "uuid": "^9.0.0"
+  }
+}

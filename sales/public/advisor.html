@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neoworkly Sales — AI Poradca</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      overflow: hidden;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 240px; height: 100vh;
+      background: #1e293b;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+      flex-shrink: 0;
+    }
+    .sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .logo-row { display: flex; align-items: center; gap: 10px; }
+    .logo-dot {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+    }
+    .logo-dot svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .logo-text { font-size: 14px; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+    .logo-text small { display: block; font-size: 11px; color: #64748b; font-weight: 400; margin-top: 1px; }
+    .nav { flex: 1; padding: 16px 12px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 9px;
+      color: #94a3b8; text-decoration: none;
+      font-size: 14px; font-weight: 500;
+      transition: all 0.18s; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+    .nav-item.active { background: rgba(37,99,235,0.18); color: #60a5fa; }
+    .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .user-avatar { width: 34px; height: 34px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+    .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .user-name { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+    .user-email { font-size: 11px; color: #475569; margin-top: 1px; }
+    .btn-logout { width: 100%; padding: 8px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; color: #f87171; font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 500; transition: background 0.2s; }
+    .btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+    /* ── CHAT AREA ── */
+    .chat-container {
+      margin-left: 240px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      padding: 20px 32px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+      background: #1e293b;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chat-header-left { display: flex; align-items: center; gap: 14px; }
+    .ai-avatar {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+    }
+    .ai-avatar svg { width: 22px; height: 22px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .chat-header-info h2 { font-size: 17px; font-weight: 700; color: #f1f5f9; }
+    .chat-header-info p { font-size: 12px; color: #64748b; margin-top: 2px; }
+    .status-dot { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #34d399; }
+    .dot { width: 7px; height: 7px; background: #34d399; border-radius: 50%; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+    .btn-clear {
+      padding: 7px 14px;
+      background: transparent;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #64748b;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.18s;
+    }
+    .btn-clear:hover { border-color: rgba(255,255,255,0.2); color: #94a3b8; }
+
+    /* Messages */
+    .messages-area {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 32px;
+      scroll-behavior: smooth;
+    }
+    .messages-area::-webkit-scrollbar { width: 5px; }
+    .messages-area::-webkit-scrollbar-track { background: transparent; }
+    .messages-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+
+    /* Quick chips */
+    .quick-chips {
+      padding: 0 32px 8px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+    }
+    .chip {
+      padding: 7px 14px;
+      background: rgba(37,99,235,0.1);
+      border: 1px solid rgba(37,99,235,0.25);
+      border-radius: 20px;
+      color: #93c5fd;
+      font-size: 13px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+    .chip:hover { background: rgba(37,99,235,0.2); border-color: rgba(37,99,235,0.4); color: #bfdbfe; }
+
+    /* Message bubbles */
+    .message {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      max-width: 100%;
+    }
+    .message.user { flex-direction: row-reverse; }
+
+    .msg-avatar {
+      width: 34px; height: 34px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; font-size: 13px; font-weight: 700;
+      align-self: flex-end;
+    }
+    .msg-avatar.ai { background: linear-gradient(135deg, #2563eb, #7c3aed); color: white; font-size: 11px; }
+    .msg-avatar.ai svg { width: 16px; height: 16px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .msg-avatar.user { background: rgba(255,255,255,0.1); color: #94a3b8; }
+
+    .msg-bubble {
+      max-width: 70%;
+      padding: 14px 18px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    .message.assistant .msg-bubble {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      color: #cbd5e1;
+      border-bottom-left-radius: 4px;
+    }
+    .message.user .msg-bubble {
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      color: white;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 14px rgba(37,99,235,0.3);
+    }
+    .msg-bubble strong { color: #f1f5f9; font-weight: 600; }
+    .msg-bubble ul { padding-left: 18px; margin: 8px 0; }
+    .msg-bubble li { margin-bottom: 4px; }
+    .msg-bubble p { margin-bottom: 8px; }
+    .msg-bubble p:last-child { margin-bottom: 0; }
+    .msg-bubble code { background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-size: 13px; font-family: monospace; }
+
+    /* Typing indicator */
+    .typing-indicator {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 20px;
+      align-items: flex-end;
+    }
+    .typing-bubble {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      padding: 14px 18px;
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+      display: flex;
+      gap: 5px;
+      align-items: center;
+    }
+    .typing-dot {
+      width: 7px; height: 7px;
+      background: #475569;
+      border-radius: 50%;
+      animation: typingBounce 1.4s ease-in-out infinite;
+    }
+    .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+    .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-6px); opacity: 1; } }
+
+    /* Input area */
+    .input-area {
+      padding: 16px 32px 20px;
+      border-top: 1px solid rgba(255,255,255,0.07);
+      background: #0f172a;
+      flex-shrink: 0;
+    }
+    .input-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 14px;
+      padding: 10px 10px 10px 16px;
+      transition: border-color 0.2s;
+    }
+    .input-row:focus-within { border-color: rgba(37,99,235,0.4); box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+    .msg-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #f1f5f9;
+      font-size: 15px;
+      font-family: inherit;
+      resize: none;
+      max-height: 120px;
+      min-height: 22px;
+      line-height: 1.5;
+      padding: 2px 0;
+    }
+    .msg-input::placeholder { color: #475569; }
+    .send-btn {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, #2563eb, #4f46e5);
+      border: none; border-radius: 10px;
+      color: white; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.2s, transform 0.15s;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+    }
+    .send-btn:hover { opacity: 0.9; transform: scale(1.05); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .send-btn svg { width: 17px; height: 17px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .input-hint { font-size: 12px; color: #334155; margin-top: 8px; text-align: center; }
+
+    @media (max-width: 768px) {
+      .sidebar { width: 0; overflow: hidden; }
+      .chat-container { margin-left: 0; }
+      .messages-area { padding: 16px; }
+      .quick-chips { padding: 0 16px 8px; }
+      .input-area { padding: 12px 16px 16px; }
+      .msg-bubble { max-width: 85%; }
+    }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-row">
+        <div class="logo-dot">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="logo-text">Neoworkly Sales<small>Tréningová platforma</small></div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="/dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="/training.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        Tréning
+      </a>
+      <a href="/prospects.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Prospekting
+      </a>
+      <a href="/advisor.html" class="nav-item active">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        AI Poradca
+      </a>
+      <a href="/codes.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 2v4M16 2v4M2 10h20"/></svg>
+        Kódy &amp; Linky
+      </a>
+      <a href="/toolkit.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3-3a1 1 0 000-1.4l-1.6-1.6a1 1 0 00-1.4 0l-3 3z"/><path d="M5 20L2 22l2-3 9.5-9.5-2-2L5 20z"/></svg>
+        Toolkit
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="sidebar-name">–</div>
+          <div class="user-email" id="sidebar-email">–</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Odhlásiť sa</button>
+    </div>
+  </aside>
+
+  <!-- CHAT -->
+  <div class="chat-container">
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="ai-avatar">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <div class="chat-header-info">
+          <h2>AI Predajný Poradca</h2>
+          <p>Expert na predaj Neoworkly</p>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px">
+        <div class="status-dot"><div class="dot"></div> Online</div>
+        <button class="btn-clear" onclick="clearChat()">Nový rozhovor</button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="messages-area" id="messages-area">
+      <!-- Messages rendered by JS -->
+    </div>
+
+    <!-- Quick chips (shown before first user message) -->
+    <div class="quick-chips" id="quick-chips">
+      <button class="chip" onclick="sendChip(this)">Ako odpovedať na &quot;Je to drahé&quot;?</button>
+      <button class="chip" onclick="sendChip(this)">Nacvič so mnou cold call</button>
+      <button class="chip" onclick="sendChip(this)">Čo robiť keď zákazník odkladá</button>
+      <button class="chip" onclick="sendChip(this)">Vysvetli mi funkcie Neoworkly</button>
+    </div>
+
+    <!-- Input -->
+    <div class="input-area">
+      <div class="input-row">
+        <textarea
+          class="msg-input"
+          id="msg-input"
+          placeholder="Napíšte správu..."
+          rows="1"
+          onkeydown="handleKeyDown(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button class="send-btn" id="send-btn" onclick="sendMessage()">
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </div>
+      <div class="input-hint">Enter = odoslať &nbsp;·&nbsp; Shift+Enter = nový riadok</div>
+    </div>
+  </div>
+
+  <script>
+    async function apiFetch(path, options = {}) {
+      const token = localStorage.getItem('sales_token');
+      const res = await fetch('/api' + path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: 'Bearer ' + token } : {}),
+          ...(options.headers || {}),
+        },
+      });
+      if (res.status === 401) { localStorage.removeItem('sales_token'); window.location.href = '/'; return; }
+      return res;
+    }
+
+    function logout() { localStorage.removeItem('sales_token'); window.location.href = '/'; }
+
+    let history = [];
+    let isStreaming = false;
+    let userInitials = '?';
+
+    const INITIAL_MSG = 'Ahoj! Som váš AI predajný poradca pre Neoworkly. Pomôžem vám s predajom, nacvičíme hovory, poradím ako prekonať námietky. Čo potrebujete?';
+
+    function escapeHtml(t) {
+      return t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    // Minimal markdown for assistant messages
+    function renderMarkdown(text) {
+      return text
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.+?)\*/g, '<em>$1</em>')
+        .replace(/`(.+?)`/g, '<code>$1</code>')
+        .replace(/^### (.+)$/gm, '<strong>$1</strong>')
+        .replace(/^## (.+)$/gm, '<strong style="font-size:15px">$1</strong>')
+        .replace(/^[-*] (.+)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*?<\/li>(\n|$))+/g, s => `<ul>${s}</ul>`)
+        .replace(/\n\n/g, '</p><p>')
+        .replace(/\n/g, '<br>')
+        .replace(/^(?!<[pul])(.+)$/gm, m => m.startsWith('<') || !m.trim() ? m : `<p>${m}</p>`)
+        .replace(/<p><\/p>/g, '');
+    }
+
+    function createMessageEl(role, content) {
+      const isUser = role === 'user';
+      const el = document.createElement('div');
+      el.className = `message ${role}`;
+      el.innerHTML = `
+        <div class="msg-avatar ${isUser ? 'user' : 'ai'}">
+          ${isUser
+            ? userInitials
+            : `<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>`
+          }
+        </div>
+        <div class="msg-bubble">${isUser ? escapeHtml(content) : renderMarkdown(content)}</div>`;
+      return el;
+    }
+
+    function appendMessage(role, content) {
+      const area = document.getElementById('messages-area');
+      const el = createMessageEl(role, content);
+      area.appendChild(el);
+      scrollToBottom();
+      return el;
+    }
+
+    function scrollToBottom() {
+      const area = document.getElementById('messages-area');
+      area.scrollTop = area.scrollHeight;
+    }
+
+    function showTyping() {
+      const area = document.getElementById('messages-area');
+      const el = document.createElement('div');
+      el.id = 'typing-indicator';
+      el.className = 'typing-indicator';
+      el.innerHTML = `
+        <div class="msg-avatar ai">
+          <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        </div>
+        <div class="typing-bubble">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>`;
+      area.appendChild(el);
+      scrollToBottom();
+    }
+
+    function hideTyping() {
+      const el = document.getElementById('typing-indicator');
+      if (el) el.remove();
+    }
+
+    function setInputDisabled(disabled) {
+      document.getElementById('msg-input').disabled = disabled;
+      document.getElementById('send-btn').disabled = disabled;
+    }
+
+    function sendChip(btn) {
+      const text = btn.textContent.trim();
+      document.getElementById('quick-chips').style.display = 'none';
+      sendMessage(text);
+    }
+
+    async function sendMessage(forcedText) {
+      if (isStreaming) return;
+      const input = document.getElementById('msg-input');
+      const text = (forcedText || input.value).trim();
+      if (!text) return;
+
+      // Hide chips after first real message
+      document.getElementById('quick-chips').style.display = 'none';
+      input.value = '';
+      input.style.height = '';
+
+      appendMessage('user', text);
+      history.push({ role: 'user', content: text });
+      if (history.length > 20) history = history.slice(-20);
+
+      isStreaming = true;
+      setInputDisabled(true);
+      showTyping();
+
+      const token = localStorage.getItem('sales_token');
+      if (!token) { window.location.href = '/'; return; }
+
+      try {
+        const response = await fetch('/api/advisor/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: 'Bearer ' + token,
+          },
+          body: JSON.stringify({ message: text, history: history.slice(0, -1) }),
+        });
+
+        if (response.status === 401) { localStorage.removeItem('sales_token'); window.location.href = '/'; return; }
+        if (!response.ok) {
+          hideTyping();
+          appendMessage('assistant', 'Oops, nastala chyba. Skúste znova.');
+          return;
+        }
+
+        hideTyping();
+
+        const contentType = response.headers.get('content-type') || '';
+        let assistantText = '';
+
+        if (contentType.includes('text/event-stream') || contentType.includes('text/plain')) {
+          // SSE streaming
+          const area = document.getElementById('messages-area');
+          const msgEl = createMessageEl('assistant', '');
+          const bubbleEl = msgEl.querySelector('.msg-bubble');
+          area.appendChild(msgEl);
+          scrollToBottom();
+
+          const reader = response.body.getReader();
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split('\n');
+            buffer = lines.pop();
+
+            for (const line of lines) {
+              if (line.startsWith('data: ')) {
+                const data = line.slice(6).trim();
+                if (data === '[DONE]') continue;
+                try {
+                  const parsed = JSON.parse(data);
+                  const chunk = parsed.text || parsed.content || parsed.delta || parsed.chunk || '';
+                  if (chunk) {
+                    assistantText += chunk;
+                    bubbleEl.innerHTML = renderMarkdown(assistantText);
+                    scrollToBottom();
+                  }
+                } catch (e) {
+                  // plain text chunk
+                  if (data && data !== '[DONE]') {
+                    assistantText += data;
+                    bubbleEl.innerHTML = renderMarkdown(assistantText);
+                    scrollToBottom();
+                  }
+                }
+              }
+            }
+          }
+          // Process remaining buffer
+          if (buffer.startsWith('data: ')) {
+            const data = buffer.slice(6).trim();
+            if (data && data !== '[DONE]') {
+              try {
+                const parsed = JSON.parse(data);
+                const chunk = parsed.text || parsed.content || parsed.delta || '';
+                if (chunk) { assistantText += chunk; bubbleEl.innerHTML = renderMarkdown(assistantText); }
+              } catch (e) { assistantText += data; bubbleEl.innerHTML = renderMarkdown(assistantText); }
+            }
+          }
+        } else {
+          // JSON response fallback
+          const data = await response.json();
+          assistantText = data.message || data.content || data.response || data.text || 'Odpoveď nie je k dispozícii.';
+          appendMessage('assistant', assistantText);
+        }
+
+        if (assistantText) {
+          history.push({ role: 'assistant', content: assistantText });
+          if (history.length > 20) history = history.slice(-20);
+        }
+
+      } catch (e) {
+        hideTyping();
+        appendMessage('assistant', 'Nastala chyba pripojenia. Skúste znova.');
+      } finally {
+        isStreaming = false;
+        setInputDisabled(false);
+        input.focus();
+      }
+    }
+
+    function clearChat() {
+      if (!confirm('Chcete začať nový rozhovor?')) return;
+      history = [];
+      const area = document.getElementById('messages-area');
+      area.innerHTML = '';
+      document.getElementById('quick-chips').style.display = 'flex';
+      appendMessage('assistant', INITIAL_MSG);
+    }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    }
+
+    function autoResize(el) {
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    }
+
+    async function init() {
+      const meRes = await apiFetch('/auth/me');
+      if (!meRes || !meRes.ok) return;
+      const me = await meRes.json();
+      document.getElementById('sidebar-name').textContent = me.name || 'Používateľ';
+      document.getElementById('sidebar-email').textContent = me.email || '';
+      const initial = (me.name || me.email || '?')[0].toUpperCase();
+      document.getElementById('user-avatar').textContent = initial;
+      userInitials = initial;
+      // Initial greeting
+      appendMessage('assistant', INITIAL_MSG);
+    }
+
+    init();
+  </script>
+</body>
+</html>

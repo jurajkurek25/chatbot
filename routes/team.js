@@ -23,8 +23,9 @@ router.post('/invite', async (req, res) => {
   if (!['readonly','editor'].includes(role)) return res.status(400).json({ error: 'Neplatná rola.' });
   const owner = getDb().prepare('SELECT name FROM users WHERE id = ?').get(req.userId);
   const token = uuidv4();
+  const expiresAt = Math.floor(Date.now() / 1000) + 7 * 24 * 3600; // 7 days
   try {
-    getDb().prepare(`INSERT INTO team_members (id, owner_user_id, email, role, invite_token, accepted) VALUES (?,?,?,?,?,0)`).run(uuidv4(), req.userId, email.trim().toLowerCase(), role, token);
+    getDb().prepare(`INSERT INTO team_members (id, owner_user_id, email, role, invite_token, invite_expires_at, accepted) VALUES (?,?,?,?,?,?,0)`).run(uuidv4(), req.userId, email.trim().toLowerCase(), role, token, expiresAt);
   } catch {
     return res.status(409).json({ error: 'Tento email je už pozvaný.' });
   }
@@ -41,8 +42,10 @@ router.delete('/:memberId', (req, res) => {
 
 // Public accept route — no auth
 router.get('/accept/:token', (req, res) => {
-  const member = getDb().prepare('SELECT id FROM team_members WHERE invite_token = ? AND accepted = 0').get(req.params.token);
+  const now = Math.floor(Date.now() / 1000);
+  const member = getDb().prepare('SELECT id, invite_expires_at FROM team_members WHERE invite_token = ? AND accepted = 0').get(req.params.token);
   if (!member) return res.redirect('/?team_error=1');
+  if (member.invite_expires_at && member.invite_expires_at < now) return res.redirect('/?team_error=expired');
   getDb().prepare('UPDATE team_members SET accepted = 1, invite_token = NULL WHERE id = ?').run(member.id);
   res.redirect('/dashboard?team_joined=1');
 });

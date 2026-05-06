@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neoworkly Sales — Toolkit</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 240px; min-height: 100vh;
+      background: #1e293b;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .logo-row { display: flex; align-items: center; gap: 10px; }
+    .logo-dot {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+    }
+    .logo-dot svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .logo-text { font-size: 14px; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+    .logo-text small { display: block; font-size: 11px; color: #64748b; font-weight: 400; margin-top: 1px; }
+    .nav { flex: 1; padding: 16px 12px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 9px;
+      color: #94a3b8; text-decoration: none;
+      font-size: 14px; font-weight: 500;
+      transition: all 0.18s; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+    .nav-item.active { background: rgba(37,99,235,0.18); color: #60a5fa; }
+    .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .user-avatar { width: 34px; height: 34px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+    .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .user-name { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+    .user-email { font-size: 11px; color: #475569; margin-top: 1px; }
+    .btn-logout { width: 100%; padding: 8px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; color: #f87171; font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 500; transition: background 0.2s; }
+    .btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+    /* ── MAIN ── */
+    .main { margin-left: 240px; flex: 1; padding: 36px 40px; min-height: 100vh; }
+
+    .page-header { margin-bottom: 32px; }
+    .page-header h2 { font-size: 27px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px; }
+    .page-header p { color: #64748b; font-size: 14px; margin-top: 5px; }
+
+    /* Section */
+    .section { margin-bottom: 52px; }
+    .section-title { font-size: 20px; font-weight: 700; color: #f1f5f9; margin-bottom: 6px; }
+    .section-desc { font-size: 14px; color: #64748b; margin-bottom: 20px; }
+
+    /* Segment tabs */
+    .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+    .tab-btn {
+      padding: 8px 16px; border-radius: 8px;
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08);
+      color: #94a3b8; font-size: 13px; font-weight: 500;
+      cursor: pointer; font-family: inherit; transition: all 0.18s;
+    }
+    .tab-btn:hover { background: rgba(255,255,255,0.08); color: #e2e8f0; }
+    .tab-btn.active { background: rgba(37,99,235,0.2); border-color: rgba(37,99,235,0.4); color: #60a5fa; }
+
+    .script-card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 28px;
+      display: none;
+    }
+    .script-card.active { display: block; }
+
+    .script-section { margin-bottom: 20px; }
+    .script-section-label {
+      font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+      color: #475569; font-weight: 600; margin-bottom: 8px;
+    }
+    .script-opening {
+      background: linear-gradient(135deg, rgba(37,99,235,0.1), rgba(124,58,237,0.07));
+      border: 1px solid rgba(37,99,235,0.2);
+      border-radius: 10px; padding: 16px 18px;
+      font-size: 15px; color: #f1f5f9; line-height: 1.6; font-style: italic;
+      margin-bottom: 12px;
+    }
+    .script-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .script-item {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .script-item-title { font-size: 12px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 8px; }
+    .script-item-content { font-size: 13px; color: #cbd5e1; line-height: 1.55; }
+    .script-item-content ul { padding-left: 16px; margin-top: 4px; }
+    .script-item-content li { margin-bottom: 4px; }
+    .objection-box {
+      background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.2);
+      border-radius: 10px; padding: 14px 16px;
+    }
+    .objection-box .script-item-title { color: #f59e0b; }
+
+    /* Email templates */
+    .email-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+    .email-card {
+      background: #1e293b; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; padding: 22px;
+    }
+    .email-card-title { font-size: 15px; font-weight: 700; color: #f1f5f9; margin-bottom: 14px; }
+    .email-textarea {
+      width: 100%;
+      background: #0f172a; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 9px; padding: 14px 16px;
+      font-size: 13px; color: #94a3b8; line-height: 1.7;
+      font-family: inherit;
+      resize: vertical; min-height: 160px; margin-bottom: 14px;
+      outline: none; transition: border-color 0.18s;
+    }
+    .email-textarea:focus { border-color: rgba(37,99,235,0.3); }
+    .btn-copy-email {
+      padding: 8px 16px; background: transparent;
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
+      color: #94a3b8; font-size: 13px; font-weight: 500;
+      cursor: pointer; font-family: inherit; transition: all 0.18s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-copy-email:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; border-color: rgba(255,255,255,0.2); }
+
+    /* ROI Calculator */
+    .roi-card {
+      background: #1e293b; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 16px; padding: 32px;
+      display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+    }
+    .roi-inputs .input-group { margin-bottom: 28px; }
+    .input-group label { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: #94a3b8; margin-bottom: 10px; font-weight: 500; }
+    .input-group label span { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+    input[type="range"] {
+      width: 100%; -webkit-appearance: none; appearance: none;
+      height: 5px; background: rgba(255,255,255,0.1); border-radius: 3px; outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 18px; height: 18px;
+      border-radius: 50%; background: #2563eb; cursor: pointer;
+      box-shadow: 0 2px 8px rgba(37,99,235,0.4);
+    }
+    .roi-val-input {
+      width: 100%; background: #162032; border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px; padding: 10px 14px; color: #f1f5f9;
+      font-size: 15px; font-family: inherit; outline: none;
+      transition: border-color 0.18s;
+    }
+    .roi-val-input:focus { border-color: rgba(37,99,235,0.5); }
+
+    .roi-results { display: flex; flex-direction: column; gap: 14px; justify-content: center; }
+    .roi-result-item {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 11px; padding: 16px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .roi-result-item.highlight {
+      background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(37,99,235,0.07));
+      border-color: rgba(16,185,129,0.25);
+    }
+    .roi-result-label { font-size: 13px; color: #94a3b8; }
+    .roi-result-value { font-size: 20px; font-weight: 700; color: #f1f5f9; }
+    .roi-result-item.highlight .roi-result-value { color: #34d399; font-size: 24px; }
+    .roi-highlight-box {
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 14px; padding: 22px 24px; text-align: center; margin-top: 10px;
+    }
+    .roi-highlight-box p { font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 6px; }
+    .roi-highlight-box strong { font-size: 22px; color: #fff; }
+
+    /* Quick reference */
+    .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .quick-card {
+      background: #1e293b; border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px; padding: 24px;
+    }
+    .quick-card-title { font-size: 15px; font-weight: 700; color: #f1f5f9; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.07); padding-bottom: 12px; }
+    .objection-item { margin-bottom: 14px; }
+    .objection-q { font-size: 13px; font-weight: 600; color: #fbbf24; margin-bottom: 4px; }
+    .objection-a { font-size: 13px; color: #94a3b8; line-height: 1.5; padding-left: 12px; border-left: 2px solid rgba(251,191,36,0.3); }
+
+    .price-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .price-table th { text-align: left; padding: 8px 10px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.7px; color: #475569; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .price-table td { padding: 11px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); color: #cbd5e1; vertical-align: top; }
+    .price-table tr:last-child td { border-bottom: none; }
+    .price-name { font-weight: 700; color: #f1f5f9; }
+    .price-amt { font-weight: 700; color: #60a5fa; }
+    .price-who { color: #64748b; font-size: 12px; }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: #1e293b; border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 10px; padding: 12px 18px;
+      color: #f1f5f9; font-size: 14px; font-weight: 500;
+      display: none; z-index: 9999;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    .toast.show { display: block; }
+
+    @media (max-width: 1100px) {
+      .script-grid { grid-template-columns: 1fr 1fr; }
+      .email-grid { grid-template-columns: 1fr; }
+      .roi-card { grid-template-columns: 1fr; gap: 28px; }
+      .quick-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 768px) {
+      .sidebar { width: 0; overflow: hidden; }
+      .main { margin-left: 0; padding: 24px 16px; }
+      .script-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-row">
+        <div class="logo-dot">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="logo-text">Neoworkly Sales<small>Tréningová platforma</small></div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="/dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="/training.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        Tréning
+      </a>
+      <a href="/prospects.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Prospekting
+      </a>
+      <a href="/advisor.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        AI Poradca
+      </a>
+      <a href="/codes.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 2v4M16 2v4M2 10h20"/></svg>
+        Kódy &amp; Linky
+      </a>
+      <a href="/toolkit.html" class="nav-item active">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3-3a1 1 0 000-1.4l-1.6-1.6a1 1 0 00-1.4 0l-3 3z"/><path d="M5 20L2 22l2-3 9.5-9.5-2-2L5 20z"/></svg>
+        Toolkit
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="sidebar-name">–</div>
+          <div class="user-email" id="sidebar-email">–</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Odhlásiť sa</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-header">
+      <h2>Sales Toolkit</h2>
+      <p>Skripty, šablóny, kalkulačka ROI a rýchla referencia pre každý predajný hovor.</p>
+    </div>
+
+    <!-- Section 1: Skripty podľa segmentu -->
+    <div class="section">
+      <div class="section-title">Skripty podľa segmentu</div>
+      <div class="section-desc">Vyberte odvetvie a získajte personalizovaný opening pitch, kľúčové bolesti a odporúčané funkcie.</div>
+
+      <div class="tabs">
+        <button class="tab-btn active" onclick="showSegment('eshop', this)">E-shop</button>
+        <button class="tab-btn" onclick="showSegment('realitka', this)">Realitka</button>
+        <button class="tab-btn" onclick="showSegment('kozmetika', this)">Kozmetika</button>
+        <button class="tab-btn" onclick="showSegment('fitness', this)">Fitness</button>
+        <button class="tab-btn" onclick="showSegment('kouc', this)">Kouč</button>
+        <button class="tab-btn" onclick="showSegment('firma', this)">Firma</button>
+      </div>
+
+      <!-- E-shop -->
+      <div class="script-card active" id="seg-eshop">
+        <div class="script-section">
+          <div class="script-section-label">Opening pitch</div>
+          <div class="script-opening">"Videl som váš e-shop [nazov.sk]. Máte riešené zachytávanie zákazníkov ktorí odídu bez nákupu?"</div>
+        </div>
+        <div class="script-grid">
+          <div class="script-item">
+            <div class="script-item-title">Kľúčové bolesti</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Opustené košíky</li>
+                <li>Zákazníci odídu bez kontaktu</li>
+                <li>Oneskorené odpovede na otázky o produktoch</li>
+              </ul>
+            </div>
+          </div>
+          <div class="script-item">
+            <div class="script-item-title">Odporúčané funkcie</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Lead capture</li>
+                <li>Follow-up sekvencie (win-back)</li>
+                <li>WooCommerce/Shopify integrácia</li>
+                <li>Znalostná báza s produktovými otázkami</li>
+              </ul>
+            </div>
+          </div>
+          <div class="objection-box">
+            <div class="script-item-title">Típická námietka + odpoveď</div>
+            <div class="script-item-content">
+              <strong>"Máme email marketing"</strong><br><br>
+              "Email marketing zachytí len zákazníkov čo sa prihlásili. Chatbot zachytí každého návštevníka – aj tých čo by inak odišli bez stopy."
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Realitka -->
+      <div class="script-card" id="seg-realitka">
+        <div class="script-section">
+          <div class="script-section-label">Opening pitch</div>
+          <div class="script-opening">"Videl som váš web. Ako zachytávate záujemcov o nehnuteľnosti keď ste na obhliadke alebo mimo kancelárie?"</div>
+        </div>
+        <div class="script-grid">
+          <div class="script-item">
+            <div class="script-item-title">Kľúčové bolesti</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Zákazníci zavolajú, nikto neodpovedá a idú ku konkurencii</li>
+                <li>Opakujúce sa otázky o dostupnosti/cene</li>
+              </ul>
+            </div>
+          </div>
+          <div class="script-item">
+            <div class="script-item-title">Odporúčané funkcie</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Lead capture 24/7</li>
+                <li>Rezervácia obhliadok cez chat + Google Calendar</li>
+                <li>Follow-up sekvencie pre záujemcov</li>
+              </ul>
+            </div>
+          </div>
+          <div class="objection-box">
+            <div class="script-item-title">Típická námietka + odpoveď</div>
+            <div class="script-item-content">
+              <strong>"Zákazníci nás volajú"</strong><br><br>
+              "Chatbot odpovedá na 80% štandardných otázok. Vy riešite len vážnych záujemcov – šetríte hodiny týždenne."
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kozmetika -->
+      <div class="script-card" id="seg-kozmetika">
+        <div class="script-section">
+          <div class="script-section-label">Opening pitch</div>
+          <div class="script-opening">"Videl som váš salón online. Ako teraz riešite rezervácie cez Instagram alebo web?"</div>
+        </div>
+        <div class="script-grid">
+          <div class="script-item">
+            <div class="script-item-title">Kľúčové bolesti</div>
+            <div class="script-item-content">
+              <ul>
+                <li>DM správy kde nemajú čas odpovedať</li>
+                <li>Rezervácie len telefonicky</li>
+                <li>Zákazníci chcú rezervovať večer keď salón nezodvíha</li>
+              </ul>
+            </div>
+          </div>
+          <div class="script-item">
+            <div class="script-item-title">Odporúčané funkcie</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Instagram DM integrácia</li>
+                <li>Booking + Google Calendar</li>
+                <li>Proaktívne oslovenie</li>
+                <li>Person Add-on pre osobný dojem</li>
+              </ul>
+            </div>
+          </div>
+          <div class="objection-box">
+            <div class="script-item-title">Típická námietka + odpoveď</div>
+            <div class="script-item-content">
+              <strong>"Máme booking systém"</strong><br><br>
+              "Neoworkly prepojí booking s chatom a Instagram DM – zákazník si rezervuje priamo z konverzácie, bez presmerovávania."
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Fitness -->
+      <div class="script-card" id="seg-fitness">
+        <div class="script-section">
+          <div class="script-section-label">Opening pitch</div>
+          <div class="script-opening">"Videl som vašu stránku. Ako zachytávate nových záujemcov o tréning ktorí prídu na web ale nenapíšu?"</div>
+        </div>
+        <div class="script-grid">
+          <div class="script-item">
+            <div class="script-item-title">Kľúčové bolesti</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Záujemcovia odídu bez kontaktu</li>
+                <li>Trial zákazníci nedostanú follow-up</li>
+                <li>Otázky o rozvrhu/cenách sa opakujú</li>
+              </ul>
+            </div>
+          </div>
+          <div class="script-item">
+            <div class="script-item-title">Odporúčané funkcie</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Lead capture</li>
+                <li>Follow-up sékvencia pre trial zákazníkov (5 krokov)</li>
+                <li>Booking tréningov</li>
+                <li>Znalostná báza s rozvrh/FAQ</li>
+              </ul>
+            </div>
+          </div>
+          <div class="objection-box">
+            <div class="script-item-title">Típická námietka + odpoveď</div>
+            <div class="script-item-content">
+              <strong>"Máme málo trafficu"</strong><br><br>
+              "Aj 50 návštevníkov mesačne prinesie 3-5 leadov ktoré by inak stratili. Proaktívne oslovenie zvýši konverziu o 40%."
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kouč -->
+      <div class="script-card" id="seg-kouc">
+        <div class="script-section">
+          <div class="script-section-label">Opening pitch</div>
+          <div class="script-opening">"Videl som váš web. Zákazníci vám píšu cez Instagram alebo web keď hľadajú koučing alebo konzultáciu?"</div>
+        </div>
+        <div class="script-grid">
+          <div class="script-item">
+            <div class="script-item-title">Kľúčové bolesti</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Neosobný dojem chatbotov</li>
+                <li>Zákazníci chcú cítiť spojenie s konkrétnou osobou</li>
+                <li>Ručné zapisovanie konzultácií</li>
+              </ul>
+            </div>
+          </div>
+          <div class="script-item">
+            <div class="script-item-title">Odporúčané funkcie</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Person Add-on (chatbot hovorí štýlom kouča)</li>
+                <li>Booking konzultácií</li>
+                <li>Lead capture</li>
+                <li>Follow-up sekvencie</li>
+              </ul>
+            </div>
+          </div>
+          <div class="objection-box">
+            <div class="script-item-title">Típická námietka + odpoveď</div>
+            <div class="script-item-content">
+              <strong>"Chatbot je neosobný"</strong><br><br>
+              "Person Add-on – chatbot komunikuje presne vaším štýlom a slovníkom. Zákazníci majú pocit, že píšu priamo vám."
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Firma (B2B/Profesionáli) -->
+      <div class="script-card" id="seg-firma">
+        <div class="script-section">
+          <div class="script-section-label">Opening pitch</div>
+          <div class="script-opening">"Videl som vašu stránku. Dostávate veľa podobných otázok od potenciálnych klientov na webe?"</div>
+        </div>
+        <div class="script-grid">
+          <div class="script-item">
+            <div class="script-item-title">Kľúčové bolesti</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Čas strávený odpovedaním na opakujúce sa otázky</li>
+                <li>Zákazníci nevolajú – chcú rýchlu odpoveď online</li>
+                <li>Žiadna zachytávanie leadov z webu</li>
+              </ul>
+            </div>
+          </div>
+          <div class="script-item">
+            <div class="script-item-title">Odporúčané funkcie</div>
+            <div class="script-item-content">
+              <ul>
+                <li>Znalostná báza (FAQ, cenník, procesy)</li>
+                <li>Lead capture</li>
+                <li>Booking konzultácií</li>
+                <li>SEO audit ako upsell</li>
+              </ul>
+            </div>
+          </div>
+          <div class="objection-box">
+            <div class="script-item-title">Típická námietka + odpoveď</div>
+            <div class="script-item-content">
+              <strong>"Naši klienti nás volajú"</strong><br><br>
+              "Čoraz viac B2B zákazníkov preferuje rýchlu online odpoveď pred telefonátom. Chatbot kvalifikuje leady a len tých serióznych presmeruje na hovor."
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2: Email šablóny -->
+    <div class="section">
+      <div class="section-title">Email šablóny</div>
+      <div class="section-desc">Pripravené šablóny pre každú fázu predajného cyklu. Upravte podľa potreby a skopírujte.</div>
+      <div class="email-grid">
+        <div class="email-card">
+          <div class="email-card-title">Follow-up po hovore</div>
+          <textarea class="email-textarea" id="email-1">Dobrý deň [Meno],
+
+ďakujem za dnešný hovor. Ako som spomínal, Neoworkly vám pomôže [konkrétny benefit]. Pripájam link na registráciu: neoworkly.com
+
+Ste dostupný [deň] na 15-minútový call kde vám ukážem chatbot naživo pre váš biznis?
+
+S pozdravom,
+[Vaše meno]</textarea>
+          <button class="btn-copy-email" onclick="copyEmail('email-1')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Kopírovať
+          </button>
+        </div>
+
+        <div class="email-card">
+          <div class="email-card-title">Cold email</div>
+          <textarea class="email-textarea" id="email-2">Dobrý deň [Meno],
+
+videl som váš web [web.sk] – napadlo mi, že by vám mohol pomôcť AI chatbot ktorý zachytáva zákazníkov 24/7.
+
+Priemerný klient zachytí 15-30 leadov mesačne ktoré by inak stratil.
+
+Máte 15 minút tento týždeň na rýchle demo priamo pre váš biznis?
+
+S pozdravom,
+[Vaše meno]</textarea>
+          <button class="btn-copy-email" onclick="copyEmail('email-2')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Kopírovať
+          </button>
+        </div>
+
+        <div class="email-card">
+          <div class="email-card-title">Demo pozvánka</div>
+          <textarea class="email-textarea" id="email-3">Dobrý deň [Meno],
+
+rád by som vám ukázal ako by chatbot fungoval priamo pre [firma.sk].
+
+Demo trvá 15 minút – ukážem vám AI Coach ktorý vytvorí chatbot za 2 minúty z vášho popisu biznisu.
+
+Kedy vám vyhovuje?
+
+S pozdravom,
+[Vaše meno]</textarea>
+          <button class="btn-copy-email" onclick="copyEmail('email-3')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Kopírovať
+          </button>
+        </div>
+
+        <div class="email-card">
+          <div class="email-card-title">Win-back</div>
+          <textarea class="email-textarea" id="email-4">Dobrý deň [Meno],
+
+píšem pretože sme sa pred časom rozprávali o Neoworkly a nechcel som to nechať bez ohlasu.
+
+Mám pre vás promo kód na 30 dní zadarmo – bez záväzku, žiadna kreditná karta.
+
+Stačí sa zaregistrovať na neoworkly.com a zadať kód: [VÁŠ KÓD]
+
+Máte záujem o krátke demo?
+
+S pozdravom,
+[Vaše meno]</textarea>
+          <button class="btn-copy-email" onclick="copyEmail('email-4')">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Kopírovať
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 3: ROI Kalkulačka -->
+    <div class="section">
+      <div class="section-title">ROI Kalkulačka</div>
+      <div class="section-desc">Ukážte klientovi konkrétnu hodnotu. Zadajte čísla ich biznisu a vypočítajte ROI v reálnom čase.</div>
+      <div class="roi-card">
+        <div class="roi-inputs">
+          <div class="input-group">
+            <label>Návštevníci/mes <span id="v-visitors">500</span></label>
+            <input type="range" id="r-visitors" min="100" max="10000" step="100" value="500" oninput="calcROI()" />
+          </div>
+          <div class="input-group">
+            <label>Konverzný rate chatbota % <span id="v-rate">5%</span></label>
+            <input type="range" id="r-rate" min="1" max="15" step="0.5" value="5" oninput="calcROI()" />
+          </div>
+          <div class="input-group">
+            <label>Priemerná hodnota zákazníka € <span id="v-val">€300</span></label>
+            <input type="number" class="roi-val-input" id="r-val" value="300" min="1" oninput="calcROI()" />
+          </div>
+        </div>
+        <div class="roi-results">
+          <div class="roi-result-item">
+            <div class="roi-result-label">Zachytené leady/mes</div>
+            <div class="roi-result-value" id="res-leads">25</div>
+          </div>
+          <div class="roi-result-item">
+            <div class="roi-result-label">Odhadovaný príjem/mes</div>
+            <div class="roi-result-value" id="res-revenue">€1 500</div>
+          </div>
+          <div class="roi-result-item">
+            <div class="roi-result-label">Cena Neoworkly Pro</div>
+            <div class="roi-result-value" style="color:#64748b">€37/mes</div>
+          </div>
+          <div class="roi-result-item highlight">
+            <div class="roi-result-label">ROI</div>
+            <div class="roi-result-value" id="res-roi">40.5násobok</div>
+          </div>
+          <div class="roi-highlight-box">
+            <p>Za každé €1 do Neoworkly dostanete späť</p>
+            <strong id="res-multiplier">€40.5</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4: Quick reference -->
+    <div class="section">
+      <div class="section-title">Quick Reference</div>
+      <div class="section-desc">Rýchly prehľad pre každý hovor — námietky a cenník na jednom mieste.</div>
+      <div class="quick-grid">
+        <!-- Top námietky -->
+        <div class="quick-card">
+          <div class="quick-card-title">Top námietky</div>
+          <div class="objection-item">
+            <div class="objection-q">"Je to drahé"</div>
+            <div class="objection-a">€37 zaplatí 2-3 leady. Koľko stojí jeden zákazník?</div>
+          </div>
+          <div class="objection-item">
+            <div class="objection-q">"Nemám čas"</div>
+            <div class="objection-a">AI Coach nastaví chatbot za 2 min. Potom pracuje sám.</div>
+          </div>
+          <div class="objection-item">
+            <div class="objection-q">"Pošlite email"</div>
+            <div class="objection-a">Rád. Čo by vás presvedčilo že to má zmysel?</div>
+          </div>
+          <div class="objection-item">
+            <div class="objection-q">"Iné riešenie"</div>
+            <div class="objection-a">Čo vám tam chýba?</div>
+          </div>
+          <div class="objection-item">
+            <div class="objection-q">"Nemáme traffic"</div>
+            <div class="objection-a">Aj 100 návštevníkov = 5-10 konverzácií.</div>
+          </div>
+        </div>
+
+        <!-- Cenník quick ref -->
+        <div class="quick-card">
+          <div class="quick-card-title">Cenník quick ref</div>
+          <table class="price-table">
+            <thead>
+              <tr>
+                <th>Plán</th>
+                <th>Cena</th>
+                <th>Pre koho</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="price-name">Pro</span></td>
+                <td><span class="price-amt">€37/mes</span></td>
+                <td><span class="price-who">1 firma, do 10 widgetov</span></td>
+              </tr>
+              <tr>
+                <td><span class="price-name">White Label</span></td>
+                <td><span class="price-amt">€97/mes</span></td>
+                <td><span class="price-who">Agentúry, predaj klientom</span></td>
+              </tr>
+              <tr>
+                <td><span class="price-name">Person Add-on</span></td>
+                <td><span class="price-amt">+€27/mes</span></td>
+                <td><span class="price-who">Koučovia, osobné značky</span></td>
+              </tr>
+              <tr>
+                <td><span class="price-name">Extra kredity</span></td>
+                <td><span class="price-amt">€8/200 odp.</span></td>
+                <td><span class="price-who">Doplnenie keď dôjde limit</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    async function apiFetch(path, options) {
+      var opts = options || {};
+      var token = localStorage.getItem('sales_token');
+      var res = await fetch('/api' + path, Object.assign({}, opts, {
+        headers: Object.assign(
+          { 'Content-Type': 'application/json' },
+          token ? { Authorization: 'Bearer ' + token } : {},
+          opts.headers || {}
+        )
+      }));
+      if (res.status === 401) { localStorage.removeItem('sales_token'); window.location.href = '/'; return; }
+      return res;
+    }
+
+    function logout() { localStorage.removeItem('sales_token'); window.location.href = '/'; }
+
+    function showToast(msg) {
+      var t = document.getElementById('toast');
+      t.textContent = msg; t.classList.add('show');
+      setTimeout(function() { t.classList.remove('show'); }, 2500);
+    }
+
+    // Segment tabs
+    function showSegment(id, btn) {
+      document.querySelectorAll('.script-card').forEach(function(c) { c.classList.remove('active'); });
+      document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
+      document.getElementById('seg-' + id).classList.add('active');
+      btn.classList.add('active');
+    }
+
+    // Email copy — read from textarea value so edits are preserved
+    function copyEmail(id) {
+      var text = document.getElementById(id).value;
+      navigator.clipboard.writeText(text).then(function() { showToast('Šablóna skopírovaná!'); });
+    }
+
+    // ROI Calculator
+    function fmt(n) { return n.toLocaleString('sk-SK'); }
+    function calcROI() {
+      var visitors = parseInt(document.getElementById('r-visitors').value) || 0;
+      var rate = parseFloat(document.getElementById('r-rate').value) || 0;
+      var val = parseFloat(document.getElementById('r-val').value) || 0;
+
+      document.getElementById('v-visitors').textContent = fmt(visitors);
+      document.getElementById('v-rate').textContent = rate + '%';
+      document.getElementById('v-val').textContent = '€' + fmt(val);
+
+      var leads = Math.round(visitors * rate / 100);
+      var revenue = Math.round(leads * val * 0.2);
+      var cost = 37;
+      var multiplier = revenue > 0 ? (revenue / cost) : 0;
+      var roiStr = multiplier > 0 ? multiplier.toFixed(1) + 'násobok' : '0násobok';
+      var returnStr = multiplier > 0 ? '€' + multiplier.toFixed(1) : '€0';
+
+      document.getElementById('res-leads').textContent = fmt(leads);
+      document.getElementById('res-revenue').textContent = '€' + fmt(revenue);
+      document.getElementById('res-roi').textContent = roiStr;
+      document.getElementById('res-multiplier').textContent = returnStr;
+    }
+
+    calcROI();
+
+    async function init() {
+      var meRes = await apiFetch('/auth/me');
+      if (!meRes || !meRes.ok) return;
+      var me = await meRes.json();
+      document.getElementById('sidebar-name').textContent = me.name || 'Používateľ';
+      document.getElementById('sidebar-email').textContent = me.email || '';
+      document.getElementById('user-avatar').textContent = (me.name || me.email || '?')[0].toUpperCase();
+    }
+
+    init();
+  </script>
+</body>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #f1f5f9;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      overflow: hidden;
+    }
+    #nd-loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 0.75rem;
+      color: #94a3b8;
+      font-size: 0.875rem;
+    }
+    .nd-spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #2563eb;
+      border-radius: 50%;
+      animation: nd-spin 0.7s linear infinite;
+    }
+    @keyframes nd-spin { to { transform: rotate(360deg); } }
+    #nd-chat-popup {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+  </style>
+</head>
+<body>
+  <div id="nd-chat-popup"></div>
+  <div id="nd-loading">
+    <div class="nd-spinner"></div>
+    <span>Načítavam chat…</span>
+  </div>
+
+  <script>
+    (function () {
+      var params = new URLSearchParams(window.location.search);
+      var wid = params.get('wid');
+      var token = params.get('t');
+
+      if (!wid) {
+        document.getElementById('nd-loading').innerHTML = '<span style="color:#ef4444">Chyba: chýba widgetId.</span>';
+        return;
+      }
+
+      function loadWidget(sessionData) {
+        // Set popup session data so widget.js can pick it up during init
+        if (sessionData) window._ndPopupSession = sessionData;
+
+        // Override NeoworklyConfig so widget.js initialises in inline mode inside #nd-chat-popup
+        window.NeoworklyConfig = { widgetId: wid, container: '#nd-chat-popup' };
+
+        // Remove loading indicator once widget is ready
+        var s = document.createElement('script');
+        s.src = '/widget.js?wid=' + encodeURIComponent(wid) + '&popup=1';
+        s.onload = function () {
+          var loading = document.getElementById('nd-loading');
+          if (loading) loading.style.display = 'none';
+        };
+        document.body.appendChild(s);
+      }
+
+      if (token) {
+        fetch('/api/widget/' + encodeURIComponent(wid) + '/popup-session?t=' + encodeURIComponent(token))
+          .then(function (r) { return r.ok ? r.json() : null; })
+          .then(function (data) { loadWidget(data); })
+          .catch(function () { loadWidget(null); });
+      } else {
+        loadWidget(null);
+      }
+    })();
+  </script>
+</body>
+</html>
