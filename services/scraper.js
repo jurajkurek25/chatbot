@@ -72,8 +72,6 @@ function extractContent(html, pageUrl) {
     .replace(/<style[\s\S]*?<\/style>/gi, '')
     .replace(/<noscript[\s\S]*?<\/noscript>/gi, '')
     .replace(/<nav[\s\S]*?<\/nav>/gi, '')
-    .replace(/<footer[\s\S]*?<\/footer>/gi, '')
-    .replace(/<header[\s\S]*?<\/header>/gi, '')
     .replace(/<aside[\s\S]*?<\/aside>/gi, '')
     .replace(/<form[\s\S]*?<\/form>/gi, '')
     .replace(/<!--[\s\S]*?-->/g, '');
