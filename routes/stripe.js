@@ -308,11 +308,34 @@ router.post('/webhook', async (req, res) => {
         if (user) {
           const plan = session.metadata?.plan || 'pro';
 
+          // Helper: record sales commission for this activation
+          function recordCommission(userId, activatedPlan) {
+            try {
+              const RATES = { pro: 15, white_label: 40, person_addon: 10 };
+              const amount = RATES[activatedPlan];
+              if (!amount) return;
+              const userSales = db.prepare('SELECT sales_ref, sales_promo_used FROM users WHERE id = ?').get(userId);
+              let salesRef = userSales?.sales_ref;
+              if (!salesRef && userSales?.sales_promo_used) {
+                const promo = db.prepare('SELECT sales_ref FROM sales_promo_codes WHERE code = ?').get(userSales.sales_promo_used);
+                salesRef = promo?.sales_ref;
+              }
+              if (!salesRef) return;
+              const { v4: uuidv4 } = require('uuid');
+              db.prepare('INSERT INTO sales_commissions (id, sales_ref, user_id, plan, amount) VALUES (?, ?, ?, ?, ?)')
+                .run(uuidv4(), salesRef, userId, activatedPlan, amount);
+              console.log(`[commission] €${amount} for ${salesRef}, plan ${activatedPlan}`);
+            } catch (e) {
+              console.error('[commission] Error:', e.message);
+            }
+          }
+
           // Person add-on subscription
           if (plan === 'person_addon') {
             db.prepare('UPDATE users SET person_addon_active = 1, person_addon_subscription_id = ? WHERE id = ?')
               .run(session.subscription, user.id);
             console.log(`[person] Add-on activated for user ${user.id}`);
+            recordCommission(user.id, 'person_addon');
             break;
           }
 
@@ -329,6 +352,7 @@ router.post('/webhook', async (req, res) => {
             .run(session.subscription, plan, user.id);
           db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(user.id);
           console.log(`[stripe] Subscription activated for user ${user.id}`);
+          recordCommission(user.id, plan);
 
           // Deduct gift card credits that were applied as a coupon discount
           const creditApplied = parseFloat(session.metadata?.credit_applied || '0');

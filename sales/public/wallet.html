@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neoworkly Sales — Peňaženka</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+    }
+
+    /* ── SIDEBAR ── */
+    .sidebar {
+      width: 240px; min-height: 100vh;
+      background: #1e293b;
+      border-right: 1px solid rgba(255,255,255,0.07);
+      display: flex; flex-direction: column;
+      position: fixed; top: 0; left: 0; bottom: 0; z-index: 100;
+    }
+    .sidebar-logo { padding: 22px 20px 18px; border-bottom: 1px solid rgba(255,255,255,0.07); }
+    .logo-row { display: flex; align-items: center; gap: 10px; }
+    .logo-dot {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, #2563eb, #7c3aed);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(37,99,235,0.35);
+    }
+    .logo-dot svg { width: 18px; height: 18px; stroke: white; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .logo-text { font-size: 14px; font-weight: 700; color: #f1f5f9; line-height: 1.2; }
+    .logo-text small { display: block; font-size: 11px; color: #64748b; font-weight: 400; margin-top: 1px; }
+    .nav { flex: 1; padding: 16px 12px; }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 12px; border-radius: 9px;
+      color: #94a3b8; text-decoration: none;
+      font-size: 14px; font-weight: 500;
+      transition: all 0.18s; margin-bottom: 2px;
+    }
+    .nav-item:hover { background: rgba(255,255,255,0.05); color: #e2e8f0; }
+    .nav-item.active { background: rgba(37,99,235,0.18); color: #60a5fa; }
+    .nav-item svg { width: 17px; height: 17px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.07); }
+    .user-avatar { width: 34px; height: 34px; background: linear-gradient(135deg, #2563eb, #7c3aed); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: white; flex-shrink: 0; }
+    .user-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .user-name { font-size: 13px; font-weight: 600; color: #e2e8f0; }
+    .user-email { font-size: 11px; color: #475569; margin-top: 1px; }
+    .btn-logout { width: 100%; padding: 8px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.2); border-radius: 8px; color: #f87171; font-size: 13px; cursor: pointer; font-family: inherit; font-weight: 500; transition: background 0.2s; }
+    .btn-logout:hover { background: rgba(239,68,68,0.2); }
+
+    /* ── MAIN ── */
+    .main { margin-left: 240px; flex: 1; padding: 36px 40px; min-height: 100vh; max-width: calc(100vw - 240px); }
+
+    .page-header { margin-bottom: 32px; }
+    .page-header h2 { font-size: 27px; font-weight: 700; color: #f1f5f9; letter-spacing: -0.5px; }
+    .page-header p { color: #64748b; font-size: 14px; margin-top: 5px; }
+
+    /* Stats row */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-bottom: 36px; }
+    .stat-card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 24px;
+      position: relative;
+      overflow: hidden;
+      transition: box-shadow 0.2s;
+    }
+    .stat-card::before {
+      content: '';
+      position: absolute;
+      top: 0; right: 0;
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      opacity: 0.04;
+      transform: translate(30px, -30px);
+    }
+    .stat-card.gold-glow::before { background: #fbbf24; }
+    .stat-card.green-glow::before { background: #10b981; }
+    .stat-card.blue-glow::before { background: #2563eb; }
+    .stat-card.gold-glow:hover { box-shadow: 0 8px 32px rgba(251,191,36,0.2); }
+    .stat-card.green-glow:hover { box-shadow: 0 8px 32px rgba(16,185,129,0.2); }
+    .stat-card.blue-glow:hover { box-shadow: 0 8px 32px rgba(37,99,235,0.2); }
+    .stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.8px; color: #64748b; margin-bottom: 12px; font-weight: 600; }
+    .stat-value { font-size: 34px; font-weight: 700; color: #f1f5f9; line-height: 1; }
+    .stat-sub { font-size: 12px; color: #475569; margin-top: 7px; }
+    .stat-icon {
+      position: absolute;
+      top: 24px; right: 24px;
+      width: 42px; height: 42px;
+      border-radius: 11px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .stat-icon.gold { background: rgba(251,191,36,0.12); }
+    .stat-icon.green { background: rgba(16,185,129,0.15); }
+    .stat-icon.blue { background: rgba(37,99,235,0.15); }
+    .stat-icon svg { width: 20px; height: 20px; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+
+    /* Section */
+    .section { margin-bottom: 36px; }
+    .section-title { font-size: 18px; font-weight: 700; color: #f1f5f9; margin-bottom: 18px; }
+
+    /* Card */
+    .card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 24px;
+    }
+
+    /* Commission table */
+    .commission-table { width: 100%; border-collapse: collapse; }
+    .commission-table th {
+      text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+      color: #475569; font-weight: 600; padding: 0 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .commission-table td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; }
+    .commission-table tr:last-child td { border-bottom: none; }
+    .plan-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+    }
+    .plan-pro { background: rgba(37,99,235,0.15); color: #60a5fa; }
+    .plan-wl { background: rgba(124,58,237,0.15); color: #a78bfa; }
+    .plan-person { background: rgba(16,185,129,0.15); color: #34d399; }
+    .reward-amount { font-size: 18px; font-weight: 700; color: #fbbf24; }
+
+    /* Bonus progress */
+    .bonus-section { margin-bottom: 36px; }
+    .bonus-card {
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 14px;
+      padding: 24px;
+    }
+    .bonus-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .bonus-title { font-size: 15px; font-weight: 600; color: #f1f5f9; }
+    .bonus-month { font-size: 13px; color: #64748b; }
+    .bonus-track { position: relative; margin-bottom: 20px; }
+    .progress-bar { height: 10px; background: rgba(255,255,255,0.08); border-radius: 5px; overflow: visible; position: relative; }
+    .progress-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, #2563eb, #7c3aed); transition: width 0.6s ease; }
+    .milestone {
+      position: absolute; top: -2px;
+      width: 2px; height: 14px;
+      background: rgba(255,255,255,0.2);
+    }
+    .milestone-label {
+      position: absolute; top: 18px;
+      font-size: 11px; color: #64748b;
+      transform: translateX(-50%);
+      white-space: nowrap;
+    }
+    .bonus-rewards { display: flex; gap: 16px; flex-wrap: wrap; }
+    .bonus-tier {
+      flex: 1; min-width: 160px;
+      padding: 14px 18px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 10px;
+    }
+    .bonus-tier.achieved { border-color: rgba(251,191,36,0.3); background: rgba(251,191,36,0.05); }
+    .tier-label { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+    .tier-amount { font-size: 20px; font-weight: 700; color: #64748b; }
+    .bonus-tier.achieved .tier-amount { color: #fbbf24; }
+    .tier-req { font-size: 12px; color: #475569; margin-top: 4px; }
+
+    /* History table */
+    .history-table { width: 100%; border-collapse: collapse; }
+    .history-table th {
+      text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.8px;
+      color: #475569; font-weight: 600; padding: 0 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .history-table td { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 14px; }
+    .history-table tr:last-child td { border-bottom: none; }
+    .status-paid { color: #34d399; font-size: 12px; font-weight: 600; background: rgba(16,185,129,0.12); padding: 3px 10px; border-radius: 20px; display: inline-block; }
+    .status-pending { color: #fbbf24; font-size: 12px; font-weight: 600; background: rgba(251,191,36,0.12); padding: 3px 10px; border-radius: 20px; display: inline-block; }
+
+    .empty-state { text-align: center; padding: 48px 20px; color: #475569; font-size: 14px; }
+    .empty-state svg { width: 48px; height: 48px; stroke: #334155; fill: none; stroke-width: 1.5; margin: 0 auto 16px; display: block; }
+    .empty-state h3 { font-size: 16px; font-weight: 600; color: #64748b; margin-bottom: 8px; }
+
+    @media (max-width: 900px) { .stats-row { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 768px) {
+      .sidebar { width: 0; overflow: hidden; }
+      .main { margin-left: 0; padding: 24px 16px; max-width: 100vw; }
+      .stats-row { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-row">
+        <div class="logo-dot">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="logo-text">Neoworkly Sales<small>Tréningová platforma</small></div>
+      </div>
+    </div>
+    <nav class="nav">
+      <a href="/dashboard.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="/training.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+        Tréning
+      </a>
+      <a href="/prospects.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        Prospekting
+      </a>
+      <a href="/advisor.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+        AI Poradca
+      </a>
+      <a href="/codes.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 2v4M16 2v4M2 10h20"/></svg>
+        Kódy &amp; Linky
+      </a>
+      <a href="/wallet.html" class="nav-item active">
+        <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        Peňaženka
+      </a>
+      <a href="/toolkit.html" class="nav-item">
+        <svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3-3a1 1 0 000-1.4l-1.6-1.6a1 1 0 00-1.4 0l-3 3z"/><path d="M5 20L2 22l2-3 9.5-9.5-2-2L5 20z"/></svg>
+        Toolkit
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-row">
+        <div class="user-avatar" id="user-avatar">?</div>
+        <div>
+          <div class="user-name" id="sidebar-name">–</div>
+          <div class="user-email" id="sidebar-email">–</div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Odhlásiť sa</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-header">
+      <h2>Peňaženka</h2>
+      <p>Prehľad vašich odmien za konverzie a bonusov.</p>
+    </div>
+
+    <!-- Summary stats -->
+    <div class="stats-row">
+      <div class="stat-card gold-glow">
+        <div class="stat-icon gold">
+          <svg viewBox="0 0 24 24" stroke="#fbbf24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+        </div>
+        <div class="stat-label">Celkovo zarobené</div>
+        <div class="stat-value" id="stat-total">–</div>
+        <div class="stat-sub">všetky konverzie</div>
+      </div>
+      <div class="stat-card green-glow">
+        <div class="stat-icon green">
+          <svg viewBox="0 0 24 24" stroke="#34d399"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+        </div>
+        <div class="stat-label">Tento mesiac</div>
+        <div class="stat-value" id="stat-month">–</div>
+        <div class="stat-sub">aktuálny mesiac</div>
+      </div>
+      <div class="stat-card blue-glow">
+        <div class="stat-icon blue">
+          <svg viewBox="0 0 24 24" stroke="#60a5fa"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        </div>
+        <div class="stat-label">K výplate</div>
+        <div class="stat-value" id="stat-pending">–</div>
+        <div class="stat-sub">nevyplatené odmeny</div>
+      </div>
+    </div>
+
+    <!-- Commission rates -->
+    <div class="section">
+      <div class="section-title">Sadzby odmien</div>
+      <div class="card">
+        <table class="commission-table">
+          <thead>
+            <tr>
+              <th>Plán</th>
+              <th>Cena pre zákazníka</th>
+              <th>Vaša odmena</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="plan-badge plan-pro">Pro plán</span></td>
+              <td style="color:#94a3b8">€37 / mesiac</td>
+              <td><span class="reward-amount">€15</span> <span style="color:#64748b;font-size:12px">za konverziu</span></td>
+            </tr>
+            <tr>
+              <td><span class="plan-badge plan-wl">White Label</span></td>
+              <td style="color:#94a3b8">€97 / mesiac</td>
+              <td><span class="reward-amount">€40</span> <span style="color:#64748b;font-size:12px">za konverziu</span></td>
+            </tr>
+            <tr>
+              <td><span class="plan-badge plan-person">Person Add-on</span></td>
+              <td style="color:#94a3b8">€27 / mesiac</td>
+              <td><span class="reward-amount">€10</span> <span style="color:#64748b;font-size:12px">za konverziu</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Bonus progress -->
+    <div class="bonus-section">
+      <div class="section-title">Mesačný bonus</div>
+      <div class="bonus-card">
+        <div class="bonus-header">
+          <span class="bonus-title">Postup k bonusu</span>
+          <span class="bonus-month" id="bonus-month-label">–</span>
+        </div>
+        <div class="bonus-track">
+          <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+            <span style="font-size:13px;color:#94a3b8"><span id="bonus-conversions">0</span> konverzií tento mesiac</span>
+            <span style="font-size:13px;color:#64748b">cieľ: <strong style="color:#e2e8f0">10</strong></span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="bonus-bar" style="width:0%"></div>
+            <div class="milestone" style="left:50%" id="milestone-5">
+              <span class="milestone-label">5</span>
+            </div>
+            <div class="milestone" style="left:100%" id="milestone-10">
+              <span class="milestone-label">10+</span>
+            </div>
+          </div>
+        </div>
+        <div class="bonus-rewards">
+          <div class="bonus-tier" id="tier-5">
+            <div class="tier-label">5–9 konverzií</div>
+            <div class="tier-amount">+€30</div>
+            <div class="tier-req">bonus mesačne</div>
+          </div>
+          <div class="bonus-tier" id="tier-10">
+            <div class="tier-label">10+ konverzií</div>
+            <div class="tier-amount">+€100</div>
+            <div class="tier-req">bonus mesačne</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div class="section">
+      <div class="section-title">História odmien</div>
+      <div class="card">
+        <div id="history-container">
+          <div class="empty-state">Načítavam...</div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    async function apiFetch(path, options = {}) {
+      const token = localStorage.getItem('sales_token');
+      const res = await fetch('/api' + path, {
+        ...options,
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: 'Bearer ' + token } : {}),
+          ...(options.headers || {}),
+        },
+      });
+      if (res.status === 401) { localStorage.removeItem('sales_token'); window.location.href = '/'; return; }
+      return res;
+    }
+
+    function logout() { localStorage.removeItem('sales_token'); window.location.href = '/'; }
+
+    function fmt(amount) {
+      if (typeof amount !== 'number') return '–';
+      return '€' + amount.toFixed(2);
+    }
+
+    function formatDate(ts) {
+      if (!ts) return '–';
+      const d = (typeof ts === 'number') ? new Date(ts * 1000) : new Date(ts);
+      if (isNaN(d.getTime())) return '–';
+      return d.toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    }
+
+    function planLabel(plan) {
+      if (!plan) return '–';
+      const p = plan.toLowerCase();
+      if (p.includes('white') || p.includes('wl')) return '<span class="plan-badge plan-wl">White Label</span>';
+      if (p.includes('person')) return '<span class="plan-badge plan-person">Person Add-on</span>';
+      return '<span class="plan-badge plan-pro">Pro plán</span>';
+    }
+
+    async function loadWallet() {
+      const res = await apiFetch('/codes/wallet');
+      if (!res || !res.ok) {
+        renderEmpty();
+        return;
+      }
+      const data = await res.json();
+
+      // Stats
+      document.getElementById('stat-total').textContent = fmt(data.total);
+      document.getElementById('stat-month').textContent = fmt(data.thisMonth);
+      document.getElementById('stat-pending').textContent = fmt(data.pending);
+
+      // Bonus progress
+      const now = new Date();
+      document.getElementById('bonus-month-label').textContent =
+        now.toLocaleDateString('sk-SK', { month: 'long', year: 'numeric' });
+      const convCount = data.monthConversions || 0;
+      document.getElementById('bonus-conversions').textContent = convCount;
+      const pct = Math.min((convCount / 10) * 100, 100);
+      document.getElementById('bonus-bar').style.width = pct + '%';
+      if (convCount >= 5) document.getElementById('tier-5').classList.add('achieved');
+      if (convCount >= 10) document.getElementById('tier-10').classList.add('achieved');
+
+      // History table
+      const history = data.history || [];
+      renderHistory(history);
+    }
+
+    function renderHistory(history) {
+      const container = document.getElementById('history-container');
+      if (!history.length) {
+        renderEmpty();
+        return;
+      }
+      container.innerHTML = `
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th>Dátum</th>
+              <th>Plán</th>
+              <th>Odmena</th>
+              <th>Stav</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${history.map(h => `
+              <tr>
+                <td style="color:#94a3b8">${formatDate(h.date || h.created_at)}</td>
+                <td>${planLabel(h.plan)}</td>
+                <td style="font-weight:700;color:#fbbf24">${fmt(h.amount)}</td>
+                <td>${h.paid || h.status === 'paid' ? '<span class="status-paid">Vyplatené</span>' : '<span class="status-pending">Čaká</span>'}</td>
+              </tr>`).join('')}
+          </tbody>
+        </table>`;
+    }
+
+    function renderEmpty() {
+      document.getElementById('history-container').innerHTML = `
+        <div class="empty-state">
+          <svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+          <h3>Zatiaľ žiadne odmeny</h3>
+          <p>Konvertujte prvého zákazníka a odmena sa objaví tu.</p>
+        </div>`;
+    }
+
+    async function init() {
+      const meRes = await apiFetch('/auth/me');
+      if (!meRes || !meRes.ok) return;
+      const me = await meRes.json();
+      document.getElementById('sidebar-name').textContent = me.name || 'Používateľ';
+      document.getElementById('sidebar-email').textContent = me.email || '';
+      document.getElementById('user-avatar').textContent = (me.name || me.email || '?')[0].toUpperCase();
+
+      // Initialize stat display
+      document.getElementById('stat-total').textContent = '€0.00';
+      document.getElementById('stat-month').textContent = '€0.00';
+      document.getElementById('stat-pending').textContent = '€0.00';
+
+      await loadWallet();
+    }
+
+    init();
+  </script>
+</body>
+</html>

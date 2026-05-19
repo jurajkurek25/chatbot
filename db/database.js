@@ -567,6 +567,16 @@ function initDatabase() {
     `ALTER TABLE users ADD COLUMN sales_ref TEXT`,
     `ALTER TABLE users ADD COLUMN sales_promo_used TEXT`,
     `ALTER TABLE widgets ADD COLUMN promotions TEXT NOT NULL DEFAULT '[]'`,
+    `ALTER TABLE sales_promo_codes ADD COLUMN sales_ref TEXT`,
+    `CREATE TABLE IF NOT EXISTS sales_commissions (
+  id TEXT PRIMARY KEY,
+  sales_ref TEXT NOT NULL,
+  user_id TEXT NOT NULL,
+  plan TEXT NOT NULL,
+  amount REAL NOT NULL,
+  paid INTEGER NOT NULL DEFAULT 0,
+  created_at INTEGER NOT NULL DEFAULT (unixepoch())
+)`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

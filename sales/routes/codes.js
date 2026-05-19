@@ -29,17 +29,34 @@ function postJson(urlStr, data, headers) {
       port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
       path: parsed.pathname + parsed.search,
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body),
-        ...headers,
-      },
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(body), ...headers },
     };
     const req = lib.request(opts, (res) => {
       resolve({ ok: res.statusCode >= 200 && res.statusCode < 300, status: res.statusCode });
     });
     req.on('error', reject);
     req.write(body);
+    req.end();
+  });
+}
+
+function getJson(urlStr, headers) {
+  return new Promise((resolve, reject) => {
+    const parsed = new URL(urlStr);
+    const lib = parsed.protocol === 'https:' ? https : http;
+    const opts = {
+      hostname: parsed.hostname,
+      port: parsed.port || (parsed.protocol === 'https:' ? 443 : 80),
+      path: parsed.pathname + parsed.search,
+      method: 'GET',
+      headers: { ...headers },
+    };
+    const req = lib.request(opts, (res) => {
+      let body = '';
+      res.on('data', chunk => body += chunk);
+      res.on('end', () => { try { resolve(JSON.parse(body)); } catch { reject(new Error('Invalid JSON')); } });
+    });
+    req.on('error', reject);
     req.end();
   });
 }
@@ -56,22 +73,24 @@ router.post('/generate', async (req, res) => {
   const { prospect_name, notes, value_days = 30, max_uses = 1 } = req.body;
   const db = getDb();
   const user = db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId);
+  const refRow = db.prepare('SELECT ref_code FROM sales_refs WHERE user_id = ?').get(req.userId);
+  const salesRef = refRow?.ref_code || null;
   const code = generateCode(user?.name);
   const id = uuidv4();
-  const expiresAt = Math.floor(Date.now() / 1000) + 90 * 86400; // 90 days to use
+  const expiresAt = Math.floor(Date.now() / 1000) + 90 * 86400;
 
   db.prepare(
     `INSERT INTO promo_codes (id, code, created_by, type, value_days, max_uses, prospect_name, notes, expires_at)
      VALUES (?, ?, ?, 'trial', ?, ?, ?, ?, ?)`
   ).run(id, code, req.userId, value_days, max_uses, prospect_name || null, notes || null, expiresAt);
 
-  // Push to main app
+  // Push to main app (include sales_ref so commissions can be attributed)
   let synced = false;
   if (INTERNAL_SECRET) {
     try {
       const r = await postJson(
         `${MAIN_APP_URL}/api/promo-codes/register`,
-        { code, type: 'trial', value_days, max_uses, salesperson_name: user?.name, notes, expires_at: expiresAt },
+        { code, type: 'trial', value_days, max_uses, salesperson_name: user?.name, notes, expires_at: expiresAt, sales_ref: salesRef },
         { 'x-internal-secret': INTERNAL_SECRET }
       );
       if (r.ok) {
@@ -156,6 +175,27 @@ router.get('/referral', (req, res) => {
     link: `${MAIN_APP_URL}?sales_ref=${ref.ref_code}`,
     clicks: ref.clicks,
   });
+});
+
+// GET /api/codes/wallet — salesperson earnings from main app
+router.get('/wallet', async (req, res) => {
+  if (!INTERNAL_SECRET) {
+    return res.json({ total: 0, this_month: 0, this_month_conversions: 0, bonus: 0, bonus_next: null, pending: 0, commissions: [], _no_secret: true });
+  }
+  const db = getDb();
+  const ref = db.prepare('SELECT ref_code FROM sales_refs WHERE user_id = ?').get(req.userId);
+  if (!ref) {
+    return res.json({ total: 0, this_month: 0, this_month_conversions: 0, bonus: 0, bonus_next: null, pending: 0, commissions: [] });
+  }
+  try {
+    const data = await getJson(
+      `${MAIN_APP_URL}/api/promo-codes/wallet?ref_code=${encodeURIComponent(ref.ref_code)}`,
+      { 'x-internal-secret': INTERNAL_SECRET }
+    );
+    res.json(data);
+  } catch (e) {
+    res.status(502).json({ error: 'Nepodarilo sa načítať peňaženku z hlavnej aplikácie.' });
+  }
 });
 
 module.exports = router;
