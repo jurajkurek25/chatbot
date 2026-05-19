@@ -533,6 +533,21 @@
             </div>
 
             <div class="form-group">
+              <label>Vlastný obrázok bubliny <span style="font-weight:400;color:#94a3b8">(voliteľné)</span></label>
+              <div class="upload-row">
+                <div id="s-launcher-preview" style="width:56px;height:56px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;overflow:hidden;flex-shrink:0">💬</div>
+                <div>
+                  <input type="file" id="s-launcher-file" accept="image/png,image/webp" style="font-size:0.875rem">
+                  <div class="hint">PNG alebo WebP bez pozadia · max 2 MB · nahradí farebnú bublinu</div>
+                </div>
+                <div style="display:flex;gap:0.5rem;flex-direction:column">
+                  <button class="btn btn-secondary btn-sm" onclick="uploadLauncherImage()">Nahrať</button>
+                  <button class="btn btn-secondary btn-sm" id="btn-remove-launcher" onclick="removeLauncherImage()" style="display:none;color:#ef4444">Odstrániť</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
               <label>Ciele a kontext biznisu</label>
               <textarea class="form-control" id="s-goals" rows="4"
                 placeholder="Popíšte čo robí váš biznis, aké sú vaše ciele pre konverzácie so zákazníkmi, aký tón komunikácie chcete..."></textarea>

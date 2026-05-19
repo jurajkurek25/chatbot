@@ -577,6 +577,7 @@ function initDatabase() {
   paid INTEGER NOT NULL DEFAULT 0,
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 )`,
+    `ALTER TABLE widgets ADD COLUMN launcher_image_url TEXT`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

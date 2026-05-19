@@ -747,8 +747,14 @@
 
     // Launcher button (floating mode only)
     if (!INLINE_MODE) {
-      const launcher = elem('button', { id: 'nd-launcher', title: wt('open'), style: `background:${primary}` });
-      launcher.innerHTML = `<span id="nd-launcher-icon">${ICON_CHAT}</span>`;
+      const launcher = elem('button', { id: 'nd-launcher', title: wt('open') });
+      if (config.launcher_image_url) {
+        launcher.style.cssText = 'background:transparent;box-shadow:none;border-radius:0';
+        launcher.innerHTML = `<span id="nd-launcher-icon"><img src="${config.launcher_image_url}" style="width:56px;height:56px;object-fit:contain;display:block" alt=""></span>`;
+      } else {
+        launcher.style.background = primary;
+        launcher.innerHTML = `<span id="nd-launcher-icon">${ICON_CHAT}</span>`;
+      }
       launcher.addEventListener('click', toggleChat);
       shadow.appendChild(launcher);
     }

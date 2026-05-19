@@ -42,7 +42,7 @@ router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
     SELECT id, user_id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
-           suggested_questions_i18n, active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text,
+           suggested_questions_i18n, active, avatar_url, launcher_image_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text,
            hide_branding, business_hours, offline_message, csat_enabled, welcome_message_b
     FROM widgets WHERE id = ?
   `).get(req.params.widgetId);
@@ -77,6 +77,9 @@ router.get('/:widgetId/config', (req, res) => {
     })(),
     avatar_url: widget.avatar_url
       ? `${(process.env.APP_URL || 'https://neoworkly.com').replace(/\/$/, '')}${widget.avatar_url}`
+      : null,
+    launcher_image_url: widget.launcher_image_url
+      ? `${(process.env.APP_URL || 'https://neoworkly.com').replace(/\/$/, '')}${widget.launcher_image_url}`
       : null,
     proactive_enabled: Boolean(widget.proactive_enabled),
     proactive_delay: widget.proactive_delay || 4,

@@ -419,6 +419,9 @@ async function openWidget(widgetId) {
   renderProactiveSeq(currentWidget.proactive_sequence || []);
   renderPromotions(currentWidget.promotions || []);
 
+  // Launcher image preview
+  updateLauncherPreview(currentWidget.launcher_image_url || null);
+
   // Avatar preview
   const preview = document.getElementById('s-avatar-preview');
   if (preview) {
@@ -1084,6 +1087,64 @@ async function uploadAvatar() {
   }
 }
 
+/* ── Launcher Image Upload ─────────────────────────────────────── */
+async function uploadLauncherImage() {
+  if (!currentWidget) return;
+  const file = document.getElementById('s-launcher-file')?.files[0];
+  if (!file) { showToast('Vyberte obrázok.', 'error'); return; }
+
+  const formData = new FormData();
+  formData.append('launcher_image', file);
+
+  try {
+    const r = await apiFetch(`/api/widgets/${currentWidget.id}/launcher-image`, {
+      method: 'POST',
+      body: formData,
+    });
+    if (!r) return;
+    const data = await r.json();
+    if (data.launcher_image_url) {
+      currentWidget.launcher_image_url = data.launcher_image_url;
+      updateLauncherPreview(data.launcher_image_url);
+      showToast('Obrázok bubliny bol nahratý.');
+    } else {
+      showToast(data.error || 'Chyba.', 'error');
+    }
+  } catch {
+    showToast('Chyba pri nahrávaní.', 'error');
+  }
+}
+
+async function removeLauncherImage() {
+  if (!currentWidget) return;
+  try {
+    const r = await apiFetch(`/api/widgets/${currentWidget.id}/launcher-image`, { method: 'DELETE' });
+    if (!r) return;
+    currentWidget.launcher_image_url = null;
+    updateLauncherPreview(null);
+    showToast('Obrázok bubliny bol odstránený.');
+  } catch {
+    showToast('Chyba.', 'error');
+  }
+}
+
+function updateLauncherPreview(url) {
+  const preview = document.getElementById('s-launcher-preview');
+  const removeBtn = document.getElementById('btn-remove-launcher');
+  if (!preview) return;
+  if (url) {
+    preview.innerHTML = `<img src="${url}" style="width:56px;height:56px;object-fit:contain;">`;
+    preview.style.background = 'transparent';
+    preview.style.borderRadius = '0';
+    if (removeBtn) removeBtn.style.display = '';
+  } else {
+    preview.innerHTML = '💬';
+    preview.style.background = '#e2e8f0';
+    preview.style.borderRadius = '50%';
+    if (removeBtn) removeBtn.style.display = 'none';
+  }
+}
+
 /* ── Color Picker ─────────────────────────────────────────────── */
 function updateColorPreview(color) {
   document.getElementById('color-preview').style.background = color;
@@ -1412,15 +1473,11 @@ async function loadEmbedCode() {
 
   // Render preview bubble
   const preview = document.getElementById('preview-bubble');
-  preview.innerHTML = `
-    <div style="
-      width:56px;height:56px;border-radius:50%;
-      background:${currentWidget.primary_color};
-      display:flex;align-items:center;justify-content:center;
-      cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);
-      font-size:1.5rem;color:white;
-    ">💬</div>
-  `;
+  if (currentWidget.launcher_image_url) {
+    preview.innerHTML = `<div style="width:56px;height:56px;cursor:pointer;"><img src="${currentWidget.launcher_image_url}" style="width:56px;height:56px;object-fit:contain;" alt=""></div>`;
+  } else {
+    preview.innerHTML = `<div style="width:56px;height:56px;border-radius:50%;background:${currentWidget.primary_color};display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.2);font-size:1.5rem;color:white;">💬</div>`;
+  }
 }
 
 async function copyEmbedForWidget(widgetId) {

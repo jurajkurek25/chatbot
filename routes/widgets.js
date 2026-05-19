@@ -29,6 +29,26 @@ const uploadAvatar = multer({
   },
 });
 
+const launcherStorage = multer.diskStorage({
+  destination(req, file, cb) {
+    const dir = path.join(__dirname, '..', 'uploads', 'launchers');
+    fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename(req, file, cb) {
+    const ALLOWED_EXTS = new Set(['.png', '.webp']);
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `launcher-${req.params.id}${ALLOWED_EXTS.has(ext) ? ext : '.png'}`);
+  },
+});
+const uploadLauncher = multer({
+  storage: launcherStorage,
+  limits: { fileSize: 2 * 1024 * 1024 },
+  fileFilter(req, file, cb) {
+    cb(null, /^image\/(png|webp)$/.test(file.mimetype));
+  },
+});
+
 const router = express.Router();
 
 // All widget routes require authentication
@@ -294,6 +314,31 @@ router.post('/:id/avatar', uploadAvatar.single('avatar'), (req, res) => {
   const db = getDb();
   db.prepare('UPDATE widgets SET avatar_url = ? WHERE id = ?').run(avatarUrl, widget.id);
   res.json({ avatar_url: avatarUrl });
+});
+
+// POST /api/widgets/:id/launcher-image — upload custom launcher button image (PNG without bg)
+router.post('/:id/launcher-image', uploadLauncher.single('launcher_image'), (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+  if (!req.file) return res.status(400).json({ error: 'Neplatný súbor. Povolené sú PNG a WebP.' });
+
+  const imageUrl = `/uploads/launchers/${req.file.filename}`;
+  const db = getDb();
+  db.prepare('UPDATE widgets SET launcher_image_url = ? WHERE id = ?').run(imageUrl, widget.id);
+  res.json({ launcher_image_url: imageUrl });
+});
+
+// DELETE /api/widgets/:id/launcher-image — remove custom launcher image, revert to color bubble
+router.delete('/:id/launcher-image', (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+
+  const db = getDb();
+  if (widget.launcher_image_url) {
+    try { fs.unlinkSync(path.join(__dirname, '..', widget.launcher_image_url)); } catch {}
+  }
+  db.prepare('UPDATE widgets SET launcher_image_url = NULL WHERE id = ?').run(widget.id);
+  res.json({ success: true });
 });
 
 // GET /api/widgets/:id/leads — list leads for a widget
