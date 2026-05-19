@@ -311,7 +311,7 @@ router.post('/webhook', async (req, res) => {
           // Helper: record sales commission for this activation
           function recordCommission(userId, activatedPlan) {
             try {
-              const RATES = { pro: 15, white_label: 40, person_addon: 10 };
+              const RATES = { pro: 15, white_label: 150, person_addon: 12 };
               const amount = RATES[activatedPlan];
               if (!amount) return;
               const userSales = db.prepare('SELECT sales_ref, sales_promo_used FROM users WHERE id = ?').get(userId);

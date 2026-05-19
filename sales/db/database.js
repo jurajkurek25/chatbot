@@ -111,7 +111,7 @@ function initDatabase() {
 }
 
 function seedTraining(db) {
-  const SEED_VERSION = '4';
+  const SEED_VERSION = '6';
   const current = db.prepare("SELECT value FROM settings WHERE id = 'training_version'").get();
   if (current?.value === SEED_VERSION) return;
 
@@ -133,17 +133,16 @@ Neoworkly je AI chatbot platforma pre malé a stredné firmy. Klient si vytvorí
 - Do 10 chatbotov (widgetov)
 - Všetky základné aj pokročilé funkcie
 
-**White Label plán – €97/mesiac**
-- 40 widgetov, vlastná značka (bez "Powered by Neoworkly")
+**White Label plán – €997/mesiac**
+- Neobmedzené widgety, vlastná značka (bez "Powered by Neoworkly")
 - Predaj chatbotov vlastným klientom pod svojím logom
-- Extra widgety: €27/mes za každých 10 ďalších
-- Volume kredity: €50 = 1 000, €100 = 3 300, €250 = 8 250 odpovedí
+- Neobmedzený počet widgetov bez príplatku
 
-**Person Add-on – €27/mesiac**
+**Person Add-on – €29/mesiac**
 - Digitálny dvojník konkrétnej osoby
 - Chatbot komunikuje štýlom a hlasom majiteľa/experta
 
-**Extra kredity – €8 za 200 odpovedí (25 kr/€)**
+**Doplnkové kredity – €5/100 · €8/200 (AUTO-REFILL) · €15/350 · kurz 1€=20 odpovedí**
 - Auto-reload: automatické dobíjanie z uloženej karty pri dosiahnutí limitu
 
 ## AI Coach – najväčší differenciátor
@@ -177,11 +176,11 @@ E-shopy, realitky, kozmetické salóny, fitness centrá, autobazáre, právnici,
   const q1 = [
     ['Koľko stojí Pro plán mesačne?', ['€19','€29','€37','€49'], 2, 'Pro plán stojí €37 mesačne a obsahuje 500 odpovedí a 10 widgetov.'],
     ['Čo je AI Coach a prečo je to najväčší differenciátor?', ['Chatbot pre zákazníkov','AI ktorá sama vytvorí celý widget z popisu biznisu','Extra balík odpovedí','Podpora cez email'], 1, 'AI Coach vytvorí kompletný widget konverzáciou – žiadne manuálne nastavovanie.'],
-    ['Koľko odpovedí dostane zákazník za €8 extra kreditov?', ['100','150','200','250'], 2, 'Extra kredity: €8 = 200 odpovedí (kurz 25 kr/€).'],
-    ['White Label plán je určený primárne pre?', ['Jednotlivcov s jedným webom','Agentúry predávajúce chatboty klientom pod vlastnou značkou','Firmy s viac ako 100 zamestnancami','Vývojárov'], 1, 'White Label umožňuje predávať chatboty pod vlastnou značkou za €97/mes.'],
+    ['Koľko odpovedí dostane zákazník za €8 extra kreditov?', ['100','150','200','250'], 2, 'Extra kredity: €8 = 200 odpovedí (AUTO-REFILL – automaticky sa dobije pri dosiahnutí limitu).'],
+    ['White Label plán je určený primárne pre?', ['Jednotlivcov s jedným webom','Agentúry predávajúce chatboty klientom pod vlastnou značkou','Firmy s viac ako 100 zamestnancami','Vývojárov'], 1, 'White Label umožňuje predávať chatboty pod vlastnou značkou za €997/mes.'],
     ['Čo robí funkcia Follow-up sekvencia?', ['Odosiela newsletter všetkým návštevníkom','Automaticky emailuje leadov až v 5 krokoch po zachytení kontaktu','Synchronizuje kontakty s CRM','Posiela SMS zákazníkom'], 1, 'Sekvencie automaticky emailujú každý zachytený lead – až 5 krokov s vlastným delayom.'],
     ['S čím sa prepája rezervačný systém?', ['Outlook Calendar','iCloud Calendar','Google Calendar','Excel'], 2, 'Rezervačný systém sa prepája s Google Calendar – zákazník rezervuje slot priamo v chate.'],
-    ['Čo je Person Add-on?', ['Extra balík widgetov','Digitálny dvojník – chatbot komunikuje štýlom konkrétnej osoby','Instagram integrácia','Zákaznícka podpora 24/7'], 1, 'Person Add-on za €27/mes vytvorí chatbota komunikujúceho štýlom majiteľa/experta.'],
+    ['Čo je Person Add-on?', ['Extra balík widgetov','Digitálny dvojník – chatbot komunikuje štýlom konkrétnej osoby','Instagram integrácia','Zákaznícka podpora 24/7'], 1, 'Person Add-on za €29/mes vytvorí chatbota komunikujúceho štýlom majiteľa/experta.'],
     ['Čo sleduje Money Mode?', ['Počet správ a kliknutí','ROI – príjmy a konverzie leadov na platiacich klientov','Počet návštevníkov webu','Pozície vo vyhľadávačoch'], 1, 'Money Mode sleduje ROI v reálnom čase – koľko príjmov chatbot priniesol.'],
     ['Aké e-commerce integrácie Neoworkly ponúka?', ['Magento a PrestaShop','WooCommerce a Shopify','Pouze vlastné API','BigCommerce a Squarespace'], 1, 'Neoworkly sa integruje s WooCommerce a Shopify.'],
     ['Čo je proaktívne oslovenie?', ['Email zákazníkovi po nákupe','Chatbot sa sám ozve návštevníkovi webu po X sekundách','Push notifikácia v prehliadači','Automatický telefonát'], 1, 'Proaktívne oslovenie – chatbot sa ako prvý ozve návštevníkovi namiesto čakania.'],
@@ -271,12 +270,12 @@ Follow-up email do 30 minút po hovore – zhrnutie + next step.`, 75
 
 **Ideálny zákazník pre WL:** Digitálna agentúra, webdizajnér, IT firma, marketing poradca ktorý má 5+ klientov s webmi.
 
-**Pitch:** "Za €97 mesačne máte 40 chatbotov pod vlastnou značkou. Každému klientovi predáte chatbot za €50-100/mes – návratnosť za prvých 2-3 klientov."
+**Pitch:** "Za €997 mesačne máte neobmedzené chatboty pod vlastnou značkou. Každému klientovi predáte chatbot za €150-200/mes – návratnosť za prvých 7-8 klientov."
 
 **Kalkulácia pre agentúru:**
-- Neoworkly WL: €97/mes
-- 10 klientov × €80/mes = €800 príjem
-- Čistý zisk: €703/mes za pasívny recurring revenue
+- Neoworkly WL: €997/mes
+- 12 klientov × €150/mes = €1 800 príjem
+- Čistý zisk: €803/mes za pasívny recurring revenue
 
 ## Person Add-on – kedy a komu
 
@@ -324,13 +323,13 @@ Kľúčové pre: kozmetické salóny, fitness, lekári, advokáti, koučovia –
   );
 
   const q3 = [
-    ['Agentúra má 10 klientov a predáva každému chatbot za €80/mes. Koľko čistého zisku mesačne po odčítaní WL plánu?', ['€703','€800','€97','€503'], 0, '10 × €80 = €800 príjem − €97 WL plán = €703 čistý zisk mesačne.'],
+    ['Agentúra má 12 klientov a predáva každému chatbot za €150/mes. Koľko čistého zisku mesačne po odčítaní WL plánu?', ['€803','€1800','€997','€1200'], 0, '12 × €150 = €1 800 príjem − €997 WL plán = €803 čistý zisk mesačne.'],
     ['Komu je Person Add-on najprínosnejší?', ['E-shopom s tisíckami produktov','Koučom, konzultantom a expertom kde osobná značka hrá kľúčovú rolu','Výrobným firmám bez priameho kontaktu so zákazníkmi','Firmám s veľkým call centrom'], 1, 'Person Add-on je pre osobné značky kde zákazníci chcú komunikovať s konkrétnym človekom.'],
     ['Aký je WOW moment pri AI Coach demo?', ['Zákazník dostane cenovú ponuku','Zákazník vidí hotový chatbot vytvorený z jeho popisu biznisu za 60 sekúnd','Obchodník ukáže prezentáciu s grafmi','Zákazník dostane email s ponukou'], 1, 'Živé demo kde AI Coach vytvorí chatbot počas hovoru je najsilnejší predajný argument.'],
     ['Čo poviete zákazníkovi ktorý pochybuje o hodnote chatbota?', ['"Chatboty sú budúcnosť."','"Skúste to aspoň mesiac."','"Priemerný klient zachytí 15-30 leadov mesačne ktoré by inak stratil. Koľko stojí jeden zákazník u vás?"','"Všetci competitors to už majú."'], 2, 'Konkrétne čísla a otázka na hodnotu zákazníka presúva diskusiu na ROI.'],
     ['Pre ktorý segment je Instagram integrácia najprínosnejšia?', ['B2B výrobné firmy','E-shopy a kozmetické salóny kde zákazníci aktívne píšu cez Instagram DM','Právnické kancelárie','Výrobné podniky'], 1, 'Instagram integrácia je najsilnejšia pre B2C firmy s aktívnou Instagram komunitou.'],
     ['Ako prezentovať rezervačný systém kozmetickému salónu?', ['"Máme booking funkciu."','"Zákazník si rezervuje termín priamo v chate – bez telefonovania. Rezervácia ide do vášho Google Calendara."','"Integrujeme sa s Google."','"Posielame emailové notifikácie."'], 1, 'Konkrétny benefit (bez telefonovania, priamo do Calendara) je presvedčivejší ako generický popis.'],
-    ['Zákazník: webdizajnér s 8 klientmi. Aký plán odporučíte?', ['Pro plán – je lacnejší','White Label – predáva chatboty klientom pod vlastnou značkou za €97/mes','Person Add-on – má osobnú značku','Extra kredity'], 1, 'Webdizajnér s klientmi je ideálny White Label zákazník – môže predávať chatboty ďalej.'],
+    ['Zákazník: webdizajnér s 8 klientmi. Aký plán odporučíte?', ['Pro plán – je lacnejší','White Label – predáva chatboty klientom pod vlastnou značkou za €997/mes','Person Add-on – má osobnú značku','Extra kredity'], 1, 'Webdizajnér s klientmi je ideálny White Label zákazník – môže predávať chatboty ďalej.'],
     ['Čo je kľúčové pri Follow-up sekvenciách pre e-shop?', ['Newsletter každý mesiac','Automatické emaily leadom po opustení košíka alebo zanechaní kontaktu','SMS kampane','Push notifikácie'], 1, 'Sekvencie pre e-shop riešia opustené košíky a nurturujú záujemcov automaticky.'],
     ['Ako začať AI Coach demo počas hovoru?', ['"Ukážem vám prezentáciu."','"Pošlem vám link na web."','"Povedzte mi: ako sa volá vaša firma a čo robíte?" – a živо vytvorte chatbot počas hovoru.','"Pozrite na YouTube ako to funguje."'], 2, 'Live demo počas hovoru je najsilnejší predajný moment – zákazník vidí výsledok okamžite.'],
     ['Zákazník: "Naši zákazníci nás volajú, nepotrebujeme chat." Ako reagujete?', ['"Máte pravdu."','"Skúste aspoň mesiac."','"Každý hovor vás stojí 5-10 minút. Chatbot odpovie na 80% otázok automaticky – vy riešite len zvyšok."','"Chatbot je lepší ako telefón."'], 2, 'Prefrámujte argument na úsporu času – chatbot nenahrádza telefón, eliminuje rutinné hovory.'],
@@ -499,8 +498,8 @@ Registrácia na neoworkly.com → pole "Promo kód od poradcu" → zadá kód �
 | Plán | Cena | Vaša odmena |
 |------|------|-------------|
 | Pro plán | €37/mes | **€15** za konverziu |
-| White Label | €97/mes | **€40** za konverziu |
-| Person Add-on | €27/mes | **€10** za konverziu |
+| White Label | €997/mes | **€150** za konverziu |
+| Person Add-on | €29/mes | **€12** za konverziu |
 
 ### Mesačné bonusy
 
@@ -516,10 +515,10 @@ Registrácia na neoworkly.com → pole "Promo kód od poradcu" → zadá kód �
 3 × €15 = **€45**
 
 **Dobrý mesiac (5 konverzií – mix):**
-3× Pro = €45 + 2× WL = €80 + bonus €30 = **€155**
+3× Pro = €45 + 2× WL = €300 + bonus €30 = **€375**
 
 **Skvelý mesiac (10 konverzií):**
-6× Pro = €90 + 4× WL = €160 + bonus €100 = **€350**
+6× Pro = €90 + 4× WL = €600 + bonus €100 = **€790**
 
 ### Kde sledovať odmeny
 Sales app → Peňaženka – prehľad všetkých konverzií a celkovej sumy k výplate.
@@ -549,14 +548,14 @@ Odmeny sa vyplácajú mesačne do 10. dňa nasledujúceho mesiaca. Kontaktujte s
   const q5 = [
     ['Koľko cold calls by mal predajca urobiť denne?', ['5-10','20-30','50+','1-5'], 1, '20-30 oslovení denne je realistický cieľ pre full-time predajcu pri zachovaní kvality.'],
     ['Aká je priemerná konverzia z demo na platbu?', ['50%','5%','20%','80%'], 2, '20% z demos je realistický benchmark – z 15 demos by mali byť 2-4 konverzie.'],
-    ['Koľko zarobíte za konverziu White Label plánu?', ['€15','€25','€40','€97'], 2, 'White Label konverzia = €40 jednorazovo za zákazníka s plánom €97/mes.'],
+    ['Koľko zarobíte za konverziu White Label plánu?', ['€15','€40','€150','€997'], 2, 'White Label konverzia = €150 jednorazovo za zákazníka s plánom €997/mes.'],
     ['Aký bonus dostanete za 7 konverzií v mesiaci?', ['€0','€30','€100','€50'], 1, '5-9 konverzií mesačne = bonus +€30 navyše k individuálnym odmenám.'],
     ['Prospekt s fit score 9 – čo spravíte?', ['Pošlete mu email a čakáte','Kontaktujete ho cold callom tento deň','Pridáte ho do týždenného plánu','Archivujete ho'], 1, 'Fit score 8-10 = ideálny prospekt, kontaktujte ho čo najskôr osobným hovorom.'],
     ['Kde vidíte v sales app opening line pre prospekt?', ['V sekcii Tréning','V sekcii Prospekting pri detaile prospektu – AI ju vygeneruje z webu firmy','V Kódy & Linky','V AI Poradcovi'], 1, 'AI Coach generuje personalizovaný opening line pre každý prospekt na základe analýzy ich webu.'],
     ['Koľko aktívnych prospektov by mali mať vždy v pipeline?', ['5','10','20+','50+'], 2, '20+ prospektov v pipeline zabezpečí konzistentný tok príležitostí aj keď niektoré vypadnú.'],
     ['Kedy zmeníte stav prospektu na \'Konvertovaný\'?', ['Po prvom hovore','Keď zákazník sľúbi že sa zamyslí','Keď zákazník zaplatí a aktivuje predplatné','Po odoslaní promo kódu'], 2, 'Konvertovaný = zákazník zaplatil a je aktívny – nie len sľub alebo záujem.'],
     ['Zákazník nereaguje 3 dni po cold emaili. Čo urobíte?', ['Vzdáte sa a archivujete','Pošlete krátky follow-up email (stále platí kód)','Volíte každý deň','Pošlete cenovú ponuku'], 1, 'Deň 3 follow-up = krátky email s pripomienkou promo kódu. Väčšina dealov sa uzavrie na 3.-5. kontakt.'],
-    ['Koľko zarobíte v \'skvelom mesiaci\' s 10 konverziami (6× Pro, 4× WL)?', ['€250','€350','€170','€450'], 1, '6× €15 + 4× €40 + €100 bonus = €90 + €160 + €100 = €350.'],
+    ['Koľko zarobíte v \'skvelom mesiaci\' s 10 konverziami (6× Pro, 4× WL)?', ['€550','€790','€350','€1000'], 1, '6× €15 + 4× €150 + €100 bonus = €90 + €600 + €100 = €790.'],
   ];
 
   for (const [q, opts, ci, exp] of q5) {
@@ -623,9 +622,9 @@ Odmeny sa vyplácajú mesačne do 10. dňa nasledujúceho mesiaca. Kontaktujte s
 
 ### Digitálna agentúra (White Label)
 **Situácia:** Agentúra s 12 klientmi chcela pridať chatboty do svojho portfólia
-**Riešenie:** White Label plán – 40 widgetov pod vlastnou značkou agentúry
-**Výsledok:** €80/mes × 12 klientov = €960 príjem − €97 WL = €863 čistý zisk mesačne
-**Pitch line:** "Agentúra s 12 klientmi zarába €863 čistého zisku mesačne – pasívne."
+**Riešenie:** White Label plán – neobmedzené widgety pod vlastnou značkou agentúry
+**Výsledok:** €200/mes × 12 klientov = €2 400 príjem − €997 WL = €1 403 čistý zisk mesačne
+**Pitch line:** "Agentúra s 12 klientmi zarába €1 403 čistého zisku mesačne – pasívne."
 
 ---
 
@@ -646,7 +645,7 @@ Odmeny sa vyplácajú mesačne do 10. dňa nasledujúceho mesiaca. Kontaktujte s
     ['Kozmetický salón case study – koľko leadov mesačne?', ['5','35','18','50'], 2, 'Kozmetický salón: 18 zachytených leadov mesačne + 12 rezervácií cez chatbot.'],
     ['Realitná kancelária – z koľkých hodín sa skrátil čas odpovede?', ['Z 24 hodín na 1 hodinu','Z 4 hodín na 10 sekúnd','Z 1 hodiny na 5 minút','Z 8 hodín na 30 minút'], 1, 'Chatbot odpovedá okamžite – z 4-hodinového priemerného response time na 10 sekúnd.'],
     ['Aká je najčastejšia chyba predajcov pri demo hovore?', ['Hovorí príliš potichu','Generické demo bez prispôsobenia odvetviu zákazníka','Prezentuje príliš veľa funkcií','Príliš rýchlo ukončí hovor'], 1, 'Generické demo konvertuje 3× horšie ako personalizované – vždy prispôsobte odvetviu zákazníka.'],
-    ['Digitálna agentúra s 12 klientmi na WL – čistý mesačný zisk?', ['€960','€863','€97','€500'], 1, '12 × €80 = €960 príjem − €97 WL plán = €863 čistý zisk mesačne.'],
+    ['Digitálna agentúra s 12 klientmi na WL – čistý mesačný zisk?', ['€1 403','€803','€997','€1 200'], 0, '12 × €200 = €2 400 príjem − €997 WL plán = €1 403 čistý zisk mesačne.'],
     ['Zákazník \'používa Crisp\'. Čo poviete?', ['Crisp je live chat. Neoworkly je AI obchodník – zachytáva, nurturuje a konvertuje automaticky.','Crisp je lepší.','Sme rovnaký produkt.','Crisp nemá žiadne funkcie.'], 0, 'Posicujte Neoworkly ako AI obchodníka, nie len live chat – to je kľúčový rozdiel od Crisp.'],
     ['Prečo nehovoríme o cene pred hodnotou?', ['Zákon to zakazuje','Cena pred hodnotou vždy stojí deal – zákazník nemá kontext prečo €37 stojí za to','Je nezdvorilé','Cena je tajná'], 1, 'Ak zákazník počuje cenu skôr ako pochopí hodnotu, porovnáva s nulou – vždy prehrávate.'],
     ['Koľko kontaktov priemerne trvá uzavrieť deal?', ['1 kontakt – ak je pitch dobrý','2 kontakty','3-5 kontaktov','10+ kontaktov'], 2, 'Väčšina B2B dealov sa uzavrie na 3.-5. kontakt – follow-up je kľúčový, nie jednorazový hovor.'],
@@ -672,7 +671,7 @@ Potrebuješ **80% (12/15)** na získanie certifikátu Neoworkly Sales.
   const q4 = [
     ['Čo je najväčší differenciátor Neoworkly oproti konkurencii?', ['Najnižšia cena na trhu','AI Coach – chatbot vytvorený z popisu biznisu za 2 minúty','Neobmedzené odpovede','Len pre e-shopy'], 1, 'AI Coach je unikátna funkcia – zákazník popíše biznis a AI sama vytvorí celý widget.'],
     ['Zákazník – realitná kancelária – pýta čo konkrétne chatbot spraví pre nich. Čo poviete?', ['"Chatbot odpovedá na otázky."','"Chatbot zbiera záujemcov o nehnuteľnosti 24/7, posiela im automatické follow-up emaily a môže rezervovať obhliadky – všetko bez vašej prítomnosti."','"Máme veľa funkcií."','"Pozrite na našu webstránku."'], 1, 'Konkrétny popis pre ich odvetvie (záujemcovia, follow-up, obhliadky) je presvedčivejší ako generický.'],
-    ['Agentúra s 15 klientmi chce predávať chatboty. Aký je správny postup?', ['Pro plán pre každého klienta zvlášť','White Label €97/mes – 40 widgetov pod vlastnou značkou, predaj klientom za vlastnú cenu','Odporučiť im Neoworkly priamo','Person Add-on'], 1, 'White Label je riešenie pre agentúry – jedna platba, 40 widgetov, vlastná značka.'],
+    ['Agentúra s 15 klientmi chce predávať chatboty. Aký je správny postup?', ['Pro plán pre každého klienta zvlášť','White Label €997/mes – neobmedzené widgety pod vlastnou značkou, predaj klientom za vlastnú cenu','Odporučiť im Neoworkly priamo','Person Add-on'], 1, 'White Label je riešenie pre agentúry – jedna platba, Neobmedzené widgety, vlastná značka.'],
     ['Koľko odpovedí mesačne zahŕňa Pro plán?', ['200','350','500','1000'], 2, 'Pro plán zahŕňa 500 AI odpovedí mesačne.'],
     ['Zákazník: "Chatbot nám nefungoval u konkurencie." Čo odpovedáte?', ['"To sa stáva."','"Náš je iný."','"Čo konkrétne nefungovalo? Proaktívne oslovenie a Person Add-on riešia väčšinu problémov s adopciou."','"Vrátime peniaze ak nefunguje."'], 2, 'Zistite konkrétny problém a ukážte ako ho Neoworkly rieši – proaktívne oslovenie a personalizácia.'],
     ['Kedy je ideálny moment pre Person Add-on pitch?', ['Vždy, každému zákazníkovi','Keď zákazník hovorí "chatboty sú neosobné" alebo má silnú osobnú značku (kouč, konzultant, lektor)','Len pri White Label pláne','Len pre e-shopy'], 1, 'Person Add-on pitch príde prirodzene pri námietke o neosobnosti alebo pri osobných značkách.'],
@@ -683,7 +682,7 @@ Potrebuješ **80% (12/15)** na získanie certifikátu Neoworkly Sales.
     ['Zákazník nie je rozhodovateľ ale je záujemca. Čo urobíte?', ['Ukončíte hovor','Predáte len jemu','Požiadate ho aby zorganizoval spoločný call s rozhodovateľom – vy pripravíte demo pre oboch','Počkáte kým ho kontaktuje šéf sám'], 2, 'Vždy sa dostante k rozhodovateľovi – spoločný call je najefektívnejší spôsob.'],
     ['Zákazník: "Používame Tidio." Ako reagujete?', ['"Tidio je lepší."','"Sme lacnejší."','"Zaujímavé. Čo vám tam chýba alebo by ste zmenili? Veľa klientov nám hovorí, že im chýba AI Coach a automatické sekvencie."','"Prepáčte, zavolám inokedy."'], 2, 'Zistite slabiny konkurencie a ukážte kde Neoworkly pridáva hodnotu (AI Coach, sekvencie).'],
     ['Follow-up email po hovore by mal obsahovať?', ['Len cenovú ponuku','Len link na web','Zhrnutie hovoru, konkrétny dohodnutý next step a termín','Katalóg všetkých funkcií'], 2, 'Efektívny follow-up: zhrnutie + next step + termín – udržiava momentum a zodpovednosť.'],
-    ['WL zákazník pýta ako zarobí na chatbotoch. Čo ukážete?', ['Poviete že to závisí od trhu','"10 klientov × €80/mes = €800 príjem − €97 WL = €703 čistý zisk. Prvý klient vráti investíciu."','Pošlete mu kalkuláciu emailom','Poviete že závisí od ich salesu'], 1, 'Konkrétna kalkulácia ROI pre WL zákazníka je najsilnejší argument – číslami hovoríte ich jazykom.'],
+    ['WL zákazník pýta ako zarobí na chatbotoch. Čo ukážete?', ['Poviete že to závisí od trhu','"12 klientov × €150/mes = €1 800 príjem − €997 WL = €803 čistý zisk. Prvých 7-8 klientov vráti investíciu."','Pošlete mu kalkuláciu emailom','Poviete že závisí od ich salesu'], 1, 'Konkrétna kalkulácia ROI pre WL zákazníka je najsilnejší argument – číslami hovoríte ich jazykom.'],
     ['Zákazník: "Musíme to ešte interně prerokovať." Čo urobíte?', ['Počkáte na ich rozhodnutie','Pošlete email s ponukou','Navrhnete spoločný call so všetkými zainteresovanými stranami + dohodnete konkrétny termín do 48 hodín','Dáte im mesiac na rozmyslenie'], 2, 'Spoločný call udržiava kontrolu nad procesom – čakanie bez termínu väčšinou deal zabiie.'],
   ];
 
