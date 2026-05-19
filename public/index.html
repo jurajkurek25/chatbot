@@ -1465,6 +1465,10 @@
   <div class="auth-modal">
     <button class="auth-close" onclick="hideAuth()">✕</button>
     <div class="auth-logo">Neoworkly</div>
+    <div id="sales-ref-banner" style="display:none;background:linear-gradient(135deg,rgba(37,99,235,0.12),rgba(124,58,237,0.1));border:1px solid rgba(124,58,237,0.3);border-radius:12px;padding:12px 14px;margin-bottom:1rem;font-size:.85rem;line-height:1.55;color:var(--text)">
+      <div style="font-weight:700;margin-bottom:4px;color:#a78bfa">Špeciálna ponuka od vášho poradcu</div>
+      <div style="color:var(--muted2)">Zaregistrujte sa a zadajte <strong style="color:var(--text)">promo kód</strong>, ktorý ste dostali od poradcu — získate bezplatný prístup ku všetkým funkciám.</div>
+    </div>
     <div class="auth-tabs">
       <button class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">Prihlásiť sa</button>
       <button class="auth-tab" id="tab-register" onclick="switchAuthTab('register')">Registrácia</button>
@@ -1505,10 +1509,11 @@
         <div id="referral-valid-note" style="display:none;font-size:.75rem;color:#1fd89a;margin-top:.25rem">🎁 Kód je platný – dostanete 15% zľavu!</div>
       </div>
       <div class="field" id="promo-field">
-        <label>Promo kód <small>(voliteľné)</small></label>
+        <label id="promo-field-label">Promo kód <small>(voliteľné)</small></label>
         <input type="text" id="input-promo-code" placeholder="napr. LETO2026" style="text-transform:uppercase" autocomplete="off">
         <div id="promo-valid-note" style="display:none;font-size:.75rem;color:#1fd89a;margin-top:.25rem">🎁 Kód je platný!</div>
         <div id="promo-invalid-note" style="display:none;font-size:.75rem;color:#f87171;margin-top:.25rem">❌ Neplatný promo kód.</div>
+        <div id="promo-sales-hint" style="display:none;font-size:.75rem;color:#a78bfa;margin-top:.25rem">Zadajte kód, ktorý ste dostali od poradcu.</div>
       </div>
       <div class="checkbox-group">
         <input type="checkbox" id="agree-privacy" name="agreePrivacy" required>
@@ -1589,6 +1594,9 @@
     document.getElementById('form-register').style.display = tab === 'register' ? '' : 'none';
     document.getElementById('form-forgot').style.display = tab === 'forgot' ? '' : 'none';
     document.getElementById('form-reset').style.display = tab === 'reset' ? '' : 'none';
+    const hasSalesRef = !!sessionStorage.getItem('nd_sales_ref');
+    const banner = document.getElementById('sales-ref-banner');
+    if (banner) banner.style.display = (hasSalesRef && tab === 'register') ? '' : 'none';
     document.getElementById('tab-login').classList.toggle('active', tab === 'login');
     document.getElementById('tab-register').classList.toggle('active', tab === 'register');
     // Hide tabs row for forgot/reset
@@ -1792,6 +1800,17 @@
     if (salesRefParam) {
       sessionStorage.setItem('nd_sales_ref', salesRefParam);
       showAuth('register');
+      const banner = document.getElementById('sales-ref-banner');
+      if (banner) banner.style.display = '';
+      const hint = document.getElementById('promo-sales-hint');
+      if (hint) hint.style.display = '';
+      const promoLabel = document.getElementById('promo-field-label');
+      if (promoLabel) promoLabel.innerHTML = 'Promo kód od poradcu <small style="color:#a78bfa">(odporúčame zadať)</small>';
+      const promoInp = document.getElementById('input-promo-code');
+      if (promoInp) {
+        promoInp.style.borderColor = 'rgba(124,58,237,0.5)';
+        promoInp.placeholder = 'Zadajte kód od poradcu';
+      }
     }
 
     const promoParam = params.get('promo');
