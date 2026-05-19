@@ -84,6 +84,60 @@ router.post('/generate', async (req, res) => {
   res.json({ ok: true, code, synced, value_days, expires_at: expiresAt });
 });
 
+// POST /api/codes/:id/sync — retry sync of a single unsynced code to main app
+router.post('/:id/sync', async (req, res) => {
+  if (!INTERNAL_SECRET) {
+    return res.status(503).json({ error: 'INTERNAL_SECRET nie je nastavený — sync nie je možný.' });
+  }
+  const db = getDb();
+  const code = db.prepare('SELECT * FROM promo_codes WHERE id = ? AND created_by = ?').get(req.params.id, req.userId);
+  if (!code) return res.status(404).json({ error: 'Kód nenájdený.' });
+  if (code.synced) return res.json({ ok: true, already_synced: true });
+
+  const user = db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId);
+  try {
+    const r = await postJson(
+      `${MAIN_APP_URL}/api/promo-codes/register`,
+      { code: code.code, type: code.type, value_days: code.value_days, max_uses: code.max_uses, salesperson_name: user?.name, notes: code.notes, expires_at: code.expires_at },
+      { 'x-internal-secret': INTERNAL_SECRET }
+    );
+    if (r.ok || r.status === 409) {
+      db.prepare('UPDATE promo_codes SET synced = 1 WHERE id = ?').run(code.id);
+      return res.json({ ok: true, synced: true });
+    }
+    return res.status(502).json({ error: `Hlavná aplikácia vrátila status ${r.status}.` });
+  } catch (e) {
+    return res.status(502).json({ error: 'Nepodarilo sa spojiť s hlavnou aplikáciou.' });
+  }
+});
+
+// POST /api/codes/sync-pending — retry all unsynced codes for current user
+router.post('/sync-pending', async (req, res) => {
+  if (!INTERNAL_SECRET) {
+    return res.status(503).json({ error: 'INTERNAL_SECRET nie je nastavený — sync nie je možný.' });
+  }
+  const db = getDb();
+  const pending = db.prepare('SELECT * FROM promo_codes WHERE created_by = ? AND synced = 0').all(req.userId);
+  if (!pending.length) return res.json({ ok: true, synced: 0, message: 'Žiadne nesynchronizované kódy.' });
+
+  const user = db.prepare('SELECT name FROM users WHERE id = ?').get(req.userId);
+  let synced = 0;
+  for (const code of pending) {
+    try {
+      const r = await postJson(
+        `${MAIN_APP_URL}/api/promo-codes/register`,
+        { code: code.code, type: code.type, value_days: code.value_days, max_uses: code.max_uses, salesperson_name: user?.name, notes: code.notes, expires_at: code.expires_at },
+        { 'x-internal-secret': INTERNAL_SECRET }
+      );
+      if (r.ok || r.status === 409) {
+        db.prepare('UPDATE promo_codes SET synced = 1 WHERE id = ?').run(code.id);
+        synced++;
+      }
+    } catch (_) {}
+  }
+  res.json({ ok: true, synced, total: pending.length });
+});
+
 // GET /api/codes/referral — get or create referral link for current user
 router.get('/referral', (req, res) => {
   const db = getDb();

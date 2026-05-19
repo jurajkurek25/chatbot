@@ -285,10 +285,13 @@
     <div class="section">
       <div class="section-header">
         <span class="section-title">Promo kódy</span>
-        <button class="btn btn-primary btn-sm" onclick="toggleForm()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Generovať nový kód
-        </button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" id="sync-all-btn" onclick="syncAllPending()">Sync nesynchr.</button>
+          <button class="btn btn-primary btn-sm" onclick="toggleForm()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Generovať nový kód
+          </button>
+        </div>
       </div>
 
       <!-- Generate form -->
@@ -455,7 +458,7 @@
                 <td style="color:#94a3b8">${c.value_days || c.days || '–'}</td>
                 <td style="color:#94a3b8">${(typeof c.uses !== 'undefined' ? c.uses : (typeof c.usages !== 'undefined' ? c.usages : '–'))}</td>
                 <td style="color:#64748b; font-size:13px">${formatDate(c.expires_at || c.expiry || c.expiresAt)}</td>
-                <td>${c.synced !== false ? '<span class="synced-ok" title="Synchronizovaný">✓</span>' : '<span class="synced-warn" title="Nesynchronizovaný">⚠</span>'}</td>
+                <td>${c.synced ? '<span class="synced-ok" title="Synchronizovaný s neoworkly.com">✓</span>' : `<span class="synced-warn" title="Nesynchronizovaný">⚠</span> <button class="btn btn-outline btn-sm" onclick="retrySync('${c.id}')" style="padding:3px 10px;font-size:12px">Retry</button>`}</td>
               </tr>`).join('')}
           </tbody>
         </table>`;
@@ -467,6 +470,42 @@
       const data = await res.json();
       document.getElementById('ref-link').value = data.link || data.url || data.referralUrl || '';
       document.getElementById('ref-clicks').textContent = typeof data.clicks !== 'undefined' ? data.clicks : '0';
+    }
+
+    async function retrySync(id) {
+      try {
+        const res = await apiFetch('/codes/' + id + '/sync', { method: 'POST' });
+        if (!res) return;
+        const data = await res.json();
+        if (res.ok && data.ok) {
+          showToast('Kód bol úspešne synchronizovaný!', 3000);
+          await loadCodes();
+        } else {
+          showToast('Sync zlyhal: ' + (data.error || 'Neznáma chyba'), 4000);
+        }
+      } catch {
+        showToast('Chyba pripojenia pri sync.', 3000);
+      }
+    }
+
+    async function syncAllPending() {
+      const btn = document.getElementById('sync-all-btn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Synchronizujem...'; }
+      try {
+        const res = await apiFetch('/codes/sync-pending', { method: 'POST' });
+        if (!res) return;
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`Synchronizovaných ${data.synced} z ${data.total} kódov.`, 3500);
+          await loadCodes();
+        } else {
+          showToast('Sync zlyhal: ' + (data.error || 'Neznáma chyba'), 4000);
+        }
+      } catch {
+        showToast('Chyba pripojenia pri sync.', 3000);
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = 'Sync nesynchr.'; }
+      }
     }
 
     async function init() {
