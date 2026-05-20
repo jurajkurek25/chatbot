@@ -2486,5 +2486,7 @@
   "napr. 20% zľava na všetky produkty": "e.g. 20% off all products",
   "AKTÍVNA": "ACTIVE",
   "PLÁNOVANÁ": "PLANNED",
-  "UKONČENÁ": "ENDED"
+  "UKONČENÁ": "ENDED",
+  "Vlastný obrázok bubliny": "Custom bubble image",
+  "PNG alebo WebP bez pozadia · max 2 MB · nahradí farebnú bublinu": "PNG or WebP without background · max 2 MB · replaces the color bubble"
 }
