@@ -1030,7 +1030,26 @@
     const win = shadow.getElementById('nd-window');
     const iconEl = shadow.getElementById('nd-launcher-icon');
     win.classList.toggle('nd-hidden', !isOpen);
-    if (iconEl) iconEl.innerHTML = isOpen ? ICON_CLOSE : ICON_CHAT;
+    if (iconEl) {
+      const launcherEl = shadow.getElementById('nd-launcher');
+      if (isOpen) {
+        iconEl.innerHTML = ICON_CLOSE;
+        if (config.launcher_image_url && launcherEl) {
+          launcherEl.style.background = primary;
+          launcherEl.style.boxShadow = '0 4px 16px rgba(0,0,0,0.22)';
+          launcherEl.style.borderRadius = '50%';
+        }
+      } else if (config.launcher_image_url) {
+        iconEl.innerHTML = `<img src="${config.launcher_image_url}" style="width:56px;height:56px;object-fit:contain;display:block" alt="">`;
+        if (launcherEl) {
+          launcherEl.style.background = 'transparent';
+          launcherEl.style.boxShadow = 'none';
+          launcherEl.style.borderRadius = '0';
+        }
+      } else {
+        iconEl.innerHTML = ICON_CHAT;
+      }
+    }
     if (isOpen) {
       hideBadge();
       updatePopoutBtn();
