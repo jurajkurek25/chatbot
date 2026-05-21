@@ -204,6 +204,7 @@ Neoworkly je SaaS platforma pre tvorbu AI chatbot widgetov. Klienti si vytvoria 
 1. WIDGETY
 - Vytvoriť až 10 widgetov, každý pre iný web alebo účel
 - Nastavenia: názov (interný), meno asistenta, uvítacia správa, farba widgetu, avatar foto (JPG/PNG/WebP/GIF max 5MB)
+- Vlastný obrázok bubliny: namiesto farebnej guľatej bubliny môže byť ľubovoľný PNG alebo WebP obrázok bez pozadia (max 2 MB). Nastavenie: Dashboard → widget → záložka Nastavenia → sekcia "Vlastný obrázok bubliny" → nahrať súbor → Nahrať. Ak je obrázok nahratý, bublina nemá pozadie ani tieň — zobrazí sa presne tvar vášho PNG. Odstránenie: tlačidlo "Odstrániť" vedľa náhľadu vráti farebnú bublinu.
 - Proaktívna správa: chatbot sa sám ozve návštevníkovi po nastavenom počte sekúnd (1–60 s), napr. "Ahoj! Môžem pomôcť? 👋"
 - Proaktívna sekvencia správ: ďalšie automatické správy nad rámec jednej proaktívnej správy (nastavenie: Dashboard → widget → záložka Nastavenia → sekcia "📣 Ďalšie proaktívne správy")
   • Každá správa má vlastný text, typ spúšťača a oneskorenie
