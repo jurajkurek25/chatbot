@@ -511,8 +511,8 @@
 
     /* ── DESKTOP 900px+ ── */
     @media (min-width: 900px) {
-      .nav-links { display: flex; gap: 2rem; }
-      .nav-links a { color: var(--muted); text-decoration: none; font-size: .875rem; transition: color .2s; }
+      .nav-links { display: flex; gap: clamp(0.5rem, 1.4vw, 2rem); }
+      .nav-links a { color: var(--muted); text-decoration: none; font-size: clamp(0.72rem, 0.9vw, 0.875rem); transition: color .2s; white-space: nowrap; }
       .nav-links a:hover { color: var(--text); }
       .nav-cta-desktop { display: flex; gap: .6rem; align-items: center; }
       .nav-hamburger { display: none; }
