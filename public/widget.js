@@ -707,7 +707,7 @@
       </div>
       <div id="nd-input-area">
         <textarea id="nd-input" rows="1" placeholder="${wt('placeholder')}"></textarea>
-        <button id="nd-send" style="background:${primary}">${ICON_SEND}</button>
+        <button id="nd-send" aria-label="${wt('send')}" style="background:${primary}">${ICON_SEND}</button>
       </div>
       <div id="nd-powered" style="text-align:center;padding:0.35rem 0.5rem;font-size:0.7rem;color:#94a3b8;background:white;border-top:1px solid #f1f5f9;flex-shrink:0;">
         ${wt('powered')}<a href="https://Neoworkly.online" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:underline;">${wt('powered_link')}</a>
