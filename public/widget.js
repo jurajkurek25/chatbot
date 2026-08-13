@@ -1725,10 +1725,21 @@
     buildDOM();
   }
 
-  // Wait for DOM ready
+  // Wait for DOM ready, then defer the actual bootstrap (network fetch +
+  // shadow DOM build) to idle time so it never competes with the host
+  // page's own critical rendering path for network/main-thread priority.
+  // A chat bubble appearing a few hundred ms later is imperceptible to
+  // users but keeps us off the host site's LCP.
+  function scheduleInit() {
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(init, { timeout: 3000 });
+    } else {
+      setTimeout(init, 1);
+    }
+  }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', scheduleInit);
   } else {
-    init();
+    scheduleInit();
   }
 })();

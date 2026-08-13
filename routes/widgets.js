@@ -223,6 +223,7 @@ router.get('/:id/embed-code', (req, res) => {
 
   const baseUrl = process.env.BASE_URL || 'https://neoworkly.com';
   const code = `<!-- Neoworkly Chat Widget -->
+<link rel="preconnect" href="${baseUrl}">
 <script>
   window.NeoworklyConfig = { widgetId: '${widget.id}' };
 </script>

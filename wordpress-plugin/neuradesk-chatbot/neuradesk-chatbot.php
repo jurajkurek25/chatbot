@@ -284,7 +284,9 @@ function neuradesk_embed_html() {
     $api_base  = get_option( 'neuradesk_api_base', 'https://neuradesk.online' );
     $config    = wp_json_encode( [ 'widgetId' => $widget_id ] );
     $src       = esc_url( trailingslashit( $api_base ) . 'widget.js' );
-    return "\n<script>window.NeuraDeskConfig={$config};</script>\n"
+    $origin    = esc_url( untrailingslashit( $api_base ) );
+    return "\n<link rel=\"preconnect\" href=\"{$origin}\">\n"
+         . "<script>window.NeuraDeskConfig={$config};</script>\n"
          . "<script src=\"{$src}\" async defer></script>\n";
 }
 
