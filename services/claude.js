@@ -1,8 +1,15 @@
 'use strict';
 
 const Anthropic = require('@anthropic-ai/sdk');
+const { pickStartingModel, markModelGood, getNewestUntriedModel, tierOf, looksLikeModelIssue, withModelFallback } = require('./resolveModel');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+
+// Baseline štartovacie modely podľa úlohy — fallback pri deprecation ide
+// najprv na novší model v TEJTO istej triede (Sonnet zostáva Sonnet, Haiku
+// zostáva Haiku), pozri services/resolveModel.js.
+const CHAT_MODEL_BASELINE = 'claude-sonnet-5';
+const UTILITY_MODEL_BASELINE = 'claude-haiku-4-5-20251001';
 
 const TYPE_LABELS = {
   digital: 'Digitálny produkt', physical: 'Fyzický produkt', service: 'Služba',
@@ -245,20 +252,49 @@ async function streamChatResponse(widget, knowledgeItems, history, userMessage, 
   ];
 
   let fullResponse = '';
+  let streamedAnything = false;
+  const triedModels = [];
+  let model = pickStartingModel(CHAT_MODEL_BASELINE);
+  let lastErr;
 
-  const stream = await client.messages.stream({
-    model: 'claude-sonnet-5',
-    max_tokens: 1200,
-    system: systemPrompt,
-    messages,
-  });
+  // Vlastná (opatrnejšia) fallback slučka namiesto withModelFallback: keď
+  // model medzičasom prestane byť dostupný, chyba príde HNEĎ na začiatku
+  // (pred prvým content_block_delta), takže je bezpečné skúsiť ďalší model
+  // v tej istej triede. Ak by streamovanie zlyhalo AŽ PO tom, čo už časť
+  // odpovede odišla klientovi cez res.write(), retry by text zduplikoval —
+  // v tom prípade sa chyba nechá prebublať volajúcemu (routes/chat.js), ktorý
+  // pošle SSE error event.
+  for (let attempt = 0; attempt < 4; attempt++) {
+    triedModels.push(model);
+    try {
+      const stream = await client.messages.stream({
+        model,
+        max_tokens: 1200,
+        system: systemPrompt,
+        messages,
+      });
 
-  for await (const event of stream) {
-    if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-      fullResponse += event.delta.text;
-      res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+      for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+          streamedAnything = true;
+          fullResponse += event.delta.text;
+          res.write(`data: ${JSON.stringify({ text: event.delta.text })}\n\n`);
+        }
+      }
+      markModelGood(CHAT_MODEL_BASELINE, model);
+      if (attempt > 0) console.error(`⚠️ Claude model fallback: úspešne použitý novší model '${model}' pre chat stream.`);
+      lastErr = null;
+      break;
+    } catch (err) {
+      lastErr = err;
+      if (streamedAnything || !looksLikeModelIssue(err)) throw err;
+      const next = await getNewestUntriedModel(triedModels, tierOf(model));
+      if (!next) throw err;
+      console.error(`⚠️ Claude model '${model}' zlyhal (vyzerá na problém s modelom) pred akýmkoľvek výstupom, skúšam novší dostupný '${next}'.`);
+      model = next;
     }
   }
+  if (lastErr) throw lastErr;
 
   res.write(`data: ${JSON.stringify({ done: true, fullText: fullResponse })}\n\n`);
   res.end();
@@ -284,8 +320,8 @@ async function generateSuggestedQuestions(knowledgeItems, goals, ctaType) {
   }[ctaType] || '';
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-5',
+    const response = await withModelFallback(CHAT_MODEL_BASELINE, model => client.messages.create({
+      model,
       max_tokens: 400,
       messages: [{
         role: 'user',
@@ -300,7 +336,7 @@ ${knowledgeSummary}
 Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
 ["Aké sú vaše ceny?", "Kde sa nachádzate?", "Ako funguje doručenie?", "Čo ponúkate?", "Máte zľavy?"]`,
       }],
-    });
+    }));
 
     const text = response.content.find(b => b.type === 'text')?.text || '[]';
     const match = text.match(/\[[\s\S]*\]/);
@@ -322,12 +358,12 @@ async function getChatResponseText(widget, knowledgeItems, history, userMessage)
     { role: 'user', content: userMessage },
   ];
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-5',
+  const response = await withModelFallback(CHAT_MODEL_BASELINE, model => client.messages.create({
+    model,
     max_tokens: 600,
     system: systemPrompt,
     messages,
-  });
+  }));
 
   return response.content.find(b => b.type === 'text')?.text?.trim() || '';
 }
@@ -341,8 +377,8 @@ async function summarizeConversation(messages) {
     .join('\n');
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-sonnet-5',
+    const response = await withModelFallback(CHAT_MODEL_BASELINE, model => client.messages.create({
+      model,
       max_tokens: 500,
       messages: [{
         role: 'user',
@@ -367,7 +403,7 @@ Vráť VÝHRADNE tento formát (žiadny iný text pred ani po):
 
 ✅ ODPORÚČANÝ ĎALŠÍ KROK: [konkrétna akcia pre obchodníka]`,
       }],
-    });
+    }));
 
     return response.content.find(b => b.type === 'text')?.text?.trim() || null;
   } catch (err) {
@@ -387,8 +423,8 @@ async function analyzeConversationTrends(messages, msgCount) {
     .join('\n');
 
   try {
-    const response = await client.messages.create({
-      model: 'claude-haiku-4-5-20251001',
+    const response = await withModelFallback(UTILITY_MODEL_BASELINE, model => client.messages.create({
+      model,
       max_tokens: 250,
       messages: [{
         role: 'user',
@@ -410,7 +446,7 @@ intent – buying=chce kúpiť, researching=zisťuje info, support=rieši probl�
 objection – dôvod prečo zákazník nekonal; none=ak zanechal kontakt/rezervoval
 urgency – immediate=teraz, within_month=čoskoro, planning=dlhodobé, just_browsing=nezistené`,
       }],
-    });
+    }));
 
     const text = response.content.find(b => b.type === 'text')?.text || '{}';
     const match = text.match(/\{[\s\S]*\}/);
@@ -460,11 +496,11 @@ Napíš súhlas GDPR v tomto formáte:
 
 Text musí byť zrozumiteľný pre bežného človeka, nie príliš dlhý (max 300 slov), v slovenčine. Nepoužívaj markdown headingy (#), iba odseky.`;
 
-  const response = await client.messages.create({
-    model: 'claude-haiku-4-5-20251001',
+  const response = await withModelFallback(UTILITY_MODEL_BASELINE, model => client.messages.create({
+    model,
     max_tokens: 800,
     messages: [{ role: 'user', content: prompt }],
-  });
+  }));
 
   return response.content[0]?.text?.trim() || '';
 }
