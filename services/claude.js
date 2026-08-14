@@ -247,7 +247,7 @@ async function streamChatResponse(widget, knowledgeItems, history, userMessage, 
   let fullResponse = '';
 
   const stream = await client.messages.stream({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-5',
     max_tokens: 1200,
     system: systemPrompt,
     messages,
@@ -285,7 +285,7 @@ async function generateSuggestedQuestions(knowledgeItems, goals, ctaType) {
 
   try {
     const response = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-sonnet-5',
       max_tokens: 400,
       messages: [{
         role: 'user',
@@ -323,7 +323,7 @@ async function getChatResponseText(widget, knowledgeItems, history, userMessage)
   ];
 
   const response = await client.messages.create({
-    model: 'claude-opus-4-6',
+    model: 'claude-sonnet-5',
     max_tokens: 600,
     system: systemPrompt,
     messages,
@@ -342,7 +342,7 @@ async function summarizeConversation(messages) {
 
   try {
     const response = await client.messages.create({
-      model: 'claude-opus-4-6',
+      model: 'claude-sonnet-5',
       max_tokens: 500,
       messages: [{
         role: 'user',
