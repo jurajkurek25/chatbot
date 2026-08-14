@@ -24,6 +24,9 @@
 
   const cfg = window.NeoworklyConfig || {};
   const WIDGET_ID = cfg.widgetId;
+  const WIDGET_MODE = cfg.mode || 'sales'; // 'sales' | 'person'
+  const INLINE_CONTAINER = cfg.container || null; // CSS selector, e.g. '#my-chat'
+  const INLINE_MODE = cfg.inline === true || !!INLINE_CONTAINER;
   if (!WIDGET_ID) { console.warn('[Neoworkly] Chýba widgetId v NeoworklyConfig.'); return; }
 
   /* ── Widget i18n (zero API cost) ─────────────────────────────── */
@@ -58,8 +61,8 @@
       book_success:'Rezervácia potvrdená! Tešíme sa na vás.',
       book_loading:'Načítavam termíny...', book_open:'📅 Rezervovať termín',
       quick_q:'Rýchle otázky', placeholder:'Napíšte správu...',
-      powered:'Toto je AI predajca\u00a0\u2014\u00a0', powered_link:'chceš ho tiež?',
-      write:'Napísať \u2192',
+      powered:'Toto je AI predajca — ', powered_link:'chceš ho tiež?',
+      write:'Napísať →',
       cta_call_text:'Chcete sa poradiť osobne?', cta_call_btn:'📞 Zavolať',
       cta_cont_text:'Máte záujem? Ozveme sa vám!', cta_cont_label:'Zanechajte kontakt',
       cta_book_text:'Rezervujte si termín online!', cta_book_btn:'Rezervovať termín',
@@ -88,8 +91,8 @@
       book_success:'Booking confirmed! We look forward to seeing you.',
       book_loading:'Loading slots...', book_open:'📅 Book an appointment',
       quick_q:'Quick questions', placeholder:'Write a message...',
-      powered:'This is an AI salesman\u00a0\u2014\u00a0', powered_link:'want one too?',
-      write:'Write \u2192',
+      powered:'This is an AI salesman — ', powered_link:'want one too?',
+      write:'Write →',
       cta_call_text:'Want to consult in person?', cta_call_btn:'📞 Call',
       cta_cont_text:"Interested? We'll get back to you!", cta_cont_label:'Leave your contact',
       cta_book_text:'Book an appointment online!', cta_book_btn:'Book appointment',
@@ -118,8 +121,8 @@
       book_success:'Termin bestätigt! Wir freuen uns auf Sie.',
       book_loading:'Lade Termine...', book_open:'📅 Termin buchen',
       quick_q:'Schnelle Fragen', placeholder:'Nachricht schreiben...',
-      powered:'Das ist ein KI-Verkäufer\u00a0\u2014\u00a0', powered_link:'auch einen haben?',
-      write:'Schreiben \u2192',
+      powered:'Das ist ein KI-Verkäufer — ', powered_link:'auch einen haben?',
+      write:'Schreiben →',
       cta_call_text:'Möchten Sie sich persönlich beraten lassen?', cta_call_btn:'📞 Anrufen',
       cta_cont_text:'Interessiert? Wir melden uns!', cta_cont_label:'Kontakt hinterlassen',
       cta_book_text:'Termin online buchen!', cta_book_btn:'Termin buchen',
@@ -145,30 +148,30 @@
       book_gdpr:'Je consens au traitement de mes données à des fins de réservation.*',
       book_confirm:'Confirmer la réservation', book_back:'← Retour', book_next:'Suivant →',
       book_no_slots:'Aucun créneau disponible pour ce jour.',
-      book_success:'Réservation confirmée\u00a0! À bientôt.',
+      book_success:'Réservation confirmée ! À bientôt.',
       book_loading:'Chargement des créneaux...', book_open:'📅 Prendre rendez-vous',
-      quick_q:'Questions rapides', placeholder:'\u00c9crire un message...',
-      powered:"C'est un vendeur IA\u00a0\u2014\u00a0", powered_link:'en vouloir un aussi\u00a0?',
-      write:'\u00c9crire \u2192',
-      cta_call_text:'Vous souhaitez une consultation personnelle\u00a0?', cta_call_btn:'📞 Appeler',
-      cta_cont_text:'Int\u00e9ress\u00e9(e)\u00a0? Nous vous rappellerons\u00a0!', cta_cont_label:'Laisser ses coordonn\u00e9es',
-      cta_book_text:'Réservez votre rendez-vous en ligne\u00a0!', cta_book_btn:'Réserver un rendez-vous',
+      quick_q:'Questions rapides', placeholder:'Écrire un message...',
+      powered:"C'est un vendeur IA — ", powered_link:'en vouloir un aussi ?',
+      write:'Écrire →',
+      cta_call_text:'Vous souhaitez une consultation personnelle ?', cta_call_btn:'📞 Appeler',
+      cta_cont_text:'Intéressé(e) ? Nous vous rappellerons !', cta_cont_label:'Laisser ses coordonnées',
+      cta_book_text:'Réservez votre rendez-vous en ligne !', cta_book_btn:'Réserver un rendez-vous',
       cta_more:'En savoir plus',
-      gdpr_title:'📋 Conditions de traitement des donn\u00e9es',
-      form_title:'Laisser ses coordonn\u00e9es', form_sub:'Nous vous recontacterons d\u00e8s que possible.',
+      gdpr_title:'📋 Conditions de traitement des données',
+      form_title:'Laisser ses coordonnées', form_sub:'Nous vous recontacterons dès que possible.',
       name_label:'Nom *', name_ph:'Votre nom',
       email_label:'Email *', email_ph:'votre@email.fr',
-      phone_label:'T\u00e9l\u00e9phone', phone_ph:'+33 0 00 00 00 00',
-      gdpr_full:"J'ai lu les conditions de traitement des donn\u00e9es et j'accepte.*",
-      gdpr_simple:'Je consens au traitement de mes donn\u00e9es personnelles \u00e0 des fins de contact.*',
+      phone_label:'Téléphone', phone_ph:'+33 0 00 00 00 00',
+      gdpr_full:"J'ai lu les conditions de traitement des données et j'accepte.*",
+      gdpr_simple:'Je consens au traitement de mes données personnelles à des fins de contact.*',
       cancel:'Annuler', send:'Envoyer',
-      gdpr_note:'Vos donn\u00e9es personnelles sont trait\u00e9es conform\u00e9ment au RGPD.',
-      gdpr_show:'Afficher les d\u00e9tails', gdpr_hide:'Masquer',
-      thanks:'Merci\u00a0!', contact_ok:'Nous vous recontacterons bient\u00f4t, ',
-      error:'D\u00e9sol\u00e9, impossible de se connecter au serveur.',
+      gdpr_note:'Vos données personnelles sont traitées conformément au RGPD.',
+      gdpr_show:'Afficher les détails', gdpr_hide:'Masquer',
+      thanks:'Merci !', contact_ok:'Nous vous recontacterons bientôt, ',
+      error:'Désolé, impossible de se connecter au serveur.',
     },
     es: {
-      open:'Abrir chat', close:'Cerrar', online:'En l\u00ednea',
+      open:'Abrir chat', close:'Cerrar', online:'En línea',
       book_title:'Reservar cita', book_date:'Elegir fecha', book_time:'Elegir hora',
       book_name:'Nombre *', book_name_ph:'Juan García', book_email:'Email *', book_email_ph:'juan@email.es',
       book_phone:'Teléfono', book_phone_ph:'+34 000 000 000',
@@ -177,24 +180,24 @@
       book_no_slots:'No hay horarios disponibles para este día.',
       book_success:'¡Reserva confirmada! Le esperamos.',
       book_loading:'Cargando horarios...', book_open:'📅 Reservar cita',
-      quick_q:'Preguntas r\u00e1pidas', placeholder:'Escribe un mensaje...',
-      powered:'Este es un vendedor IA\u00a0\u2014\u00a0', powered_link:'\u00bfquieres uno tambi\u00e9n?',
-      write:'Escribir \u2192',
-      cta_call_text:'\u00bfQuiere consultar en persona?', cta_call_btn:'📞 Llamar',
-      cta_cont_text:'\u00bfInteresado/a? \u00a1Le contactaremos!', cta_cont_label:'Dejar contacto',
-      cta_book_text:'\u00a1Reserve su cita en l\u00ednea!', cta_book_btn:'Reservar cita',
-      cta_more:'M\u00e1s informaci\u00f3n',
+      quick_q:'Preguntas rápidas', placeholder:'Escribe un mensaje...',
+      powered:'Este es un vendedor IA — ', powered_link:'¿quieres uno también?',
+      write:'Escribir →',
+      cta_call_text:'¿Quiere consultar en persona?', cta_call_btn:'📞 Llamar',
+      cta_cont_text:'¿Interesado/a? ¡Le contactaremos!', cta_cont_label:'Dejar contacto',
+      cta_book_text:'¡Reserve su cita en línea!', cta_book_btn:'Reservar cita',
+      cta_more:'Más información',
       gdpr_title:'📋 Condiciones de tratamiento de datos',
       form_title:'Dejar contacto', form_sub:'Nos pondremos en contacto lo antes posible.',
       name_label:'Nombre *', name_ph:'Su nombre',
       email_label:'Email *', email_ph:'su@email.es',
-      phone_label:'Tel\u00e9fono', phone_ph:'+34 000 000 000',
-      gdpr_full:'He le\u00eddo las condiciones de tratamiento de datos y acepto.*',
+      phone_label:'Teléfono', phone_ph:'+34 000 000 000',
+      gdpr_full:'He leído las condiciones de tratamiento de datos y acepto.*',
       gdpr_simple:'Consiento el tratamiento de mis datos personales para fines de contacto.*',
       cancel:'Cancelar', send:'Enviar',
       gdpr_note:'Sus datos personales se procesan de acuerdo con el RGPD.',
       gdpr_show:'Mostrar detalles', gdpr_hide:'Ocultar',
-      thanks:'\u00a1Gracias!', contact_ok:'Nos pondremos en contacto pronto, ',
+      thanks:'¡Gracias!', contact_ok:'Nos pondremos en contacto pronto, ',
       error:'Lo sentimos, no es posible conectarse al servidor.',
     },
     pl: {
@@ -208,8 +211,8 @@
       book_success:'Rezerwacja potwierdzona! Do zobaczenia.',
       book_loading:'Ładowanie terminów...', book_open:'📅 Zarezerwuj termin',
       quick_q:'Szybkie pytania', placeholder:'Napisz wiadomość...',
-      powered:'To jest sprzedawca AI\u00a0\u2014\u00a0', powered_link:'chcesz też?',
-      write:'Napisz \u2192',
+      powered:'To jest sprzedawca AI — ', powered_link:'chcesz też?',
+      write:'Napisz →',
       cta_call_text:'Chcesz skonsultować się osobiście?', cta_call_btn:'📞 Zadzwoń',
       cta_cont_text:'Zainteresowany/a? Odezwiemy się!', cta_cont_label:'Zostaw kontakt',
       cta_book_text:'Zarezerwuj wizytę online!', cta_book_btn:'Zarezerwuj wizytę',
@@ -238,8 +241,8 @@
       book_success:'Rezervace potvrzena! Těšíme se na vás.',
       book_loading:'Načítám termíny...', book_open:'📅 Rezervovat termín',
       quick_q:'Rychlé otázky', placeholder:'Napište zprávu...',
-      powered:'Toto je AI obchodník\u00a0\u2014\u00a0', powered_link:'chcete ho také?',
-      write:'Napsat \u2192',
+      powered:'Toto je AI obchodník — ', powered_link:'chcete ho také?',
+      write:'Napsat →',
       cta_call_text:'Chcete se osobně poradit?', cta_call_btn:'📞 Zavolat',
       cta_cont_text:'Máte zájem? Ozveme se vám!', cta_cont_label:'Zanechat kontakt',
       cta_book_text:'Rezervujte si termín online!', cta_book_btn:'Rezervovat termín',
@@ -268,8 +271,8 @@
       book_success:'Foglalás megerősítve! Várjuk Önt.',
       book_loading:'Időpontok betöltése...', book_open:'📅 Időpont foglalás',
       quick_q:'Gyors kérdések', placeholder:'Írjon üzenetet...',
-      powered:'Ez egy AI értékesítő\u00a0\u2014\u00a0', powered_link:'szeretne egyet?',
-      write:'Írjon \u2192',
+      powered:'Ez egy AI értékesítő — ', powered_link:'szeretne egyet?',
+      write:'Írjon →',
       cta_call_text:'Személyesen szeretne tanácsot kérni?', cta_call_btn:'📞 Hívjon',
       cta_cont_text:'Érdekli? Visszahívjuk!', cta_cont_label:'Hagyjon elérhetőséget',
       cta_book_text:'Foglaljon időpontot online!', cta_book_btn:'Időpont foglalása',
@@ -298,8 +301,8 @@
       book_success:'Rezervare confirmată! Vă așteptăm.',
       book_loading:'Se încarcă programările...', book_open:'📅 Rezervare programare',
       quick_q:'Întrebări rapide', placeholder:'Scrieți un mesaj...',
-      powered:'Acesta este un vânzător AI\u00a0\u2014\u00a0', powered_link:'vreți și dvs.?',
-      write:'Scrieți \u2192',
+      powered:'Acesta este un vânzător AI — ', powered_link:'vreți și dvs.?',
+      write:'Scrieți →',
       cta_call_text:'Doriți să vă consultați personal?', cta_call_btn:'📞 Sunați',
       cta_cont_text:'Interesat(ă)? Vă contactăm!', cta_cont_label:'Lăsați datele de contact',
       cta_book_text:'Rezervați o programare online!', cta_book_btn:'Rezervați programare',
@@ -328,8 +331,8 @@
       book_success:'Rezervacija potvrđena! Radujemo se vašem dolasku.',
       book_loading:'Učitavam termine...', book_open:'📅 Rezervacija termina',
       quick_q:'Brza pitanja', placeholder:'Napišite poruku...',
-      powered:'Ovo je AI prodavač\u00a0\u2014\u00a0', powered_link:'želite li i vi?',
-      write:'Piši \u2192',
+      powered:'Ovo je AI prodavač — ', powered_link:'želite li i vi?',
+      write:'Piši →',
       cta_call_text:'Želite se osobno posavjetovati?', cta_call_btn:'📞 Nazovite',
       cta_cont_text:'Zainteresirani? Javit ćemo vam se!', cta_cont_label:'Ostavite kontakt',
       cta_book_text:'Rezervirajte termin online!', cta_book_btn:'Rezerviraj termin',
@@ -378,6 +381,29 @@
     }
     #nd-launcher:hover { transform: scale(1.08); box-shadow: 0 6px 20px rgba(0,0,0,0.28); }
     #nd-launcher svg { width: 26px; height: 26px; fill: white; transition: opacity 0.2s; }
+    #nd-badge {
+      position: absolute;
+      top: -4px;
+      right: -4px;
+      min-width: 18px;
+      height: 18px;
+      background: #ef4444;
+      border-radius: 9px;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 4px;
+      border: 2px solid white;
+      pointer-events: none;
+      animation: ndBadgePop 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    }
+    @keyframes ndBadgePop {
+      from { transform: scale(0); opacity: 0; }
+      to   { transform: scale(1); opacity: 1; }
+    }
 
     /* Proactive bubble */
     #nd-proactive-bubble {
@@ -461,6 +487,13 @@
     #nd-bot-name { font-size: 0.95rem; font-weight: 700; color: white; }
     #nd-status { font-size: 0.75rem; color: rgba(255,255,255,0.8); display: flex; align-items: center; gap: 0.3rem; }
     #nd-status-dot { width: 7px; height: 7px; background: #4ade80; border-radius: 50%; }
+    #nd-popout {
+      display: inline-flex; align-items: center; background: none; border: none;
+      cursor: pointer; color: rgba(255,255,255,0.75);
+      padding: 0.25rem; border-radius: 4px; line-height: 0;
+      margin-right: 2px; transition: color 0.15s;
+    }
+    #nd-popout:hover { color: white; }
     #nd-close {
       background: none; border: none; color: rgba(255,255,255,0.8);
       cursor: pointer; font-size: 1.3rem; line-height: 1; padding: 0.2rem;
@@ -641,6 +674,31 @@
     }
   `;
 
+  /* ── Inline-mode CSS override ──────────────────────────────── */
+  const CSS_INLINE = `
+    :host {
+      display: block !important;
+      position: relative !important;
+      width: 100% !important;
+      height: 100% !important;
+    }
+    #nd-window {
+      position: absolute !important;
+      inset: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      max-height: none !important;
+      border-radius: 12px !important;
+      box-shadow: 0 1px 8px rgba(0,0,0,0.10) !important;
+    }
+    #nd-window.nd-hidden {
+      opacity: 1 !important;
+      pointer-events: auto !important;
+      transform: none !important;
+    }
+    #nd-close { display: none !important; }
+  `;
+
   /* ── Icons ──────────────────────────────────────────────────── */
   const ICON_CHAT = `<svg viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>`;
   const ICON_CLOSE = `<svg viewBox="0 0 24 24"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>`;
@@ -648,7 +706,7 @@
 
   /* ── State ──────────────────────────────────────────────────── */
   let config = null;
-  let isOpen = false;
+  let isOpen = INLINE_MODE; // inline widget is always open
   let isTyping = false;
   let sessionId = null;
   let history = [];          // [{role, content}, ...]
@@ -657,6 +715,12 @@
   let botMsgCount = 0;
   let csatShown = false;
   let proactiveDismissed = false;
+  let proactiveSeqTimers = [];
+  let lastInteractionTime = Date.now();
+  let lastBotQuestionTime = 0;
+  let exitIntentShown = false;
+  let _pendingPopup = null;
+  let unreadCount = 0;
   let _liveMode = false;
   let _livePollTimer = null;
   let _liveSince = 0;
@@ -675,26 +739,35 @@
     const primary = config.primary_color || '#2563eb';
 
     shadow.host.style.setProperty('--nd-primary', primary);
-    styleEl.textContent = CSS.replace(/var\(--nd-primary\)/g, primary);
 
     shadow.innerHTML = '';
+    styleEl.textContent = CSS.replace(/var\(--nd-primary\)/g, primary)
+      + (INLINE_MODE ? CSS_INLINE : '');
     shadow.appendChild(styleEl);
 
-    // Launcher button
-    const launcher = elem('button', { id: 'nd-launcher', title: wt('open'), style: `background:${primary}` },
-      ICON_CHAT
-    );
-    launcher.addEventListener('click', toggleChat);
-    shadow.appendChild(launcher);
+    // Launcher button (floating mode only)
+    if (!INLINE_MODE) {
+      const launcher = elem('button', { id: 'nd-launcher', title: wt('open') });
+      if (config.launcher_image_url) {
+        launcher.style.cssText = 'background:transparent;box-shadow:none;border-radius:0';
+        launcher.innerHTML = `<span id="nd-launcher-icon"><img src="${config.launcher_image_url}" style="width:56px;height:56px;object-fit:contain;display:block" alt=""></span>`;
+      } else {
+        launcher.style.background = primary;
+        launcher.innerHTML = `<span id="nd-launcher-icon">${ICON_CHAT}</span>`;
+      }
+      launcher.addEventListener('click', toggleChat);
+      shadow.appendChild(launcher);
+    }
 
     // Chat window
-    const win = elem('div', { id: 'nd-window', class: 'nd-hidden' }, `
+    const win = elem('div', { id: 'nd-window', class: INLINE_MODE ? '' : 'nd-hidden' }, `
       <div id="nd-header" style="background:${primary}">
         <div id="nd-avatar">${config.avatar_url ? `<img src="${config.avatar_url}" alt="">` : '🤖'}</div>
         <div id="nd-header-info">
           <div id="nd-bot-name">${esc(config.bot_name)}</div>
           <div id="nd-status"><span id="nd-status-dot"></span> ${wt('online')}</div>
         </div>
+        ${!INLINE_MODE ? `<button id="nd-popout" title="Otvoriť v novom okne"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></svg></button>` : ''}
         <button id="nd-close" title="${wt('close')}">${ICON_CLOSE}</button>
       </div>
       <div id="nd-messages"></div>
@@ -710,35 +783,63 @@
         <button id="nd-send" aria-label="${wt('send')}" style="background:${primary}">${ICON_SEND}</button>
       </div>
       <div id="nd-powered" style="text-align:center;padding:0.35rem 0.5rem;font-size:0.7rem;color:#94a3b8;background:white;border-top:1px solid #f1f5f9;flex-shrink:0;">
-        ${wt('powered')}<a href="https://Neoworkly.online" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:underline;">${wt('powered_link')}</a>
+        ${wt('powered')}<a href="https://Neoworkly.com" target="_blank" rel="noopener" style="color:#94a3b8;text-decoration:underline;">${wt('powered_link')}</a>
       </div>
       <div id="nd-contact-overlay"></div>
     `);
     shadow.appendChild(win);
 
     // Wire events
-    shadow.getElementById('nd-close').addEventListener('click', toggleChat);
+    if (!INLINE_MODE) shadow.getElementById('nd-close').addEventListener('click', toggleChat);
+    const _popoutBtn = shadow.getElementById('nd-popout');
+    if (_popoutBtn) _popoutBtn.addEventListener('click', popOutChat);
     shadow.getElementById('nd-send').addEventListener('click', handleSend);
     shadow.getElementById('nd-input').addEventListener('keydown', e => {
       if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
     });
     shadow.getElementById('nd-input').addEventListener('input', autoResize);
 
-    // Add welcome message — A/B variant or default (multilingual JSON or plain text)
-    const _welcomeRaw = (config.ab_variant === 'b' && config.welcome_message_b) ? config.welcome_message_b : config.welcome_message;
-    const _welcomeMsg = getWelcomeMessage(_welcomeRaw);
-    if (_welcomeMsg) addBotMessage(_welcomeMsg);
+    // Add welcome message — skip if restoring conversation from popup
+    if (_pendingPopup && Array.isArray(_pendingPopup.hist) && _pendingPopup.hist.length) {
+      _pendingPopup.hist.forEach(m => {
+        if (m.role === 'user') addUserMessage(m.content);
+        else addBotMessage(m.content, false, true); // true = skipTracking to avoid triggering lastBotQuestionTime
+      });
+      history = _pendingPopup.hist.slice();
+      _pendingPopup = null;
+      updatePopoutBtn();
+      setTimeout(() => { if (!isOpen) toggleChat(); }, 80);
+    } else {
+      const _welcomeRaw = (config.ab_variant === 'b' && config.welcome_message_b) ? config.welcome_message_b : config.welcome_message;
+      const _welcomeMsg = getWelcomeMessage(_welcomeRaw);
+      if (_welcomeMsg) addBotMessage(_welcomeMsg);
+    }
 
     // Render suggested questions
     renderSuggestions();
 
-    // Proactive bubble
-    if (config.proactive_enabled && config.proactive_message) {
+    // Proactive bubble (floating mode only)
+    if (!INLINE_MODE && config.proactive_enabled && config.proactive_message) {
       const delay = (config.proactive_delay || 4) * 1000;
       setTimeout(() => {
         if (isOpen || proactiveDismissed) return;
-        showProactiveBubble(config.proactive_message);
+        showProactiveBubble(getWelcomeMessage(config.proactive_message));
+        showBadge();
       }, delay);
+    }
+
+    // Proactive sequence (floating mode only)
+    if (!INLINE_MODE) {
+      scheduleProactiveSequence();
+      // Exit intent: gentle nudge when user moves mouse out of window with active conversation
+      document.addEventListener('mouseleave', function ndExitIntent(e) {
+        if (e.clientY > 5) return; // top-edge exit only
+        if (!exitIntentShown && history.length > 0 && !isOpen) {
+          exitIntentShown = true;
+          showProactiveBubble(getExitIntentMsg(), { repeat_after: 0 });
+          showBadge();
+        }
+      });
     }
 
     // White-label: remove branding footer
@@ -763,11 +864,12 @@
   }
 
   /* ── Proactive Bubble ───────────────────────────────────────── */
-  function showProactiveBubble(message) {
-    if (shadow.getElementById('nd-proactive-bubble')) return; // already shown
+  function showProactiveBubble(message, seqMeta) {
+    if (shadow.getElementById('nd-proactive-bubble')) return;
 
     const primary = config.primary_color || '#2563eb';
     const bubble = elem('div', { id: 'nd-proactive-bubble' });
+    bubble._nd_seq = seqMeta || null; // null = main proactive; object = sequence item
     bubble.innerHTML = `
       <button id="nd-proactive-close" title="${wt('close')}">✕</button>
       <div style="padding-right:1rem">${esc(message)}</div>
@@ -778,39 +880,162 @@
 
     bubble.addEventListener('click', (e) => {
       if (e.target.id === 'nd-proactive-close') {
-        dismissBubble();
+        dismissBubble(false); // dismissed manually → allow reschedule
         return;
       }
-      dismissBubble();
+      dismissBubble(true); // user opened chat → suppress reschedule
       if (!isOpen) toggleChat();
     });
 
     shadow.getElementById('nd-proactive-close').addEventListener('click', (e) => {
       e.stopPropagation();
-      dismissBubble();
+      dismissBubble(false);
     });
   }
 
-  function dismissBubble() {
-    proactiveDismissed = true;
+  // openedChat=true: user engaged → no reschedule; false: user dismissed manually → reschedule seq
+  function dismissBubble(openedChat) {
     const b = shadow.getElementById('nd-proactive-bubble');
-    if (b) {
-      b.style.opacity = '0';
-      b.style.transform = 'translateY(8px)';
-      b.style.transition = 'opacity 0.2s, transform 0.2s';
-      setTimeout(() => b.remove(), 220);
+    if (!b) return;
+    const seqMeta = b._nd_seq;
+    if (!seqMeta) proactiveDismissed = true; // only mark for the main proactive message
+    b.style.opacity = '0';
+    b.style.transform = 'translateY(8px)';
+    b.style.transition = 'opacity 0.2s, transform 0.2s';
+    setTimeout(() => {
+      if (b.parentNode) b.remove();
+      if (!openedChat && seqMeta && (seqMeta.repeat_after || 0) > 0) {
+        setTimeout(() => showSeqBubble(seqMeta), seqMeta.repeat_after * 1000);
+      }
+    }, 220);
+  }
+
+  /* ── Proactive Sequence ─────────────────────────────────────── */
+  function scheduleProactiveSequence() {
+    const seq = config.proactive_sequence;
+    if (!Array.isArray(seq) || !seq.length) return;
+
+    seq.forEach(function (item) {
+      if (item.enabled === false || !item.text) return;
+      const delayMs = Math.max(5, item.delay || 30) * 1000;
+
+      if (item.trigger === 'time') {
+        const t = setTimeout(function () { showSeqBubble(item); }, delayMs);
+        proactiveSeqTimers.push(t);
+      } else if (item.trigger === 'inactivity') {
+        const t = setInterval(function () {
+          if (Date.now() - lastInteractionTime >= delayMs) {
+            clearInterval(t);
+            showSeqBubble(item);
+          }
+        }, 5000);
+        proactiveSeqTimers.push(t);
+      } else if (item.trigger === 'unanswered') {
+        const t = setInterval(function () {
+          if (lastBotQuestionTime > 0 && Date.now() - lastBotQuestionTime >= delayMs) {
+            clearInterval(t);
+            showSeqBubble(item);
+          }
+        }, 3000);
+        proactiveSeqTimers.push(t);
+      }
+    });
+  }
+
+  function showSeqBubble(item) {
+    if (isOpen) {
+      if ((item.repeat_after || 0) > 0) {
+        setTimeout(function () { showSeqBubble(item); }, item.repeat_after * 1000);
+      }
+      return;
     }
+    if (shadow.getElementById('nd-proactive-bubble')) {
+      setTimeout(function () { showSeqBubble(item); }, 12000); // another bubble showing, retry
+      return;
+    }
+    showProactiveBubble(getWelcomeMessage(item.text), item);
+    showBadge();
+  }
+
+  /* ── Pop-out ─────────────────────────────────────────────────── */
+  function updatePopoutBtn() { /* no-op: popout button is always visible in non-popup mode */ }
+
+  function popOutChat() {
+    // Create a short-lived server-side session so the popup page can fetch conversation data
+    fetch(BASE_URL + '/api/widget/' + WIDGET_ID + '/popup-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sid: sessionId, hist: history }),
+    })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        var url = data && data.token
+          ? BASE_URL + '/chat-popup.html?wid=' + encodeURIComponent(WIDGET_ID) + '&t=' + encodeURIComponent(data.token)
+          : BASE_URL + '/chat-popup.html?wid=' + encodeURIComponent(WIDGET_ID);
+        window.open(url, 'nd_chat_' + WIDGET_ID,
+          'width=420,height=640,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no');
+      })
+      .catch(function () {
+        // Fallback: open popup without history restore
+        window.open(
+          BASE_URL + '/chat-popup.html?wid=' + encodeURIComponent(WIDGET_ID),
+          'nd_chat_' + WIDGET_ID,
+          'width=420,height=640,resizable=yes,scrollbars=yes,toolbar=no,menubar=no,location=no,status=no'
+        );
+      });
+  }
+
+  function getExitIntentMsg() {
+    const l = getLang();
+    return ({
+      sk: 'Ešte sme neskončili — pokračujte v konverzácii 💬',
+      en: "We're not done — continue chatting 💬",
+      de: 'Wir sind noch nicht fertig — Chat fortsetzen 💬',
+      fr: "Nous n'avons pas terminé — continuez à chatter 💬",
+      es: 'No hemos terminado — sigue chateando 💬',
+      pl: 'Jeszcze nie skończyliśmy — kontynuuj czat 💬',
+      cs: 'Ještě jsme neskončili — pokračujte v chatu 💬',
+      hu: 'Még nem végeztünk — folytassa a csevegést 💬',
+      ro: 'Nu am terminat — continuați conversația 💬',
+      hr: 'Još nismo završili — nastavite chat 💬',
+    })[l] || "We're not done — continue chatting 💬";
+  }
+
+  /* ── Unread Badge ───────────────────────────────────────────── */
+  function showBadge() {
+    unreadCount++;
+    const launcherEl = shadow.getElementById('nd-launcher');
+    if (!launcherEl) return;
+    let badge = shadow.getElementById('nd-badge');
+    if (badge) {
+      badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+    } else {
+      badge = elem('span', { id: 'nd-badge' });
+      badge.textContent = unreadCount > 9 ? '9+' : String(unreadCount);
+      launcherEl.appendChild(badge);
+    }
+  }
+
+  function hideBadge() {
+    unreadCount = 0;
+    const badge = shadow.getElementById('nd-badge');
+    if (badge) badge.remove();
   }
 
   /* ── Toggle ─────────────────────────────────────────────────── */
   function toggleChat() {
+    if (INLINE_MODE) return;
     isOpen = !isOpen;
-    dismissBubble();
+    dismissBubble(true); // user engaged → suppress seq reschedule
     const win = shadow.getElementById('nd-window');
-    const launcher = shadow.getElementById('nd-launcher');
+    const iconEl = shadow.getElementById('nd-launcher-icon');
     win.classList.toggle('nd-hidden', !isOpen);
-    launcher.innerHTML = isOpen ? ICON_CLOSE : ICON_CHAT;
+    if (iconEl && !config.launcher_image_url) {
+      iconEl.innerHTML = isOpen ? ICON_CLOSE : ICON_CHAT;
+    }
     if (isOpen) {
+      hideBadge();
+      updatePopoutBtn();
       shadow.getElementById('nd-input').focus();
       scrollToBottom();
     }
@@ -839,6 +1064,16 @@
   }
 
   /* ── Markdown renderer (bold, italic, newlines only) ────────── */
+  function getVideoEmbed(url) {
+    const ytMatch = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+    if (ytMatch) return `<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:8px;overflow:hidden;margin:4px 0"><iframe src="https://www.youtube.com/embed/${ytMatch[1]}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe></div>`;
+    const vmMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vmMatch) return `<div style="position:relative;padding-bottom:56.25%;height:0;border-radius:8px;overflow:hidden;margin:4px 0"><iframe src="https://player.vimeo.com/video/${vmMatch[1]}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0" allowfullscreen loading="lazy"></iframe></div>`;
+    if (/\.(mp4|webm|ogg)(\?|$)/i.test(url)) return `<video src="${escAttr(url)}" controls style="width:100%;border-radius:8px;margin:4px 0;max-height:200px"></video>`;
+    if (/\.(gif|gifv)(\?|$)/i.test(url)) return `<img src="${escAttr(url)}" alt="GIF" style="max-width:100%;border-radius:8px;margin:4px 0">`;
+    return null;
+  }
+
   function renderMarkdown(text) {
     // Match [label](url) and bare https?:// URLs, trim trailing punctuation from bare URLs
     const URL_RE = /(\[([^\]]{1,200})\]\((https?:\/\/[^\s)]{1,500})\))|(https?:\/\/[^\s<>"]{1,500})/g;
@@ -858,13 +1093,18 @@
         let url = m[0].replace(/[.,!?:)\]]+$/, '');
         const trailingPunct = m[0].slice(url.length);
 
-        // Button style if URL is on its own line
+        // Video/GIF embed if URL is on its own line
         const before = text.slice(0, m.index);
         const after  = text.slice(m.index + url.length);
         const alone  = /(\n|^)\s*$/.test(before) && /^\s*(\n|$)/.test(after);
 
-        const cls = alone ? 'nd-link-btn' : 'nd-link';
-        html += `<a href="${escAttr(url)}" target="_blank" rel="noopener noreferrer" class="${cls}">${esc(url)}</a>`;
+        const embed = alone && getVideoEmbed(url);
+        if (embed) {
+          html += embed;
+        } else {
+          const cls = alone ? 'nd-link-btn' : 'nd-link';
+          html += `<a href="${escAttr(url)}" target="_blank" rel="noopener noreferrer" class="${cls}">${esc(url)}</a>`;
+        }
         if (trailingPunct) html += escInline(trailingPunct);
       }
       last = m.index + m[0].length;
@@ -887,13 +1127,17 @@
   }
 
   /* ── Messages ───────────────────────────────────────────────── */
-  function addBotMessage(text, isStreaming = false) {
+  function addBotMessage(text, isStreaming = false, skipTracking = false) {
     const msgs = shadow.getElementById('nd-messages');
     const div = elem('div', { class: `nd-msg nd-msg-bot${isStreaming ? ' nd-typing' : ''}` });
     if (isStreaming) {
       div.textContent = text;
     } else {
       div.innerHTML = renderMarkdown(text);
+      if (!skipTracking) {
+        if (text.trim().match(/\?\s*$/)) lastBotQuestionTime = Date.now();
+        updatePopoutBtn();
+      }
     }
     msgs.appendChild(div);
     scrollToBottom();
@@ -934,10 +1178,13 @@
     hideSuggestions();
     isTyping = true;
     msgCount++;
+    lastInteractionTime = Date.now();
+    lastBotQuestionTime = 0; // user responded, reset unanswered tracker
 
     // Add user message to UI and history
     addUserMessage(text);
     history.push({ role: 'user', content: text });
+    updatePopoutBtn();
 
     setSendDisabled(true);
 
@@ -950,6 +1197,7 @@
         sessionId,
         history: history.slice(-20).slice(0, -1), // all but current message
         pageContext: { url: window.location.href, title: document.title },
+        mode: WIDGET_MODE,
       };
 
       const response = await fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/chat`, {
@@ -1016,6 +1264,8 @@
                 final = final.replace(/__DIRECTBOOK__:\{[\s\S]*?\}/g, '').trim();
                 typingEl.innerHTML = renderMarkdown(final);
                 history.push({ role: 'assistant', content: final });
+                if (final.trim().match(/\?\s*$/)) lastBotQuestionTime = Date.now();
+                updatePopoutBtn();
                 maybeShowCta();
                 try { handleDirectBooking(JSON.parse(directBookMatch[1])); } catch (e) {
                   addBotMessage('❌ Rezerváciu sa nepodarilo spracovať. Skúste to znova.');
@@ -1026,6 +1276,8 @@
                 if (lmMatch) final = final.replace(/__LEADMAGNET__:\{[^\n]*?\}/g, '').trim();
                 typingEl.innerHTML = renderMarkdown(final);
                 history.push({ role: 'assistant', content: final });
+                if (final.trim().match(/\?\s*$/)) lastBotQuestionTime = Date.now();
+                updatePopoutBtn();
                 maybeShowCta();
                 if (bookingTrigger) showInlineBookingCard();
                 if (lmMatch) {
@@ -1715,13 +1967,55 @@
       const res = await fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/config?lang=${encodeURIComponent(getLang())}`);
       if (!res.ok) { console.warn('[Neoworkly] Widget nenájdený alebo neaktívny.'); return; }
       config = await res.json();
+      // In Person mode, override bot_name and welcome_message with person profile data
+      if (WIDGET_MODE === 'person' && config.person?.active) {
+        if (config.person.name) config.bot_name = config.person.name;
+        if (config.person.intro) config.welcome_message = config.person.intro;
+      }
     } catch (err) {
       console.warn('[Neoworkly] Nepodarilo sa načítať konfiguráciu:', err.message);
       return;
     }
 
     sessionId = getSessionId();
-    document.body.appendChild(host);
+
+    // Check for popup context — restore session + history
+    // Primary: window._ndPopupSession set by chat-popup.html after fetching server session
+    if (window._ndPopupSession) {
+      _pendingPopup = window._ndPopupSession;
+      window._ndPopupSession = null;
+    }
+    // Fallback: localStorage (same-origin, legacy path)
+    if (!_pendingPopup) {
+      try {
+        const _ps = localStorage.getItem('nd_popup_' + WIDGET_ID);
+        if (_ps) {
+          localStorage.removeItem('nd_popup_' + WIDGET_ID);
+          _pendingPopup = JSON.parse(_ps);
+        }
+      } catch {}
+    }
+    if (_pendingPopup && _pendingPopup.sid) {
+      sessionId = _pendingPopup.sid;
+      try { sessionStorage.setItem('nd_session_' + WIDGET_ID, sessionId); } catch {}
+    }
+
+    if (INLINE_MODE) {
+      const containerEl = INLINE_CONTAINER ? document.querySelector(INLINE_CONTAINER) : null;
+      if (!containerEl) {
+        console.warn('[Neoworkly] Inline container nenájdený:', INLINE_CONTAINER);
+        return;
+      }
+      // Make container relative so the inline widget can use position:absolute inside shadow DOM
+      if (getComputedStyle(containerEl).position === 'static') {
+        containerEl.style.position = 'relative';
+      }
+      host.style.cssText = 'display:block;width:100%;height:100%;';
+      containerEl.appendChild(host);
+    } else {
+      document.body.appendChild(host);
+    }
+
     buildDOM();
   }
 
