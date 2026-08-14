@@ -3,6 +3,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const compression = require('compression');
 const path = require('path');
 
 const { initDatabase } = require('./db/database');
@@ -33,6 +34,7 @@ const PORT = process.env.PORT || 3000;
 initDatabase();
 
 app.use(cors());
+app.use(compression());
 
 // Stripe webhook MUST receive raw body — mount before express.json()
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
