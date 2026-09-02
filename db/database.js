@@ -578,6 +578,8 @@ function initDatabase() {
   created_at INTEGER NOT NULL DEFAULT (unixepoch())
 )`,
     `ALTER TABLE widgets ADD COLUMN launcher_image_url TEXT`,
+    `ALTER TABLE widgets ADD COLUMN volai_api_key TEXT`,
+    `ALTER TABLE widgets ADD COLUMN volai_notify_phone TEXT`,
   ];
   for (const sql of migrations) {
     try { db.exec(sql); } catch { /* column exists or not applicable */ }

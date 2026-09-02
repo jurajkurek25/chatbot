@@ -1756,6 +1756,29 @@
             </div>
           </div>
 
+          <!-- Volai SMS -->
+          <div class="panel" style="margin-bottom:1.5rem">
+            <div class="panel-header">
+              <div>
+                <div class="panel-title">📱 Volai — SMS a hovory</div>
+                <div class="panel-subtitle">SMS notifikácia na váš telefón pri každom novom leade</div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Volai API kľúč <span style="font-weight:400;color:#94a3b8">(z portálu volai.cz → API and MCP)</span></label>
+              <input type="text" class="form-control" id="int-volai-key" placeholder="vk_..." autocomplete="off" spellcheck="false">
+            </div>
+            <div class="form-group">
+              <label>Váš telefón na SMS notifikácie</label>
+              <input type="text" class="form-control" id="int-volai-phone" placeholder="+421900123456">
+              <div class="hint">Formát E.164 — pri každom novom leade vám príde SMS s menom, telefónom a emailom leada</div>
+            </div>
+            <div style="display:flex;gap:0.75rem;align-items:center">
+              <button class="btn btn-secondary btn-sm" onclick="testVolaiSms()">Odoslať testovacú SMS</button>
+              <span id="volai-test-status" style="font-size:0.8rem;color:#64748b"></span>
+            </div>
+          </div>
+
           <!-- White-label & advanced -->
           <div class="panel" style="margin-bottom:1.5rem">
             <div class="panel-header">

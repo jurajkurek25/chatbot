@@ -161,7 +161,8 @@ router.put('/:id', (req, res) => {
           proactive_enabled, proactive_delay, proactive_message, proactive_sequence, gdpr_text,
           webhook_url, slack_webhook_url, hide_branding, csat_enabled,
           ab_test_enabled, welcome_message_b, auto_reply_enabled, auto_reply_message,
-          offline_message, business_hours, demo_video_url, promotions } = req.body;
+          offline_message, business_hours, demo_video_url, promotions,
+          volai_api_key, volai_notify_phone } = req.body;
 
   const db = getDb();
 
@@ -211,7 +212,9 @@ router.put('/:id', (req, res) => {
       offline_message = ?,
       business_hours = ?,
       demo_video_url = ?,
-      promotions = ?
+      promotions = ?,
+      volai_api_key = ?,
+      volai_notify_phone = ?
     WHERE id = ?
   `).run(
     name !== undefined ? name.trim() : widget.name,
@@ -241,6 +244,8 @@ router.put('/:id', (req, res) => {
     business_hours !== undefined ? (typeof business_hours === 'string' ? business_hours : JSON.stringify(business_hours)) : (widget.business_hours || '{}'),
     demo_video_url !== undefined ? (demo_video_url ? String(demo_video_url).slice(0, 512) : null) : (widget.demo_video_url || null),
     promotions !== undefined ? JSON.stringify(Array.isArray(promotions) ? promotions.slice(0, 20) : []) : (widget.promotions || '[]'),
+    volai_api_key !== undefined ? (volai_api_key ? String(volai_api_key).slice(0, 200) : null) : (widget.volai_api_key || null),
+    volai_notify_phone !== undefined ? (volai_notify_phone ? String(volai_notify_phone).slice(0, 20) : null) : (widget.volai_notify_phone || null),
     widget.id
   );
 
@@ -339,6 +344,23 @@ router.delete('/:id/launcher-image', (req, res) => {
   }
   db.prepare('UPDATE widgets SET launcher_image_url = NULL WHERE id = ?').run(widget.id);
   res.json({ success: true });
+});
+
+// POST /api/widgets/:id/volai-test — send a test SMS via Volai
+router.post('/:id/volai-test', async (req, res) => {
+  const widget = getOwnedWidget(req.params.id, req.userId);
+  if (!widget) return res.status(404).json({ error: 'Widget nenájdený.' });
+  if (!widget.volai_api_key || !widget.volai_notify_phone) {
+    return res.status(400).json({ error: 'Najprv uložte API kľúč a telefón.' });
+  }
+  try {
+    const { sendSms } = require('../services/volai');
+    await sendSms(widget.volai_api_key, widget.volai_notify_phone,
+      `Neoworkly test: Volai SMS notifikácie fungujú! Widget: ${widget.name || widget.bot_name}`);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
 });
 
 // GET /api/widgets/:id/leads — list leads for a widget
@@ -487,6 +509,8 @@ function parseWidget(w) {
     offline_message: w.offline_message || '',
     webhook_url: w.webhook_url || null,
     slack_webhook_url: w.slack_webhook_url || null,
+    volai_api_key: w.volai_api_key || null,
+    volai_notify_phone: w.volai_notify_phone || null,
     business_hours: safeParseJSON(w.business_hours, {}),
     demo_video_url: w.demo_video_url || null,
     promotions: safeParseJSON(w.promotions, []),

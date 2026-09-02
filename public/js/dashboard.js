@@ -4187,6 +4187,8 @@ function loadIntegrations() {
 
   document.getElementById('int-webhook-url').value   = w.webhook_url        || '';
   document.getElementById('int-slack-url').value     = w.slack_webhook_url  || '';
+  document.getElementById('int-volai-key').value     = w.volai_api_key      || '';
+  document.getElementById('int-volai-phone').value   = w.volai_notify_phone || '';
   document.getElementById('int-hide-branding').checked = Boolean(w.hide_branding);
   document.getElementById('int-csat-enabled').checked  = Boolean(w.csat_enabled);
   document.getElementById('int-ab-enabled').checked    = Boolean(w.ab_test_enabled);
@@ -4257,6 +4259,8 @@ async function saveIntegrations() {
   const body = {
     webhook_url:        document.getElementById('int-webhook-url').value.trim() || null,
     slack_webhook_url:  document.getElementById('int-slack-url').value.trim()   || null,
+    volai_api_key:      document.getElementById('int-volai-key').value.trim()   || null,
+    volai_notify_phone: document.getElementById('int-volai-phone').value.trim() || null,
     hide_branding:      document.getElementById('int-hide-branding').checked ? 1 : 0,
     csat_enabled:       document.getElementById('int-csat-enabled').checked   ? 1 : 0,
     ab_test_enabled:    document.getElementById('int-ab-enabled').checked     ? 1 : 0,
@@ -4283,6 +4287,24 @@ async function saveIntegrations() {
     } else {
       showToast('Chyba pri ukladaní', 'error');
     }
+  }
+}
+
+/* ── Volai SMS test ───────────────────────────────────────────── */
+async function testVolaiSms() {
+  if (!currentWidget) return;
+  await saveIntegrations();
+  const status = document.getElementById('volai-test-status');
+  if (status) status.textContent = 'Odosielam...';
+  const res = await apiFetch(`/api/widgets/${currentWidget.id}/volai-test`, { method: 'POST' });
+  if (!res) { if (status) status.textContent = ''; return; }
+  if (res.ok) {
+    if (status) status.textContent = '✓ SMS odoslaná';
+    showToast('Testovacia SMS odoslaná');
+  } else {
+    const d = await res.json().catch(() => ({}));
+    if (status) status.textContent = '✗ Chyba';
+    showToast(d.error || 'Chyba pri odosielaní', 'error');
   }
 }
 

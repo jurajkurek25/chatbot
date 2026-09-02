@@ -445,6 +445,18 @@ router.post('/:widgetId/leads', async (req, res) => {
       } catch(e) { console.error('Slack webhook error:', e.message); }
     }
 
+    // Volai SMS notification to widget owner
+    if (widget.volai_api_key && widget.volai_notify_phone) {
+      try {
+        const { sendSms } = require('../services/volai');
+        const parts = [`Nový lead: ${name.trim()}`];
+        if (phone?.trim()) parts.push(phone.trim());
+        parts.push(email.trim());
+        if (widgetRow.name || widgetRow.bot_name) parts.push(`(${widgetRow.name || widgetRow.bot_name})`);
+        await sendSms(widget.volai_api_key, widget.volai_notify_phone, parts.join(' | '));
+      } catch(e) { console.error('Volai SMS error:', e.message); }
+    }
+
     // Send email notification to widget owner
     try {
       await sendLeadNotification({
