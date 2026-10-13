@@ -703,6 +703,30 @@ function initDatabase() {
       emoji TEXT NOT NULL,
       PRIMARY KEY (message_id, user_id, emoji)
     );
+    -- Formuláre (podľa HeyForm): polia a nastavenia v JSON, verejný odkaz /form/:token
+    CREATE TABLE IF NOT EXISTS forms (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE,
+      title TEXT NOT NULL DEFAULT 'Nový formulár',
+      description TEXT NOT NULL DEFAULT '',
+      fields TEXT NOT NULL DEFAULT '[]',
+      settings TEXT NOT NULL DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'open' CHECK(status IN ('open','closed')),
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS form_responses (
+      id TEXT PRIMARY KEY,
+      form_id TEXT NOT NULL REFERENCES forms(id) ON DELETE CASCADE,
+      owner_id TEXT NOT NULL,
+      data TEXT NOT NULL DEFAULT '{}',
+      email TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_form_responses ON form_responses(form_id, created_at);
+
     -- Videohovory (Jitsi Meet) založené z chatu alebo úlohy; udalosti kalendára majú vlastné meeting_room
     CREATE TABLE IF NOT EXISTS meetings (
       room TEXT PRIMARY KEY,
