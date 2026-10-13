@@ -186,7 +186,27 @@
                border-top-color: var(--p); border-radius: 50%; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .error-card { text-align: center; padding: 3rem 1.5rem; color: var(--muted); font-size: 0.9rem; }
+
+    /* ── Staff, questions, calendar links ── */
+    .staff-row { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1.25rem; }
+    .staff-chip { display: flex; align-items: center; gap: 0.45rem; padding: 0.45rem 0.85rem 0.45rem 0.45rem;
+                  border: 2px solid var(--border); border-radius: 100px; background: white; cursor: pointer;
+                  font-family: inherit; font-size: 0.82rem; font-weight: 600; color: var(--text); }
+    .staff-chip.selected { border-color: var(--p); background: var(--p-light); color: var(--p); }
+    .staff-chip img, .staff-chip .ini { width: 26px; height: 26px; border-radius: 50%; object-fit: cover;
+                  background: var(--p-light); color: var(--p); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; }
+    .form-group select, .form-group textarea { width: 100%; padding: 0.65rem 0.9rem; border: 1.5px solid var(--border);
+                  border-radius: 9px; font-size: 0.9rem; font-family: inherit; color: var(--text); background: white; }
+    .form-group textarea { resize: vertical; min-height: 70px; }
+    .form-group .chk { display: flex; gap: 0.5rem; align-items: center; font-size: 0.85rem; color: var(--text); font-weight: 500; }
+    .form-group .chk input { width: 18px; height: 18px; accent-color: var(--p); }
+    .slot-left { display: block; font-size: 0.65rem; font-weight: 500; opacity: 0.75; }
+    .cal-links { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; margin-top: 1rem; }
+    .cal-links a { padding: 0.55rem 0.9rem; border-radius: var(--btn-radius, 10px); background: var(--bg);
+                   color: var(--text); text-decoration: none; font-size: 0.8rem; font-weight: 700; }
+    .cal-links a.primary { background: var(--p); color: white; }
   </style>
+  <style id="custom-css"></style>
 </head>
 <body>
 <div class="page">
@@ -205,6 +225,7 @@
   let selService = null; // { id, name, duration_mins, price, currency }
   let selDate    = null;
   let selSlot    = null;
+  let selStaff   = 'any';
   let slotsCache = {};
   let calY, calM;
 
@@ -220,6 +241,7 @@
       cfg = await r.json();
       document.title = `Rezervácia – ${cfg.designConfig?.calendarName || cfg.botName}`;
       applyColors(cfg.primaryColor || '#5b4fff');
+      document.getElementById('custom-css').textContent = cfg.customCss || '';
       if (cfg.designConfig) applyDesign(cfg.designConfig);
       const now = new Date();
       calY = now.getFullYear(); calM = now.getMonth();
@@ -278,6 +300,9 @@
     emailSent: 'Potvrdzovací email bol odoslaný na',
     closeWindow: 'Môžete zavrieť toto okno.',
     nameLabel: 'Meno a priezvisko', emailLabel: 'Email', phoneLabel: 'Telefón (nepovinné)',
+    phoneRequiredLabel: 'Telefón', staffLabel: 'Kto vás obslúži', anyStaff: 'Ktokoľvek',
+    seatsLabel: 'Počet osôb', seatsLeft: 'voľné', addToCalendar: 'Pridať do kalendára',
+    manageBooking: 'Spravovať rezerváciu', notesLabel: 'Poznámka (nepovinné)',
   };
   function t(key) {
     const lang = (navigator.language || 'sk').slice(0, 2).toLowerCase();
@@ -369,6 +394,8 @@
             <div class="svc-meta">
               <span class="svc-badge">⏱ ${s.duration_mins} min</span>
               <span class="svc-badge">💶 ${esc(price)}</span>
+              ${s.location_type === 'online' ? '<span class="svc-badge">💻 Online</span>' : s.location_type === 'phone' ? '<span class="svc-badge">📞 Telefonicky</span>' : ''}
+              ${s.capacity > 1 ? `<span class="svc-badge">👥 ${s.capacity}</span>` : ''}
             </div>
           </div>`;
         }).join('')}
@@ -384,6 +411,7 @@
     selService = cfg.services[idx];
     if (!selService) return;
     selDate = null; selSlot = null; slotsCache = {};
+    if (selStaff !== 'any' && !selService.staffIds.includes(selStaff)) selStaff = 'any';
     document.querySelectorAll('.svc-card').forEach((c, i) => {
       c.classList.toggle('selected', i === idx);
     });
@@ -396,6 +424,7 @@
     const el = document.getElementById('p-date');
     if (!el) return;
     el.innerHTML = `
+      ${staffPickerHtml()}
       <div class="card-title">${t('selectDate')}</div>
       <div class="cal-nav-row">
         <button class="cal-btn" id="cal-prev">‹</button>
@@ -411,6 +440,26 @@
     document.getElementById('cal-next').onclick = () => { calM++; if(calM>11){calM=0;calY++;} renderCal(); };
     renderCal();
   }
+
+  /* Staff who can take the chosen service */
+  function eligibleStaff() {
+    const ids = selService ? selService.staffIds : (cfg.staff || []).map(s => s.id);
+    return (cfg.staff || []).filter(s => ids.includes(s.id));
+  }
+
+  function staffPickerHtml() {
+    const list = eligibleStaff();
+    if (cfg.staffSelection !== 'choose' || list.length < 2) return '';
+    const chip = (id, name, photo) => `<button class="staff-chip${selStaff === id ? ' selected' : ''}" onclick="selectStaff('${esc(id)}')">
+      ${photo ? `<img src="${esc(photo)}" alt="">` : `<span class="ini">${id === 'any' ? '★' : esc(name.charAt(0))}</span>`}${esc(name)}</button>`;
+    return `<div class="card-title">${t('staffLabel')}</div>
+      <div class="staff-row">${chip('any', t('anyStaff'))}${list.map(s => chip(s.id, s.name, s.photoUrl)).join('')}</div>`;
+  }
+
+  window.selectStaff = function(id) {
+    selStaff = id; selDate = null; selSlot = null; slotsCache = {};
+    renderDatePanel();
+  };
 
   function renderCal() {
     const title = document.getElementById('cal-title');
@@ -451,7 +500,9 @@
     if (!cfg.schedules) return true;
     const [y,mo,d] = ds.split('-').map(Number);
     const dow = new Date(y,mo-1,d).getDay();
-    const sched = cfg.schedules.find(s => s.day_of_week === dow && s.active);
+    const day = cfg.schedules.find(s => s.day_of_week === dow);
+    const ids = selStaff !== 'any' ? [selStaff] : eligibleStaff().map(s => s.id);
+    const sched = day && day.active && (!day.staffIds || day.staffIds.some(id => ids.includes(id)));
     const max = new Date(); max.setDate(max.getDate() + (cfg.maxAdvanceDays || 60));
     if (ds > max.toLocaleDateString('sv-SE')) return false;
     return !!sched;
@@ -478,6 +529,7 @@
     if (!slotsCache[date]) {
       let url = `${BASE}/api/booking/${widgetId}/public/slots?date=${date}`;
       if (selService) url += `&serviceId=${selService.id}`;
+      if (selStaff !== 'any') url += `&staffId=${encodeURIComponent(selStaff)}`;
       try {
         const r = await fetch(url);
         slotsCache[date] = r.ok ? await r.json() : [];
@@ -497,6 +549,10 @@
       const btn = document.createElement('button');
       btn.className = 'slot-btn' + (selSlot === s.start_time ? ' selected' : '');
       btn.textContent = s.start_time;
+      if (selService && selService.capacity > 1) {
+        const left = document.createElement('span'); left.className = 'slot-left';
+        left.textContent = `${s.seats_left} ${t('seatsLeft')}`; btn.appendChild(left);
+      }
       btn.onclick = () => {
         selSlot = s.start_time;
         grid.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
@@ -516,7 +572,11 @@
     if (!el) return;
     const [y,mo,d] = selDate.split('-').map(Number);
     const dateLabel = `${d}. ${MONTHS[mo-1]} ${y}`;
-    const endTime = slotsCache[selDate]?.find(s => s.start_time === selSlot)?.end_time;
+    const slot = slotsCache[selDate]?.find(s => s.start_time === selSlot);
+    const endTime = slot?.end_time;
+    const staffName = slot && (cfg.staff || []).find(s => s.id === slot.staff_id)?.name;
+    const maxSeats = selService && selService.capacity > 1 ? Math.max(1, slot?.seats_left || 1) : 1;
+    const questions = selService?.questions || [];
 
     el.innerHTML = `
       <div class="card-title">${t('contactDetails')}</div>
@@ -524,14 +584,28 @@
         ${selService ? `<div class="summary-row"><span>✂️ Služba</span><span>${esc(selService.name)}</span></div>` : ''}
         <div class="summary-row"><span>📅 Dátum</span><span>${dateLabel}</span></div>
         <div class="summary-row"><span>🕐 Čas</span><span>${selSlot}${endTime ? ' – ' + endTime : ''}</span></div>
+        ${staffName && (cfg.staff || []).length > 1 ? `<div class="summary-row"><span>👤 ${t('staffLabel')}</span><span>${esc(staffName)}</span></div>` : ''}
+        ${selService?.location_detail ? `<div class="summary-row"><span>📍 Miesto</span><span>${esc(selService.location_detail)}</span></div>` : ''}
         ${selService?.price != null ? `<div class="summary-row"><span>💶 Cena</span><span>${selService.price} ${selService.currency}</span></div>` : ''}
       </div>
       <div class="form-group"><label>${t('nameLabel')} *</label>
         <input type="text" id="f-name" placeholder="Ján Novák" autocomplete="name"></div>
       <div class="form-group"><label>${t('emailLabel')} *</label>
         <input type="email" id="f-email" placeholder="jan@email.sk" autocomplete="email"></div>
-      <div class="form-group"><label>${t('phoneLabel')}</label>
+      <div class="form-group"><label>${cfg.requirePhone ? t('phoneRequiredLabel') + ' *' : t('phoneLabel')}</label>
         <input type="tel" id="f-phone" placeholder="+421 900 000 000" autocomplete="tel"></div>
+      ${maxSeats > 1 ? `<div class="form-group"><label>${t('seatsLabel')}</label>
+        <select id="f-seats">${Array.from({ length: maxSeats }, (_, i) => `<option>${i + 1}</option>`).join('')}</select></div>` : ''}
+      ${questions.map(q => `<div class="form-group">
+        ${q.type === 'checkbox'
+          ? `<label class="chk"><input type="checkbox" data-q="${esc(q.id)}">${esc(q.label)}${q.required ? ' *' : ''}</label>`
+          : `<label>${esc(q.label)}${q.required ? ' *' : ''}</label>${
+            q.type === 'textarea' ? `<textarea data-q="${esc(q.id)}"></textarea>`
+            : q.type === 'select' ? `<select data-q="${esc(q.id)}"><option value=""></option>${q.options.map(o => `<option>${esc(o)}</option>`).join('')}</select>`
+            : `<input type="text" data-q="${esc(q.id)}">`}`}
+      </div>`).join('')}
+      <div class="form-group"><label>${t('notesLabel')}</label>
+        <textarea id="f-notes" rows="2"></textarea></div>
       <div class="gdpr-row" id="gdpr-row">
         <input type="checkbox" id="f-gdpr" onchange="document.getElementById('gdpr-row').classList.remove('err'); document.getElementById('gdpr-err').classList.remove('show')">
         <div>
@@ -557,6 +631,17 @@
     else          document.getElementById('f-name')?.classList.remove('err');
     if (!email) { document.getElementById('f-email')?.classList.add('err'); valid = false; }
     else          document.getElementById('f-email')?.classList.remove('err');
+    if (cfg.requirePhone && !phone) { document.getElementById('f-phone')?.classList.add('err'); valid = false; }
+    else          document.getElementById('f-phone')?.classList.remove('err');
+    const answers = {};
+    for (const q of selService?.questions || []) {
+      const el = document.querySelector(`[data-q="${CSS.escape(q.id)}"]`);
+      if (!el) continue;
+      const v = el.type === 'checkbox' ? (el.checked ? 'true' : '') : el.value.trim();
+      if (q.required && !v) { el.classList.add('err'); el.style.borderColor = '#dc2626'; valid = false; }
+      else el.style.borderColor = '';
+      answers[q.id] = v;
+    }
     if (!gdpr) {
       document.getElementById('gdpr-row')?.classList.add('err');
       document.getElementById('gdpr-err')?.classList.add('show');
@@ -580,6 +665,10 @@
           startTime:     selSlot,
           serviceId:     selService?.id || undefined,
           serviceName:   selService?.name || undefined,
+          staffId:       selStaff !== 'any' ? selStaff : undefined,
+          seats:         parseInt(document.getElementById('f-seats')?.value || '1', 10),
+          answers,
+          notes:         document.getElementById('f-notes')?.value.trim() || undefined,
         }),
       });
       const data = await r.json();
@@ -608,7 +697,15 @@
         ${selService ? `<p style="font-size:1rem;font-weight:700;color:var(--p);margin:0.5rem 0">${esc(selService.name)}</p>` : ''}
         <p style="font-size:1rem;font-weight:700;margin:0.4rem 0">${dateLabel} o ${selSlot}</p>
         <p style="margin-top:0.75rem">${esc(data.confirmationMessage || 'Tešíme sa na vás!')}</p>
+        ${data.staffName && (cfg.staff || []).length > 1 ? `<p>${t('staffLabel')}: <strong>${esc(data.staffName)}</strong></p>` : ''}
         <p style="margin-top:0.75rem">${t('emailSent')} <strong>${esc(email)}</strong>.</p>
+        ${data.calendar ? `<p style="margin-top:1.25rem;font-weight:700;color:var(--text)">${t('addToCalendar')}</p>
+        <div class="cal-links">
+          <a href="${esc(data.calendar.google)}" target="_blank" rel="noopener">Google</a>
+          <a href="${esc(data.calendar.outlook)}" target="_blank" rel="noopener">Outlook</a>
+          <a href="${esc(data.calendar.ics)}">Apple / iCal</a>
+        </div>` : ''}
+        ${data.manageUrl ? `<div class="cal-links"><a class="primary" href="${esc(data.manageUrl)}" target="_blank" rel="noopener">${t('manageBooking')}</a></div>` : ''}
         <p style="margin-top:1.5rem;font-size:0.8rem;color:#94a3b8">${t('closeWindow')}</p>
       </div>`;
   }
@@ -616,7 +713,7 @@
   /* ── Utils ── */
   function pad(n) { return String(n).padStart(2,'0'); }
   function todayStr() { return new Date().toLocaleDateString('sv-SE'); }
-  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function showError(msg) {
     document.getElementById('app').innerHTML = `
       <div class="card" style="margin-top:2rem">
