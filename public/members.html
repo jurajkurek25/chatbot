@@ -124,7 +124,7 @@
   /* ── Moje produkty ─────────────────────────────────────────────── */
   async function showHome() {
     product = null;
-    const d = await api('/me');
+    const [d, folders] = await Promise.all([api('/me'), drive('/folders').catch(() => [])]);
     document.getElementById('who').innerHTML = `${esc(d.member.email)} <button class="link" id="logout">Odhlásiť</button>`;
     document.getElementById('logout').onclick = () => { store.set(null); location.hash = ''; showLogin(); };
     app.innerHTML = `${flash}<h1 style="margin-bottom:1rem">Môj obsah</h1>${d.products.length ? `<div class="grid">${d.products.map(p => `
@@ -134,9 +134,48 @@
           ${p.subtitle ? `<div class="muted">${esc(p.subtitle)}</div>` : ''}
           ${p.lessons ? `<div class="bar"><span style="width:${Math.round(100 * p.completed / p.lessons)}%"></span></div><div class="muted" style="margin-top:.3rem">${p.completed} / ${p.lessons} lekcií</div>` : ''}
           ${p.expiresAt ? `<div class="muted" style="margin-top:.3rem">Prístup do ${new Date(p.expiresAt * 1000).toLocaleDateString('sk-SK')}</div>` : ''}
-        </div></button>`).join('')}</div>` : '<div class="card"><p class="muted">Zatiaľ tu nemáte žiadny obsah.</p></div>'}`;
+        </div></button>`).join('')}</div>` : folders.length ? '' : '<div class="card"><p class="muted">Zatiaľ tu nemáte žiadny obsah.</p></div>'}
+      ${folders.length ? `<h1 style="margin:1.5rem 0 1rem">Moje dokumenty</h1><div class="grid">${folders.map(f => `
+        <button class="tile" data-doc="${esc(f.id)}"><div class="ph">📁</div><div class="body"><div class="title">${esc(f.name)}</div>
+          <div class="muted">${f.canUpload ? 'Môžete sem aj nahrávať' : 'Dokumenty od nás pre vás'}</div></div></button>`).join('')}</div>` : ''}`;
     flash = '';
-    app.querySelectorAll('.tile').forEach(t => { t.onclick = () => { location.hash = `p=${t.dataset.id}`; }; });
+    app.querySelectorAll('[data-id]').forEach(t => { t.onclick = () => { location.hash = `p=${t.dataset.id}`; }; });
+    app.querySelectorAll('[data-doc]').forEach(t => { t.onclick = () => { location.hash = `d=${t.dataset.doc}`; }; });
+  }
+
+  /* ── Moje dokumenty: priečinky od obchodníka na Disku ───────────── */
+  async function drive(path, opts = {}) {
+    const r = await fetch(`/api/drive/m/${encodeURIComponent(storeId)}${path}`, { ...opts, headers: { 'X-Member-Token': store.get() || '', ...(opts.headers || {}) } });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Chyba. Skúste to znova.');
+    return d;
+  }
+
+  async function showDocs(folderId) {
+    const d = await drive(`/items?parent=${encodeURIComponent(folderId)}`);
+    const dl = async id => { location.href = (await drive(`/file/${encodeURIComponent(id)}`)).url; };
+    app.innerHTML = `<button class="link back" id="back">← Môj obsah</button>${flash}<div class="card">
+      <div class="muted" style="margin-bottom:.6rem">${d.path.map((p, i) => i === d.path.length - 1 ? `<b>${esc(p.name)}</b>` : `<button class="link" data-folder="${esc(p.id)}">${esc(p.name)}</button>`).join(' / ')}</div>
+      ${d.items.length ? `<ul class="files">${d.items.map(i => i.kind === 'folder'
+        ? `<li><button class="link" data-folder="${esc(i.id)}">📁 ${esc(i.name)}</button></li>`
+        : `<li><button class="link" data-file="${esc(i.id)}">⬇ ${esc(i.name)}</button><span class="muted">${size(i.size)}</span></li>`).join('')}</ul>` : '<p class="muted">Zatiaľ tu nie sú žiadne dokumenty.</p>'}
+      ${d.canUpload ? `<p style="margin-top:1rem"><label class="btn s" style="cursor:pointer">⬆ Nahrať súbory<input type="file" id="up" multiple hidden></label></p>` : ''}</div>`;
+    flash = '';
+    document.getElementById('back').onclick = () => { location.hash = ''; };
+    app.querySelectorAll('[data-folder]').forEach(b => { b.onclick = () => { location.hash = `d=${b.dataset.folder}`; }; });
+    app.querySelectorAll('[data-file]').forEach(b => { b.onclick = () => dl(b.dataset.file); });
+    const up = document.getElementById('up');
+    if (up) up.onchange = async () => {
+      const fd = new FormData();
+      for (const f of up.files) fd.append('files', f);
+      up.disabled = true;
+      try {
+        await drive(`/upload?parent=${encodeURIComponent(folderId)}`, { method: 'POST', body: fd });
+        flash = `<div class="msg ok">Nahraté ✓ (${up.files.length})</div>`;
+      } catch (err) { flash = `<div class="msg err">${esc(err.message)}</div>`; }
+      showDocs(folderId).catch(() => {});
+    };
+    window.scrollTo(0, 0);
   }
 
   /* ── Produkt: súbory, kurz (lekcie, pokrok), členstvo ─────────── */
@@ -194,7 +233,7 @@
   function route() {
     if (!store.get()) return showLogin();
     const h = new URLSearchParams(location.hash.slice(1));
-    (h.get('p') ? showProduct(h.get('p'), h.get('l')) : showHome()).catch(err => {
+    (h.get('p') ? showProduct(h.get('p'), h.get('l')) : h.get('d') ? showDocs(h.get('d')) : showHome()).catch(err => {
       if (err.message === '401') return;
       app.innerHTML = `<div class="msg err">${esc(err.message)}</div><button class="link" onclick="location.hash=''">← Môj obsah</button>`;
     });

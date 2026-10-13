@@ -147,6 +147,7 @@ function showView(view) {
   document.getElementById('view-payments').style.display = view === 'payments' ? '' : 'none';
   document.getElementById('view-funnels').style.display = view === 'funnels' ? '' : 'none';
   document.getElementById('view-shop').style.display = view === 'shop' ? '' : 'none';
+  document.getElementById('view-drive').style.display = view === 'drive' ? '' : 'none';
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
   document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
@@ -156,6 +157,7 @@ function showView(view) {
   document.getElementById('nav-payments').classList.toggle('active', view === 'payments');
   document.getElementById('nav-funnels').classList.toggle('active', view === 'funnels');
   document.getElementById('nav-shop').classList.toggle('active', view === 'shop');
+  document.getElementById('nav-drive').classList.toggle('active', view === 'drive');
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
@@ -171,6 +173,11 @@ function showView(view) {
     document.getElementById('topbar-title').textContent = 'Affiliate';
     document.getElementById('topbar-actions').innerHTML = '';
     loadAffiliateStatus();
+  }
+  if (view === 'drive') {
+    document.getElementById('topbar-title').textContent = 'Disk';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadDrive();
   }
   if (view === 'shop') {
     document.getElementById('topbar-title').textContent = 'Digitálne produkty';
@@ -2672,9 +2679,9 @@ async function loadPayments() {
   const p = new URLSearchParams(location.search);
   const back = p.get('stripe');
   const view = p.get('view');
-  if (!back && view !== 'funnels') return;
+  if (!back && !['funnels', 'drive', 'shop'].includes(view)) return;
   _funnelReturn = back;
-  setTimeout(() => showView(back === 'test-return' || view === 'funnels' ? 'funnels' : 'payments'), 300);
+  setTimeout(() => showView(back === 'test-return' || view === 'funnels' ? 'funnels' : back ? 'payments' : view), 300);
   window.history.replaceState({}, '', '/dashboard');
 })();
 

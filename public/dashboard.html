@@ -35,6 +35,9 @@
       <button class="nav-item" onclick="showView('affiliate')" id="nav-affiliate">
         <span class="nav-icon">🎁</span> Affiliate
       </button>
+      <button class="nav-item" onclick="showView('drive')" id="nav-drive">
+        <span class="nav-icon">💾</span> Disk
+      </button>
       <button class="nav-item" onclick="showView('shop')" id="nav-shop">
         <span class="nav-icon">📦</span> Digitálne produkty
       </button>
@@ -213,6 +216,9 @@
       <div id="view-funnels" style="display:none">
         <iframe id="funnels-frame" class="nw-frame" title="Funnely"></iframe>
       </div>
+
+      <!-- ── View: Drive ─────────────────────────────── -->
+      <div id="view-drive" style="display:none"><div id="drive-body"></div></div>
 
       <!-- ── View: Digital products ─────────────────── -->
       <div id="view-shop" style="display:none">
@@ -2235,6 +2241,7 @@
 
 <script src="/js/dashboard.js?v=10"></script>
 <script src="/js/shop-dashboard.js?v=1"></script>
+<script src="/js/drive-dashboard.js?v=1"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>
