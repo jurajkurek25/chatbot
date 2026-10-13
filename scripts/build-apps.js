@@ -18,18 +18,37 @@ const cssFromPackages = {
   },
 };
 
+// Veľké aplikácie s mnohými jazykmi (Excalidraw) idú ako ES modul s rozdelením: jazyky sa načítajú až pri potrebe
+const ESM = { 'board-editor.jsx': 'board' };
+const common = {
+  bundle: true, minify: true, target: ['es2020'],
+  loader: { '.js': 'jsx', '.woff': 'file', '.woff2': 'file', '.ttf': 'file', '.png': 'file', '.svg': 'file' },
+  jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"', 'process.env.IS_PREACT': '"false"' },
+  legalComments: 'external', metafile: true, logLevel: 'warning', conditions: ['production'],
+  plugins: [cssFromPackages],
+};
+
+/** Písma Excalidraw na vlastný server (bez 13 MB čínskeho Xiaolai – ten sa pri potrebe načíta z CDN). */
+function copyExcalidrawFonts() {
+  const from = path.join(path.dirname(require.resolve('@excalidraw/excalidraw')), 'fonts'); // dist/prod/index.js → dist/prod/fonts
+  const to = path.join(OUT, 'excalidraw', 'fonts');
+  fs.rmSync(to, { recursive: true, force: true });
+  for (const family of fs.readdirSync(from).filter(f => f !== 'Xiaolai')) fs.cpSync(path.join(from, family), path.join(to, family), { recursive: true });
+}
+
 async function build() {
-  const entries = fs.readdirSync(SRC).filter(f => /^[a-z-]+\.jsx?$/.test(f)).map(f => path.join(SRC, f));
-  if (!entries.length) return console.log('Žiadne aplikácie na zostavenie.');
-  const result = await esbuild.build({
-    entryPoints: entries, outdir: OUT, bundle: true, minify: true, format: 'iife', target: ['es2020'],
-    loader: { '.js': 'jsx', '.woff': 'file', '.woff2': 'file', '.ttf': 'file', '.png': 'file', '.svg': 'file' },
-    jsx: 'automatic', define: { 'process.env.NODE_ENV': '"production"', 'process.env.IS_PREACT': '"false"' },
-    legalComments: 'external', metafile: true, logLevel: 'warning',
-    plugins: [cssFromPackages],
-  });
-  for (const [file, info] of Object.entries(result.metafile.outputs)) {
-    if (/\.(js|css)$/.test(file)) console.log(`${path.relative(process.cwd(), file)}  ${(info.bytes / 1024).toFixed(0)} KiB`);
+  const files = fs.readdirSync(SRC).filter(f => /^[a-z-]+\.jsx?$/.test(f));
+  if (!files.length) return console.log('Žiadne aplikácie na zostavenie.');
+  const outputs = [];
+  const iife = files.filter(f => !ESM[f]).map(f => path.join(SRC, f));
+  if (iife.length) outputs.push((await esbuild.build({ ...common, entryPoints: iife, outdir: OUT, format: 'iife' })).metafile.outputs);
+  for (const [f, dir] of Object.entries(ESM).filter(([f]) => files.includes(f))) {
+    fs.rmSync(path.join(OUT, dir), { recursive: true, force: true });
+    outputs.push((await esbuild.build({ ...common, entryPoints: [path.join(SRC, f)], outdir: path.join(OUT, dir), format: 'esm', splitting: true, chunkNames: 'chunks/[name]-[hash]' })).metafile.outputs);
+  }
+  if (files.includes('board-editor.jsx')) copyExcalidrawFonts();
+  for (const [file, info] of outputs.flatMap(o => Object.entries(o))) {
+    if (/\.(js|css)$/.test(file) && !/chunks\//.test(file)) console.log(`${path.relative(process.cwd(), file)}  ${(info.bytes / 1024).toFixed(0)} KiB`);
   }
 }
 

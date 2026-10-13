@@ -86,6 +86,7 @@ app.use('/api/docs', require('./routes/docs'));
 app.use('/api/teamchat', require('./routes/teamchat'));
 app.use('/api/meet', require('./routes/meet'));
 app.use('/api/forms', require('./routes/forms'));
+app.use('/api/boards', require('./routes/boards'));
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
@@ -140,6 +141,7 @@ app.get('/form/:token', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'form.html'));
 });
 app.get('/docs/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'doc.html')));
+app.get('/boards/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'board.html')));
 app.get('/s/:token', (req, res) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-Robots-Tag', 'noindex');

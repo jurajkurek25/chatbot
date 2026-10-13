@@ -703,6 +703,18 @@ function initDatabase() {
       emoji TEXT NOT NULL,
       PRIMARY KEY (message_id, user_id, emoji)
     );
+    -- Tabule (Excalidraw): obsah je Yjs dokument „board:<priestor>:<id>“, na Disku položka s odkazom
+    CREATE TABLE IF NOT EXISTS boards (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL DEFAULT 'Tabuľa',
+      drive_item_id TEXT,
+      text TEXT NOT NULL DEFAULT '',
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
     -- Formuláre (podľa HeyForm): polia a nastavenia v JSON, verejný odkaz /form/:token
     CREATE TABLE IF NOT EXISTS forms (
       id TEXT PRIMARY KEY,

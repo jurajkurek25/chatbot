@@ -42,6 +42,8 @@ router.get('/search', workspace.middleware, (req, res) => {
   if (has('task')) add('task', db.prepare('SELECT id FROM tasks WHERE owner_id = ? AND lower(title) LIKE ? ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like));
   if (has('note')) add('note', db.prepare("SELECT id FROM notes WHERE owner_id = ? AND visibility = 'workspace' AND lower(content) LIKE ? ORDER BY updated_at DESC LIMIT 8").all(req.ownerId, like));
   if (has('doc')) add('doc', db.prepare('SELECT id FROM docs WHERE owner_id = ? AND (lower(title) LIKE ? OR lower(text) LIKE ?) ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like, like));
+  if (has('board')) add('board', db.prepare('SELECT id FROM boards WHERE owner_id = ? AND (lower(title) LIKE ? OR lower(text) LIKE ?) ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like, like));
+  if (has('form')) add('form', db.prepare('SELECT id FROM forms WHERE owner_id = ? AND lower(title) LIKE ? ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like));
   if (has('event')) add('event', db.prepare('SELECT id FROM calendar_events WHERE owner_id = ? AND lower(title) LIKE ? ORDER BY start_at DESC LIMIT 8').all(req.ownerId, like));
   if (has('file')) add('file', db.prepare('SELECT id FROM drive_items WHERE owner_id = ? AND trashed_at IS NULL AND ref IS NULL AND lower(name) LIKE ? ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like));
   if (has('message')) add('message', db.prepare(`SELECT m.id FROM chat_messages m JOIN chat_streams s ON s.id = m.stream_id
