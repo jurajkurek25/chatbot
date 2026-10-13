@@ -3,27 +3,27 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Neoworkly Funnel</title>
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<title>Funnely – Neoworkly</title>
 <style>
-  :root{--bg:#f6f7f9;--card:#fff;--line:#e3e5e8;--text:#1d2025;--muted:#6b7280;--accent:#635bff;--danger:#c0392b;--ok:#1a9e55}
+  :root{--bg:#111120;--card:#18182a;--line:rgba(255,255,255,0.08);--text:#eeeef5;--muted:#9898b8;--accent:#5b4fff;--danger:#ff4060;--ok:#1fd89a;--input:#111120;--btn:#22223a;--warn-bg:rgba(245,158,11,0.1);--warn-text:#fbbf24}
+  html{background:var(--bg)}
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,sans-serif}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 'Inter',system-ui,-apple-system,sans-serif}
+  a{color:var(--accent)}
   header{background:var(--card);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   header strong{flex:1}
-  #env-banner{background:#7a4d00;color:#fff;text-align:center;font-size:13px;font-weight:600;padding:6px}
   header span{color:var(--muted);font-size:14px}
   header a{color:var(--accent);font-size:14px;text-decoration:none}
   #blocked-card{border-color:var(--danger)}
   #blocked-card p{margin:0}
-  .status{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:500;background:#fdecea;color:var(--danger)}
-  .status.ok{background:#e7f6ee;color:var(--ok)}
-  .status.wait{background:#fff4e0;color:#9a6300}
+  .status{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:500;background:rgba(255,64,96,0.14);color:var(--danger)}
+  .status.ok{background:rgba(31,216,154,0.14);color:var(--ok)}
+  .status.wait{background:rgba(245,158,11,0.14);color:var(--warn-text)}
   .card-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   .card-row p{margin:0;flex:1;min-width:200px}
   #sub-card-el{margin-top:16px;max-width:420px}
-  main{max-width:1100px;margin:0 auto;padding:24px 16px;display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
-  section{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px}
+  main{max-width:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
   h2{margin:0 0 4px;font-size:17px}
   .hint{margin:0 0 16px;color:var(--muted);font-size:13px}
   .table-wrap{overflow-x:auto}
@@ -34,10 +34,11 @@
   code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:4px}
   form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px;padding-top:16px;border-top:1px dashed var(--line)}
   label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
-  input,select,textarea{font:inherit;color:var(--text);padding:8px 10px;border:1px solid #cfd3d8;border-radius:8px;background:#fff}
+  input,select,textarea{font:inherit;color:var(--text);padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--input)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
   input:disabled,select:disabled{background:var(--bg);color:var(--muted)}
   .form-actions{grid-column:1/-1;display:flex;gap:8px}
-  button{font:inherit;font-size:14px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
+  button{font:inherit;font-size:14px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--btn);color:var(--text);cursor:pointer}
   button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
   button.link{border:0;background:none;color:var(--accent);padding:4px 6px}
   button:disabled{opacity:.5;cursor:not-allowed}
@@ -57,7 +58,7 @@
   .field-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) 90px auto auto;gap:8px;align-items:center}
   .field-row label.check{grid-column:auto}
   @media (max-width:640px){.field-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
-  .warn{margin:12px 0 0;padding:10px 14px;border-left:3px solid #d97706;border-radius:0 8px 8px 0;background:#fff7e6;color:#7a4d00;font-size:13px}
+  .warn{margin:12px 0 0;padding:10px 14px;border-left:3px solid #d97706;border-radius:0 8px 8px 0;background:var(--warn-bg);color:var(--warn-text);font-size:13px}
   [hidden]{display:none!important}
   #toast{position:fixed;right:16px;bottom:16px;max-width:360px;padding:12px 16px;border-radius:8px;color:#fff;background:var(--ok);box-shadow:0 4px 16px #0002}
   #toast.error{background:var(--danger)}
@@ -67,9 +68,7 @@
   .settings-grid h3{margin:0;font-size:15px}
   .settings-grid .hint,.settings-grid p{margin:0}
   .settings-grid a{color:var(--accent)}
-  button.danger-btn{background:#fff;border-color:var(--danger);color:var(--danger)}
-  .twofa-part{display:grid;gap:10px;align-content:start}
-  #twofa-codes-list{margin:0;padding:10px;background:var(--bg);border-radius:8px;font-size:14px}
+  button.danger-btn{background:transparent;border-color:var(--danger);color:var(--danger)}
   .form-note{grid-column:1/-1;margin:0}
   .stats-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
   .stats-head h2{flex:1;margin:0}
@@ -88,7 +87,7 @@
   .ab-test .ab-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
   .ab-test .ab-head strong{flex:1}
   #ab-form{margin-top:16px}
-  #stats-funnel{font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#fff}
+  #stats-funnel{font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--input)}
   #test-ready{margin-top:14px;display:grid;gap:10px}
   #test-ready p{margin:0}
   .test-link{max-width:640px}
@@ -97,16 +96,12 @@
   .color-row input[type=color]{width:44px;padding:2px;height:38px}
   .color-row input:not([type]){flex:1}
   .msg-inline{color:var(--danger);margin:8px 0 0;min-height:1em;font-size:14px}
+  .button-link{text-decoration:none}
+  .other-view{display:none!important}
+  .stripe-hint{font-size:13px;color:var(--muted)}
 </style>
 </head>
 <body>
-<div id="env-banner" hidden>STAGING – testovacie prostredie, platby nie sú skutočné</div>
-<header>
-  <strong>Neoworkly Funnel</strong>
-  <a id="admin-link" href="/admin" hidden>Admin</a>
-  <span id="email"></span>
-  <button type="button" id="logout">Odhlásiť</button>
-</header>
 <main>
 
   <section id="blocked-card" hidden>
@@ -114,40 +109,26 @@
     <p>Tvoje funnely momentálne neprijímajú platby a úpravy nie sú dostupné. Kontaktuj podporu Neoworkly.</p>
   </section>
 
-  <section id="verify-card" hidden>
-    <h2>Potvrď svoj e-mail</h2>
+  <section id="access-card" hidden>
+    <h2>Funnely sú súčasťou predplatného Neoworkly</h2>
     <div class="card-row">
-      <p>Poslali sme ti odkaz na <strong id="verify-email"></strong>. Predplatné aktivuješ po potvrdení e-mailu.</p>
-      <button id="verify-resend">Poslať znova</button>
+      <p>Aktivujte predplatné Neoworkly a môžete vytvárať funnely, predávať cez rezervácie aj digitálne produkty.</p>
+      <a class="button-link" href="/onboarding" target="_top"><button class="primary" type="button">Aktivovať predplatné</button></a>
     </div>
   </section>
 
-  <section>
-    <h2>Predplatné Neoworkly</h2>
+  <section id="legacy-card" hidden>
+    <h2>Predplatné Neoworkly Funnel (4 €)</h2>
     <div class="card-row">
-      <p><span class="status" id="sub-status"></span> <span id="sub-text"></span></p>
-      <button class="primary" id="sub-activate" hidden>Aktivovať za 4 € mesačne</button>
-      <button id="sub-portal" hidden>Spravovať predplatné</button>
+      <p><span class="status" id="legacy-status"></span> Funnely sú teraz súčasťou Neoworkly. Pôvodné samostatné predplatné môžete ponechať, alebo ho zrušiť, ak máte predplatné Neoworkly.</p>
+      <button id="legacy-portal">Spravovať predplatné</button>
     </div>
-    <form id="billing-form" hidden>
-      <p class="hint form-note">Fakturačné údaje – budú na faktúrach za predplatné.</p>
-      <label>Meno alebo názov firmy<input name="fullName" required autocomplete="organization"></label>
-      <label>Krajina<select name="country" required></select></label>
-      <label>Ulica a číslo<input name="line1" required autocomplete="address-line1"></label>
-      <label>Mesto<input name="city" required autocomplete="address-level2"></label>
-      <label>PSČ<input name="postalCode" required autocomplete="postal-code"></label>
-      <label>IČ DPH (nepovinné)<input name="vatId" placeholder="SK2020123456"></label>
-      <label>Zľavový kód (nepovinné)<input name="promoCode" autocomplete="off" maxlength="100"></label>
-      <div class="form-actions"><button class="primary" type="submit">Pokračovať na platbu</button></div>
-    </form>
-    <div id="sub-card-el" hidden></div>
-    <p class="msg-inline" id="sub-msg" role="alert"></p>
   </section>
 
-  <section data-requires-active>
+  <section data-requires-active data-view="payments">
     <h2>Stripe účet</h2>
-    <p class="hint">Platby zákazníkov z tvojich funnelov idú priamo na tvoj Stripe účet. Stripe poplatky
-      platíš Stripe. <span id="fee-text"></span></p>
+    <p class="hint">Platby zákazníkov z funnelov, rezervácií aj digitálnych produktov idú priamo na tvoj Stripe účet.
+      Stripe poplatky platíš Stripe. <span id="fee-text"></span></p>
     <div class="card-row">
       <p><span class="status" id="acct-status"></span> <span id="acct-text"></span></p>
       <button class="primary" id="connect" hidden></button>
@@ -175,7 +156,7 @@
     </details>
   </section>
 
-  <section data-requires-active id="wallets-card" hidden>
+  <section data-requires-active data-view="payments" id="wallets-card" hidden>
     <h2>Apple Pay a Google Pay</h2>
     <p class="hint">Vo formulári na tvojom webe sa Apple Pay a Google Pay zobrazia, až keď je doména webu zaregistrovaná
       v tvojom Stripe účte. Zadaj doménu, kde máš snippety (napr. <code>mojweb.sk</code>; pre <code>www.mojweb.sk</code>
@@ -191,7 +172,7 @@
     </form>
   </section>
 
-  <section data-requires-active id="test-card" hidden>
+  <section data-requires-active data-view="funnels" id="test-card" hidden>
     <h2>Testovací režim</h2>
     <p class="hint">Vyskúšaj celý funnel testovacími kartami Stripe (napr. 4242 4242 4242 4242) bez skutočných
       platieb. Beží v samostatnom testovacom Stripe účte; testovacie nákupy sa nezapočítajú do štatistík.</p>
@@ -210,7 +191,7 @@
     </div>
   </section>
 
-  <section data-requires-active id="stats">
+  <section data-requires-active data-view="funnels" id="stats">
     <div class="stats-head">
       <h2>Štatistiky</h2>
       <select id="stats-funnel" aria-label="Funnel"><option value="">Všetky funnely</option></select>
@@ -236,7 +217,7 @@
     </div>
   </section>
 
-  <section data-requires-active>
+  <section data-requires-active data-view="funnels">
     <h2>Funnely</h2>
     <p class="hint">Pomenované skupiny krokov – napr. jeden funnel pre kurz a iný pre e-knihu. Slúžia na prehľad
       a štatistiky; poradie krokov určujú URL „po prijatí/odmietnutí“.</p>
@@ -251,7 +232,7 @@
     </form>
   </section>
 
-  <section data-requires-active>
+  <section data-requires-active data-view="funnels">
     <h2>Produkty</h2>
     <p class="hint">Jednorazový produkt je obyčajná platba. Opakovaný vytvorí Product + Price v tvojom Stripe účte
       a pri nákupe samostatné predplatné zákazníka. Zmena ceny opakovaného produktu platí iba pre nových zákazníkov.</p>
@@ -294,7 +275,7 @@
     </form>
   </section>
 
-  <section data-requires-active>
+  <section data-requires-active data-view="funnels">
     <h2>Kroky funnela (snippety)</h2>
     <p class="hint">Každý krok = jeden snippet na stránke tvojho webu. Funnel začína krokom „Vstupný produkt“ –
       zákazník v ňom zadá e-mail a kartu, ktorá sa uloží. „Chcem / Nechcem pridať“ (upsell, downsell) potom platí
@@ -361,64 +342,7 @@
     </form>
   </section>
 
-  <section id="settings">
-    <h2>Nastavenia účtu</h2>
-    <div class="settings-grid">
-      <form id="password-form">
-        <h3>Zmena hesla</h3>
-        <label>Súčasné heslo<input type="password" name="password" required autocomplete="current-password"></label>
-        <label>Nové heslo<input type="password" name="newPassword" required minlength="8" autocomplete="new-password"></label>
-        <button class="primary" type="submit">Zmeniť heslo</button>
-        <p class="hint">Ostatné zariadenia sa odhlásia.</p>
-      </form>
-      <form id="email-form">
-        <h3>Zmena e-mailu</h3>
-        <label>Nový e-mail<input type="email" name="email" required autocomplete="email"></label>
-        <label>Heslo<input type="password" name="password" required autocomplete="current-password"></label>
-        <button class="primary" type="submit">Zmeniť e-mail</button>
-        <p class="hint">Novú adresu bude treba potvrdiť.</p>
-      </form>
-      <form id="twofa-form">
-        <h3>Dvojfaktorové overenie</h3>
-        <p><span class="status" id="twofa-status"></span></p>
-        <div id="twofa-off" class="twofa-part">
-          <p class="hint">Pri prihlásení bude okrem hesla treba aj kód z aplikácie v telefóne
-            (Google Authenticator, Authy, 1Password…).</p>
-          <button type="button" class="primary" id="twofa-start">Zapnúť</button>
-        </div>
-        <div id="twofa-setup" class="twofa-part" hidden>
-          <p class="hint">1. Naskenuj QR kód v aplikácii.</p>
-          <img id="twofa-qr" alt="QR kód pre overovaciu aplikáciu" width="200" height="200">
-          <p class="hint">Alebo zadaj kľúč ručne: <code id="twofa-secret"></code></p>
-          <label>2. Kód z aplikácie<input name="setupCode" autocomplete="one-time-code" inputmode="numeric" maxlength="6"></label>
-          <button class="primary" type="submit">Potvrdiť a zapnúť</button>
-        </div>
-        <div id="twofa-on" class="twofa-part" hidden>
-          <p class="hint" id="twofa-left"></p>
-          <label>Heslo<input type="password" name="password" autocomplete="current-password"></label>
-          <label>Kód z aplikácie alebo záložný kód<input name="code" autocomplete="one-time-code"></label>
-          <div class="row"><button type="button" id="twofa-recovery">Nové záložné kódy</button>
-            <button type="button" class="danger-btn" id="twofa-disable">Vypnúť</button></div>
-        </div>
-        <div id="twofa-codes" class="twofa-part" hidden>
-          <p><strong>Záložné kódy</strong> – ulož si ich na bezpečné miesto. Každý funguje iba raz,
-            keď nebudeš mať telefón. Znova ich už neuvidíš.</p>
-          <pre id="twofa-codes-list"></pre>
-          <button type="button" id="twofa-copy">Kopírovať kódy</button>
-        </div>
-      </form>
-      <form id="delete-form">
-        <h3>Moje dáta</h3>
-        <p><a href="/app/api/account/export" download>Stiahnuť export dát (JSON)</a></p>
-        <label>Heslo<input type="password" name="password" required autocomplete="current-password"></label>
-        <button class="danger-btn" type="submit">Zmazať účet</button>
-        <p class="hint">Zruší predplatné a zmaže funnely. Tvoj Stripe účet zostáva tvoj.
-          <span id="legal-links"></span></p>
-      </form>
-    </div>
-  </section>
-
-  <section data-requires-active>
+  <section data-requires-active data-view="funnels">
     <h2>Oznámenia o objednávkach</h2>
     <p class="hint">Pri každom nákupe ti pošleme e-mail. Webhook pošle objednávku do tvojho systému
       (Zapier, Make, e-shop…), aby si mohol automaticky doručiť produkt.</p>
@@ -437,7 +361,7 @@
     </form>
   </section>
 
-  <section data-requires-active>
+  <section data-requires-active data-view="funnels">
     <h2>Vzhľad snippetov</h2>
     <p class="hint">Platí pre všetky kroky a prejaví sa hneď – snippety netreba vkladať znova.
       Farbu textu na tlačidle (čierna/biela) zvolíme automaticky kvôli čitateľnosti.</p>
@@ -470,7 +394,7 @@
     <div class="row"><button type="button" id="css-prompt-copy">Kopírovať prompt pre AI</button></div>
   </section>
 
-  <section data-requires-active>
+  <section data-requires-active data-view="funnels">
     <h2>Snippet na vloženie</h2>
     <p class="hint">Snippet vygeneruješ tlačidlom „Snippet“ v tabuľke krokov. Skopíruj ho a vlož na príslušnú
       stránku (napr. pred <code>&lt;/body&gt;</code>). Vyžaduje prepojený Stripe účet.</p>
@@ -501,7 +425,6 @@
 </main>
 <div id="toast" hidden></div>
 
-<script src="https://js.stripe.com/v3/"></script>
-<script src="/assets/dashboard.js"></script>
+<script src="/funnels/assets/dashboard.js"></script>
 </body>
 </html>

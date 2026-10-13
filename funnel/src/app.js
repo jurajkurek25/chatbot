@@ -1,5 +1,7 @@
 // Express 5 podaplikácia funnela, pripojená do hlavného servera Neoworkly. Obsluhuje iba svoje cesty
 // (ostatné požiadavky pustí ďalej) a telá parsuje iba na nich – hlavná aplikácia má vlastné parsovanie.
+const crypto = require('crypto');
+const fs = require('fs');
 const path = require('path');
 const express = require('express5');
 const db = require('./db');
@@ -80,6 +82,18 @@ module.exports = function createFunnelApp(stripe, stripeTest = null) {
     if (!merchant || !merchant.funnel.steps[req.params.step]) return res.status(404).send('Neznámy krok funnela.');
     res.send(snippets.stepSnippet(merchant, req.params.step));
   });
+
+  // Stránka sekcií Funnely a Platby (vkladá ju dashboard Neoworkly do iframe na rovnakej doméne).
+  // Skript má v adrese hash obsahu => po nasadení prehliadač ani Cloudflare nepoužijú starý.
+  const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+  const scriptHash = crypto.createHash('sha256').update(fs.readFileSync(path.join(PUBLIC_DIR, 'dashboard.js'))).digest('hex').slice(0, 10);
+  const page = fs.readFileSync(path.join(__dirname, 'dashboard.html'), 'utf8')
+    .replace('/funnels/assets/dashboard.js', `/funnels/assets/dashboard.js?v=${scriptHash}`);
+  app.get('/funnels/app', (req, res) => {
+    res.set({ 'X-Frame-Options': 'SAMEORIGIN', 'Cache-Control': 'no-cache' });
+    res.type('html').send(page);
+  });
+  app.use('/funnels/assets', express.static(PUBLIC_DIR, { maxAge: '1y', immutable: true }));
 
   // Staré záložky na dashboard funnela => sekcia Funnely v Neoworkly
   app.get(['/app', '/app/'], (req, res) => res.redirect(302, `/dashboard?view=funnels${req.query.stripe ? `&stripe=${encodeURIComponent(req.query.stripe)}` : ''}`));

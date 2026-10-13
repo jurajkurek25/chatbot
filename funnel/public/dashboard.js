@@ -1,5 +1,19 @@
+// Sekcia Funnely / Platby v dashboarde Neoworkly (stránka vložená v iframe na rovnakej doméne).
+// ?view=payments => prepojenie Stripe; ?view=funnels => funnely, produkty, kroky, štatistiky.
 (function () {
   var state;
+  var params = new URLSearchParams(location.search);
+  var VIEW = params.get('view') === 'payments' ? 'payments' : 'funnels';
+  // Sekcie druhého zobrazenia iba skryté (prvky ostávajú, kód stránky ich môže používať)
+  document.querySelectorAll('[data-view]').forEach(function (sec) { if (sec.dataset.view !== VIEW) sec.classList.add('other-view'); });
+
+  // Výška obsahu => rodičovský dashboard nastaví výšku iframe (bez vnútorného posúvania)
+  function reportHeight() {
+    if (window.parent !== window) window.parent.postMessage({ type: 'nw-funnel-height', view: VIEW, height: document.documentElement.scrollHeight }, location.origin);
+  }
+  new ResizeObserver(reportHeight).observe(document.body);
+  // Stripe (onboarding, portál) sa nedá otvoriť v iframe => celé okno
+  function goTop(url) { (window.top || window).location.href = url; }
   var KINDS = { entry: 'Vstupný produkt', offer: 'Chcem / Nechcem pridať' };
   var TYPES = { one_time: 'Jednorazový', recurring: 'Opakovaný' };
 
@@ -31,13 +45,13 @@
   }
 
   async function api(method, path, body) {
-    var r = await fetch('/app/api' + path, {
+    var r = await fetch('/api/funnels/api' + path, {
       method: method,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + localStorage.getItem('nd_token') },
       body: method === 'GET' ? undefined : JSON.stringify(body || {})
     });
     var data = await readJson(r);
-    if (r.status === 401) location.reload(); // odhlásený => prihlasovacia stránka
+    if (r.status === 401) goTop('/'); // odhlásený => úvodná stránka s prihlásením
     if (!r.ok) throw new Error(data.error || 'Chyba');
     return data;
   }
@@ -75,32 +89,23 @@
   };
 
   function renderAccount(s) {
-    document.getElementById('email').textContent = s.email;
-    document.getElementById('verify-card').hidden = s.emailVerified;
     document.getElementById('blocked-card').hidden = !s.blocked;
-    document.getElementById('admin-link').hidden = !s.isAdmin;
-    document.getElementById('env-banner').hidden = s.environment !== 'staging';
-    var legal = document.getElementById('legal-links');
-    legal.replaceChildren();
-    [['Obchodné podmienky', s.termsUrl], ['Ochrana osobných údajov', s.privacyUrl]].forEach(function (l) {
-      if (!l[1]) return;
-      legal.append(legal.childNodes.length ? ' · ' : ' ', el('a', { href: l[1], target: '_blank', rel: 'noopener', textContent: l[0] }));
-    });
-    document.getElementById('verify-email').textContent = s.email;
-    document.getElementById('fee-text').textContent = s.platformFeePercent
-      ? 'Neoworkly si z každej platby berie ' + s.platformFeePercent + ' %.'
-      : 'Neoworkly si z platieb nič neberie.';
-
-    var subStatus = document.getElementById('sub-status');
-    subStatus.textContent = s.active ? 'Aktívne' : 'Neaktívne';
-    subStatus.className = 'status' + (s.active ? ' ok' : '');
-    document.getElementById('sub-text').textContent = s.active
-      ? (s.subscriptionStatus === 'past_due' ? SUB_TEXT.past_due : '4 € mesačne')
-      : (SUB_TEXT[s.subscriptionStatus] || '') + ' – aktivuj predplatné a môžeš vytvárať funnely.';
-    document.getElementById('sub-activate').hidden = s.active || s.blocked || !!elements;
-    document.getElementById('sub-activate').disabled = !s.emailVerified;
-    document.getElementById('sub-portal').hidden = s.subscriptionStatus === 'none';
+    document.getElementById('access-card').hidden = s.active || s.blocked;
+    var legacy = s.legacySubscription;
+    document.getElementById('legacy-card').hidden = !legacy || legacy.status === 'none';
+    if (legacy) {
+      var ls = document.getElementById('legacy-status');
+      ls.textContent = SUB_TEXT[legacy.status] || legacy.status;
+      ls.className = 'status' + (legacy.active ? ' ok' : '');
+    }
+    var fee = document.getElementById('fee-text');
+    if (fee) {
+      fee.textContent = s.platformFeePercent
+        ? 'Neoworkly si z každej platby berie ' + s.platformFeePercent + ' %.'
+        : 'Neoworkly si z platieb nič neberie.';
+    }
     document.querySelectorAll('[data-requires-active]').forEach(function (sec) { sec.hidden = !s.active || s.blocked; });
+    if (VIEW !== 'payments') return;
 
     var acctStatus = document.getElementById('acct-status');
     var acctText = document.getElementById('acct-text');
@@ -134,15 +139,15 @@
   var currencyFilled = false;
   function render(s) {
     state = s;
-    if (!currencyFilled && s.currencies) {
+    if (VIEW === 'funnels' && !currencyFilled && s.currencies) {
       currencyFilled = true;
       s.currencies.forEach(function (c) { productForm.currency.append(el('option', { value: c, textContent: c.toUpperCase() })); });
     }
     renderAccount(s);
+    if (VIEW !== 'funnels') return;
     if (s.appearance) renderAppearance(s.appearance);
     if (s.notifications) renderNotifications(s.notifications);
     renderTestMode(s);
-    if (s.twoFactor) renderTwoFactor(s.twoFactor);
     var products = document.getElementById('products');
     products.replaceChildren();
     Object.keys(s.products).forEach(function (id) {
@@ -774,7 +779,7 @@
       document.getElementById('wallets-card').hidden = true; // bez prepojeného Stripe účtu
     }
   }
-  document.getElementById('wallet-form').onsubmit = async function (e) {
+  if (VIEW === 'payments') document.getElementById('wallet-form').onsubmit = async function (e) {
     e.preventDefault();
     var form = this;
     form.querySelector('button').disabled = true;
@@ -788,166 +793,27 @@
     form.querySelector('button').disabled = false;
   };
 
-  document.getElementById('copy-csp').onclick = async function () {
-    await navigator.clipboard.writeText(document.getElementById('csp').value);
-    toast('CSP skopírovaná do schránky.');
-  };
-  document.getElementById('copy').onclick = async function () {
-    await navigator.clipboard.writeText(document.getElementById('snippet').value);
-    toast('Skopírované do schránky.');
-  };
+  if (VIEW === 'funnels') {
+    document.getElementById('copy-csp').onclick = async function () {
+      await navigator.clipboard.writeText(document.getElementById('csp').value);
+      toast('CSP skopírovaná do schránky.');
+    };
+    document.getElementById('copy').onclick = async function () {
+      await navigator.clipboard.writeText(document.getElementById('snippet').value);
+      toast('Skopírované do schránky.');
+    };
+  }
 
-  // --- Predplatné Neoworkly a Stripe účet --------------------------------------
-  var stripe, elements;
-  var subMsg = document.getElementById('sub-msg');
-
-  // Krajiny pre fakturačnú adresu: EÚ + najčastejšie ostatné (kód ISO 3166-1)
-  var COUNTRIES = [['SK', 'Slovensko'], ['CZ', 'Česko'], ['AT', 'Rakúsko'], ['BE', 'Belgicko'], ['BG', 'Bulharsko'],
-    ['HR', 'Chorvátsko'], ['CY', 'Cyprus'], ['DK', 'Dánsko'], ['EE', 'Estónsko'], ['FI', 'Fínsko'], ['FR', 'Francúzsko'],
-    ['GR', 'Grécko'], ['NL', 'Holandsko'], ['IE', 'Írsko'], ['LT', 'Litva'], ['LV', 'Lotyšsko'], ['LU', 'Luxembursko'],
-    ['HU', 'Maďarsko'], ['MT', 'Malta'], ['DE', 'Nemecko'], ['PL', 'Poľsko'], ['PT', 'Portugalsko'], ['RO', 'Rumunsko'],
-    ['SI', 'Slovinsko'], ['ES', 'Španielsko'], ['SE', 'Švédsko'], ['IT', 'Taliansko'], ['GB', 'Spojené kráľovstvo'],
-    ['CH', 'Švajčiarsko'], ['NO', 'Nórsko'], ['UA', 'Ukrajina'], ['US', 'USA']];
-  var billingForm = document.getElementById('billing-form');
-  COUNTRIES.forEach(function (c) { billingForm.country.append(el('option', { value: c[0], textContent: c[1] })); });
-
-  // Krok 1: fakturačné údaje (predvyplnené zo Stripe, ak už existujú)
-  document.getElementById('sub-activate').onclick = async function () {
-    var btn = this;
-    btn.disabled = true;
-    subMsg.textContent = '';
-    try {
-      var billing = await api('GET', '/billing');
-      billingForm.fullName.value = billing.name; // pole "name" by kolidovalo s form.name
-      ['country', 'line1', 'city', 'postalCode', 'vatId'].forEach(function (k) { billingForm[k].value = billing[k]; });
-      billingForm.hidden = false;
-      btn.hidden = true;
-      billingForm.fullName.focus();
-    } catch (err) {
-      subMsg.textContent = err.message;
-    }
-    btn.disabled = !state.emailVerified;
-  };
-
-  // Krok 2: uloženie údajov, vytvorenie predplatného a platba kartou
-  billingForm.onsubmit = async function (e) {
-    e.preventDefault();
-    var btn = billingForm.querySelector('button');
-    btn.disabled = true;
-    subMsg.textContent = '';
-    try {
-      var billing = { name: billingForm.fullName.value };
-      ['country', 'line1', 'city', 'postalCode', 'vatId'].forEach(function (k) { billing[k] = billingForm[k].value; });
-      var data = await api('POST', '/subscription', { billing: billing, promoCode: billingForm.promoCode.value });
-      if (data.active) { // zľava pokryla celú sumu – nič sa neplatí
-        location.reload();
-        return;
-      }
-      billingForm.hidden = true;
-      stripe = stripe || Stripe(state.publishableKey);
-      elements = stripe.elements({ clientSecret: data.clientSecret });
-      elements.create('payment').mount('#sub-card-el');
-      var box = document.getElementById('sub-card-el');
-      box.hidden = false;
-      var amount = new Intl.NumberFormat('sk-SK', { style: 'currency', currency: String(data.currency || 'eur').toUpperCase() })
-        .format((data.amountDue === undefined ? 400 : data.amountDue) / 100);
-      var pay = el('button', { className: 'primary', type: 'button', textContent: 'Zaplatiť ' + amount });
-      pay.style.marginTop = '12px';
-      box.after(pay);
-      pay.onclick = async function () {
-        pay.disabled = true;
-        subMsg.textContent = '';
-        var res = await stripe.confirmPayment({
-          elements: elements, confirmParams: { return_url: location.href }, redirect: 'if_required'
-        });
-        if (res.error) {
-          subMsg.textContent = res.error.message;
-          pay.disabled = false;
-          return;
-        }
-        location.reload();
-      };
-    } catch (err) {
-      subMsg.textContent = err.message;
-    }
-    btn.disabled = false;
-  };
-
+  // --- Stripe účet a staré predplatné Funnel 4 € --------------------------------
   async function redirectTo(path) {
     try {
-      location.href = (await api('POST', path)).url;
+      goTop((await api('POST', path)).url);
     } catch (err) {
       toast(err.message, true);
     }
   }
-  document.getElementById('sub-portal').onclick = function () { redirectTo('/billing-portal'); };
-  document.getElementById('connect').onclick = function () { this.disabled = true; redirectTo('/connect'); };
-
-  // --- Dvojfaktorové overenie --------------------------------------------------
-  var twofaForm = document.getElementById('twofa-form');
-  function renderTwoFactor(t) {
-    var status = document.getElementById('twofa-status');
-    status.textContent = t.enabled ? 'Zapnuté' : 'Vypnuté';
-    status.className = 'status ' + (t.enabled ? 'ok' : 'none');
-    document.getElementById('twofa-off').hidden = t.enabled || !document.getElementById('twofa-setup').hidden;
-    document.getElementById('twofa-on').hidden = !t.enabled;
-    document.getElementById('twofa-left').textContent = 'Zostávajúce záložné kódy: ' + t.recoveryCodesLeft + ' z 10.';
-  }
-  function showRecoveryCodes(codes) {
-    document.getElementById('twofa-codes-list').textContent = codes.join('\n');
-    document.getElementById('twofa-codes').hidden = false;
-  }
-  document.getElementById('twofa-start').onclick = async function () {
-    try {
-      var setup = await api('POST', '/2fa/setup');
-      document.getElementById('twofa-qr').src = setup.qr;
-      document.getElementById('twofa-secret').textContent = setup.secret.replace(/(.{4})/g, '$1 ').trim();
-      document.getElementById('twofa-off').hidden = true;
-      document.getElementById('twofa-setup').hidden = false;
-      twofaForm.setupCode.focus();
-    } catch (err) {
-      toast(err.message, true);
-    }
-  };
-  twofaForm.onsubmit = async function (e) {
-    e.preventDefault();
-    try {
-      var res = await api('POST', '/2fa/enable', { code: twofaForm.setupCode.value });
-      document.getElementById('twofa-setup').hidden = true;
-      twofaForm.setupCode.value = '';
-      showRecoveryCodes(res.recoveryCodes);
-      toast('Dvojfaktorové overenie je zapnuté. Ostatné zariadenia sú odhlásené.');
-      run(api('GET', '/me'));
-    } catch (err) {
-      toast(err.message, true);
-    }
-  };
-  document.getElementById('twofa-recovery').onclick = async function () {
-    try {
-      var res = await api('POST', '/2fa/recovery-codes', { password: twofaForm.password.value, code: twofaForm.code.value });
-      twofaForm.password.value = twofaForm.code.value = '';
-      showRecoveryCodes(res.recoveryCodes);
-      run(api('GET', '/me'));
-    } catch (err) {
-      toast(err.message, true);
-    }
-  };
-  document.getElementById('twofa-disable').onclick = async function () {
-    if (!confirm('Vypnúť dvojfaktorové overenie? Účet bude chránený iba heslom.')) return;
-    try {
-      await api('POST', '/2fa/disable', { password: twofaForm.password.value, code: twofaForm.code.value });
-      twofaForm.password.value = twofaForm.code.value = '';
-      document.getElementById('twofa-codes').hidden = true;
-      toast('Dvojfaktorové overenie je vypnuté.');
-      run(api('GET', '/me'));
-    } catch (err) {
-      toast(err.message, true);
-    }
-  };
-  document.getElementById('twofa-copy').onclick = async function () {
-    await navigator.clipboard.writeText(document.getElementById('twofa-codes-list').textContent);
-    toast('Kódy skopírované.');
-  };
+  document.getElementById('legacy-portal').onclick = function () { redirectTo('/billing-portal'); };
+  if (VIEW === 'payments') document.getElementById('connect').onclick = function () { this.disabled = true; redirectTo('/connect'); };
 
   // --- Nastavenia účtu ---------------------------------------------------------
   function accountForm(id, path, body, done) {
@@ -966,66 +832,32 @@
       btn.disabled = false;
     };
   }
-  accountForm('keys-form', '/connect/keys', function (f) {
-    return { secretKey: f.secretKey.value, publishableKey: f.publishableKey.value, password: f.password.value };
-  }, function () { toast('Stripe prepojený API kľúčmi.'); run(api('GET', '/me')).then(loadWallets); });
-  document.getElementById('keys-disconnect').onclick = function () {
-    if (!confirm('Odpojiť API kľúče? Funnely prestanú prijímať platby, kým Stripe znova neprepojíš.')) return;
-    run(api('DELETE', '/connect/keys'), 'API kľúče odpojené.');
-  };
-  accountForm('password-form', '/account/password', function (f) {
-    return { password: f.password.value, newPassword: f.newPassword.value };
-  }, function () { toast('Heslo zmenené. Ostatné zariadenia sú odhlásené.'); });
-  accountForm('email-form', '/account/email', function (f) {
-    return { email: f.email.value, password: f.password.value };
-  }, function () { toast('E-mail zmenený – potvrď novú adresu cez odkaz v e-maile.'); run(api('GET', '/me')); });
-  document.getElementById('delete-form').addEventListener('submit', function (e) {
-    if (!confirm('Naozaj zmazať účet? Predplatné sa zruší a funnely prestanú predávať. Toto sa nedá vrátiť.')) {
-      e.preventDefault();
-      e.stopImmediatePropagation();
-    }
-  });
-  accountForm('delete-form', '/account/delete', function (f) {
-    return { password: f.password.value };
-  }, function () { location.href = '/app'; });
-
-  document.getElementById('verify-resend').onclick = async function () {
-    try {
-      await api('POST', '/verify/resend');
-      toast('Odkaz sme poslali znova.');
-    } catch (err) {
-      toast(err.message, true);
-    }
-  };
-
-  document.getElementById('logout').onclick = async function () {
-    await api('POST', '/logout');
-    location.href = '/app';
-  };
-
-  toggleFields(productForm, 'one_time');
-  toggleFields(stepForm, 'entry');
+  if (VIEW === 'payments') {
+    accountForm('keys-form', '/connect/keys', function (f) {
+      return { secretKey: f.secretKey.value, publishableKey: f.publishableKey.value, password: f.password.value };
+    }, function () { toast('Stripe prepojený API kľúčmi.'); run(api('GET', '/me')).then(loadWallets); });
+    document.getElementById('keys-disconnect').onclick = function () {
+      if (!confirm('Odpojiť API kľúče? Funnely, rezervácie a produkty prestanú prijímať platby online, kým Stripe znova neprepojíš.')) return;
+      run(api('DELETE', '/connect/keys'), 'API kľúče odpojené.');
+    };
+  }
+  if (VIEW === 'funnels') {
+    toggleFields(productForm, 'one_time');
+    toggleFields(stepForm, 'entry');
+  }
   run(api('GET', '/me')).then(function () {
-    if (state.active) loadStats();
-    if (state.active && state.stripeAccountId) loadWallets();
-    if (new URLSearchParams(location.search).get('admin2fa')) {
-      toast('Admin vyžaduje dvojfaktorové overenie – zapni ho v Nastaveniach účtu.', true);
-      history.replaceState(null, '', '/app');
-      document.getElementById('settings').scrollIntoView();
-    }
-    var verified = new URLSearchParams(location.search).get('verified');
-    if (verified) {
-      toast(verified === '1' ? 'E-mail je overený.' : 'Odkaz na overenie je neplatný alebo už bol použitý.', verified !== '1');
-      history.replaceState(null, '', '/app');
-    }
-    if (new URLSearchParams(location.search).get('stripe') === 'test-return') {
+    if (state.active && VIEW === 'funnels') loadStats();
+    if (state.active && state.stripeAccountId && VIEW === 'payments') loadWallets();
+    var back = params.get('stripe');
+    if (back === 'test-return') {
       var ready = state.testMode && state.testMode.ready;
       toast(ready ? 'Testovací účet je pripravený.' : 'Testovací účet ešte potrebuje doplniť údaje.', !ready);
-      history.replaceState(null, '', '/app');
     }
-    if (new URLSearchParams(location.search).get('stripe') === 'return') {
+    if (back === 'return') {
       toast(state.chargesEnabled ? 'Stripe účet je prepojený.' : 'Stripe ešte potrebuje doplniť niektoré údaje.', !state.chargesEnabled);
-      history.replaceState(null, '', '/app');
     }
+    if (back === 'expired') toast('Odkaz zo Stripe vypršal – kliknite znova na „Dokončiť nastavenie v Stripe“.', true);
+    if (back) history.replaceState(null, '', location.pathname + '?view=' + VIEW);
+    reportHeight();
   });
 })();

@@ -7,6 +7,7 @@
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/i18n.css">
 <style>
+  .nw-frame { width:100%; border:0; display:block; min-height:420px; background:transparent; }
   .bk-check { display:flex; align-items:center; gap:0.45rem; font-size:0.84rem; color:#eeeef5; font-weight:500; cursor:pointer; }
   .bk-check input { width:15px; height:15px; accent-color:#5b4fff; }
   .bk-sub { font-size:0.72rem; font-weight:700; color:#9898b8; letter-spacing:0.05em; text-transform:uppercase; margin:1.25rem 0 0.5rem; }
@@ -33,6 +34,9 @@
       </button>
       <button class="nav-item" onclick="showView('affiliate')" id="nav-affiliate">
         <span class="nav-icon">🎁</span> Affiliate
+      </button>
+      <button class="nav-item" onclick="showView('funnels')" id="nav-funnels">
+        <span class="nav-icon">🔀</span> Funnely
       </button>
       <button class="nav-item" onclick="showView('payments')" id="nav-payments">
         <span class="nav-icon">💳</span> Platby
@@ -202,16 +206,15 @@
         </div>
       </div>
 
+      <!-- ── View: Funnels ──────────────────────────── -->
+      <div id="view-funnels" style="display:none">
+        <iframe id="funnels-frame" class="nw-frame" title="Funnely"></iframe>
+      </div>
+
       <!-- ── View: Payments ─────────────────────────── -->
       <div id="view-payments" style="display:none">
-        <div class="panel" style="margin-bottom:1.5rem">
-          <div class="panel-header">
-            <div>
-              <div class="panel-title">💳 Prijímanie platieb</div>
-              <div class="panel-subtitle">Peniaze idú priamo na váš Stripe účet – Neoworkly si neberie žiadnu províziu (0 %)</div>
-            </div>
-          </div>
-          <div id="pay-status"><div style="color:#7e7ea0;font-size:0.875rem">Načítavam...</div></div>
+        <div style="margin-bottom:1.5rem">
+          <iframe id="pay-frame" class="nw-frame" title="Prepojenie Stripe"></iframe>
         </div>
         <div class="panel">
           <div class="panel-header">

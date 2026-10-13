@@ -126,6 +126,7 @@ function showView(view) {
   document.getElementById('view-affiliate').style.display = view === 'affiliate' ? '' : 'none';
   document.getElementById('view-coach').style.display = view === 'coach' ? '' : 'none';
   document.getElementById('view-payments').style.display = view === 'payments' ? '' : 'none';
+  document.getElementById('view-funnels').style.display = view === 'funnels' ? '' : 'none';
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
   document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
@@ -133,6 +134,7 @@ function showView(view) {
   document.getElementById('nav-affiliate').classList.toggle('active', view === 'affiliate');
   document.getElementById('nav-coach').classList.toggle('active', view === 'coach');
   document.getElementById('nav-payments').classList.toggle('active', view === 'payments');
+  document.getElementById('nav-funnels').classList.toggle('active', view === 'funnels');
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
@@ -152,7 +154,13 @@ function showView(view) {
   if (view === 'payments') {
     document.getElementById('topbar-title').textContent = 'Platby';
     document.getElementById('topbar-actions').innerHTML = '';
+    openFunnelFrame('pay-frame', 'payments');
     loadPayments();
+  }
+  if (view === 'funnels') {
+    document.getElementById('topbar-title').textContent = 'Funnely';
+    document.getElementById('topbar-actions').innerHTML = '';
+    openFunnelFrame('funnels-frame', 'funnels');
   }
   if (view === 'coach') {
     document.getElementById('topbar-title').textContent = 'AI Coach';
@@ -2602,38 +2610,24 @@ function fmtMoney(cents, cur) {
   return `${(cents / 100).toLocaleString('sk-SK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur || 'EUR'}`;
 }
 
+/* Funnely a prepojenie Stripe: stránka /funnels/app vo vloženom okne (rovnaká doména, rovnaké prihlásenie) */
+let _funnelReturn = null; // ?stripe=… po návrate zo Stripe sa odovzdá vloženej stránke
+function openFunnelFrame(id, view) {
+  const frame = document.getElementById(id);
+  const extra = _funnelReturn ? `&stripe=${encodeURIComponent(_funnelReturn)}` : '';
+  _funnelReturn = null;
+  if (!frame.src || extra) frame.src = `/funnels/app?view=${view}${extra}`;
+}
+window.addEventListener('message', (e) => {
+  if (e.origin !== location.origin || !e.data || e.data.type !== 'nw-funnel-height') return;
+  const frame = document.getElementById(e.data.view === 'payments' ? 'pay-frame' : 'funnels-frame');
+  if (frame) frame.style.height = `${Math.max(420, e.data.height)}px`;
+});
+
 async function loadPayments() {
-  const el = document.getElementById('pay-status');
   const r = await apiFetch('/api/payments/status');
-  if (!r || !r.ok) { el.innerHTML = '<div style="color:#ff4060">Nepodarilo sa načítať.</div>'; return; }
+  if (!r || !r.ok) return;
   const s = await r.json();
-  if (s.ready) {
-    el.innerHTML = `
-      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
-        <span style="color:#1fd89a;font-weight:700">✅ Platby sú aktívne</span>
-        <span class="bk-tag">${s.mode === 'connect' ? 'Stripe Connect' : 'Vlastné API kľúče'}</span>
-        ${s.accountName ? `<span style="color:#b8b8d0;font-size:0.85rem">${esc(s.accountName)}</span>` : ''}
-        <button class="btn btn-sm btn-danger" onclick="disconnectPayments()">Odpojiť</button>
-      </div>
-      ${s.mode === 'keys' && !s.webhook ? `<div style="margin-top:0.75rem;font-size:0.8rem;color:#fbbf24">⚠️ Webhook sa nepodarilo vytvoriť automaticky – platby sa potvrdia po návrate zákazníka zo Stripe. Pre spoľahlivosť pridajte v Stripe webhook na <code>${esc(location.origin)}/api/payments/webhook/u/…</code> alebo kľúče uložte znova.</div>` : ''}
-      <div style="margin-top:0.75rem;font-size:0.8rem;color:#9898b8">Pri službách nastavte „Platba online“ (celá suma alebo záloha). Pri zrušení sa platba vráti podľa vašich pravidiel.</div>`;
-  } else {
-    el.innerHTML = `
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem">
-        <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem">
-          <div style="font-weight:700;margin-bottom:0.3rem">⚡ Stripe Connect <span class="bk-tag">odporúčané</span></div>
-          <div style="font-size:0.8rem;color:#9898b8;margin-bottom:0.75rem">Prihlásite sa do Stripe (alebo si účet založíte) a prepojíte ho jedným klikom. Žiadne kľúče.</div>
-          <button class="btn btn-primary btn-sm" onclick="connectStripe()" ${s.connectAvailable ? '' : 'disabled title="Stripe Connect nie je na serveri nakonfigurovaný"'}>Prepojiť Stripe</button>
-        </div>
-        <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem">
-          <div style="font-weight:700;margin-bottom:0.3rem">🔑 Vlastné API kľúče</div>
-          <div style="font-size:0.8rem;color:#9898b8;margin-bottom:0.5rem">Stripe → Developers → API keys. Kľúč ukladáme šifrovaný a webhook nastavíme automaticky.</div>
-          <input class="form-control" id="pay-sk" placeholder="sk_live_… (tajný kľúč)" autocomplete="off" style="margin-bottom:0.4rem">
-          <input class="form-control" id="pay-pk" placeholder="pk_live_… (verejný kľúč, nepovinné)" autocomplete="off" style="margin-bottom:0.5rem">
-          <button class="btn btn-secondary btn-sm" onclick="saveStripeKeys()">Uložiť kľúče</button>
-        </div>
-      </div>`;
-  }
   const rec = document.getElementById('pay-recent');
   const LABEL = { paid: 'Zaplatené', refunded: 'Vrátené', partially_refunded: 'Čiastočne vrátené' };
   rec.innerHTML = s.recent.length ? `<table style="width:100%;border-collapse:collapse;font-size:0.83rem">
@@ -2647,29 +2641,14 @@ async function loadPayments() {
     </table>` : '<div style="color:#7e7ea0;font-size:0.875rem">Zatiaľ žiadne platby.</div>';
 }
 
-async function connectStripe() {
-  const r = await apiFetch('/api/payments/connect/start');
-  const d = r ? await r.json().catch(() => ({})) : {};
-  if (d.url) location.href = d.url; else showToast(d.error || 'Chyba.', 'error');
-}
-
-async function saveStripeKeys() {
-  const r = await apiFetch('/api/payments/keys', { method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secretKey: document.getElementById('pay-sk').value, publishableKey: document.getElementById('pay-pk').value }) });
-  const d = r ? await r.json().catch(() => ({})) : {};
-  if (r && r.ok) { showToast('Stripe prepojený!', 'success'); loadPayments(); } else showToast(d.error || 'Chyba.', 'error');
-}
-
-async function disconnectPayments() {
-  if (!confirm('Odpojiť Stripe? Spoplatnené služby sa budú rezervovať bez platby online.')) return;
-  const r = await apiFetch('/api/payments', { method: 'DELETE' });
-  if (r && r.ok) { showToast('Odpojené.', 'success'); loadPayments(); }
-}
-
+// Návrat zo Stripe onboardingu (?stripe=return | test-return | expired) alebo odkaz na Funnely (?view=funnels)
 (function () {
-  const p = new URLSearchParams(location.search).get('payments');
-  if (!p) return;
-  setTimeout(() => { showView('payments'); showToast(p === 'connected' ? 'Stripe úspešne prepojený!' : 'Prepojenie so Stripe zlyhalo.', p === 'connected' ? 'success' : 'error'); }, 600);
+  const p = new URLSearchParams(location.search);
+  const back = p.get('stripe');
+  const view = p.get('view');
+  if (!back && view !== 'funnels') return;
+  _funnelReturn = back;
+  setTimeout(() => showView(back === 'test-return' || view === 'funnels' ? 'funnels' : 'payments'), 300);
   window.history.replaceState({}, '', '/dashboard');
 })();
 
