@@ -431,13 +431,13 @@ async function autoTranslateBkTexts() {
         if (!WELCOME_LANG_NAMES[lang]) continue;
         await _sleep(55);
         const tag = document.createElement('span');
-        tag.style.cssText = 'background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:99px;font-size:0.73rem;font-weight:700;animation:fadeIn 0.2s';
+        tag.style.cssText = 'background:rgba(31,216,154,0.14);color:#1fd89a;padding:2px 9px;border-radius:99px;font-size:0.73rem;font-weight:700;animation:fadeIn 0.2s';
         tag.textContent = `✓ ${WELCOME_LANG_NAMES[lang]}`;
         statusEl.appendChild(tag);
       }
       await _sleep(200);
       const note = document.createElement('div');
-      note.style.cssText = 'width:100%;margin-top:0.4rem;font-size:0.8rem;color:#15803d;font-weight:600';
+      note.style.cssText = 'width:100%;margin-top:0.4rem;font-size:0.8rem;color:#1fd89a;font-weight:600';
       note.textContent = `✅ Preložené do ${entries.length} jazykov. Kliknite Uložiť dizajn.`;
       statusEl.appendChild(note);
     }
@@ -643,7 +643,7 @@ async function scrapeWebsite() {
   btn.disabled = true;
   btn.textContent = '⏳ Skenujem...';
   status.style.display = 'block';
-  status.style.color = '#64748b';
+  status.style.color = '#9898b8';
   status.textContent = 'Skenujem stránky webu, prosím čakajte…';
 
   try {
@@ -656,13 +656,13 @@ async function scrapeWebsite() {
     const d = await r.json();
     if (!r.ok) throw new Error(d.error || 'Chyba');
 
-    status.style.color = '#16a34a';
+    status.style.color = '#1fd89a';
     status.textContent = `✓ Importovaných ${d.imported} stránok do znalostnej bázy.`;
     showToast(`✓ ${d.imported} stránok naskenovaných a uložených!`, 'success');
     document.getElementById('scrape-url').value = '';
     loadKnowledge();
   } catch (err) {
-    status.style.color = '#dc2626';
+    status.style.color = '#ff4060';
     status.textContent = '✗ ' + err.message;
     showToast(err.message, 'error');
   } finally {
@@ -734,7 +734,7 @@ async function deleteKnowledge(itemId) {
 function renderQuestions() {
   const container = document.getElementById('questions-list');
   if (!suggestedQuestions.length) {
-    container.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem;padding:0.5rem 0;">Žiadne otázky. Pridajte prvú!</div>';
+    container.innerHTML = '<div style="color:#7e7ea0;font-size:0.875rem;padding:0.5rem 0;">Žiadne otázky. Pridajte prvú!</div>';
     return;
   }
   container.innerHTML = suggestedQuestions.map((q, i) => `
@@ -864,13 +864,13 @@ async function autoTranslateQuestions() {
       for (const [lang] of entries) {
         await _sleep(55);
         const tag = document.createElement('span');
-        tag.style.cssText = 'background:#dcfce7;color:#15803d;padding:2px 9px;border-radius:99px;font-size:0.73rem;font-weight:700;animation:fadeIn 0.2s';
+        tag.style.cssText = 'background:rgba(31,216,154,0.14);color:#1fd89a;padding:2px 9px;border-radius:99px;font-size:0.73rem;font-weight:700;animation:fadeIn 0.2s';
         tag.textContent = `✓ ${WELCOME_LANG_NAMES[lang]}`;
         statusEl.appendChild(tag);
       }
       await _sleep(150);
       const note = document.createElement('div');
-      note.style.cssText = 'width:100%;margin-top:0.4rem;font-size:0.8rem;color:#15803d;font-weight:600';
+      note.style.cssText = 'width:100%;margin-top:0.4rem;font-size:0.8rem;color:#1fd89a;font-weight:600';
       note.textContent = 'Kliknite Uložiť, aby sa preklady aplikovali.';
       statusEl.appendChild(note);
     }
@@ -1064,9 +1064,9 @@ function renderLeads() {
     const summaryHtml = lead.chat_summary
       ? `<div class="lead-summary">
            <div class="lead-summary-label">🤖 Zhrnutie konverzácie</div>
-           <div style="white-space:pre-line;font-size:0.82rem;line-height:1.7;color:#374151">${esc(lead.chat_summary)}</div>
+           <div style="white-space:pre-line;font-size:0.82rem;line-height:1.7;color:#eeeef5">${esc(lead.chat_summary)}</div>
          </div>`
-      : `<div class="lead-summary-pending" style="font-size:0.78rem;color:#94a3b8;padding:0.5rem 0">💬 Zákazník nezanechal správu pred kontaktom</div>`;
+      : `<div class="lead-summary-pending" style="font-size:0.78rem;color:#7e7ea0;padding:0.5rem 0">💬 Zákazník nezanechal správu pred kontaktom</div>`;
 
     const notesVal = esc(lead.notes || '');
 
@@ -1074,7 +1074,7 @@ function renderLeads() {
       ? `<span style="font-size:0.8rem;color:#f59e0b;margin-left:0.35rem" title="CSAT hodnotenie">${'★'.repeat(lead.csat_rating)}${'☆'.repeat(5 - lead.csat_rating)}</span>`
       : '';
     const followUpHtml = lead.follow_up_sent_at
-      ? `<span style="font-size:0.72rem;color:#16a34a;white-space:nowrap">✅ Follow-up odoslaný</span>`
+      ? `<span style="font-size:0.72rem;color:#1fd89a;white-space:nowrap">✅ Follow-up odoslaný</span>`
       : `<button class="btn btn-sm btn-secondary" style="font-size:0.75rem;white-space:nowrap" onclick="openFollowupModal('${lead.widgetId}','${lead.id}','${esc(lead.name)}','${esc(lead.email)}')">📧 Follow-up</button>`;
 
     return `
@@ -1106,7 +1106,7 @@ function renderLeads() {
 
         <div class="lead-actions">
           <div class="lead-status-row">
-            <label style="font-size:0.78rem;font-weight:600;color:#64748b">Stav:</label>
+            <label style="font-size:0.78rem;font-weight:600;color:#9898b8">Stav:</label>
             <select class="lead-status-select" onchange="updateLeadStatus('${lead.widgetId}','${lead.id}',this.value)">
               <option value="new" ${status === 'new' ? 'selected' : ''}>🔵 Nový</option>
               <option value="contacted" ${status === 'contacted' ? 'selected' : ''}>🟡 Kontaktovaný</option>
@@ -1170,10 +1170,10 @@ let _leadsView = 'list'; // 'list' | 'kanban'
 
 function setLeadsView(view) {
   _leadsView = view;
-  document.getElementById('leads-view-list-btn').style.background   = view === 'list'   ? '#2563eb' : 'white';
-  document.getElementById('leads-view-list-btn').style.color        = view === 'list'   ? 'white'   : '#64748b';
-  document.getElementById('leads-view-kanban-btn').style.background = view === 'kanban' ? '#2563eb' : 'white';
-  document.getElementById('leads-view-kanban-btn').style.color      = view === 'kanban' ? 'white'   : '#64748b';
+  document.getElementById('leads-view-list-btn').style.background   = view === 'list'   ? '#5b4fff' : '#18182a';
+  document.getElementById('leads-view-list-btn').style.color        = view === 'list'   ? 'white'   : '#9898b8';
+  document.getElementById('leads-view-kanban-btn').style.background = view === 'kanban' ? '#5b4fff' : '#18182a';
+  document.getElementById('leads-view-kanban-btn').style.color      = view === 'kanban' ? 'white'   : '#9898b8';
   document.getElementById('leads-list').style.display   = view === 'list'   ? '' : 'none';
   document.getElementById('leads-kanban').style.display = view === 'kanban' ? '' : 'none';
   if (view === 'kanban') renderKanban();
@@ -1186,9 +1186,9 @@ function renderKanban() {
   const leads = statusFilter ? allLeads.filter(l => l.status === statusFilter) : allLeads;
 
   const columns = [
-    { key: 'new',       label: '🔵 Nový',         color: '#3b82f6', bg: '#eff6ff' },
-    { key: 'contacted', label: '🟡 Kontaktovaný', color: '#f59e0b', bg: '#fffbeb' },
-    { key: 'closed',    label: '🟢 Uzavretý',     color: '#22c55e', bg: '#f0fdf4' },
+    { key: 'new',       label: '🔵 Nový',         color: '#7b6fff', bg: 'rgba(91,79,255,0.12)' },
+    { key: 'contacted', label: '🟡 Kontaktovaný', color: '#f59e0b', bg: 'rgba(245,158,11,0.08)' },
+    { key: 'closed',    label: '🟢 Uzavretý',     color: '#22c55e', bg: 'rgba(31,216,154,0.08)' },
   ];
 
   container.innerHTML = `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;align-items:start">` +
@@ -1198,21 +1198,21 @@ function renderKanban() {
         const initials = (lead.name || '?').split(' ').map(p => p[0]).join('').slice(0,2).toUpperCase();
         const csatStars = lead.csat_rating ? '★'.repeat(lead.csat_rating) + '☆'.repeat(5 - lead.csat_rating) : '';
         const date = new Date(lead.created_at * 1000).toLocaleDateString('sk-SK', {day:'2-digit',month:'2-digit'});
-        return `<div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;cursor:pointer"
+        return `<div style="background:#18182a;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:0.75rem;margin-bottom:0.5rem;cursor:pointer"
           draggable="true" ondragstart="kanbanDragStart(event,'${lead.id}')" ondragover="event.preventDefault()" ondrop="kanbanDrop(event,'${col.key}')">
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.35rem">
             <div style="width:28px;height:28px;border-radius:50%;background:${col.color};color:white;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0">${esc(initials)}</div>
             <div style="flex:1;min-width:0">
-              <div style="font-size:0.83rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(lead.name)}</div>
-              <div style="font-size:0.72rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(lead.email)}</div>
+              <div style="font-size:0.83rem;font-weight:700;color:#eeeef5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(lead.name)}</div>
+              <div style="font-size:0.72rem;color:#9898b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(lead.email)}</div>
             </div>
           </div>
           ${csatStars ? `<div style="font-size:0.72rem;color:#f59e0b">${csatStars}</div>` : ''}
-          <div style="font-size:0.7rem;color:#94a3b8;margin-top:0.25rem">${date}${lead.widgetName ? ' · ' + esc(lead.widgetName) : ''}</div>
+          <div style="font-size:0.7rem;color:#7e7ea0;margin-top:0.25rem">${date}${lead.widgetName ? ' · ' + esc(lead.widgetName) : ''}</div>
         </div>`;
-      }).join('') || `<div style="font-size:0.8rem;color:#94a3b8;padding:0.5rem 0;text-align:center">Žiadne</div>`;
+      }).join('') || `<div style="font-size:0.8rem;color:#7e7ea0;padding:0.5rem 0;text-align:center">Žiadne</div>`;
 
-      return `<div style="background:${col.bg};border:1px solid #e2e8f0;border-radius:12px;padding:0.75rem"
+      return `<div style="background:${col.bg};border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:0.75rem"
         ondragover="event.preventDefault()" ondrop="kanbanDrop(event,'${col.key}')">
         <div style="font-size:0.78rem;font-weight:700;color:${col.color};margin-bottom:0.65rem;display:flex;align-items:center;justify-content:space-between">
           <span>${col.label}</span>
@@ -1447,7 +1447,7 @@ function showIgError(code) {
       detail: 'Meta API vyžaduje, aby ste boli administrátorom <strong>Facebook Stránky</strong> (nie osobného profilu), ku ktorej je pripojený váš Instagram. ' +
         'Bez Facebook Stránky prepojenie nie je technicky možné.' +
         '<br><br><strong>Riešenie (5 minút):</strong><br>' +
-        '1. <a href="https://www.facebook.com/pages/create" target="_blank" rel="noopener" style="color:#1d4ed8">Vytvorte Facebook Stránku</a> (napr. názov firmy).<br>' +
+        '1. <a href="https://www.facebook.com/pages/create" target="_blank" rel="noopener" style="color:#4a3fe0">Vytvorte Facebook Stránku</a> (napr. názov firmy).<br>' +
         '2. V Instagrame → Profil → Upraviť profil → <em>Prepojiť Facebook stránku</em> → vyberte novovytvorenú stránku.<br>' +
         '3. Vráťte sa sem a kliknite znova na „Prepojiť Instagram".',
     },
@@ -1701,7 +1701,7 @@ function escCoach(str) {
     .replace(/>/g, '&gt;')
     .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/`(.*?)`/g, '<code style="background:#f1f5f9;padding:0.1rem 0.3rem;border-radius:4px;font-size:0.85em">$1</code>')
+    .replace(/`(.*?)`/g, '<code style="background:#111120;padding:0.1rem 0.3rem;border-radius:4px;font-size:0.85em">$1</code>')
     .replace(/\n/g, '<br>');
 }
 
@@ -1722,7 +1722,7 @@ async function loadUsageBar() {
 
     const pct = d.usage_pct || 0;
     fill.style.width = `${Math.min(100, pct)}%`;
-    fill.style.background = pct >= 100 ? '#dc2626' : pct >= 80 ? '#f59e0b' : '#2563eb';
+    fill.style.background = pct >= 100 ? '#ff4060' : pct >= 80 ? '#f59e0b' : '#5b4fff';
 
     count.textContent = `${d.used_this_month} / ${d.base_responses}`;
 
@@ -1754,15 +1754,15 @@ async function loadUsageBar() {
       if (pct >= 100) {
         banner.style.display = '';
         banner.innerHTML = `⛔ ${d.in_trial ? 'Limit skúšobného obdobia' : 'Mesačný limit'} vyčerpaný. Chatbot neodpovedá. <button class="btn btn-sm btn-primary" style="margin-left:0.5rem" onclick="openCreditsModal()">Dobiť kredity</button>`;
-        banner.style.background = '#fef2f2';
-        banner.style.borderColor = '#fecaca';
-        banner.style.color = '#b91c1c';
+        banner.style.background = 'rgba(255,64,96,0.08)';
+        banner.style.borderColor = 'rgba(255,64,96,0.3)';
+        banner.style.color = '#ff4060';
       } else if (pct >= 80) {
         banner.style.display = '';
         banner.innerHTML = `⚠️ Zostáva ti ${d.base_remaining} odpovedí (${100 - pct} %). <button class="btn btn-sm btn-secondary" style="margin-left:0.5rem" onclick="buyCredits('p8r')">Dobiť 200 za €8</button>`;
-        banner.style.background = '#fffbeb';
-        banner.style.borderColor = '#fcd34d';
-        banner.style.color = '#92400e';
+        banner.style.background = 'rgba(245,158,11,0.08)';
+        banner.style.borderColor = 'rgba(245,158,11,0.45)';
+        banner.style.color = '#fbbf24';
       } else {
         banner.style.display = 'none';
       }
@@ -1900,19 +1900,19 @@ function renderProducts() {
   empty.style.display = 'none';
 
   list.innerHTML = products.map(p => `
-    <div style="border:1px solid #e2e8f0;border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.75rem;opacity:${p.active ? 1 : 0.55}">
+    <div style="border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem 1.25rem;margin-bottom:0.75rem;opacity:${p.active ? 1 : 0.55}">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-bottom:0.25rem">
             <span style="font-weight:700;font-size:0.95rem">${esc(p.name)}</span>
-            <span style="font-size:0.72rem;background:#f1f5f9;padding:2px 8px;border-radius:99px;color:#475569">${PRODUCT_TYPE_LABELS[p.type] || p.type}</span>
-            ${!p.active ? '<span style="font-size:0.7rem;background:#fef2f2;color:#dc2626;padding:2px 8px;border-radius:99px">Neaktívny</span>' : ''}
-            ${p.price != null ? `<span style="font-size:0.8rem;font-weight:600;color:#16a34a">${p.price} ${p.currency}</span>` : ''}
+            <span style="font-size:0.72rem;background:#111120;padding:2px 8px;border-radius:99px;color:#b8b8d0">${PRODUCT_TYPE_LABELS[p.type] || p.type}</span>
+            ${!p.active ? '<span style="font-size:0.7rem;background:rgba(255,64,96,0.08);color:#ff4060;padding:2px 8px;border-radius:99px">Neaktívny</span>' : ''}
+            ${p.price != null ? `<span style="font-size:0.8rem;font-weight:600;color:#1fd89a">${p.price} ${p.currency}</span>` : ''}
           </div>
-          ${p.description ? `<div style="font-size:0.82rem;color:#64748b;margin-bottom:0.4rem">${esc(p.description)}</div>` : ''}
+          ${p.description ? `<div style="font-size:0.82rem;color:#9898b8;margin-bottom:0.4rem">${esc(p.description)}</div>` : ''}
           <div style="display:flex;gap:1rem;flex-wrap:wrap;font-size:0.75rem">
-            ${p.recommend_when ? `<span style="color:#16a34a">✅ ${esc(p.recommend_when.slice(0, 60))}${p.recommend_when.length > 60 ? '…' : ''}</span>` : ''}
-            ${p.not_recommend_when ? `<span style="color:#dc2626">❌ ${esc(p.not_recommend_when.slice(0, 60))}${p.not_recommend_when.length > 60 ? '…' : ''}</span>` : ''}
+            ${p.recommend_when ? `<span style="color:#1fd89a">✅ ${esc(p.recommend_when.slice(0, 60))}${p.recommend_when.length > 60 ? '…' : ''}</span>` : ''}
+            ${p.not_recommend_when ? `<span style="color:#ff4060">❌ ${esc(p.not_recommend_when.slice(0, 60))}${p.not_recommend_when.length > 60 ? '…' : ''}</span>` : ''}
           </div>
         </div>
         <div style="display:flex;gap:0.5rem;flex-shrink:0">
@@ -2154,8 +2154,8 @@ function loadBookingDesign(d) {
 
   // Highlight active shape preset
   document.querySelectorAll('.bk-shape-opt').forEach(btn => {
-    btn.style.borderColor = '#e2e8f0';
-    btn.querySelector('span').style.color = '#64748b';
+    btn.style.borderColor = 'rgba(255,255,255,0.14)';
+    btn.querySelector('span').style.color = '#9898b8';
   });
   const r = d.borderRadius;
   const shapeId = r <= 6 ? 'bk-shape-sharp' : r >= 24 ? 'bk-shape-pill' : 'bk-shape-rounded';
@@ -2226,8 +2226,8 @@ function syncPicker(baseId) {
 
 function selectBkShape(el) {
   document.querySelectorAll('.bk-shape-opt').forEach(btn => {
-    btn.style.borderColor = '#e2e8f0';
-    btn.querySelector('span').style.color = '#64748b';
+    btn.style.borderColor = 'rgba(255,255,255,0.14)';
+    btn.querySelector('span').style.color = '#9898b8';
   });
   el.style.borderColor = '#5b4fff';
   el.querySelector('span').style.color = '#5b4fff';
@@ -2305,17 +2305,17 @@ function renderServicesList() {
   const el = document.getElementById('bk-services-list');
   if (!el) return;
   if (!_bookingServices.length) {
-    el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem;padding:0.5rem 0">Žiadne služby — zákazník uvidí iba výber dátumu a času.</div>';
+    el.innerHTML = '<div style="color:#7e7ea0;font-size:0.875rem;padding:0.5rem 0">Žiadne služby — zákazník uvidí iba výber dátumu a času.</div>';
     return;
   }
   el.innerHTML = _bookingServices.map((s, i) => {
     const price = s.price != null ? `${s.price} ${s.currency}` : 'Zadarmo';
-    const activeLabel = s.active ? '' : '<span style="font-size:0.7rem;color:#94a3b8;margin-left:0.5rem">(neaktívna)</span>';
-    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid #f1f5f9;gap:0.5rem">
+    const activeLabel = s.active ? '' : '<span style="font-size:0.7rem;color:#7e7ea0;margin-left:0.5rem">(neaktívna)</span>';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0;border-bottom:1px solid rgba(255,255,255,0.06);gap:0.5rem">
       <div>
         <strong style="font-size:0.875rem">${escHtml(s.name)}</strong>${activeLabel}
-        ${s.description ? `<div style="font-size:0.78rem;color:#64748b">${escHtml(s.description)}</div>` : ''}
-        <div style="font-size:0.75rem;color:#94a3b8;margin-top:2px">⏱ ${s.duration_mins} min &nbsp;·&nbsp; 💶 ${esc(price)}</div>
+        ${s.description ? `<div style="font-size:0.78rem;color:#9898b8">${escHtml(s.description)}</div>` : ''}
+        <div style="font-size:0.75rem;color:#7e7ea0;margin-top:2px">⏱ ${s.duration_mins} min &nbsp;·&nbsp; 💶 ${esc(price)}</div>
       </div>
       <div style="display:flex;gap:0.4rem;flex-shrink:0">
         <button class="btn btn-sm btn-secondary" onclick="openServiceModal(${i})">✏️</button>
@@ -2391,14 +2391,14 @@ function renderScheduleGrid() {
   for (let d = 0; d <= 6; d++) {
     const sched = _bookingSchedule.find(s => s.day_of_week === d) || { day_of_week: d, start_time: '09:00', end_time: '17:00', active: d >= 1 && d <= 5 ? 1 : 0 };
     const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:0.75rem;padding:0.4rem 0;border-bottom:1px solid #f1f5f9';
+    row.style.cssText = 'display:flex;align-items:center;gap:0.75rem;padding:0.4rem 0;border-bottom:1px solid rgba(255,255,255,0.06)';
     row.innerHTML = `
       <label style="display:flex;align-items:center;gap:0.4rem;min-width:110px;cursor:pointer;font-size:0.875rem">
         <input type="checkbox" data-day="${d}" class="bk-day-active" style="width:15px;height:15px" ${sched.active ? 'checked' : ''}>
         <span>${DAY_NAMES_BOOKING[d]}</span>
       </label>
       <input type="time" data-day="${d}" class="bk-day-start form-control" value="${sched.start_time}" style="width:auto;padding:0.35rem 0.5rem;font-size:0.82rem">
-      <span style="color:#94a3b8;font-size:0.82rem">–</span>
+      <span style="color:#7e7ea0;font-size:0.82rem">–</span>
       <input type="time" data-day="${d}" class="bk-day-end form-control" value="${sched.end_time}" style="width:auto;padding:0.35rem 0.5rem;font-size:0.82rem">
     `;
     grid.appendChild(row);
@@ -2434,9 +2434,9 @@ async function loadBookingOverrides() {
 function renderOverridesList() {
   const el = document.getElementById('bk-overrides-list');
   if (!el) return;
-  if (!_bookingOverrides.length) { el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem">Žiadne výnimky</div>'; return; }
+  if (!_bookingOverrides.length) { el.innerHTML = '<div style="color:#7e7ea0;font-size:0.875rem">Žiadne výnimky</div>'; return; }
   el.innerHTML = _bookingOverrides.map(o => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid #f1f5f9;font-size:0.875rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.875rem">
       <span><strong>${o.date}</strong> — ${o.type === 'closed' ? 'Zatvorené' : `${o.start_time} – ${o.end_time}`}</span>
       <button class="btn btn-sm btn-danger" onclick="deleteBookingOverride('${o.id}')">Odstrániť</button>
     </div>
@@ -2505,7 +2505,7 @@ async function renderBookingCalendar() {
 
   let html = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">`;
   DOW_LABELS.forEach(d => {
-    html += `<div style="text-align:center;font-size:0.68rem;font-weight:700;color:#94a3b8;padding:0.4rem 0">${d}</div>`;
+    html += `<div style="text-align:center;font-size:0.68rem;font-weight:700;color:#7e7ea0;padding:0.4rem 0">${d}</div>`;
   });
   for (let i = 0; i < firstDow; i++) html += `<div></div>`;
 
@@ -2517,11 +2517,11 @@ async function renderBookingCalendar() {
     const cancelled = bks.filter(b => b.status === 'cancelled').length;
 
     html += `<div onclick="showDayBookings('${ds}')" style="min-height:52px;border-radius:8px;padding:4px;cursor:pointer;
-      background:${isToday ? '#f0f0ff' : '#f8fafc'};border:1.5px solid ${isToday ? '#5b4fff' : '#e2e8f0'};
-      transition:background 0.15s" onmouseover="this.style.background='#e0e7ff'" onmouseout="this.style.background='${isToday ? '#f0f0ff' : '#f8fafc'}'">
-      <div style="font-size:0.78rem;font-weight:${isToday?'800':'600'};color:${isToday?'#5b4fff':'#374151'};text-align:right;padding:2px 4px">${d}</div>
-      ${confirmed ? `<div style="font-size:0.65rem;background:#dcfce7;color:#16a34a;border-radius:4px;padding:1px 4px;margin-top:2px;font-weight:600">✓ ${confirmed}</div>` : ''}
-      ${cancelled ? `<div style="font-size:0.65rem;background:#fee2e2;color:#dc2626;border-radius:4px;padding:1px 4px;margin-top:2px;font-weight:600">✗ ${cancelled}</div>` : ''}
+      background:${isToday ? 'rgba(91,79,255,0.14)' : '#111120'};border:1.5px solid ${isToday ? '#5b4fff' : 'rgba(255,255,255,0.08)'};
+      transition:background 0.15s" onmouseover="this.style.background='rgba(91,79,255,0.22)'" onmouseout="this.style.background='${isToday ? 'rgba(91,79,255,0.14)' : '#111120'}'">
+      <div style="font-size:0.78rem;font-weight:${isToday?'800':'600'};color:${isToday?'#5b4fff':'#eeeef5'};text-align:right;padding:2px 4px">${d}</div>
+      ${confirmed ? `<div style="font-size:0.65rem;background:rgba(31,216,154,0.14);color:#1fd89a;border-radius:4px;padding:1px 4px;margin-top:2px;font-weight:600">✓ ${confirmed}</div>` : ''}
+      ${cancelled ? `<div style="font-size:0.65rem;background:rgba(255,64,96,0.14);color:#ff4060;border-radius:4px;padding:1px 4px;margin-top:2px;font-weight:600">✗ ${cancelled}</div>` : ''}
     </div>`;
   }
   html += `</div>`;
@@ -2540,37 +2540,37 @@ function showDayBookings(ds) {
   const dateLabel = `${d}. ${BK_MONTHS[mo-1]} ${y}`;
 
   if (!bks.length) {
-    el.innerHTML = `<div style="color:#94a3b8;font-size:0.875rem;padding:0.75rem 0">Žiadne rezervácie — ${dateLabel}</div>`;
+    el.innerHTML = `<div style="color:#7e7ea0;font-size:0.875rem;padding:0.75rem 0">Žiadne rezervácie — ${dateLabel}</div>`;
     return;
   }
 
   const STATUS_LABEL = { confirmed: '✅', cancelled: '❌', no_show: '👻' };
-  const STATUS_COLOR = { confirmed: '#16a34a', cancelled: '#dc2626', no_show: '#f59e0b' };
+  const STATUS_COLOR = { confirmed: '#1fd89a', cancelled: '#ff4060', no_show: '#f59e0b' };
 
-  el.innerHTML = `<div style="font-weight:700;font-size:0.875rem;margin-bottom:0.75rem;color:#374151">📅 ${dateLabel}</div>` +
+  el.innerHTML = `<div style="font-weight:700;font-size:0.875rem;margin-bottom:0.75rem;color:#eeeef5">📅 ${dateLabel}</div>` +
     bks.map(b => `
-      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:0.875rem;margin-bottom:0.75rem">
+      <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:0.875rem;margin-bottom:0.75rem">
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem">
           <div>
             <span style="font-weight:700;font-size:0.9rem">${b.start_time} – ${b.end_time}</span>
-            ${b.service_name ? `<span style="font-size:0.78rem;background:#ede9fe;color:#5b4fff;border-radius:4px;padding:1px 6px;margin-left:6px">${escHtml(b.service_name)}</span>` : ''}
+            ${b.service_name ? `<span style="font-size:0.78rem;background:rgba(155,140,255,0.16);color:#5b4fff;border-radius:4px;padding:1px 6px;margin-left:6px">${escHtml(b.service_name)}</span>` : ''}
           </div>
-          <span style="font-size:0.8rem;font-weight:600;color:${STATUS_COLOR[b.status]||'#374151'}">${STATUS_LABEL[b.status]||''}</span>
+          <span style="font-size:0.8rem;font-weight:600;color:${STATUS_COLOR[b.status]||'#eeeef5'}">${STATUS_LABEL[b.status]||''}</span>
         </div>
-        <div style="font-weight:700;font-size:0.875rem;color:#1e293b">${escHtml(b.customer_name)}</div>
-        <div style="font-size:0.8rem;color:#64748b;margin-bottom:0.5rem">
+        <div style="font-weight:700;font-size:0.875rem;color:#eeeef5">${escHtml(b.customer_name)}</div>
+        <div style="font-size:0.8rem;color:#9898b8;margin-bottom:0.5rem">
           <a href="mailto:${escHtml(b.customer_email)}" style="color:#5b4fff">${escHtml(b.customer_email)}</a>
           ${b.customer_phone ? ` · <a href="tel:${escHtml(b.customer_phone)}" style="color:#5b4fff">${escHtml(b.customer_phone)}</a>` : ''}
         </div>
         ${b.ai_summary ? `
-          <div style="background:white;border:1px solid #e2e8f0;border-radius:8px;padding:0.75rem;margin-bottom:0.5rem">
+          <div style="background:#18182a;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:0.75rem;margin-bottom:0.5rem">
             <div style="font-size:0.68rem;font-weight:700;color:#5b4fff;letter-spacing:0.05em;margin-bottom:0.4rem">🤖 SITUÁCIA KLIENTA</div>
-            <div style="font-size:0.81rem;color:#374151;white-space:pre-line;line-height:1.65">${escHtml(b.ai_summary)}</div>
-          </div>` : `<div style="font-size:0.78rem;color:#94a3b8;padding:0.25rem 0;margin-bottom:0.5rem">💬 Rezervácia bez konverzačného kontextu</div>`}
+            <div style="font-size:0.81rem;color:#eeeef5;white-space:pre-line;line-height:1.65">${escHtml(b.ai_summary)}</div>
+          </div>` : `<div style="font-size:0.78rem;color:#7e7ea0;padding:0.25rem 0;margin-bottom:0.5rem">💬 Rezervácia bez konverzačného kontextu</div>`}
         ${b.internal_notes ? `
-          <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:0.6rem;margin-bottom:0.5rem">
-            <div style="font-size:0.68rem;font-weight:700;color:#92400e;letter-spacing:0.05em;margin-bottom:0.3rem">📝 POZNÁMKY</div>
-            <div style="font-size:0.81rem;color:#78350f;white-space:pre-line;line-height:1.5">${escHtml(b.internal_notes)}</div>
+          <div style="background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.35);border-radius:8px;padding:0.6rem;margin-bottom:0.5rem">
+            <div style="font-size:0.68rem;font-weight:700;color:#fbbf24;letter-spacing:0.05em;margin-bottom:0.3rem">📝 POZNÁMKY</div>
+            <div style="font-size:0.81rem;color:#fbbf24;white-space:pre-line;line-height:1.5">${escHtml(b.internal_notes)}</div>
           </div>` : ''}
         <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.25rem">
           <button class="btn btn-sm btn-secondary" onclick="showBookingDetail('${b.id}')">✏️ Detail / Poznámky</button>
@@ -2598,36 +2598,36 @@ function showBookingDetail(id) {
   const [y,mo,d] = b.date.split('-').map(Number);
   const dateLabel = `${d}. ${BK_MONTHS[mo-1]} ${y}`;
   const STATUS_LABEL = { confirmed: '✅ Potvrdená', cancelled: '❌ Zrušená', no_show: '👻 Nedostavil sa' };
-  const STATUS_COLOR = { confirmed: '#16a34a', cancelled: '#dc2626', no_show: '#f59e0b' };
+  const STATUS_COLOR = { confirmed: '#1fd89a', cancelled: '#ff4060', no_show: '#f59e0b' };
 
   content.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:1rem">
-      <div style="background:#f8fafc;border-radius:8px;padding:0.6rem">
-        <div style="font-size:0.7rem;color:#94a3b8;font-weight:600">DÁTUM & ČAS</div>
+      <div style="background:#111120;border-radius:8px;padding:0.6rem">
+        <div style="font-size:0.7rem;color:#7e7ea0;font-weight:600">DÁTUM & ČAS</div>
         <div style="font-size:0.875rem;font-weight:700;margin-top:2px">${dateLabel} ${b.start_time}–${b.end_time}</div>
       </div>
-      ${b.service_name ? `<div style="background:#ede9fe;border-radius:8px;padding:0.6rem">
+      ${b.service_name ? `<div style="background:rgba(155,140,255,0.16);border-radius:8px;padding:0.6rem">
         <div style="font-size:0.7rem;color:#5b4fff;font-weight:600">SLUŽBA</div>
         <div style="font-size:0.875rem;font-weight:700;margin-top:2px;color:#5b4fff">${escHtml(b.service_name)}</div>
       </div>` : '<div></div>'}
     </div>
-    <div style="background:#f8fafc;border-radius:8px;padding:0.75rem;margin-bottom:1rem">
-      <div style="font-size:0.7rem;color:#94a3b8;font-weight:600;margin-bottom:4px">ZÁKAZNÍK</div>
+    <div style="background:#111120;border-radius:8px;padding:0.75rem;margin-bottom:1rem">
+      <div style="font-size:0.7rem;color:#7e7ea0;font-weight:600;margin-bottom:4px">ZÁKAZNÍK</div>
       <div style="font-weight:700">${escHtml(b.customer_name)}</div>
-      <div style="font-size:0.82rem;color:#64748b">${escHtml(b.customer_email)}</div>
-      ${b.customer_phone ? `<div style="font-size:0.82rem;color:#64748b">${escHtml(b.customer_phone)}</div>` : ''}
+      <div style="font-size:0.82rem;color:#9898b8">${escHtml(b.customer_email)}</div>
+      ${b.customer_phone ? `<div style="font-size:0.82rem;color:#9898b8">${escHtml(b.customer_phone)}</div>` : ''}
     </div>
     ${b.ai_summary ? `
-      <div style="background:#fafafa;border:1px solid #e2e8f0;border-radius:10px;padding:0.875rem;margin-bottom:1rem">
+      <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:0.875rem;margin-bottom:1rem">
         <div style="font-size:0.72rem;font-weight:700;color:#5b4fff;margin-bottom:0.5rem">🤖 AI KARTA KLIENTA</div>
-        <div style="font-size:0.82rem;color:#374151;white-space:pre-line;line-height:1.65">${escHtml(b.ai_summary)}</div>
+        <div style="font-size:0.82rem;color:#eeeef5;white-space:pre-line;line-height:1.65">${escHtml(b.ai_summary)}</div>
       </div>` : ''}
     <div style="display:flex;gap:0.5rem;margin-bottom:1rem;align-items:center">
-      <span style="font-size:0.82rem;font-weight:700;color:${STATUS_COLOR[b.status]||'#374151'}">${STATUS_LABEL[b.status]||b.status}</span>
+      <span style="font-size:0.82rem;font-weight:700;color:${STATUS_COLOR[b.status]||'#eeeef5'}">${STATUS_LABEL[b.status]||b.status}</span>
     </div>
     <div style="margin-bottom:1rem">
-      <div style="font-size:0.72rem;font-weight:700;color:#64748b;letter-spacing:0.05em;margin-bottom:0.4rem">📝 POZNÁMKY</div>
-      <textarea id="bk-detail-notes" rows="3" style="width:100%;border:1px solid #e2e8f0;border-radius:8px;padding:0.6rem;font-size:0.82rem;font-family:inherit;resize:vertical;color:#374151;line-height:1.5"
+      <div style="font-size:0.72rem;font-weight:700;color:#9898b8;letter-spacing:0.05em;margin-bottom:0.4rem">📝 POZNÁMKY</div>
+      <textarea id="bk-detail-notes" rows="3" style="width:100%;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:0.6rem;font-size:0.82rem;font-family:inherit;resize:vertical;color:#eeeef5;line-height:1.5"
         placeholder="Pridajte poznámky ku stretnutiu...">${escHtml(b.internal_notes || '')}</textarea>
       <button class="btn btn-sm btn-secondary" style="margin-top:0.4rem" onclick="saveBkNotes('${b.id}','${currentWidget?.id}')">Uložiť poznámky</button>
     </div>
@@ -2681,23 +2681,23 @@ async function loadGCalStatus() {
   if (!el || !currentWidget) return;
 
   const r = await apiFetch(`/api/booking/${currentWidget.id}/gcal/status`);
-  if (!r || !r.ok) { el.innerHTML = '<div style="color:#94a3b8;font-size:0.875rem">Google Calendar nedostupný.</div>'; return; }
+  if (!r || !r.ok) { el.innerHTML = '<div style="color:#7e7ea0;font-size:0.875rem">Google Calendar nedostupný.</div>'; return; }
   const data = await r.json();
 
   if (data.connected) {
     el.innerHTML = `
       <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
-        <span style="color:#16a34a;font-weight:600">✅ Prepojený</span>
-        <span style="color:#64748b;font-size:0.875rem">${escHtml(data.email||'')}</span>
+        <span style="color:#1fd89a;font-weight:600">✅ Prepojený</span>
+        <span style="color:#9898b8;font-size:0.875rem">${escHtml(data.email||'')}</span>
         <button class="btn btn-sm btn-danger" onclick="disconnectGCal()">Odpojiť</button>
       </div>
-      <div style="margin-top:0.5rem;font-size:0.8rem;color:#64748b">Nové rezervácie sa automaticky pridávajú do vášho Google Kalendára.</div>
+      <div style="margin-top:0.5rem;font-size:0.8rem;color:#9898b8">Nové rezervácie sa automaticky pridávajú do vášho Google Kalendára.</div>
     `;
   } else {
     el.innerHTML = `
-      <div style="font-size:0.875rem;color:#64748b;margin-bottom:0.75rem">Prepojte Google Kalendár, aby sa rezervácie automaticky zobrazovali vo vašom kalendári.</div>
+      <div style="font-size:0.875rem;color:#9898b8;margin-bottom:0.75rem">Prepojte Google Kalendár, aby sa rezervácie automaticky zobrazovali vo vašom kalendári.</div>
       <button class="btn btn-primary" onclick="connectGCal()">🔗 Prepojiť Google Calendar</button>
-      <div style="margin-top:0.5rem;font-size:0.75rem;color:#94a3b8">Presmeruje vás na Google prihlasovaciu stránku.</div>
+      <div style="margin-top:0.5rem;font-size:0.75rem;color:#7e7ea0">Presmeruje vás na Google prihlasovaciu stránku.</div>
     `;
   }
 }
@@ -2792,27 +2792,27 @@ function renderLmCards() {
   cards.innerHTML = _lmItems.map(lm => {
     const filesHtml = (lm.files && lm.files.length)
       ? lm.files.map(f => `
-          <span style="display:inline-flex;align-items:center;gap:4px;background:#ede9fe;border-radius:6px;padding:2px 8px;font-size:0.76rem;font-weight:600;color:#5b4fff">
+          <span style="display:inline-flex;align-items:center;gap:4px;background:rgba(155,140,255,0.16);border-radius:6px;padding:2px 8px;font-size:0.76rem;font-weight:600;color:#5b4fff">
             <a href="${escHtml(f.file_url)}" target="_blank" rel="noopener" style="color:#5b4fff;text-decoration:none">${escHtml(LM_LANG_LABELS[f.lang] || f.lang)}</a>
             <button onclick="deleteLmFile('${escHtml(lm.id)}','${escHtml(f.id)}')" style="background:none;border:none;cursor:pointer;color:#7c3aed;font-size:0.75rem;line-height:1;padding:0;margin-left:2px" title="Odstrániť">✕</button>
           </span>`).join(' ')
-      : '<span style="font-size:0.76rem;color:#94a3b8">Žiadne jazykové súbory</span>';
+      : '<span style="font-size:0.76rem;color:#7e7ea0">Žiadne jazykové súbory</span>';
 
     return `
-    <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1rem 1.1rem">
+    <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem 1.1rem">
       <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:0.75rem;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.3rem;flex-wrap:wrap">
-            <span style="font-weight:700;font-size:0.95rem;color:#1e293b">${escHtml(lm.name)}</span>
-            <span style="font-size:0.72rem;padding:1px 7px;border-radius:99px;font-weight:600;background:${lm.active ? '#dcfce7' : '#f1f5f9'};color:${lm.active ? '#16a34a' : '#94a3b8'}">${lm.active ? 'Aktívny' : 'Neaktívny'}</span>
+            <span style="font-weight:700;font-size:0.95rem;color:#eeeef5">${escHtml(lm.name)}</span>
+            <span style="font-size:0.72rem;padding:1px 7px;border-radius:99px;font-weight:600;background:${lm.active ? 'rgba(31,216,154,0.14)' : '#111120'};color:${lm.active ? '#1fd89a' : '#7e7ea0'}">${lm.active ? 'Aktívny' : 'Neaktívny'}</span>
           </div>
-          ${lm.description ? `<div style="font-size:0.82rem;color:#64748b;margin-bottom:0.4rem">${escHtml(lm.description)}</div>` : ''}
-          ${lm.when_to_recommend ? `<div style="font-size:0.78rem;color:#374151;margin-bottom:0.2rem"><b>Odporúčaj keď:</b> ${escHtml(lm.when_to_recommend)}</div>` : ''}
-          ${lm.target_audience ? `<div style="font-size:0.78rem;color:#374151;margin-bottom:0.2rem"><b>Pre koho:</b> ${escHtml(lm.target_audience)}</div>` : ''}
-          ${lm.ai_content ? `<div style="font-size:0.78rem;color:#374151;margin-bottom:0.5rem"><b>AI zhrnutie:</b> ${escHtml(lm.ai_content)}</div>` : ''}
+          ${lm.description ? `<div style="font-size:0.82rem;color:#9898b8;margin-bottom:0.4rem">${escHtml(lm.description)}</div>` : ''}
+          ${lm.when_to_recommend ? `<div style="font-size:0.78rem;color:#eeeef5;margin-bottom:0.2rem"><b>Odporúčaj keď:</b> ${escHtml(lm.when_to_recommend)}</div>` : ''}
+          ${lm.target_audience ? `<div style="font-size:0.78rem;color:#eeeef5;margin-bottom:0.2rem"><b>Pre koho:</b> ${escHtml(lm.target_audience)}</div>` : ''}
+          ${lm.ai_content ? `<div style="font-size:0.78rem;color:#eeeef5;margin-bottom:0.5rem"><b>AI zhrnutie:</b> ${escHtml(lm.ai_content)}</div>` : ''}
           <!-- Language files row -->
           <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;margin-top:0.4rem">
-            <span style="font-size:0.73rem;font-weight:700;color:#64748b;white-space:nowrap">🌍 Jazyky:</span>
+            <span style="font-size:0.73rem;font-weight:700;color:#9898b8;white-space:nowrap">🌍 Jazyky:</span>
             ${filesHtml}
             <button class="btn btn-sm btn-secondary" style="font-size:0.73rem;padding:2px 8px" onclick="openLmFileModal('${escHtml(lm.id)}')">+ Pridať jazyk</button>
           </div>
@@ -3027,11 +3027,11 @@ function renderLmLeads(leads) {
   table.style.display = '';
 
   body.innerHTML = leads.map(l => `
-    <tr style="border-bottom:1px solid #f1f5f9">
-      <td style="padding:0.55rem 0.75rem;color:#374151;font-weight:600">${escHtml(l.lm_name || '')}</td>
-      <td style="padding:0.55rem 0.75rem;color:#374151">${escHtml(l.name || '—')}</td>
-      <td style="padding:0.55rem 0.75rem;color:#2563eb">${escHtml(l.email)}</td>
-      <td style="padding:0.55rem 0.75rem;color:#64748b;font-size:0.78rem">${new Date(l.created_at * 1000).toLocaleString('sk-SK')}</td>
+    <tr style="border-bottom:1px solid rgba(255,255,255,0.06)">
+      <td style="padding:0.55rem 0.75rem;color:#eeeef5;font-weight:600">${escHtml(l.lm_name || '')}</td>
+      <td style="padding:0.55rem 0.75rem;color:#eeeef5">${escHtml(l.name || '—')}</td>
+      <td style="padding:0.55rem 0.75rem;color:#5b4fff">${escHtml(l.email)}</td>
+      <td style="padding:0.55rem 0.75rem;color:#9898b8;font-size:0.78rem">${new Date(l.created_at * 1000).toLocaleString('sk-SK')}</td>
     </tr>
   `).join('');
 }
@@ -3087,11 +3087,11 @@ const INS_URG_LABELS = {
   just_browsing: '🌀 Len zisťuje',
 };
 const INS_COLORS = {
-  buying: '#16a34a', researching: '#2563eb', support: '#d97706',
+  buying: '#1fd89a', researching: '#5b4fff', support: '#fbbf24',
   comparing: '#7c3aed', just_browsing: '#94a3b8',
-  price: '#dc2626', timing: '#d97706', wrong_product: '#7c3aed',
-  trust: '#ea580c', more_info: '#0284c7', none: '#16a34a',
-  immediate: '#dc2626', within_month: '#d97706', planning: '#2563eb',
+  price: '#ff4060', timing: '#fbbf24', wrong_product: '#7c3aed',
+  trust: '#ea580c', more_info: '#0284c7', none: '#1fd89a',
+  immediate: '#ff4060', within_month: '#fbbf24', planning: '#5b4fff',
 };
 
 function setInsightPeriod(days) {
@@ -3129,10 +3129,10 @@ function renderInsights(data) {
     { label: 'Priem. dĺžka', value: data.avg_msg_count > 0 ? data.avg_msg_count + ' správ' : '—', sub: 'na konverzáciu' },
     { label: 'Unikátne témy', value: data.topics.length, sub: 'zachytených tém' },
   ].map(function(c) {
-    return '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1rem;text-align:center">' +
-      '<div style="font-size:1.5rem;font-weight:800;color:#1e293b">' + escHtml(String(c.value)) + '</div>' +
-      '<div style="font-size:0.78rem;font-weight:700;color:#374151;margin:0.2rem 0">' + escHtml(c.label) + '</div>' +
-      '<div style="font-size:0.72rem;color:#94a3b8">' + escHtml(c.sub) + '</div>' +
+    return '<div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem;text-align:center">' +
+      '<div style="font-size:1.5rem;font-weight:800;color:#eeeef5">' + escHtml(String(c.value)) + '</div>' +
+      '<div style="font-size:0.78rem;font-weight:700;color:#eeeef5;margin:0.2rem 0">' + escHtml(c.label) + '</div>' +
+      '<div style="font-size:0.72rem;color:#7e7ea0">' + escHtml(c.sub) + '</div>' +
       '</div>';
   }).join('');
 
@@ -3149,23 +3149,23 @@ function renderInsights(data) {
     const pctB = total ? Math.round((abB / total) * 100) : 0;
     abContent.innerHTML =
       '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:0.75rem">' +
-        '<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.75rem;text-align:center">' +
-          '<div style="font-size:1.3rem;font-weight:800;color:#2563eb">' + abA + '</div>' +
-          '<div style="font-size:0.78rem;font-weight:700;color:#1e40af;margin-top:0.1rem">Variant A</div>' +
-          '<div style="font-size:0.72rem;color:#64748b">Originálna správa</div>' +
+        '<div style="background:rgba(91,79,255,0.12);border:1px solid rgba(91,79,255,0.35);border-radius:8px;padding:0.75rem;text-align:center">' +
+          '<div style="font-size:1.3rem;font-weight:800;color:#5b4fff">' + abA + '</div>' +
+          '<div style="font-size:0.78rem;font-weight:700;color:#9b8cff;margin-top:0.1rem">Variant A</div>' +
+          '<div style="font-size:0.72rem;color:#9898b8">Originálna správa</div>' +
         '</div>' +
-        '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.75rem;text-align:center">' +
-          '<div style="font-size:1.3rem;font-weight:800;color:#16a34a">' + abB + '</div>' +
-          '<div style="font-size:0.78rem;font-weight:700;color:#15803d;margin-top:0.1rem">Variant B</div>' +
-          '<div style="font-size:0.72rem;color:#64748b">Alternatívna správa</div>' +
+        '<div style="background:rgba(31,216,154,0.08);border:1px solid rgba(31,216,154,0.3);border-radius:8px;padding:0.75rem;text-align:center">' +
+          '<div style="font-size:1.3rem;font-weight:800;color:#1fd89a">' + abB + '</div>' +
+          '<div style="font-size:0.78rem;font-weight:700;color:#1fd89a;margin-top:0.1rem">Variant B</div>' +
+          '<div style="font-size:0.72rem;color:#9898b8">Alternatívna správa</div>' +
         '</div>' +
       '</div>' +
-      '<div style="font-size:0.78rem;color:#64748b;margin-bottom:0.3rem">Podiel leadov</div>' +
-      '<div style="height:10px;background:#e2e8f0;border-radius:99px;overflow:hidden;display:flex">' +
-        '<div style="width:' + pctA + '%;background:#2563eb;transition:width 0.4s"></div>' +
-        '<div style="width:' + pctB + '%;background:#16a34a;transition:width 0.4s"></div>' +
+      '<div style="font-size:0.78rem;color:#9898b8;margin-bottom:0.3rem">Podiel leadov</div>' +
+      '<div style="height:10px;background:#24243a;border-radius:99px;overflow:hidden;display:flex">' +
+        '<div style="width:' + pctA + '%;background:#5b4fff;transition:width 0.4s"></div>' +
+        '<div style="width:' + pctB + '%;background:#1fd89a;transition:width 0.4s"></div>' +
       '</div>' +
-      '<div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#64748b;margin-top:0.25rem">' +
+      '<div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#9898b8;margin-top:0.25rem">' +
         '<span>A: ' + pctA + '%</span><span>B: ' + pctB + '%</span>' +
       '</div>';
   } else if (abEl) {
@@ -3190,13 +3190,13 @@ function renderInsights(data) {
           var opacity = (0.4 + (t.count / maxT) * 0.6).toFixed(2);
           return '<span style="background:rgba(91,79,255,' + opacity + ');color:white;border-radius:99px;padding:4px 12px;font-size:' + size + 'rem;font-weight:600" title="' + t.count + '×">' + escHtml(t.topic) + ' <span style="opacity:0.7;font-size:0.75em">' + t.count + '</span></span>';
         }).join('') + '</div>'
-      : '<div style="color:#94a3b8;font-size:0.85rem">Žiadne témy</div>';
+      : '<div style="color:#7e7ea0;font-size:0.85rem">Žiadne témy</div>';
   }
 
   function renderBars(containerId, rows, labelMap, colorMap) {
     var el = document.getElementById(containerId);
     if (!el) return;
-    if (!rows || !rows.length) { el.innerHTML = '<div style="color:#94a3b8;font-size:0.85rem">Žiadne dáta</div>'; return; }
+    if (!rows || !rows.length) { el.innerHTML = '<div style="color:#7e7ea0;font-size:0.85rem">Žiadne dáta</div>'; return; }
     var maxVal = rows[0].count;
     el.innerHTML = rows.map(function(r) {
       var key = Object.keys(r).find(function(k) { return k !== 'count'; });
@@ -3206,10 +3206,10 @@ function renderInsights(data) {
       var color = colorMap[val] || '#5b4fff';
       return '<div style="margin-bottom:0.65rem">' +
         '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.2rem">' +
-        '<span style="font-size:0.82rem;font-weight:600;color:#374151">' + escHtml(label) + '</span>' +
-        '<span style="font-size:0.78rem;color:#64748b;font-weight:700">' + r.count + '</span>' +
+        '<span style="font-size:0.82rem;font-weight:600;color:#eeeef5">' + escHtml(label) + '</span>' +
+        '<span style="font-size:0.78rem;color:#9898b8;font-weight:700">' + r.count + '</span>' +
         '</div>' +
-        '<div style="height:8px;background:#e2e8f0;border-radius:99px;overflow:hidden">' +
+        '<div style="height:8px;background:#24243a;border-radius:99px;overflow:hidden">' +
         '<div style="height:100%;width:' + pct + '%;background:' + color + ';border-radius:99px;transition:width 0.4s"></div>' +
         '</div></div>';
     }).join('');
@@ -3240,22 +3240,22 @@ function renderInboxList() {
   const list = document.getElementById('inbox-list');
   if (!list) return;
   if (!_inboxConvs.length) {
-    list.innerHTML = '<div style="padding:2rem 1rem;text-align:center;color:#94a3b8;font-size:0.875rem">Žiadne konverzácie</div>';
+    list.innerHTML = '<div style="padding:2rem 1rem;text-align:center;color:#7e7ea0;font-size:0.875rem">Žiadne konverzácie</div>';
     return;
   }
   list.innerHTML = _inboxConvs.map(c => {
     const lastMsg = c.last_msg ? c.last_msg.slice(0, 60) + (c.last_msg.length > 60 ? '…' : '') : '—';
     const dt = c.last_msg_at ? new Date(c.last_msg_at * 1000).toLocaleDateString('sk-SK', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '';
-    const live = c.live_agent ? '<span style="background:#dcfce7;color:#16a34a;font-size:0.65rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:99px;margin-left:0.35rem">LIVE</span>' : '';
+    const live = c.live_agent ? '<span style="background:rgba(31,216,154,0.14);color:#1fd89a;font-size:0.65rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:99px;margin-left:0.35rem">LIVE</span>' : '';
     const isActive = c.id === _activeConvId;
     return `<div data-conv-id="${escHtml(c.id)}"
-      style="padding:0.7rem 1rem;cursor:pointer;border-bottom:1px solid #f1f5f9;${isActive ? 'background:#eff6ff;border-left:3px solid #2563eb;' : ''}transition:background 0.1s">
+      style="padding:0.7rem 1rem;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.06);${isActive ? 'background:rgba(91,79,255,0.12);border-left:3px solid #5b4fff;' : ''}transition:background 0.1s">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.2rem">
-        <span style="font-size:0.8rem;font-weight:700;color:#1e293b">${escHtml(c.lead_name || c.session_id.slice(0,12)+'…')}${live}</span>
-        <span style="font-size:0.7rem;color:#94a3b8;white-space:nowrap">${dt}</span>
+        <span style="font-size:0.8rem;font-weight:700;color:#eeeef5">${escHtml(c.lead_name || c.session_id.slice(0,12)+'…')}${live}</span>
+        <span style="font-size:0.7rem;color:#7e7ea0;white-space:nowrap">${dt}</span>
       </div>
-      <div style="font-size:0.75rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(lastMsg)}</div>
-      <div style="font-size:0.7rem;color:#94a3b8;margin-top:0.15rem">${c.msg_count} správ</div>
+      <div style="font-size:0.75rem;color:#9898b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(lastMsg)}</div>
+      <div style="font-size:0.7rem;color:#7e7ea0;margin-top:0.15rem">${c.msg_count} správ</div>
     </div>`;
   }).join('');
 
@@ -3306,7 +3306,7 @@ async function openConversation(convId) {
       const isUser = m.role === 'user';
       return `<div style="display:flex;${isUser ? 'justify-content:flex-end' : ''}">
         <div style="max-width:75%;padding:0.55rem 0.8rem;border-radius:${isUser ? '14px 14px 4px 14px' : '14px 14px 14px 4px'};
-          background:${isUser ? '#2563eb' : '#e2e8f0'};color:${isUser ? '#fff' : '#1e293b'};font-size:0.84rem;line-height:1.45;word-break:break-word">
+          background:${isUser ? '#5b4fff' : '#24243a'};color:${isUser ? '#fff' : '#eeeef5'};font-size:0.84rem;line-height:1.45;word-break:break-word">
           ${escHtml(m.content)}
         </div>
       </div>`;
@@ -3357,7 +3357,7 @@ async function sendAgentMessage() {
   if (msgsEl) {
     msgsEl.insertAdjacentHTML('beforeend', `
       <div style="display:flex;justify-content:flex-end">
-        <div style="max-width:75%;padding:0.55rem 0.8rem;border-radius:14px 14px 4px 14px;background:#2563eb;color:#fff;font-size:0.84rem;line-height:1.45;word-break:break-word">${escHtml(text)}</div>
+        <div style="max-width:75%;padding:0.55rem 0.8rem;border-radius:14px 14px 4px 14px;background:#5b4fff;color:#fff;font-size:0.84rem;line-height:1.45;word-break:break-word">${escHtml(text)}</div>
       </div>`);
     msgsEl.scrollTop = msgsEl.scrollHeight;
   }
@@ -3540,10 +3540,10 @@ async function loadTeam() {
   empty.style.display = 'none';
   const ROLE_LABELS = { readonly: 'Čítanie', editor: 'Editor' };
   list.innerHTML = members.map(m => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.75rem;background:#f8fafc;border-radius:8px;gap:0.5rem">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.75rem;background:#111120;border-radius:8px;gap:0.5rem">
       <div>
-        <div style="font-size:0.875rem;font-weight:600;color:#1e293b">${escHtml(m.email)}</div>
-        <div style="font-size:0.75rem;color:#64748b">${ROLE_LABELS[m.role] || m.role} · ${m.accepted ? '✅ Prijatý' : '⏳ Čakajúci'}</div>
+        <div style="font-size:0.875rem;font-weight:600;color:#eeeef5">${escHtml(m.email)}</div>
+        <div style="font-size:0.75rem;color:#9898b8">${ROLE_LABELS[m.role] || m.role} · ${m.accepted ? '✅ Prijatý' : '⏳ Čakajúci'}</div>
       </div>
       <button class="btn btn-sm btn-secondary" onclick="deleteTeamMember('${escHtml(m.id)}')">Odstraniť</button>
     </div>`).join('');
@@ -3668,20 +3668,20 @@ async function loadFacebookSessions() {
   const list = document.getElementById('fb-sessions-list');
   if (!list) return;
   if (!sessions.length) {
-    list.innerHTML = '<div style="font-size:0.875rem;color:#94a3b8;padding:1rem 0">Zatiaľ žiadne Messenger konverzácie.</div>';
+    list.innerHTML = '<div style="font-size:0.875rem;color:#7e7ea0;padding:1rem 0">Zatiaľ žiadne Messenger konverzácie.</div>';
     return;
   }
   list.innerHTML = sessions.map(s => {
-    const live = s.live_agent ? '<span style="background:#dcfce7;color:#16a34a;font-size:0.65rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:99px;margin-left:0.4rem">LIVE</span>' : '';
+    const live = s.live_agent ? '<span style="background:rgba(31,216,154,0.14);color:#1fd89a;font-size:0.65rem;font-weight:700;padding:0.15rem 0.4rem;border-radius:99px;margin-left:0.4rem">LIVE</span>' : '';
     const dt = s.updated_at ? new Date(s.updated_at * 1000).toLocaleString('sk-SK', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
     const lastMsg = s.last_msg ? s.last_msg.slice(0,60) + (s.last_msg.length > 60 ? '…' : '') : '—';
-    return `<div style="padding:0.65rem 0.75rem;border-bottom:1px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
+    return `<div style="padding:0.65rem 0.75rem;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:space-between;gap:0.75rem">
       <div style="flex:1;min-width:0">
-        <div style="font-size:0.85rem;font-weight:700;color:#1e293b">${escHtml(s.sender_name || s.sender_id)}${live}</div>
-        <div style="font-size:0.75rem;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(lastMsg)}</div>
+        <div style="font-size:0.85rem;font-weight:700;color:#eeeef5">${escHtml(s.sender_name || s.sender_id)}${live}</div>
+        <div style="font-size:0.75rem;color:#9898b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escHtml(lastMsg)}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.25rem;flex-shrink:0">
-        <span style="font-size:0.7rem;color:#94a3b8">${dt}</span>
+        <span style="font-size:0.7rem;color:#7e7ea0">${dt}</span>
         <button class="btn btn-sm btn-secondary" style="font-size:0.72rem" onclick="toggleFbTakeover('${escHtml(s.id)}','${escHtml(currentWidget.id)}',${s.live_agent ? 1 : 0})">
           ${s.live_agent ? 'Odovzdať AI' : 'Prevziať'}
         </button>
@@ -3833,11 +3833,11 @@ function switchAccTab(tab) {
   document.getElementById('acc-panel-pw').style.display = isPw ? '' : 'none';
   document.getElementById('acc-panel-email').style.display = isPw ? 'none' : '';
   document.getElementById('acc-tab-pw').style.cssText = isPw
-    ? 'flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit'
-    : 'flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
+    ? 'flex:1;background:#5b4fff;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit'
+    : 'flex:1;background:none;color:#9898b8;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
   document.getElementById('acc-tab-email').style.cssText = isPw
-    ? 'flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit'
-    : 'flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
+    ? 'flex:1;background:none;color:#9898b8;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit'
+    : 'flex:1;background:#5b4fff;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit';
 }
 
 async function doChangePassword() {
