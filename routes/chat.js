@@ -4,9 +4,9 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb, searchKnowledge } = require('../db/database');
 const { streamChatResponse, summarizeConversation, analyzeConversationTrends } = require('../services/claude');
-const { sendLeadNotification, sendUsageNotification } = require('../services/email');
-const { nextMonthReset, maybeResetUsage } = require('./credits');
-const { accessOf, ownerAccess } = require('../middleware/subscription');
+const { sendLeadNotification } = require('../services/email');
+const { ownerAccess } = require('../middleware/subscription');
+const { checkUsage, recordResponse } = require('../services/usage');
 const { takeHandoffToken, notifyHandoff } = require('../services/handoff');
 
 const router = express.Router();
@@ -151,27 +151,17 @@ router.post('/:widgetId/chat', async (req, res) => {
     return res.status(404).json({ error: 'Widget nenájdený.' });
   }
 
-  // Check monthly usage limit
-  const owner = db.prepare(
-    'SELECT id, email, name, ai_responses_this_month, ai_responses_reset_at, extra_response_credits, usage_notified_80, usage_notified_100, subscription_status, free_until, trial_until FROM users WHERE id = ?'
-  ).get(widget.user_id);
-  const access = accessOf(owner);
-  const responseLimit = access.responseLimit;
-
-  if (!access.hasAccess) {
+  // Subscription / trial access + monthly usage limit
+  const usage = checkUsage(widget.user_id);
+  const { owner, access } = usage;
+  if (usage.code === 'NO_SUBSCRIPTION') {
     return res.status(403).json({ error: 'Chatbot momentálne nie je aktívny.', code: 'NO_SUBSCRIPTION' });
   }
-
-  if (owner) {
-    const thisMonth = maybeResetUsage(db, owner.id, owner);
-    const extra = owner.extra_response_credits || 0;
-
-    if (thisMonth >= responseLimit && extra <= 0) {
-      return res.status(402).json({
-        error: 'Mesačný limit AI odpovedí bol vyčerpaný. Vlastník chatbota si musí dobiť kredity.',
-        code: 'LIMIT_REACHED',
-      });
-    }
+  if (usage.code === 'LIMIT_REACHED') {
+    return res.status(402).json({
+      error: 'Mesačný limit AI odpovedí bol vyčerpaný. Vlastník chatbota si musí dobiť kredity.',
+      code: 'LIMIT_REACHED',
+    });
   }
 
   const { message, sessionId, history = [], pageContext } = req.body;
@@ -242,32 +232,7 @@ router.post('/:widgetId/chat', async (req, res) => {
         uuidv4(), conversation.id, 'assistant', fullText
       );
 
-      // Increment usage (base first, then extra)
-      const freshOwner = db.prepare(
-        'SELECT ai_responses_this_month, extra_response_credits, usage_notified_80, usage_notified_100 FROM users WHERE id = ?'
-      ).get(owner.id);
-      const currentMonth = freshOwner.ai_responses_this_month || 0;
-      const currentExtra = freshOwner.extra_response_credits || 0;
-
-      if (currentMonth < responseLimit) {
-        db.prepare('UPDATE users SET ai_responses_this_month = ai_responses_this_month + 1 WHERE id = ?').run(owner.id);
-      } else if (currentExtra > 0) {
-        db.prepare('UPDATE users SET extra_response_credits = extra_response_credits - 1 WHERE id = ?').run(owner.id);
-      }
-
-      // Usage notifications (async)
-      const newCount = currentMonth + 1;
-      setImmediate(() => {
-        try {
-          if (newCount >= responseLimit && !freshOwner.usage_notified_100) {
-            db.prepare('UPDATE users SET usage_notified_100 = 1 WHERE id = ?').run(owner.id);
-            sendUsageNotification({ toEmail: owner.email, ownerName: owner.name, pct: 100, extra: currentExtra }).catch(() => {});
-          } else if (newCount >= responseLimit * 0.8 && !freshOwner.usage_notified_80) {
-            db.prepare('UPDATE users SET usage_notified_80 = 1 WHERE id = ?').run(owner.id);
-            sendUsageNotification({ toEmail: owner.email, ownerName: owner.name, pct: 80, extra: currentExtra }).catch(() => {});
-          }
-        } catch { /* ignore */ }
-      });
+      recordResponse(owner, access);
 
       // Anonymous trend insight — trigger once per conversation after 3 full exchanges (6 msgs)
       setImmediate(async () => {

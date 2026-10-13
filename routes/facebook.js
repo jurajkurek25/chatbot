@@ -6,7 +6,8 @@ const { v4: uuidv4 } = require('uuid');
 const { requireAuth } = require('../middleware/auth');
 const { getDb, searchKnowledge } = require('../db/database');
 const { getChatResponseText } = require('../services/claude');
-const { ownerAccess } = require('../middleware/subscription');
+const { checkUsage, recordResponse } = require('../services/usage');
+const { verifyMetaSignature } = require('../middleware/metaSignature');
 
 const router = express.Router();
 
@@ -209,7 +210,7 @@ router.get('/:widgetId/webhook', (req, res) => {
 /* ─────────────────────────────────────────────────────────────────
    6. POST /:widgetId/webhook  — Facebook webhook event handler
 ────────────────────────────────────────────────────────────────── */
-router.post('/:widgetId/webhook', (req, res) => {
+router.post('/:widgetId/webhook', verifyMetaSignature, (req, res) => {
   // Respond immediately — Facebook requires a fast 200 OK
   res.sendStatus(200);
 
@@ -291,7 +292,8 @@ async function handleFbDM(widgetId, senderId, pageId, msgData) {
   // Fetch widget + knowledge for Claude
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ?').get(conn.widget_id);
   if (!widget) return;
-  if (!ownerAccess(widget.user_id).hasAccess) return; // subscription / trial ended
+  const usage = checkUsage(widget.user_id);
+  if (!usage.ok) return; // subscription / trial ended or monthly limit used up
 
   const knowledgeItems = searchKnowledge(widget.id, text);
 
@@ -300,6 +302,7 @@ async function handleFbDM(widgetId, senderId, pageId, msgData) {
 
   // Send reply via Facebook Send API
   await sendFbMessage(senderId, response, conn.page_access_token);
+  recordResponse(usage.owner, usage.access);
 
   // Persist updated history (keep last 40 messages)
   history.push({ role: 'user', content: text });

@@ -39,7 +39,8 @@ app.use(compression());
 // Stripe webhook MUST receive raw body — mount before express.json()
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
-app.use(express.json({ limit: '10mb' }));
+// rawBody is kept for webhook signature checks (Meta)
+app.use(express.json({ limit: '10mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // widget.js: short cache so customers always get fresh translations

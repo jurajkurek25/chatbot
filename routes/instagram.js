@@ -14,7 +14,8 @@ const {
   graphRequestDirect,
 } = require('../services/instagram');
 const { getChatResponseText } = require('../services/claude');
-const { ownerAccess } = require('../middleware/subscription');
+const { checkUsage, recordResponse } = require('../services/usage');
+const { verifyMetaSignature } = require('../middleware/metaSignature');
 
 const router = express.Router();
 
@@ -183,7 +184,7 @@ router.get('/webhook', (req, res) => {
 });
 
 /* ── POST /api/instagram/webhook — incoming events ──────────────── */
-router.post('/webhook', async (req, res) => {
+router.post('/webhook', verifyMetaSignature, async (req, res) => {
   // Always respond 200 immediately so Meta doesn't retry
   res.sendStatus(200);
 
@@ -285,7 +286,8 @@ async function handleIncomingDM(igUserId, msgData) {
   // Fetch widget + knowledge
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ?').get(conn.widget_id);
   if (!widget) return;
-  if (!ownerAccess(widget.user_id).hasAccess) return; // subscription / trial ended
+  const usage = checkUsage(widget.user_id);
+  if (!usage.ok) return; // subscription / trial ended or monthly limit used up
 
   const knowledgeItems = searchKnowledge(widget.id, text);
 
@@ -294,6 +296,7 @@ async function handleIncomingDM(igUserId, msgData) {
 
   // Send DM
   await sendDM(igUserId, senderId, response, conn.page_access_token);
+  recordResponse(usage.owner, usage.access);
 
   // Update history (keep last 20 messages)
   history.push({ role: 'user', content: text });
