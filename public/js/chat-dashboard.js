@@ -2,7 +2,7 @@
    prílohy na Disk, správa → úloha, prepojenia a videohovor (Jitsi). Používa NW.suite, NW.rt, esc, showToast. */
 (function () {
   'use strict';
-  const C = '/api/chat';
+  const C = '/api/teamchat';
   const $ = id => document.getElementById(id);
   const su = () => window.NW.suite;
   const qs = (path, params) => { const p = new URLSearchParams(params).toString(); return p ? `${path}?${p}` : path; };

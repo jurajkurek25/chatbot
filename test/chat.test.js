@@ -6,13 +6,13 @@ const jwt = require('jsonwebtoken');
 const { extraRoutes, startApp, newUser, getDb, mails, wait } = require('./helpers');
 
 extraRoutes.push(
-  { path: '/api/chat', module: '../routes/chat' }, { path: '/api/meet', module: '../routes/meet' },
+  { path: '/api/teamchat', module: '../routes/teamchat' }, { path: '/api/meet', module: '../routes/meet' },
   { path: '/api/tasks', module: '../routes/tasks' },
 );
 
 describe('tímový chat a videohovory', () => {
   let ctx, owner, eva, rado, stranger, general;
-  const C = '/api/chat';
+  const C = '/api/teamchat';
   const as = (u, m, p, b) => u.api(m, `${p}${p.includes('?') ? '&' : '?'}ws=${owner.id}`, b);
   const until = async (fn, ms = 2000) => { const end = Date.now() + ms; while (Date.now() < end) { if (await fn()) return true; await wait(20); } return false; };
   async function listen(u) {
