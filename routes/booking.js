@@ -11,6 +11,7 @@ const gcal = require('../services/gcal');
 const core = require('../services/bookingCore');
 const notifyMod = require('../services/bookingNotify');
 const wellbeing = require('../services/wellbeing');
+const bookingPayments = require('../services/bookingPayments');
 
 const logoStorage = multer.diskStorage({
   destination(req, file, cb) {
@@ -167,25 +168,39 @@ async function createBooking(cfg, widgetId, body) {
   const slot = slots.find(s => s.start_time === startTime);
   if (!slot) return { status: 409, error: 'Termín nie je dostupný. Vyberte iný čas.' };
 
+  if (service.capacity > 1 && seats > (slot.seats_left || 1)) return { status: 409, error: 'Nedostatok voľných miest.' };
+  const amountDue = bookingPayments.canCharge(widgetId) ? bookingPayments.amountFor(service, seats) : 0;
+
   const id = uuidv4();
   const manageToken = core.newToken();
   db.prepare(`
     INSERT INTO bookings (id, booking_config_id, widget_id, customer_name, customer_email, customer_phone,
       date, start_time, end_time, status, session_id, service_id, service_name, staff_id, manage_token,
-      answers, seats, start_utc, end_utc, buffer_before, buffer_after, location_type, location_detail, notes)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'confirmed', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      answers, seats, start_utc, end_utc, buffer_before, buffer_after, location_type, location_detail, notes,
+      payment_status, amount_due, currency)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, cfg.id, widgetId, String(customerName).trim().slice(0, 120), String(customerEmail).trim().slice(0, 200),
          customerPhone ? String(customerPhone).trim().slice(0, 40) : null,
-         date, slot.start_time, slot.end_time, sessionId || null, service.id, service.name || serviceName || null,
+         date, slot.start_time, slot.end_time, amountDue ? 'pending_payment' : 'confirmed', sessionId || null, service.id, service.name || serviceName || null,
          slot.staff_id, manageToken, JSON.stringify(collected.answers), seats,
          core.zonedToUtc(date, slot.start_time, cfg.timezone), core.zonedToUtc(date, slot.end_time, cfg.timezone),
          service.buffer_before || 0, service.buffer_after || 0, service.location_type || null, service.location_detail || null,
-         String(notes || '').slice(0, 1000));
+         String(notes || '').slice(0, 1000), amountDue ? 'pending' : 'none', amountDue, amountDue ? (service.currency || 'EUR') : null);
 
   const booking = db.prepare('SELECT * FROM bookings WHERE id = ?').get(id);
   const staff = db.prepare('SELECT * FROM booking_staff WHERE id = ?').get(slot.staff_id);
-  setImmediate(() => gcal.createEvent(withTz(staff, cfg), booking).catch(() => {}));
   if (sessionId) generateBookingSummary(id, sessionId, widgetId, booking.service_name);
+  if (amountDue) {
+    // Held until paid: calendar event and confirmation e-mail follow the payment
+    try {
+      return { booking, staff, checkoutUrl: await bookingPayments.startCheckout(booking, service) };
+    } catch (e) {
+      console.error('[booking checkout]', e.message);
+      db.prepare("UPDATE bookings SET status = 'expired', payment_status = 'expired' WHERE id = ?").run(id);
+      return { status: 502, error: 'Platbu sa nepodarilo spustiť. Skúste to prosím znova.' };
+    }
+  }
+  setImmediate(() => gcal.createEvent(withTz(staff, cfg), booking).catch(() => {}));
   notify('confirmed', id);
   return { booking, staff };
 }
@@ -238,10 +253,11 @@ function policy(cfg, booking) {
   return { canCancel: !!cfg.allow_cancel && open, canReschedule: !!cfg.allow_reschedule && open, deadline, cancelHours: cfg.cancel_hours };
 }
 
-router.get('/manage/:token', (req, res) => {
+router.get('/manage/:token', async (req, res) => {
   const ctx = loadByToken(req.params.token);
   if (!ctx) return res.status(404).json({ error: 'Rezervácia nenájdená.' });
-  const { booking: b, cfg } = ctx;
+  const { cfg } = ctx;
+  const b = await bookingPayments.syncFromStripe(ctx.booking);
   const db = getDb();
   const staff = b.staff_id && db.prepare('SELECT name FROM booking_staff WHERE id = ?').get(b.staff_id);
   const widget = db.prepare('SELECT bot_name, primary_color FROM widgets WHERE id = ?').get(b.widget_id) || {};
@@ -251,7 +267,9 @@ router.get('/manage/:token', (req, res) => {
     customCss: cfg.custom_css || '', widgetId: b.widget_id, timezone: cfg.timezone,
     booking: { status: b.status, date: b.date, startTime: b.start_time, endTime: b.end_time, startUtc: b.start_utc,
       serviceName: b.service_name, staffName: staff?.name || null, customerName: b.customer_name, seats: b.seats,
-      locationType: b.location_type, locationDetail: b.location_detail },
+      locationType: b.location_type, locationDetail: b.location_detail,
+      paymentStatus: b.payment_status, amountPaid: b.amount_paid / 100, amountRefunded: b.amount_refunded / 100, currency: b.currency },
+    refundPolicy: cfg.refund_policy,
     calendar: notifyMod.calendarLinks(notifyMod.loadContext(b.id)),
     ...policy(cfg, b),
   });
@@ -274,12 +292,20 @@ router.get('/manage/:token/slots', async (req, res) => {
     date: req.query.date, seats: ctx.booking.seats || 1, excludeBookingId: ctx.booking.id, busyFor: busyFor(ctx.cfg) }));
 });
 
-router.post('/manage/:token/cancel', (req, res) => {
+router.post('/manage/:token/cancel', async (req, res) => {
   const ctx = loadByToken(req.params.token);
   if (!ctx) return res.status(404).json({ error: 'Rezervácia nenájdená.' });
   if (!policy(ctx.cfg, ctx.booking).canCancel) return res.status(403).json({ error: `Rezerváciu už nie je možné zrušiť online (najneskôr ${ctx.cfg.cancel_hours} h vopred).` });
-  cancelBooking(ctx.cfg, ctx.booking, { by: 'customer', reason: req.body?.reason });
-  res.json({ ok: true });
+  await cancelBooking(ctx.cfg, ctx.booking, { by: 'customer', reason: req.body?.reason });
+  const b = getDb().prepare('SELECT amount_refunded FROM bookings WHERE id = ?').get(ctx.booking.id);
+  res.json({ ok: true, refunded: b.amount_refunded / 100 });
+});
+
+/** Customer left Stripe Checkout without paying: release the held slot, back to the booking page. */
+router.get('/pay/cancel/:token', (req, res) => {
+  const ctx = loadByToken(req.params.token);
+  if (ctx && ctx.booking.status === 'pending_payment') bookingPayments.release(ctx.booking.id);
+  res.redirect(ctx ? `/book/${ctx.booking.widget_id}?payment=cancelled` : '/');
 });
 
 router.post('/manage/:token/reschedule', async (req, res) => {
@@ -419,15 +445,17 @@ router.get('/:widgetId/public/config', (req, res) => {
 
   const links = db.prepare('SELECT service_id, staff_id FROM booking_service_staff').all();
   const services = db.prepare(
-    `SELECT id, name, description, duration_mins, price, currency, capacity, location_type, location_detail, questions
+    `SELECT id, name, description, duration_mins, price, currency, capacity, location_type, location_detail, questions, payment_mode, deposit_amount
      FROM booking_services WHERE booking_config_id = ? AND active = 1 ORDER BY display_order, name`
   ).all(cfg.id).map(s => {
+    const online = bookingPayments.canCharge(req.params.widgetId) && bookingPayments.amountFor(s) > 0;
     const ids = links.filter(l => l.service_id === s.id).map(l => l.staff_id);
     return {
       ...s, questions: parseJSON(s.questions, []),
       // the meeting link is only sent after booking
       location_detail: s.location_type === 'online' ? '' : s.location_detail,
       staffIds: ids.length ? ids.filter(id => staff.some(st => st.id === id)) : staff.map(st => st.id),
+      payment_mode: online ? s.payment_mode : 'none', pay_now: online ? bookingPayments.amountFor(s) / 100 : 0,
     };
   });
 
@@ -440,6 +468,8 @@ router.get('/:widgetId/public/config', (req, res) => {
     minNoticeMins:      cfg.min_notice,
     maxAdvanceDays:     cfg.max_advance_days,
     confirmationMessage: cfg.confirmation_message,
+    refundPolicy:       cfg.refund_policy,
+    cancelHours:        cfg.cancel_hours,
     staffSelection:     staff.length > 1 ? cfg.staff_selection : 'none',
     requirePhone:       !!cfg.require_phone,
     customCss:          cfg.custom_css || '',
@@ -469,6 +499,7 @@ router.post('/:widgetId/public/book', async (req, res) => {
   const r = await createBooking(pw.cfg, pw.widget.id, req.body || {});
   if (r.error) return res.status(r.status).json({ error: r.error });
   const b = r.booking;
+  if (r.checkoutUrl) return res.json({ id: b.id, checkoutUrl: r.checkoutUrl, amountDue: b.amount_due / 100, currency: b.currency });
   res.json({
     id:          b.id,
     date:        b.date,
@@ -527,6 +558,8 @@ function serviceFields(body, prev = {}) {
     location_type: LOCATION_TYPES.includes(body.locationType) ? body.locationType : (prev.location_type || 'in_person'),
     location_detail: body.locationDetail !== undefined ? String(body.locationDetail).trim().slice(0, 500) : (prev.location_detail || ''),
     questions: body.questions !== undefined ? cleanQuestions(body.questions) : (prev.questions || '[]'),
+    payment_mode: ['none', 'full', 'deposit'].includes(body.paymentMode) ? body.paymentMode : (prev.payment_mode || 'none'),
+    deposit_amount: body.depositAmount !== undefined ? (body.depositAmount === '' || body.depositAmount === null ? null : Math.max(0, parseFloat(body.depositAmount) || 0)) : (prev.deposit_amount ?? null),
   };
 }
 
@@ -554,10 +587,10 @@ router.post('/:widgetId/services', auth, (req, res) => {
   const id = uuidv4();
   getDb().prepare(`
     INSERT INTO booking_services (id, booking_config_id, name, description, duration_mins, price, currency, display_order, active,
-      buffer_before, buffer_after, capacity, location_type, location_detail, questions)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      buffer_before, buffer_after, capacity, location_type, location_detail, questions, payment_mode, deposit_amount)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(id, req.cfg.id, f.name, f.description, f.duration_mins, f.price, f.currency, f.display_order, f.active,
-         f.buffer_before, f.buffer_after, f.capacity, f.location_type, f.location_detail, f.questions);
+         f.buffer_before, f.buffer_after, f.capacity, f.location_type, f.location_detail, f.questions, f.payment_mode, f.deposit_amount);
   setServiceStaff(req.cfg, id, req.body.staffIds);
   res.json({ ok: true, id });
 });
@@ -570,9 +603,9 @@ router.put('/:widgetId/services/:serviceId', auth, (req, res) => {
   const f = serviceFields(req.body, svc);
   db.prepare(`
     UPDATE booking_services SET name=?, description=?, duration_mins=?, price=?, currency=?, active=?, display_order=?,
-      buffer_before=?, buffer_after=?, capacity=?, location_type=?, location_detail=?, questions=? WHERE id=?
+      buffer_before=?, buffer_after=?, capacity=?, location_type=?, location_detail=?, questions=?, payment_mode=?, deposit_amount=? WHERE id=?
   `).run(f.name || svc.name, f.description, f.duration_mins, f.price, f.currency, f.active, f.display_order,
-         f.buffer_before, f.buffer_after, f.capacity, f.location_type, f.location_detail, f.questions, svc.id);
+         f.buffer_before, f.buffer_after, f.capacity, f.location_type, f.location_detail, f.questions, f.payment_mode, f.deposit_amount, svc.id);
   setServiceStaff(req.cfg, svc.id, req.body.staffIds);
   res.json({ ok: true });
 });
@@ -602,7 +635,8 @@ router.put('/:widgetId/config', auth, (req, res) => {
     UPDATE booking_configs SET
       timezone = ?, slot_duration = ?, buffer_between = ?, min_notice = ?, max_advance_days = ?, confirmation_message = ?,
       design_config = ?, slot_interval = ?, cancel_hours = ?, allow_cancel = ?, allow_reschedule = ?,
-      reminders_customer = ?, reminders_staff = ?, notify_staff = ?, custom_css = ?, staff_selection = ?, require_phone = ?
+      reminders_customer = ?, reminders_staff = ?, notify_staff = ?, custom_css = ?, staff_selection = ?, require_phone = ?,
+      refund_policy = ?
     WHERE id = ?
   `).run(
     b.timezone || cfg.timezone,
@@ -623,6 +657,7 @@ router.put('/:widgetId/config', auth, (req, res) => {
     b.customCss !== undefined ? String(b.customCss).replace(/<\/?style/gi, '').slice(0, 20000) : cfg.custom_css,
     ['choose', 'any'].includes(b.staffSelection) ? b.staffSelection : cfg.staff_selection,
     b.requirePhone !== undefined ? (b.requirePhone ? 1 : 0) : cfg.require_phone,
+    ['full', 'none'].includes(b.refundPolicy) ? b.refundPolicy : cfg.refund_policy,
     cfg.id
   );
   res.json({ ok: true });
@@ -880,7 +915,7 @@ router.patch('/:widgetId/bookings/:bookingId', auth, async (req, res) => {
     if (r.error) return res.status(r.status).json({ error: r.error });
   }
   if (status === 'cancelled' && booking.status !== 'cancelled') {
-    cancelBooking(req.cfg, booking, { by: 'owner', reason });
+    await cancelBooking(req.cfg, booking, { by: 'owner', reason });
   } else if (status && ['confirmed', 'no_show', 'completed'].includes(status)) {
     db.prepare('UPDATE bookings SET status = ? WHERE id = ?').run(status, booking.id);
   }

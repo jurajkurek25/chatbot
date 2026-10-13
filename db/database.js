@@ -350,6 +350,18 @@ function initDatabase() {
       staff_id TEXT NOT NULL REFERENCES booking_staff(id) ON DELETE CASCADE,
       PRIMARY KEY (service_id, staff_id)
     );
+    CREATE TABLE IF NOT EXISTS merchant_payments (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      mode TEXT,
+      stripe_account_id TEXT,
+      account_name TEXT,
+      secret_key_enc TEXT,
+      publishable_key TEXT,
+      webhook_id TEXT,
+      webhook_secret_enc TEXT,
+      currency TEXT NOT NULL DEFAULT 'EUR',
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
     CREATE TABLE IF NOT EXISTS booking_notifications (
       booking_id TEXT NOT NULL,
       kind TEXT NOT NULL,
@@ -480,6 +492,17 @@ function initDatabase() {
     `ALTER TABLE booking_staff ADD COLUMN burnout_alert_at INTEGER`,
     `ALTER TABLE booking_time_off ADD COLUMN reason TEXT NOT NULL DEFAULT 'other'`,
     `ALTER TABLE booking_time_off ADD COLUMN private INTEGER NOT NULL DEFAULT 0`,
+    // Payments (paid bookings)
+    `ALTER TABLE booking_services ADD COLUMN payment_mode TEXT NOT NULL DEFAULT 'none'`,
+    `ALTER TABLE booking_services ADD COLUMN deposit_amount REAL`,
+    `ALTER TABLE booking_configs ADD COLUMN refund_policy TEXT NOT NULL DEFAULT 'full'`,
+    `ALTER TABLE bookings ADD COLUMN payment_status TEXT NOT NULL DEFAULT 'none'`,
+    `ALTER TABLE bookings ADD COLUMN amount_due INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE bookings ADD COLUMN amount_paid INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE bookings ADD COLUMN amount_refunded INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE bookings ADD COLUMN currency TEXT`,
+    `ALTER TABLE bookings ADD COLUMN stripe_session_id TEXT`,
+    `ALTER TABLE bookings ADD COLUMN stripe_payment_intent TEXT`,
     `ALTER TABLE widgets ADD COLUMN cta_type TEXT NOT NULL DEFAULT 'contact'`,
     `ALTER TABLE widgets ADD COLUMN avatar_url TEXT`,
     `ALTER TABLE widgets ADD COLUMN proactive_enabled INTEGER NOT NULL DEFAULT 0`,

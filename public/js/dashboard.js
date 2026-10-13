@@ -125,12 +125,14 @@ function showView(view) {
   document.getElementById('view-leads').style.display = view === 'leads' ? '' : 'none';
   document.getElementById('view-affiliate').style.display = view === 'affiliate' ? '' : 'none';
   document.getElementById('view-coach').style.display = view === 'coach' ? '' : 'none';
+  document.getElementById('view-payments').style.display = view === 'payments' ? '' : 'none';
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
   document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
   document.getElementById('nav-leads').classList.toggle('active', view === 'leads');
   document.getElementById('nav-affiliate').classList.toggle('active', view === 'affiliate');
   document.getElementById('nav-coach').classList.toggle('active', view === 'coach');
+  document.getElementById('nav-payments').classList.toggle('active', view === 'payments');
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
@@ -146,6 +148,11 @@ function showView(view) {
     document.getElementById('topbar-title').textContent = 'Affiliate';
     document.getElementById('topbar-actions').innerHTML = '';
     loadAffiliateStatus();
+  }
+  if (view === 'payments') {
+    document.getElementById('topbar-title').textContent = 'Platby';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadPayments();
   }
   if (view === 'coach') {
     document.getElementById('topbar-title').textContent = 'AI Coach';
@@ -2247,6 +2254,7 @@ async function loadBookingConfig() {
   document.getElementById('bk-allow-reschedule').checked = !!data.allow_reschedule;
   document.getElementById('bk-require-phone').checked = !!data.require_phone;
   document.getElementById('bk-notify-staff').checked = !!data.notify_staff;
+  document.getElementById('bk-refund-policy').value = data.refund_policy || 'full';
   document.getElementById('bk-custom-css').value = data.custom_css || '';
   renderReminderOptions(data);
   try { loadBookingDesign(JSON.parse(data.design_config || '{}')); } catch {}
@@ -2416,6 +2424,7 @@ async function saveBookingConfig() {
     allowReschedule:     document.getElementById('bk-allow-reschedule').checked,
     requirePhone:        document.getElementById('bk-require-phone').checked,
     notifyStaff:         document.getElementById('bk-notify-staff').checked,
+    refundPolicy:        document.getElementById('bk-refund-policy').value,
     remindersCustomer:   [...document.querySelectorAll('[data-rem="customer"] input:checked')].map(i => +i.value),
     remindersStaff:      [...document.querySelectorAll('[data-rem="staff"] input:checked')].map(i => +i.value),
   };
@@ -2473,7 +2482,7 @@ function renderServicesList() {
       <div>
         <strong style="font-size:0.875rem">${escHtml(s.name)}</strong>${activeLabel}
         ${s.description ? `<div style="font-size:0.78rem;color:#9898b8">${escHtml(s.description)}</div>` : ''}
-        <div style="font-size:0.75rem;color:#7e7ea0;margin-top:2px">⏱ ${s.duration_mins} min &nbsp;·&nbsp; 💶 ${esc(price)}${s.capacity > 1 ? ` &nbsp;·&nbsp; 👥 ${s.capacity}` : ''}${s.buffer_before || s.buffer_after ? ` &nbsp;·&nbsp; ⏸ ${s.buffer_before}/${s.buffer_after} min` : ''}${s.questions?.length ? ` &nbsp;·&nbsp; ❓ ${s.questions.length}` : ''}${s.staff_ids?.length ? ` &nbsp;·&nbsp; 👤 ${s.staff_ids.map(id => esc(_bookingStaff.find(x => x.id === id)?.name || '')).filter(Boolean).join(', ')}` : ''}</div>
+        <div style="font-size:0.75rem;color:#7e7ea0;margin-top:2px">⏱ ${s.duration_mins} min &nbsp;·&nbsp; 💶 ${esc(price)}${s.capacity > 1 ? ` &nbsp;·&nbsp; 👥 ${s.capacity}` : ''}${s.buffer_before || s.buffer_after ? ` &nbsp;·&nbsp; ⏸ ${s.buffer_before}/${s.buffer_after} min` : ''}${s.questions?.length ? ` &nbsp;·&nbsp; ❓ ${s.questions.length}` : ''}${s.payment_mode === 'full' ? ' &nbsp;·&nbsp; 💳 platba vopred' : s.payment_mode === 'deposit' ? ` &nbsp;·&nbsp; 💳 záloha ${s.deposit_amount || 0} ${esc(s.currency)}` : ''}${s.staff_ids?.length ? ` &nbsp;·&nbsp; 👤 ${s.staff_ids.map(id => esc(_bookingStaff.find(x => x.id === id)?.name || '')).filter(Boolean).join(', ')}` : ''}</div>
       </div>
       <div style="display:flex;gap:0.4rem;flex-shrink:0">
         <button class="btn btn-sm btn-secondary" onclick="openServiceModal(${i})">✏️</button>
@@ -2518,6 +2527,9 @@ function fillServiceExtras(s) {
   document.getElementById('svc-capacity').value = s.capacity || 1;
   document.getElementById('svc-location-type').value = s.location_type || 'in_person';
   document.getElementById('svc-location-detail').value = s.location_detail || '';
+  document.getElementById('svc-payment-mode').value = s.payment_mode || 'none';
+  document.getElementById('svc-deposit').value = s.deposit_amount ?? '';
+  document.getElementById('svc-deposit-wrap').style.display = s.payment_mode === 'deposit' ? '' : 'none';
   const ids = s.staff_ids || [];
   document.getElementById('svc-staff').innerHTML = _bookingStaff.length
     ? _bookingStaff.map(st => `<label class="bk-check"><input type="checkbox" value="${esc(st.id)}" ${ids.includes(st.id) ? 'checked' : ''}> ${esc(st.name)}</label>`).join('')
@@ -2559,6 +2571,7 @@ async function saveService() {
   const priceVal = document.getElementById('svc-price')?.value.trim();
   const currency = document.getElementById('svc-currency')?.value || 'EUR';
   if (!name) { showToast('Zadajte názov služby.', 'error'); return; }
+  if (document.getElementById('svc-payment-mode').value !== 'none' && !(parseFloat(priceVal) > 0)) { showToast('Pre platbu online zadajte cenu.', 'error'); return; }
   const body = { name, description: desc, durationMins: duration,
                  price: priceVal !== '' ? parseFloat(priceVal) : null, currency,
                  bufferBefore: parseInt(document.getElementById('svc-buf-before').value) || 0,
@@ -2566,6 +2579,8 @@ async function saveService() {
                  capacity:     parseInt(document.getElementById('svc-capacity').value) || 1,
                  locationType: document.getElementById('svc-location-type').value,
                  locationDetail: document.getElementById('svc-location-detail').value.trim(),
+                 paymentMode: document.getElementById('svc-payment-mode').value,
+                 depositAmount: document.getElementById('svc-deposit').value,
                  staffIds: [...document.querySelectorAll('#svc-staff input:checked')].map(i => i.value),
                  questions: _svcQuestions.filter(q => q.label && q.label.trim()) };
   const url    = id ? `/api/booking/${currentWidget.id}/services/${id}` : `/api/booking/${currentWidget.id}/services`;
@@ -2580,6 +2595,83 @@ async function deleteService(id) {
   const r = await apiFetch(`/api/booking/${currentWidget.id}/services/${id}`, { method: 'DELETE' });
   if (r && r.ok) { showToast('Služba zmazaná.', 'success'); loadBookingServices(); }
 }
+
+/* ── Payments (account-wide) ──────────────────────────────────── */
+
+function fmtMoney(cents, cur) {
+  return `${(cents / 100).toLocaleString('sk-SK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur || 'EUR'}`;
+}
+
+async function loadPayments() {
+  const el = document.getElementById('pay-status');
+  const r = await apiFetch('/api/payments/status');
+  if (!r || !r.ok) { el.innerHTML = '<div style="color:#ff4060">Nepodarilo sa načítať.</div>'; return; }
+  const s = await r.json();
+  if (s.ready) {
+    el.innerHTML = `
+      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
+        <span style="color:#1fd89a;font-weight:700">✅ Platby sú aktívne</span>
+        <span class="bk-tag">${s.mode === 'connect' ? 'Stripe Connect' : 'Vlastné API kľúče'}</span>
+        ${s.accountName ? `<span style="color:#b8b8d0;font-size:0.85rem">${esc(s.accountName)}</span>` : ''}
+        <button class="btn btn-sm btn-danger" onclick="disconnectPayments()">Odpojiť</button>
+      </div>
+      ${s.mode === 'keys' && !s.webhook ? `<div style="margin-top:0.75rem;font-size:0.8rem;color:#fbbf24">⚠️ Webhook sa nepodarilo vytvoriť automaticky – platby sa potvrdia po návrate zákazníka zo Stripe. Pre spoľahlivosť pridajte v Stripe webhook na <code>${esc(location.origin)}/api/payments/webhook/u/…</code> alebo kľúče uložte znova.</div>` : ''}
+      <div style="margin-top:0.75rem;font-size:0.8rem;color:#9898b8">Pri službách nastavte „Platba online“ (celá suma alebo záloha). Pri zrušení sa platba vráti podľa vašich pravidiel.</div>`;
+  } else {
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1rem">
+        <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem">
+          <div style="font-weight:700;margin-bottom:0.3rem">⚡ Stripe Connect <span class="bk-tag">odporúčané</span></div>
+          <div style="font-size:0.8rem;color:#9898b8;margin-bottom:0.75rem">Prihlásite sa do Stripe (alebo si účet založíte) a prepojíte ho jedným klikom. Žiadne kľúče.</div>
+          <button class="btn btn-primary btn-sm" onclick="connectStripe()" ${s.connectAvailable ? '' : 'disabled title="Stripe Connect nie je na serveri nakonfigurovaný"'}>Prepojiť Stripe</button>
+        </div>
+        <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1rem">
+          <div style="font-weight:700;margin-bottom:0.3rem">🔑 Vlastné API kľúče</div>
+          <div style="font-size:0.8rem;color:#9898b8;margin-bottom:0.5rem">Stripe → Developers → API keys. Kľúč ukladáme šifrovaný a webhook nastavíme automaticky.</div>
+          <input class="form-control" id="pay-sk" placeholder="sk_live_… (tajný kľúč)" autocomplete="off" style="margin-bottom:0.4rem">
+          <input class="form-control" id="pay-pk" placeholder="pk_live_… (verejný kľúč, nepovinné)" autocomplete="off" style="margin-bottom:0.5rem">
+          <button class="btn btn-secondary btn-sm" onclick="saveStripeKeys()">Uložiť kľúče</button>
+        </div>
+      </div>`;
+  }
+  const rec = document.getElementById('pay-recent');
+  const LABEL = { paid: 'Zaplatené', refunded: 'Vrátené', partially_refunded: 'Čiastočne vrátené' };
+  rec.innerHTML = s.recent.length ? `<table style="width:100%;border-collapse:collapse;font-size:0.83rem">
+      <tr style="color:#9898b8;text-align:left"><th style="padding:0.4rem">Dátum</th><th>Zákazník</th><th>Položka</th><th>Suma</th><th>Stav</th></tr>
+      ${s.recent.map(p => `<tr style="border-top:1px solid rgba(255,255,255,0.06)">
+        <td style="padding:0.5rem 0.4rem">${new Date(p.created_at * 1000).toLocaleDateString('sk-SK')}</td>
+        <td>${esc(p.customer_name)}<div style="color:#7e7ea0;font-size:0.75rem">${esc(p.customer_email)}</div></td>
+        <td>${esc(p.service_name || 'Rezervácia')}<div style="color:#7e7ea0;font-size:0.75rem">${p.type === 'booking' ? `📅 ${p.date} ${p.start_time}` : ''}</div></td>
+        <td style="font-weight:700">${fmtMoney(p.amount_paid, p.currency)}${p.amount_refunded ? `<div style="color:#ff4060;font-size:0.75rem">−${fmtMoney(p.amount_refunded, p.currency)}</div>` : ''}</td>
+        <td>${LABEL[p.payment_status] || p.payment_status}</td></tr>`).join('')}
+    </table>` : '<div style="color:#7e7ea0;font-size:0.875rem">Zatiaľ žiadne platby.</div>';
+}
+
+async function connectStripe() {
+  const r = await apiFetch('/api/payments/connect/start');
+  const d = r ? await r.json().catch(() => ({})) : {};
+  if (d.url) location.href = d.url; else showToast(d.error || 'Chyba.', 'error');
+}
+
+async function saveStripeKeys() {
+  const r = await apiFetch('/api/payments/keys', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secretKey: document.getElementById('pay-sk').value, publishableKey: document.getElementById('pay-pk').value }) });
+  const d = r ? await r.json().catch(() => ({})) : {};
+  if (r && r.ok) { showToast('Stripe prepojený!', 'success'); loadPayments(); } else showToast(d.error || 'Chyba.', 'error');
+}
+
+async function disconnectPayments() {
+  if (!confirm('Odpojiť Stripe? Spoplatnené služby sa budú rezervovať bez platby online.')) return;
+  const r = await apiFetch('/api/payments', { method: 'DELETE' });
+  if (r && r.ok) { showToast('Odpojené.', 'success'); loadPayments(); }
+}
+
+(function () {
+  const p = new URLSearchParams(location.search).get('payments');
+  if (!p) return;
+  setTimeout(() => { showView('payments'); showToast(p === 'connected' ? 'Stripe úspešne prepojený!' : 'Prepojenie so Stripe zlyhalo.', p === 'connected' ? 'success' : 'error'); }, 600);
+  window.history.replaceState({}, '', '/dashboard');
+})();
 
 /* ── Team / staff ─────────────────────────────────────────────── */
 
@@ -2988,6 +3080,7 @@ function showBookingDetail(id) {
     ${b.staff_name || b.location_type ? `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:1rem">
       ${b.staff_name ? `<span class="bk-tag">👤 ${escHtml(b.staff_name)}</span>` : ''}
       ${b.seats > 1 ? `<span class="bk-tag">👥 ${b.seats} osoby</span>` : ''}
+      ${b.payment_status && b.payment_status !== 'none' ? `<span class="bk-tag">💳 ${{ paid: 'Zaplatené', refunded: 'Vrátené', partially_refunded: 'Čiastočne vrátené', pending: 'Čaká na platbu', expired: 'Nezaplatené' }[b.payment_status] || b.payment_status} ${b.amount_paid ? fmtMoney(b.amount_paid, b.currency) : ''}</span>` : ''}
       ${b.location_type ? `<span class="bk-tag">📍 ${{ in_person: 'Osobne', online: 'Online', phone: 'Telefonicky' }[b.location_type] || ''}${b.location_detail ? ': ' + escHtml(b.location_detail) : ''}</span>` : ''}
     </div>` : ''}
     <div style="background:#111120;border-radius:8px;padding:0.75rem;margin-bottom:1rem">

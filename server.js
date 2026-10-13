@@ -27,6 +27,7 @@ const leadMagnetsRoutes = require('./routes/lead-magnets');
 const insightsRoutes    = require('./routes/insights');
 const facebookRoutes    = require('./routes/facebook');
 const ecomailRoutes     = require('./routes/ecomail');
+const paymentsRoutes    = require('./routes/payments');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -66,6 +67,7 @@ app.use('/api/demo', demoRoutes);
 app.use('/api/coach', coachRoutes);
 app.use('/api/scraper', scraperRoutes);
 app.use('/api/booking', bookingRoutes);
+app.use('/api/payments', paymentsRoutes);
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
@@ -122,4 +124,5 @@ app.listen(PORT, () => {
   console.log(`Neoworkly running on http://localhost:${PORT}`);
   require('./services/bookingNotify').startReminderScheduler();
   require('./services/wellbeing').startBurnoutScheduler();
+  require('./services/bookingPayments').startHoldSweeper();
 });

@@ -34,6 +34,9 @@
       <button class="nav-item" onclick="showView('affiliate')" id="nav-affiliate">
         <span class="nav-icon">🎁</span> Affiliate
       </button>
+      <button class="nav-item" onclick="showView('payments')" id="nav-payments">
+        <span class="nav-icon">💳</span> Platby
+      </button>
       <button class="nav-item" onclick="showView('coach')" id="nav-coach">
         <span class="nav-icon">🎓</span> AI Coach
       </button>
@@ -196,6 +199,28 @@
 
           <div id="leads-list"></div>
           <div id="leads-kanban" style="display:none"></div>
+        </div>
+      </div>
+
+      <!-- ── View: Payments ─────────────────────────── -->
+      <div id="view-payments" style="display:none">
+        <div class="panel" style="margin-bottom:1.5rem">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">💳 Prijímanie platieb</div>
+              <div class="panel-subtitle">Peniaze idú priamo na váš Stripe účet – Neoworkly si neberie žiadnu províziu (0 %)</div>
+            </div>
+          </div>
+          <div id="pay-status"><div style="color:#7e7ea0;font-size:0.875rem">Načítavam...</div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Posledné platby</div>
+              <div class="panel-subtitle">Spoplatnené rezervácie a predaje · faktúry a výplaty nájdete v Stripe</div>
+            </div>
+          </div>
+          <div id="pay-recent"></div>
         </div>
       </div>
 
@@ -1129,6 +1154,14 @@
                 <label class="bk-check"><input type="checkbox" id="bk-allow-cancel"> Zákazník môže zrušiť online</label>
                 <label class="bk-check"><input type="checkbox" id="bk-allow-reschedule"> Zákazník môže presunúť online</label>
                 <label class="bk-check"><input type="checkbox" id="bk-require-phone"> Telefón je povinný</label>
+              </div>
+              <div class="form-group">
+                <label>Vrátenie platby pri zrušení zákazníkom (včas)</label>
+                <select class="form-control" id="bk-refund-policy">
+                  <option value="full">Vrátiť celú platbu automaticky</option>
+                  <option value="none">Nevracať (záloha prepadá)</option>
+                </select>
+                <div style="font-size:0.72rem;color:#7e7ea0;margin-top:0.3rem">Ak zrušíte vy, platba sa vráti vždy.</div>
               </div>
             </div>
             <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
@@ -2101,6 +2134,13 @@
           <option value="in_person">Osobne</option><option value="online">Online</option><option value="phone">Telefonicky</option>
         </select></div>
       <div class="form-group"><label>Adresa / odkaz na stretnutie</label><input type="text" class="form-control" id="svc-location-detail" placeholder="Hlavná 1, Bratislava alebo https://meet.google.com/..."></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+      <div class="form-group"><label>Platba online</label>
+        <select class="form-control" id="svc-payment-mode" onchange="document.getElementById('svc-deposit-wrap').style.display=this.value==='deposit'?'':'none'">
+          <option value="none">Bez platby online (platí na mieste)</option><option value="full">Celá suma vopred</option><option value="deposit">Záloha vopred</option>
+        </select></div>
+      <div class="form-group" id="svc-deposit-wrap" style="display:none"><label>Výška zálohy</label><input type="number" class="form-control" id="svc-deposit" min="0" step="0.5" placeholder="napr. 10"></div>
     </div>
     <div class="form-group"><label>Kto službu poskytuje (nič = všetci)</label><div id="svc-staff" style="display:flex;flex-wrap:wrap;gap:0.4rem 1rem"></div></div>
     <div class="form-group">

@@ -1630,7 +1630,10 @@
       });
       let d = {};
       try { d = await r.json(); } catch { /* non-JSON response */ }
-      if (r.ok) {
+      if (r.ok && d.checkoutUrl) {
+        window.open(d.checkoutUrl, '_blank', 'noopener');
+        addBotMessage(`💳 Termín držíme 30 minút. Dokončite prosím platbu (${esc(String(d.amountDue))} ${esc(d.currency || 'EUR')}) v otvorenom okne – [otvoriť platbu](${d.checkoutUrl}). Po zaplatení vám príde potvrdenie e-mailom.`);
+      } else if (r.ok) {
         const [y, mo, day] = date.split('-').map(Number);
         const MONTHS = ['jan','feb','mar','apr','máj','jún','júl','aug','sep','okt','nov','dec'];
         const dateLabel = `${day}. ${MONTHS[mo-1]} ${y}`;
@@ -1903,6 +1906,12 @@
         });
         const data = await r.json();
         if (!r.ok) { if (btn) { btn.disabled=false; btn.textContent=wt('book_confirm'); } return; }
+        if (data.checkoutUrl) {
+          window.open(data.checkoutUrl, '_blank', 'noopener');
+          overlay.style.display = 'none';
+          addBotMessage(`💳 Termín ${selDate} ${selSlot} držíme 30 minút – dokončite platbu v otvorenom okne ([otvoriť platbu](${data.checkoutUrl})).`);
+          return;
+        }
         overlay.innerHTML = `
           <div style="text-align:center;padding:1.5rem 0.5rem">
             <div style="font-size:2rem;margin-bottom:0.75rem">✅</div>

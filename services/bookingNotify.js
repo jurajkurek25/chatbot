@@ -143,6 +143,12 @@ function layout(ctx, { heading, intro, rows = [], buttons = [], note = '' }) {
 </div></body></html>`;
 }
 
+const money = (cents, cur) => `${(cents / 100).toLocaleString('sk-SK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur || 'EUR'}`;
+function paymentLabel(b) {
+  if (b.amount_refunded > 0) return `Zaplatené ${money(b.amount_paid, b.currency)}, vrátené ${money(b.amount_refunded, b.currency)}`;
+  return `Zaplatené online ${money(b.amount_paid, b.currency)}`;
+}
+
 function bookingRows(ctx, { forStaff = false } = {}) {
   const b = ctx.booking;
   const answers = parse(b.answers, []);
@@ -153,6 +159,7 @@ function bookingRows(ctx, { forStaff = false } = {}) {
     ctx.staff && ['S kým', esc(ctx.staff.name)],
     b.seats > 1 && ['Počet osôb', String(b.seats)],
     ['Miesto', loc],
+    b.payment_status && b.payment_status !== 'none' && b.payment_status !== 'pending' && b.payment_status !== 'expired' && ['Platba', esc(paymentLabel(b))],
     forStaff && ['Zákazník', `${esc(b.customer_name)}<br><a href="mailto:${esc(b.customer_email)}">${esc(b.customer_email)}</a>${b.customer_phone ? `<br>${esc(b.customer_phone)}` : ''}`],
     ...(forStaff ? answers.map(a => [a.q, esc(a.a)]) : []),
     forStaff && b.notes && ['Poznámka', esc(b.notes)],
@@ -217,7 +224,8 @@ async function notify(kind, bookingId, extra = {}) {
       to: b.customer_email, business: ctx.business, replyTo: ctx.staffEmail,
       subject: `Rezervácia zrušená – ${b.service_name || ctx.business}, ${b.date} ${b.start_time}`,
       html: layout(ctx, { heading: 'Rezervácia bola zrušená',
-        intro: byCustomer ? 'Vašu rezerváciu sme zrušili podľa vašej žiadosti.' : `Ospravedlňujeme sa, rezerváciu sme museli zrušiť.${b.cancel_reason ? ' Dôvod: ' + esc(b.cancel_reason) : ''}`,
+        intro: (byCustomer ? 'Vašu rezerváciu sme zrušili podľa vašej žiadosti.' : `Ospravedlňujeme sa, rezerváciu sme museli zrušiť.${b.cancel_reason ? ' Dôvod: ' + esc(b.cancel_reason) : ''}`)
+          + (b.amount_refunded > 0 ? ` Platbu ${esc(money(b.amount_refunded, b.currency))} sme vám vrátili – na účte sa zvyčajne objaví do 5–10 pracovných dní.` : ''),
         rows: bookingRows(ctx), buttons: [['Rezervovať nový termín', `${appUrl()}/book/${b.widget_id}`, true]] }),
       ics: buildIcs(ctx, { method: 'CANCEL' }), icsMethod: 'CANCEL',
     });

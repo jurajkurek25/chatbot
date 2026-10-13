@@ -303,6 +303,9 @@
     phoneRequiredLabel: 'Telefón', staffLabel: 'Kto vás obslúži', anyStaff: 'Ktokoľvek',
     seatsLabel: 'Počet osôb', seatsLeft: 'voľné', addToCalendar: 'Pridať do kalendára',
     manageBooking: 'Spravovať rezerváciu', notesLabel: 'Poznámka (nepovinné)',
+    payOnline: 'Platba online', depositOnline: 'Záloha', payAndBook: 'Zaplatiť a rezervovať', payNow: 'Platba teraz',
+    paymentCancelled: 'Platba bola zrušená a termín uvoľnený. Môžete si vybrať znova.', redirectingToPayment: 'Presmerovávam na platbu...',
+    refundFull: 'Pri zrušení včas vám platbu vrátime.', refundNone: 'Platba je pri zrušení zo strany zákazníka nevratná.',
   };
   function t(key) {
     const lang = (navigator.language || 'sk').slice(0, 2).toLowerCase();
@@ -347,6 +350,12 @@
     `;
     renderSteps();
     showStep(step);
+    if (new URLSearchParams(location.search).get('payment') === 'cancelled') {
+      const n = document.createElement('div');
+      n.style.cssText = 'background:#fef3c7;color:#92400e;border-radius:10px;padding:0.75rem 1rem;font-size:0.85rem;font-weight:600;margin-bottom:1rem';
+      n.textContent = t('paymentCancelled');
+      document.querySelector('.card').prepend(n);
+    }
   }
 
   function renderSteps() {
@@ -396,6 +405,7 @@
               <span class="svc-badge">💶 ${esc(price)}</span>
               ${s.location_type === 'online' ? '<span class="svc-badge">💻 Online</span>' : s.location_type === 'phone' ? '<span class="svc-badge">📞 Telefonicky</span>' : ''}
               ${s.capacity > 1 ? `<span class="svc-badge">👥 ${s.capacity}</span>` : ''}
+              ${s.pay_now ? `<span class="svc-badge">💳 ${s.payment_mode === 'deposit' ? t('depositOnline') + ' ' + money(s.pay_now, s.currency) : t('payOnline')}</span>` : ''}
             </div>
           </div>`;
         }).join('')}
@@ -587,6 +597,7 @@
         ${staffName && (cfg.staff || []).length > 1 ? `<div class="summary-row"><span>👤 ${t('staffLabel')}</span><span>${esc(staffName)}</span></div>` : ''}
         ${selService?.location_detail ? `<div class="summary-row"><span>📍 Miesto</span><span>${esc(selService.location_detail)}</span></div>` : ''}
         ${selService?.price != null ? `<div class="summary-row"><span>💶 Cena</span><span>${selService.price} ${selService.currency}</span></div>` : ''}
+        ${selService?.pay_now ? `<div class="summary-row"><span>💳 ${t('payNow')}</span><span>${money(selService.pay_now * (parseInt(document.getElementById('f-seats')?.value || '1', 10)), selService.currency)}</span></div>` : ''}
       </div>
       <div class="form-group"><label>${t('nameLabel')} *</label>
         <input type="text" id="f-name" placeholder="Ján Novák" autocomplete="name"></div>
@@ -615,8 +626,9 @@
       </div>
       <div class="btn-row">
         <button class="btn btn-back" onclick="showStep(2)">${t('backBtn')}</button>
-        <button class="btn btn-next" id="btn-submit" onclick="submitBooking()">${t('confirmBtn')}</button>
-      </div>`;
+        <button class="btn btn-next" id="btn-submit" onclick="submitBooking()">${selService?.pay_now ? t('payAndBook') : t('confirmBtn')}</button>
+      </div>
+      ${selService?.pay_now ? `<p style="font-size:0.75rem;color:var(--muted);margin-top:0.75rem;text-align:center">🔒 Stripe · ${cfg.refundPolicy === 'none' ? t('refundNone') : t('refundFull')}</p>` : ''}`;
   }
 
   /* ── Submit ── */
@@ -674,7 +686,13 @@
       const data = await r.json();
       if (!r.ok) {
         alert(data.error || 'Chyba rezervácie.');
-        if (btn) { btn.disabled = false; btn.textContent = t('confirmBtn'); }
+        if (btn) { btn.disabled = false; btn.textContent = selService?.pay_now ? t('payAndBook') : t('confirmBtn'); }
+        return;
+      }
+      if (data.checkoutUrl) {
+        // Stripe Checkout cannot run inside an iframe
+        if (btn) btn.textContent = t('redirectingToPayment');
+        if (window.top !== window.self) window.open(data.checkoutUrl, '_blank'); else location.href = data.checkoutUrl;
         return;
       }
       renderSuccess(name, email, data);
@@ -712,6 +730,7 @@
 
   /* ── Utils ── */
   function pad(n) { return String(n).padStart(2,'0'); }
+  function money(v, cur) { return `${Number(v).toLocaleString('sk-SK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${cur || 'EUR'}`; }
   function todayStr() { return new Date().toLocaleDateString('sv-SE'); }
   function esc(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
   function showError(msg) {

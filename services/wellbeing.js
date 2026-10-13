@@ -11,17 +11,20 @@ const { getDb } = require('../db/database');
 const core = require('./bookingCore');
 const gcal = require('./gcal');
 const notifyMod = require('./bookingNotify');
+const bookingPayments = require('./bookingPayments');
 
 const LEAVE_REASONS = ['vacation', 'sick', 'menstrual', 'mental_health', 'other'];
 const withTz = (staff, cfg) => ({ ...staff, timezone: cfg.timezone });
 const notify = (kind, id, extra) => setImmediate(() => notifyMod.notify(kind, id, extra).catch(err => console.error('[booking notify]', err.message)));
 
-function cancelBooking(cfg, booking, { by, reason }) {
+/** Cancels a booking, refunds per policy (before the e-mail, so it can mention the refund) and notifies. */
+async function cancelBooking(cfg, booking, { by, reason }) {
   const db = getDb();
   db.prepare("UPDATE bookings SET status = 'cancelled', cancelled_by = ?, cancel_reason = ? WHERE id = ?")
     .run(by, reason ? String(reason).slice(0, 500) : null, booking.id);
   const staff = booking.staff_id && db.prepare('SELECT * FROM booking_staff WHERE id = ?').get(booking.staff_id);
   if (staff && booking.gcal_event_id) setImmediate(() => gcal.deleteEvent(withTz(staff, cfg), booking.gcal_event_id).catch(() => {}));
+  await bookingPayments.refundOnCancel(booking, cfg, by);
   notify('cancelled', booking.id);
 }
 
@@ -68,7 +71,7 @@ async function takeLeave({ cfg, staff, dateFrom, dateTo, reason, privateEntry = 
   for (const b of affected) {
     if (handle === 'keep') { result.kept++; continue; }
     if (handle === 'reassign' && await reassignBooking(cfg, b)) { result.reassigned++; continue; }
-    cancelBooking(cfg, b, { by: 'business', reason: null });
+    await cancelBooking(cfg, b, { by: 'business', reason: null });
     result.cancelled++;
   }
   return result;
