@@ -35,6 +35,9 @@
       <button class="nav-item" onclick="showView('affiliate')" id="nav-affiliate">
         <span class="nav-icon">🎁</span> Affiliate
       </button>
+      <button class="nav-item" onclick="showView('shop')" id="nav-shop">
+        <span class="nav-icon">📦</span> Digitálne produkty
+      </button>
       <button class="nav-item" onclick="showView('funnels')" id="nav-funnels">
         <span class="nav-icon">🔀</span> Funnely
       </button>
@@ -209,6 +212,17 @@
       <!-- ── View: Funnels ──────────────────────────── -->
       <div id="view-funnels" style="display:none">
         <iframe id="funnels-frame" class="nw-frame" title="Funnely"></iframe>
+      </div>
+
+      <!-- ── View: Digital products ─────────────────── -->
+      <div id="view-shop" style="display:none">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+          <button class="btn btn-sm btn-primary" data-shop-tab="products" onclick="shopTab('products')">Produkty</button>
+          <button class="btn btn-sm btn-secondary" data-shop-tab="orders" onclick="shopTab('orders')">Objednávky</button>
+          <button class="btn btn-sm btn-secondary" data-shop-tab="members" onclick="shopTab('members')">Členovia</button>
+          <button class="btn btn-sm btn-secondary" data-shop-tab="settings" onclick="shopTab('settings')">Nastavenia obchodu</button>
+        </div>
+        <div id="shop-body"></div>
       </div>
 
       <!-- ── View: Payments ─────────────────────────── -->
@@ -2219,7 +2233,8 @@
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=9"></script>
+<script src="/js/dashboard.js?v=10"></script>
+<script src="/js/shop-dashboard.js?v=1"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

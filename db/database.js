@@ -625,6 +625,7 @@ function initDatabase() {
     `ALTER TABLE leads ADD COLUMN ab_variant TEXT NOT NULL DEFAULT 'a'`,
     `ALTER TABLE leads ADD COLUMN marketing_consent INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE leads ADD COLUMN source TEXT`,
+    `ALTER TABLE orders ADD COLUMN withdrawal_waiver_at INTEGER`,
     `ALTER TABLE conversations ADD COLUMN live_agent INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE conversations ADD COLUMN csat_rating INTEGER`,
     `ALTER TABLE widgets ADD COLUMN ecomail_api_key TEXT`,

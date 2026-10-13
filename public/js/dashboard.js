@@ -127,6 +127,7 @@ function showView(view) {
   document.getElementById('view-coach').style.display = view === 'coach' ? '' : 'none';
   document.getElementById('view-payments').style.display = view === 'payments' ? '' : 'none';
   document.getElementById('view-funnels').style.display = view === 'funnels' ? '' : 'none';
+  document.getElementById('view-shop').style.display = view === 'shop' ? '' : 'none';
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
   document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
@@ -135,6 +136,7 @@ function showView(view) {
   document.getElementById('nav-coach').classList.toggle('active', view === 'coach');
   document.getElementById('nav-payments').classList.toggle('active', view === 'payments');
   document.getElementById('nav-funnels').classList.toggle('active', view === 'funnels');
+  document.getElementById('nav-shop').classList.toggle('active', view === 'shop');
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
@@ -150,6 +152,11 @@ function showView(view) {
     document.getElementById('topbar-title').textContent = 'Affiliate';
     document.getElementById('topbar-actions').innerHTML = '';
     loadAffiliateStatus();
+  }
+  if (view === 'shop') {
+    document.getElementById('topbar-title').textContent = 'Digitálne produkty';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadShop();
   }
   if (view === 'payments') {
     document.getElementById('topbar-title').textContent = 'Platby';

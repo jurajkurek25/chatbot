@@ -72,12 +72,14 @@ describe('digitálne produkty', () => {
   });
 
   it('platený kurz cez Stripe obchodníka; nový kupujúci sa po návrate prihlási', async () => {
-    assert.equal((await anon('POST', `/public/${course.id}/checkout`, { email: 'nov@x.sk', consent: true })).status, 503);
+    assert.equal((await anon('POST', `/public/${course.id}/checkout`, { email: 'nov@x.sk', consent: true })).status, 400); // bez súhlasu so stratou práva na odstúpenie
+    assert.equal((await anon('POST', `/public/${course.id}/checkout`, { email: 'nov@x.sk', consent: true, waiver: true })).status, 503);
     account = await connectStripe(ctx, owner);
-    const res = await anon('POST', `/public/${course.id}/checkout`, { email: 'nov@x.sk', name: 'Nová', consent: true });
+    const res = await anon('POST', `/public/${course.id}/checkout`, { email: 'nov@x.sk', name: 'Nová', consent: true, waiver: true });
     const call = ctx.stripe.lastCall('checkout.sessions.create');
     assert.deepEqual([call.account, call.params.line_items[0].price_data.unit_amount, call.params.metadata.kind], [account, 4900, 'order']);
     assert.match(res.body.checkoutUrl, /checkout\.stripe\.test/);
+    assert.ok(getDb().prepare("SELECT withdrawal_waiver_at FROM orders WHERE email = 'nov@x.sk' ORDER BY created_at DESC").get().withdrawal_waiver_at);
     const sessionId = Object.keys(ctx.stripe.checkoutSessions_).at(-1);
     assert.equal((await anon('POST', `/m/${owner.id}/order`, { sessionId })).body.status, 'pending');
     paySession(sessionId, 'pi_c');
@@ -101,7 +103,7 @@ describe('digitálne produkty', () => {
   });
 
   it('členstvo cez Connect webhook; existujúci člen sa automaticky neprihlási; zahrnuté produkty sa odomknú', async () => {
-    await anon('POST', `/public/${mem.id}/checkout`, { email: 'nov@x.sk', consent: true });
+    await anon('POST', `/public/${mem.id}/checkout`, { email: 'nov@x.sk', consent: true, waiver: true });
     const sessionId = Object.keys(ctx.stripe.checkoutSessions_).at(-1);
     const { payload, headers } = signedEvent(ctx, { id: 'evt_m', type: 'checkout.session.completed', account, data: { object: paySession(sessionId, 'pi_m') } }, 'whsec_connect');
     assert.equal((await request(ctx.base, 'POST', '/api/webhook/connect', payload, headers)).status, 200);

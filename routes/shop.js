@@ -316,8 +316,11 @@ router.post('/public/:productId/checkout', async (req, res) => {
   if (!EMAIL.test(email || '')) return res.status(400).json({ error: 'Zadajte platný e-mail.' });
   if (!consent) return res.status(400).json({ error: 'Potvrďte súhlas s podmienkami.' });
   const amount = p.price > 0 ? payments.toCents(p.price) : 0;
+  // Digitálny obsah sprístupnený hneď: spotrebiteľ musí výslovne súhlasiť so stratou práva na odstúpenie (smernica 2011/83/EÚ, čl. 16 m)
+  if (amount && req.body.waiver !== true) return res.status(400).json({ error: 'Potvrďte okamžité sprístupnenie obsahu a stratu práva na odstúpenie od zmluvy.' });
   if (amount && !payments.isReady(payments.getMerchant(p.user_id))) return res.status(503).json({ error: 'Predajca zatiaľ neprijíma platby online.' });
   const order = shop.createOrder({ userId: p.user_id, product: p, email, name, amount });
+  if (amount) db.prepare('UPDATE orders SET withdrawal_waiver_at = unixepoch() WHERE id = ?').run(order.id);
   if (!amount) {
     await shop.fulfilOrder(order.id);
     return res.json({ free: true });
