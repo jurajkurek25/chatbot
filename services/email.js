@@ -314,4 +314,4 @@ async function sendHandoffEmail({ toEmail, widgetName, channel, transcript }) {
   }
 }
 
-module.exports = { sendHandoffEmail, sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite, sendPasswordReset };
+module.exports = { createTransport, sendHandoffEmail, sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite, sendPasswordReset };

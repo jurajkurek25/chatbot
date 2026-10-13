@@ -105,6 +105,9 @@ app.get('/book/:widgetId', (req, res) => {
   res.setHeader('X-Frame-Options', 'ALLOWALL');
   res.sendFile(path.join(__dirname, 'public', 'booking.html'));
 });
+app.get('/booking/manage/:token', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'booking-manage.html'))
+);
 
 // 404 handler — must be last
 app.use((req, res) => {
@@ -113,4 +116,5 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Neoworkly running on http://localhost:${PORT}`);
+  require('./services/bookingNotify').startReminderScheduler();
 });

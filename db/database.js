@@ -302,6 +302,61 @@ function initDatabase() {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    /* ── Booking: staff, their schedules / time off, service↔staff, sent notifications ── */
+    CREATE TABLE IF NOT EXISTS booking_staff (
+      id TEXT PRIMARY KEY,
+      booking_config_id TEXT NOT NULL REFERENCES booking_configs(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      email TEXT NOT NULL DEFAULT '',
+      bio TEXT NOT NULL DEFAULT '',
+      photo_url TEXT NOT NULL DEFAULT '',
+      active INTEGER NOT NULL DEFAULT 1,
+      display_order INTEGER NOT NULL DEFAULT 0,
+      break_start TEXT,
+      break_end TEXT,
+      max_per_day INTEGER NOT NULL DEFAULT 0,
+      max_minutes_per_day INTEGER NOT NULL DEFAULT 0,
+      max_per_week INTEGER NOT NULL DEFAULT 0,
+      gcal_access_token TEXT,
+      gcal_refresh_token TEXT,
+      gcal_token_expiry INTEGER,
+      gcal_email TEXT,
+      gcal_calendar_id TEXT NOT NULL DEFAULT 'primary',
+      ics_token TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS booking_staff_schedules (
+      id TEXT PRIMARY KEY,
+      staff_id TEXT NOT NULL REFERENCES booking_staff(id) ON DELETE CASCADE,
+      day_of_week INTEGER NOT NULL CHECK(day_of_week BETWEEN 0 AND 6),
+      start_time TEXT NOT NULL DEFAULT '09:00',
+      end_time TEXT NOT NULL DEFAULT '17:00',
+      active INTEGER NOT NULL DEFAULT 1,
+      UNIQUE(staff_id, day_of_week)
+    );
+    CREATE TABLE IF NOT EXISTS booking_time_off (
+      id TEXT PRIMARY KEY,
+      staff_id TEXT NOT NULL REFERENCES booking_staff(id) ON DELETE CASCADE,
+      date_from TEXT NOT NULL,
+      date_to TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'closed',
+      start_time TEXT,
+      end_time TEXT,
+      note TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS booking_service_staff (
+      service_id TEXT NOT NULL REFERENCES booking_services(id) ON DELETE CASCADE,
+      staff_id TEXT NOT NULL REFERENCES booking_staff(id) ON DELETE CASCADE,
+      PRIMARY KEY (service_id, staff_id)
+    );
+    CREATE TABLE IF NOT EXISTS booking_notifications (
+      booking_id TEXT NOT NULL,
+      kind TEXT NOT NULL,
+      sent_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (booking_id, kind)
+    );
+
     /* ── Questions the bot couldn't answer from the knowledge base ── */
     CREATE TABLE IF NOT EXISTS unanswered_questions (
       id TEXT PRIMARY KEY,
@@ -381,6 +436,35 @@ function initDatabase() {
     `ALTER TABLE widgets ADD COLUMN handoff_enabled INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE widgets ADD COLUMN handoff_email TEXT NOT NULL DEFAULT ''`,
     `ALTER TABLE conversations ADD COLUMN handoff_at INTEGER`,
+    `ALTER TABLE booking_configs ADD COLUMN slot_interval INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE booking_configs ADD COLUMN cancel_hours INTEGER NOT NULL DEFAULT 24`,
+    `ALTER TABLE booking_configs ADD COLUMN allow_cancel INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE booking_configs ADD COLUMN allow_reschedule INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE booking_configs ADD COLUMN reminders_customer TEXT NOT NULL DEFAULT '[1440,60]'`,
+    `ALTER TABLE booking_configs ADD COLUMN reminders_staff TEXT NOT NULL DEFAULT '[60]'`,
+    `ALTER TABLE booking_configs ADD COLUMN notify_staff INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE booking_configs ADD COLUMN custom_css TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE booking_configs ADD COLUMN staff_selection TEXT NOT NULL DEFAULT 'choose'`,
+    `ALTER TABLE booking_configs ADD COLUMN require_phone INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE booking_services ADD COLUMN buffer_before INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE booking_services ADD COLUMN buffer_after INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE booking_services ADD COLUMN capacity INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE booking_services ADD COLUMN location_type TEXT NOT NULL DEFAULT 'in_person'`,
+    `ALTER TABLE booking_services ADD COLUMN location_detail TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE booking_services ADD COLUMN questions TEXT NOT NULL DEFAULT '[]'`,
+    `ALTER TABLE bookings ADD COLUMN staff_id TEXT`,
+    `ALTER TABLE bookings ADD COLUMN manage_token TEXT`,
+    `ALTER TABLE bookings ADD COLUMN answers TEXT NOT NULL DEFAULT '[]'`,
+    `ALTER TABLE bookings ADD COLUMN seats INTEGER NOT NULL DEFAULT 1`,
+    `ALTER TABLE bookings ADD COLUMN start_utc INTEGER`,
+    `ALTER TABLE bookings ADD COLUMN end_utc INTEGER`,
+    `ALTER TABLE bookings ADD COLUMN buffer_before INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE bookings ADD COLUMN buffer_after INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE bookings ADD COLUMN location_type TEXT`,
+    `ALTER TABLE bookings ADD COLUMN location_detail TEXT`,
+    `ALTER TABLE bookings ADD COLUMN cancelled_by TEXT`,
+    `ALTER TABLE bookings ADD COLUMN cancel_reason TEXT`,
+    `ALTER TABLE bookings ADD COLUMN reschedule_count INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE widgets ADD COLUMN cta_type TEXT NOT NULL DEFAULT 'contact'`,
     `ALTER TABLE widgets ADD COLUMN avatar_url TEXT`,
     `ALTER TABLE widgets ADD COLUMN proactive_enabled INTEGER NOT NULL DEFAULT 0`,
@@ -455,6 +539,27 @@ function initDatabase() {
       `);
     }
   } catch { /* already migrated or fresh install */ }
+
+  // Drop the CHECK on bookings.status so new states (e.g. pending payment) are possible
+  try {
+    const schema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='bookings'").get();
+    if (schema && /CHECK\s*\(\s*status IN/i.test(schema.sql)) {
+      const newSql = schema.sql
+        .replace(/\s*CHECK\s*\(\s*status IN\s*\([^)]*\)\s*\)/i, '')
+        .replace(/CREATE TABLE\s+"?bookings"?/i, 'CREATE TABLE bookings_new');
+      db.pragma('foreign_keys = OFF');
+      db.transaction(() => {
+        db.exec(newSql);
+        db.exec('INSERT INTO bookings_new SELECT * FROM bookings');
+        db.exec('DROP TABLE bookings');
+        db.exec('ALTER TABLE bookings_new RENAME TO bookings');
+      })();
+      db.pragma('foreign_keys = ON');
+    }
+  } catch (err) { console.error('bookings status migration failed:', err.message); }
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_bookings_staff_date ON bookings(staff_id, date);
+           CREATE UNIQUE INDEX IF NOT EXISTS idx_bookings_manage_token ON bookings(manage_token);
+           CREATE INDEX IF NOT EXISTS idx_bookings_start_utc ON bookings(start_utc);`);
 
   console.log('Database initialized.');
 }

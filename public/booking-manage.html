@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Moja rezervácia</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --p: #5b4fff; --p-light: rgba(91,79,255,0.09); --grad2: #9b8cff;
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+      --bg: #f1f5f9; --card: #ffffff; --radius: 16px; --btn-radius: 10px;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+    .page { max-width: 620px; margin: 0 auto; padding: 0 1rem 4rem; }
+    .bk-header { background: linear-gradient(135deg, var(--p) 0%, var(--grad2) 100%); color: #fff; text-align: center;
+                 padding: 2rem 1.5rem 3.5rem; border-radius: 0 0 28px 28px; margin-bottom: -1.5rem; }
+    .bk-header h1 { font-size: 1.3rem; font-weight: 800; margin-bottom: .25rem; }
+    .bk-header p { font-size: .85rem; opacity: .85; }
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 20px rgba(0,0,0,.06);
+            padding: 1.5rem; margin: 2rem 0 1rem; position: relative; }
+    .card + .card { margin-top: 0; }
+    .card-title { font-size: .95rem; font-weight: 700; margin-bottom: 1rem; }
+    .row { display: flex; justify-content: space-between; gap: 1rem; padding: .45rem 0; font-size: .9rem; border-bottom: 1px solid var(--border); }
+    .row:last-child { border-bottom: none; }
+    .row span:first-child { color: var(--muted); }
+    .row span:last-child { font-weight: 700; text-align: right; }
+    .status { display: inline-block; padding: 3px 10px; border-radius: 100px; font-size: .75rem; font-weight: 700; }
+    .status.confirmed { background: #dcfce7; color: #15803d; }
+    .status.cancelled { background: #fee2e2; color: #b91c1c; }
+    .status.other { background: var(--bg); color: var(--muted); }
+    .btns { display: flex; flex-wrap: wrap; gap: .5rem; }
+    .btn { padding: .7rem 1.1rem; border-radius: var(--btn-radius); border: none; font-size: .88rem; font-weight: 700;
+           cursor: pointer; font-family: inherit; text-decoration: none; display: inline-block; }
+    .btn-p { background: var(--p); color: #fff; }
+    .btn-s { background: var(--bg); color: var(--text); }
+    .btn-d { background: #fee2e2; color: #b91c1c; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .note { font-size: .8rem; color: var(--muted); line-height: 1.6; margin-top: .9rem; }
+    input, textarea { width: 100%; padding: .65rem .9rem; border: 1.5px solid var(--border); border-radius: 9px;
+                      font-size: .9rem; font-family: inherit; color: var(--text); margin-bottom: .75rem; }
+    .slots { display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 8px; margin-bottom: .9rem; }
+    .slot { padding: .55rem .25rem; border: 1.5px solid var(--border); border-radius: var(--btn-radius); background: #fff;
+            font-size: .84rem; font-weight: 600; cursor: pointer; font-family: inherit; }
+    .slot.sel { background: var(--p); border-color: var(--p); color: #fff; }
+    .muted { color: var(--muted); font-size: .85rem; }
+    .msg { padding: .8rem 1rem; border-radius: 10px; font-size: .88rem; font-weight: 600; margin-bottom: 1rem; }
+    .msg.ok { background: #dcfce7; color: #15803d; }
+    .msg.err { background: #fee2e2; color: #b91c1c; }
+    .hidden { display: none; }
+  </style>
+  <style id="custom-css"></style>
+</head>
+<body>
+<div class="page" id="app"><div class="card"><p class="muted">Načítavam...</p></div></div>
+<script>
+(function () {
+  'use strict';
+  const token = location.pathname.split('/').filter(Boolean).pop();
+  const API = `${location.origin}/api/booking/manage/${encodeURIComponent(token)}`;
+  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const LOC = { in_person: 'Osobne', online: 'Online', phone: 'Telefonicky' };
+  const STATUS = { confirmed: 'Potvrdená', cancelled: 'Zrušená', completed: 'Dokončená', no_show: 'Neprišiel', pending_payment: 'Čaká na platbu' };
+  let data = null, flash = null, newSlot = null;
+
+  async function load() {
+    const r = await fetch(API);
+    if (!r.ok) { document.getElementById('app').innerHTML = '<div class="card"><p class="muted">Rezervácia sa nenašla. Skontrolujte odkaz z e-mailu.</p></div>'; return; }
+    data = await r.json();
+    if (data.primaryColor && /^#[0-9a-f]{6}$/i.test(data.primaryColor)) {
+      const h = data.primaryColor;
+      document.documentElement.style.setProperty('--p', h);
+      document.documentElement.style.setProperty('--p-light', `rgba(${parseInt(h.slice(1,3),16)},${parseInt(h.slice(3,5),16)},${parseInt(h.slice(5,7),16)},.09)`);
+    }
+    document.getElementById('custom-css').textContent = data.customCss || '';
+    render();
+  }
+
+  function fmtDate(d) {
+    const [y, m, dd] = d.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, dd, 12)).toLocaleDateString('sk-SK', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+  }
+
+  function render() {
+    const b = data.booking;
+    const st = `<span class="status ${b.status === 'confirmed' ? 'confirmed' : b.status === 'cancelled' ? 'cancelled' : 'other'}">${esc(STATUS[b.status] || b.status)}</span>`;
+    const loc = b.locationType ? `${LOC[b.locationType] || ''}${b.locationDetail ? ': ' + esc(b.locationDetail) : ''}` : '';
+    const deadline = new Date(data.deadline * 1000).toLocaleString('sk-SK', { day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const today = new Date().toLocaleDateString('sv-SE');
+    document.getElementById('app').innerHTML = `
+      <div class="bk-header"><h1>${esc(data.business || 'Rezervácia')}</h1><p>Správa vašej rezervácie</p></div>
+      <div class="card">
+        ${flash ? `<div class="msg ${flash.ok ? 'ok' : 'err'}">${esc(flash.text)}</div>` : ''}
+        <div class="card-title">Vaša rezervácia ${st}</div>
+        ${b.serviceName ? `<div class="row"><span>Služba</span><span>${esc(b.serviceName)}</span></div>` : ''}
+        <div class="row"><span>Dátum</span><span>${esc(fmtDate(b.date))}</span></div>
+        <div class="row"><span>Čas</span><span>${esc(b.startTime)} – ${esc(b.endTime)}</span></div>
+        ${b.staffName ? `<div class="row"><span>S kým</span><span>${esc(b.staffName)}</span></div>` : ''}
+        ${b.seats > 1 ? `<div class="row"><span>Počet osôb</span><span>${b.seats}</span></div>` : ''}
+        ${loc ? `<div class="row"><span>Miesto</span><span>${loc}</span></div>` : ''}
+      </div>
+      ${b.status === 'confirmed' ? `
+      <div class="card">
+        <div class="card-title">Pridať do kalendára</div>
+        <div class="btns">
+          <a class="btn btn-s" target="_blank" rel="noopener" href="${esc(data.calendar.google)}">Google Kalendár</a>
+          <a class="btn btn-s" target="_blank" rel="noopener" href="${esc(data.calendar.outlook)}">Outlook</a>
+          <a class="btn btn-s" href="${esc(data.calendar.ics)}">Apple / iCal (.ics)</a>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Zmena termínu</div>
+        ${data.canReschedule || data.canCancel ? `
+          <div class="btns">
+            ${data.canReschedule ? '<button class="btn btn-p" id="btn-move">Presunúť termín</button>' : ''}
+            ${data.canCancel ? '<button class="btn btn-d" id="btn-cancel">Zrušiť rezerváciu</button>' : ''}
+          </div>
+          <div id="move-box" class="hidden" style="margin-top:1rem">
+            <input type="date" id="move-date" min="${today}">
+            <div id="move-slots"></div>
+            <button class="btn btn-p" id="btn-move-ok" disabled>Potvrdiť nový termín</button>
+          </div>
+          <div id="cancel-box" class="hidden" style="margin-top:1rem">
+            <textarea id="cancel-reason" rows="2" placeholder="Dôvod (nepovinné)"></textarea>
+            <button class="btn btn-d" id="btn-cancel-ok">Áno, zrušiť rezerváciu</button>
+          </div>
+          <p class="note">Zmeny sú možné najneskôr ${data.cancelHours} h pred začiatkom (do ${esc(deadline)}).</p>`
+        : `<p class="muted">Online zmena už nie je možná${data.cancelHours ? ` (najneskôr ${data.cancelHours} h vopred)` : ''}. Kontaktujte nás prosím priamo.</p>`}
+      </div>` : `
+      <div class="card"><a class="btn btn-p" href="/book/${encodeURIComponent(data.widgetId)}">Rezervovať nový termín</a></div>`}`;
+    bind();
+  }
+
+  function bind() {
+    const $ = id => document.getElementById(id);
+    $('btn-move') && ($('btn-move').onclick = () => { $('move-box').classList.toggle('hidden'); $('cancel-box').classList.add('hidden'); });
+    $('btn-cancel') && ($('btn-cancel').onclick = () => { $('cancel-box').classList.toggle('hidden'); $('move-box')?.classList.add('hidden'); });
+    $('move-date') && ($('move-date').onchange = async e => {
+      newSlot = null; $('btn-move-ok').disabled = true;
+      const box = $('move-slots');
+      box.innerHTML = '<p class="muted" style="margin-bottom:.9rem">Načítavam...</p>';
+      const r = await fetch(`${API}/slots?date=${encodeURIComponent(e.target.value)}`);
+      const slots = r.ok ? await r.json() : [];
+      if (!slots.length) { box.innerHTML = '<p class="muted" style="margin-bottom:.9rem">Žiadne voľné termíny pre tento deň.</p>'; return; }
+      box.innerHTML = `<div class="slots">${slots.map(s => `<button class="slot" data-t="${esc(s.start_time)}">${esc(s.start_time)}</button>`).join('')}</div>`;
+      box.querySelectorAll('.slot').forEach(btn => btn.onclick = () => {
+        box.querySelectorAll('.slot').forEach(x => x.classList.remove('sel'));
+        btn.classList.add('sel'); newSlot = btn.dataset.t; $('btn-move-ok').disabled = false;
+      });
+    });
+    $('btn-move-ok') && ($('btn-move-ok').onclick = () => act('reschedule', { date: $('move-date').value, startTime: newSlot }, 'Termín bol presunutý. Potvrdenie sme poslali e-mailom.'));
+    $('btn-cancel-ok') && ($('btn-cancel-ok').onclick = () => act('cancel', { reason: $('cancel-reason').value }, 'Rezervácia bola zrušená. Potvrdenie sme poslali e-mailom.'));
+  }
+
+  async function act(path, body, okText) {
+    document.querySelectorAll('.btn').forEach(b => b.disabled = true);
+    const r = await fetch(`${API}/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    flash = r.ok ? { ok: true, text: okText } : { ok: false, text: j.error || 'Nastala chyba. Skúste znova.' };
+    await load();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  load().catch(() => { document.getElementById('app').innerHTML = '<div class="card"><p class="muted">Chyba pri načítaní. Skúste obnoviť stránku.</p></div>'; });
+})();
+</script>
+</body>
+</html>
