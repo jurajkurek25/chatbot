@@ -2208,9 +2208,8 @@ async function importProductsCSV(input) {
    ════════════════════════════════════════════════════════════════ */
 
 let _bookingCfg = null;
-let _bookingSchedule = [];
-let _bookingOverrides = [];
 let _bookingServices = [];
+let _bookingStaff = [];
 let _bkCalYear = new Date().getFullYear();
 let _bkCalMonth = new Date().getMonth();
 let _bkAllBookings = []; // flat list loaded for current month
@@ -2223,10 +2222,8 @@ async function loadBookingTab() {
   if (!currentWidget) return;
   await Promise.all([
     loadBookingConfig(),
-    loadBookingSchedule(),
-    loadBookingOverrides(),
     loadBookingServices(),
-    loadGCalStatus(),
+    loadBookingStaff(),
   ]);
   renderBookingEmbed();
   renderBookingCalendar();
@@ -2237,14 +2234,21 @@ async function loadBookingConfig() {
   if (!r || !r.ok) return;
   const data = await r.json();
   _bookingCfg = data;
-  _bookingSchedule = data.schedules || [];
   document.getElementById('bk-timezone').value = data.timezone || 'Europe/Bratislava';
   document.getElementById('bk-duration').value = data.slot_duration || 60;
   document.getElementById('bk-buffer').value   = data.buffer_between || 0;
   document.getElementById('bk-notice').value   = data.min_notice || 60;
   document.getElementById('bk-advance').value  = data.max_advance_days || 60;
   document.getElementById('bk-confirm-msg').value = data.confirmation_message || '';
-  renderScheduleGrid();
+  document.getElementById('bk-interval').value = data.slot_interval || 0;
+  document.getElementById('bk-staff-selection').value = data.staff_selection || 'choose';
+  document.getElementById('bk-cancel-hours').value = data.cancel_hours ?? 24;
+  document.getElementById('bk-allow-cancel').checked = !!data.allow_cancel;
+  document.getElementById('bk-allow-reschedule').checked = !!data.allow_reschedule;
+  document.getElementById('bk-require-phone').checked = !!data.require_phone;
+  document.getElementById('bk-notify-staff').checked = !!data.notify_staff;
+  document.getElementById('bk-custom-css').value = data.custom_css || '';
+  renderReminderOptions(data);
   try { loadBookingDesign(JSON.parse(data.design_config || '{}')); } catch {}
 }
 
@@ -2405,12 +2409,43 @@ async function saveBookingConfig() {
     minNotice:           parseInt(document.getElementById('bk-notice').value)   || 60,
     maxAdvanceDays:      parseInt(document.getElementById('bk-advance').value)  || 60,
     confirmationMessage: document.getElementById('bk-confirm-msg').value.trim(),
+    slotInterval:        parseInt(document.getElementById('bk-interval').value) || 0,
+    staffSelection:      document.getElementById('bk-staff-selection').value,
+    cancelHours:         parseInt(document.getElementById('bk-cancel-hours').value) || 0,
+    allowCancel:         document.getElementById('bk-allow-cancel').checked,
+    allowReschedule:     document.getElementById('bk-allow-reschedule').checked,
+    requirePhone:        document.getElementById('bk-require-phone').checked,
+    notifyStaff:         document.getElementById('bk-notify-staff').checked,
+    remindersCustomer:   [...document.querySelectorAll('[data-rem="customer"] input:checked')].map(i => +i.value),
+    remindersStaff:      [...document.querySelectorAll('[data-rem="staff"] input:checked')].map(i => +i.value),
   };
   const r = await apiFetch(`/api/booking/${currentWidget.id}/config`, {
     method: 'PUT', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (r && r.ok) showToast('Nastavenia uložené!', 'success');
+  else showToast('Chyba pri ukladaní.', 'error');
+}
+
+const BK_REMINDER_OPTS = [[10080, '1 týždeň vopred'], [2880, '2 dni vopred'], [1440, '1 deň vopred'], [120, '2 hodiny vopred'], [60, '1 hodinu vopred']];
+
+function renderReminderOptions(data) {
+  for (const who of ['customer', 'staff']) {
+    const el = document.querySelector(`[data-rem="${who}"]`);
+    if (!el) continue;
+    const on = data[`reminders_${who}`] || [];
+    el.innerHTML = BK_REMINDER_OPTS.map(([v, l]) =>
+      `<label class="bk-check"><input type="checkbox" value="${v}" ${on.includes(v) ? 'checked' : ''}> ${l}</label>`).join('');
+  }
+}
+
+async function saveBookingCss() {
+  if (!currentWidget) return;
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/config`, {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ customCss: document.getElementById('bk-custom-css').value }),
+  });
+  if (r && r.ok) showToast('CSS uložené!', 'success');
   else showToast('Chyba pri ukladaní.', 'error');
 }
 
@@ -2438,7 +2473,7 @@ function renderServicesList() {
       <div>
         <strong style="font-size:0.875rem">${escHtml(s.name)}</strong>${activeLabel}
         ${s.description ? `<div style="font-size:0.78rem;color:#9898b8">${escHtml(s.description)}</div>` : ''}
-        <div style="font-size:0.75rem;color:#7e7ea0;margin-top:2px">⏱ ${s.duration_mins} min &nbsp;·&nbsp; 💶 ${esc(price)}</div>
+        <div style="font-size:0.75rem;color:#7e7ea0;margin-top:2px">⏱ ${s.duration_mins} min &nbsp;·&nbsp; 💶 ${esc(price)}${s.capacity > 1 ? ` &nbsp;·&nbsp; 👥 ${s.capacity}` : ''}${s.buffer_before || s.buffer_after ? ` &nbsp;·&nbsp; ⏸ ${s.buffer_before}/${s.buffer_after} min` : ''}${s.questions?.length ? ` &nbsp;·&nbsp; ❓ ${s.questions.length}` : ''}${s.staff_ids?.length ? ` &nbsp;·&nbsp; 👤 ${s.staff_ids.map(id => esc(_bookingStaff.find(x => x.id === id)?.name || '')).filter(Boolean).join(', ')}` : ''}</div>
       </div>
       <div style="display:flex;gap:0.4rem;flex-shrink:0">
         <button class="btn btn-sm btn-secondary" onclick="openServiceModal(${i})">✏️</button>
@@ -2461,6 +2496,7 @@ function openServiceModal(idx) {
     document.getElementById('svc-duration').value = s.duration_mins;
     document.getElementById('svc-price').value = s.price ?? '';
     document.getElementById('svc-currency').value = s.currency || 'EUR';
+    fillServiceExtras(s);
   } else {
     document.getElementById('svc-modal-title').textContent = 'Nová služba';
     document.getElementById('svc-id').value = '';
@@ -2469,8 +2505,45 @@ function openServiceModal(idx) {
     document.getElementById('svc-duration').value = '60';
     document.getElementById('svc-price').value = '';
     document.getElementById('svc-currency').value = 'EUR';
+    fillServiceExtras({});
   }
   modal.style.display = 'flex';
+}
+
+let _svcQuestions = [];
+
+function fillServiceExtras(s) {
+  document.getElementById('svc-buf-before').value = s.buffer_before || 0;
+  document.getElementById('svc-buf-after').value = s.buffer_after || 0;
+  document.getElementById('svc-capacity').value = s.capacity || 1;
+  document.getElementById('svc-location-type').value = s.location_type || 'in_person';
+  document.getElementById('svc-location-detail').value = s.location_detail || '';
+  const ids = s.staff_ids || [];
+  document.getElementById('svc-staff').innerHTML = _bookingStaff.length
+    ? _bookingStaff.map(st => `<label class="bk-check"><input type="checkbox" value="${esc(st.id)}" ${ids.includes(st.id) ? 'checked' : ''}> ${esc(st.name)}</label>`).join('')
+    : '<span style="font-size:0.8rem;color:#7e7ea0">Zatiaľ žiadny tím</span>';
+  _svcQuestions = (s.questions || []).map(q => ({ ...q, options: (q.options || []).join('\n') }));
+  renderSvcQuestions();
+}
+
+function renderSvcQuestions() {
+  const el = document.getElementById('svc-questions');
+  if (!el) return;
+  el.innerHTML = _svcQuestions.map((q, i) => `
+    <div class="bk-q">
+      <input type="text" class="form-control" placeholder="Otázka" value="${esc(q.label || '')}" oninput="_svcQuestions[${i}].label=this.value">
+      <select class="form-control" onchange="_svcQuestions[${i}].type=this.value;renderSvcQuestions()">
+        ${[['text','Krátky text'],['textarea','Dlhý text'],['select','Výber'],['checkbox','Zaškrtávacie']].map(([v,l]) => `<option value="${v}" ${q.type===v?'selected':''}>${l}</option>`).join('')}
+      </select>
+      <label class="bk-check" title="Povinné"><input type="checkbox" ${q.required ? 'checked' : ''} onchange="_svcQuestions[${i}].required=this.checked">*</label>
+      <button type="button" class="btn btn-sm btn-danger" onclick="_svcQuestions.splice(${i},1);renderSvcQuestions()">✕</button>
+      ${q.type === 'select' ? `<textarea class="form-control" rows="2" style="grid-column:1/-1" placeholder="Možnosti – každá na nový riadok" oninput="_svcQuestions[${i}].options=this.value">${esc(q.options || '')}</textarea>` : ''}
+    </div>`).join('') || '<div style="font-size:0.8rem;color:#7e7ea0">Žiadne otázky</div>';
+}
+
+function addSvcQuestion() {
+  _svcQuestions.push({ label: '', type: 'text', required: false, options: '' });
+  renderSvcQuestions();
 }
 
 function closeServiceModal() {
@@ -2487,7 +2560,14 @@ async function saveService() {
   const currency = document.getElementById('svc-currency')?.value || 'EUR';
   if (!name) { showToast('Zadajte názov služby.', 'error'); return; }
   const body = { name, description: desc, durationMins: duration,
-                 price: priceVal !== '' ? parseFloat(priceVal) : null, currency };
+                 price: priceVal !== '' ? parseFloat(priceVal) : null, currency,
+                 bufferBefore: parseInt(document.getElementById('svc-buf-before').value) || 0,
+                 bufferAfter:  parseInt(document.getElementById('svc-buf-after').value) || 0,
+                 capacity:     parseInt(document.getElementById('svc-capacity').value) || 1,
+                 locationType: document.getElementById('svc-location-type').value,
+                 locationDetail: document.getElementById('svc-location-detail').value.trim(),
+                 staffIds: [...document.querySelectorAll('#svc-staff input:checked')].map(i => i.value),
+                 questions: _svcQuestions.filter(q => q.label && q.label.trim()) };
   const url    = id ? `/api/booking/${currentWidget.id}/services/${id}` : `/api/booking/${currentWidget.id}/services`;
   const method = id ? 'PUT' : 'POST';
   const r = await apiFetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
@@ -2501,94 +2581,228 @@ async function deleteService(id) {
   if (r && r.ok) { showToast('Služba zmazaná.', 'success'); loadBookingServices(); }
 }
 
-/* ── Schedule ─────────────────────────────────────────────────── */
+/* ── Team / staff ─────────────────────────────────────────────── */
 
-async function loadBookingSchedule() {
-  // loaded together with config
-}
-
-function renderScheduleGrid() {
-  const grid = document.getElementById('bk-schedule-grid');
-  if (!grid) return;
-  grid.innerHTML = '';
-  for (let d = 0; d <= 6; d++) {
-    const sched = _bookingSchedule.find(s => s.day_of_week === d) || { day_of_week: d, start_time: '09:00', end_time: '17:00', active: d >= 1 && d <= 5 ? 1 : 0 };
-    const row = document.createElement('div');
-    row.style.cssText = 'display:flex;align-items:center;gap:0.75rem;padding:0.4rem 0;border-bottom:1px solid rgba(255,255,255,0.06)';
-    row.innerHTML = `
-      <label style="display:flex;align-items:center;gap:0.4rem;min-width:110px;cursor:pointer;font-size:0.875rem">
-        <input type="checkbox" data-day="${d}" class="bk-day-active" style="width:15px;height:15px" ${sched.active ? 'checked' : ''}>
-        <span>${DAY_NAMES_BOOKING[d]}</span>
-      </label>
-      <input type="time" data-day="${d}" class="bk-day-start form-control" value="${sched.start_time}" style="width:auto;padding:0.35rem 0.5rem;font-size:0.82rem">
-      <span style="color:#7e7ea0;font-size:0.82rem">–</span>
-      <input type="time" data-day="${d}" class="bk-day-end form-control" value="${sched.end_time}" style="width:auto;padding:0.35rem 0.5rem;font-size:0.82rem">
-    `;
-    grid.appendChild(row);
-  }
-}
-
-async function saveBookingSchedule() {
-  if (!currentWidget) return;
-  const rows = [];
-  for (let d = 0; d <= 6; d++) {
-    const activeEl = document.querySelector(`.bk-day-active[data-day="${d}"]`);
-    const startEl  = document.querySelector(`.bk-day-start[data-day="${d}"]`);
-    const endEl    = document.querySelector(`.bk-day-end[data-day="${d}"]`);
-    rows.push({ day_of_week: d, start_time: startEl?.value || '09:00', end_time: endEl?.value || '17:00', active: activeEl?.checked ? 1 : 0 });
-  }
-  const r = await apiFetch(`/api/booking/${currentWidget.id}/schedule`, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(rows),
-  });
-  if (r && r.ok) showToast('Pracovné hodiny uložené!', 'success');
-  else showToast('Chyba pri ukladaní.', 'error');
-}
-
-/* ── Overrides ────────────────────────────────────────────────── */
-
-async function loadBookingOverrides() {
-  const r = await apiFetch(`/api/booking/${currentWidget.id}/overrides`);
+async function loadBookingStaff() {
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/staff`);
   if (!r || !r.ok) return;
-  _bookingOverrides = await r.json();
-  renderOverridesList();
+  _bookingStaff = await r.json();
+  renderStaffList();
 }
 
-function renderOverridesList() {
-  const el = document.getElementById('bk-overrides-list');
+function staffSummary(s) {
+  const days = s.schedules.filter(d => d.active).map(d => ['Ne','Po','Ut','St','Št','Pi','So'][d.day_of_week]).join(' ');
+  const tags = [
+    days ? `🗓 ${days}` : '🗓 bez rozvrhu',
+    s.break_start && s.break_end ? `☕ ${s.break_start}–${s.break_end}` : '',
+    s.max_per_day ? `max ${s.max_per_day}/deň` : '',
+    s.max_minutes_per_day ? `max ${Math.round(s.max_minutes_per_day / 6) / 10} h/deň` : '',
+    s.max_per_week ? `max ${s.max_per_week}/týždeň` : '',
+    s.gcal_connected ? '📆 Google' : '',
+    s.time_off.length ? `🌴 ${s.time_off.length}× voľno` : '',
+  ].filter(Boolean);
+  return tags.map(t => `<span class="bk-tag">${esc(t)}</span>`).join('');
+}
+
+function renderStaffList() {
+  const el = document.getElementById('bk-staff-list');
   if (!el) return;
-  if (!_bookingOverrides.length) { el.innerHTML = '<div style="color:#7e7ea0;font-size:0.875rem">Žiadne výnimky</div>'; return; }
-  el.innerHTML = _bookingOverrides.map(o => `
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.875rem">
-      <span><strong>${o.date}</strong> — ${o.type === 'closed' ? 'Zatvorené' : `${o.start_time} – ${o.end_time}`}</span>
-      <button class="btn btn-sm btn-danger" onclick="deleteBookingOverride('${o.id}')">Odstrániť</button>
-    </div>
-  `).join('');
+  el.innerHTML = _bookingStaff.map(s => `
+    <div class="bk-staff-card">
+      <div style="min-width:0">
+        <strong style="font-size:0.9rem">${esc(s.name)}</strong>${s.active ? '' : ' <span style="font-size:0.7rem;color:#7e7ea0">(neaktívny)</span>'}
+        <div style="font-size:0.78rem;color:#9898b8;margin:2px 0 4px">${esc(s.email || 'bez e-mailu')}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:3px">${staffSummary(s)}</div>
+      </div>
+      <button class="btn btn-sm btn-secondary" onclick="openStaffModal('${s.id}')">✏️ Upraviť</button>
+    </div>`).join('');
 }
 
-function toggleExcTime() {
-  const type = document.getElementById('bk-exc-type')?.value;
-  const times = document.getElementById('bk-exc-times');
-  if (times) times.style.display = type === 'custom' ? 'flex' : 'none';
-}
-
-async function addBookingOverride() {
-  const date  = document.getElementById('bk-exc-date')?.value;
-  const type  = document.getElementById('bk-exc-type')?.value;
-  const start = document.getElementById('bk-exc-start')?.value;
-  const end   = document.getElementById('bk-exc-end')?.value;
-  if (!date) { showToast('Vyberte dátum.', 'error'); return; }
-  const r = await apiFetch(`/api/booking/${currentWidget.id}/overrides`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ date, type, startTime: start, endTime: end }),
+async function addStaff() {
+  const name = prompt('Meno člena tímu:');
+  if (!name || !name.trim()) return;
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/staff`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: name.trim() }),
   });
-  if (r && r.ok) { showToast('Výnimka pridaná.', 'success'); loadBookingOverrides(); }
-  else showToast('Chyba.', 'error');
+  if (!r || !r.ok) { showToast('Chyba.', 'error'); return; }
+  const s = await r.json();
+  await loadBookingStaff();
+  openStaffModal(s.id);
 }
 
-async function deleteBookingOverride(id) {
-  const r = await apiFetch(`/api/booking/${currentWidget.id}/overrides/${id}`, { method: 'DELETE' });
-  if (r && r.ok) { showToast('Výnimka odstránená.', 'success'); loadBookingOverrides(); }
+function openStaffModal(id) {
+  const s = _bookingStaff.find(x => x.id === id);
+  if (!s) return;
+  const sched = d => s.schedules.find(x => x.day_of_week === d) || { start_time: '09:00', end_time: '17:00', active: 0 };
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  document.getElementById('staff-modal-body').innerHTML = `
+    <input type="hidden" id="st-id" value="${esc(s.id)}">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+      <div class="form-group"><label>Meno</label><input class="form-control" id="st-name" value="${esc(s.name)}"></div>
+      <div class="form-group"><label>E-mail (notifikácie a pripomienky)</label><input class="form-control" id="st-email" value="${esc(s.email || '')}"></div>
+      <div class="form-group"><label>Krátke predstavenie</label><input class="form-control" id="st-bio" value="${esc(s.bio || '')}"></div>
+      <div class="form-group"><label>URL fotky</label><input class="form-control" id="st-photo" value="${esc(s.photo_url || '')}"></div>
+    </div>
+    <label class="bk-check"><input type="checkbox" id="st-active" ${s.active ? 'checked' : ''}> Aktívny – prijíma rezervácie</label>
+
+    <div class="bk-sub">Pracovné hodiny</div>
+    ${order.map(d => { const x = sched(d); return `
+      <div style="display:flex;align-items:center;gap:0.6rem;padding:0.25rem 0">
+        <label class="bk-check" style="min-width:100px"><input type="checkbox" class="st-day" data-day="${d}" ${x.active ? 'checked' : ''}> ${DAY_NAMES_BOOKING[d]}</label>
+        <input type="time" class="form-control st-start" data-day="${d}" value="${x.start_time}" style="width:auto;padding:0.3rem 0.5rem;font-size:0.82rem">
+        <span style="color:#7e7ea0">–</span>
+        <input type="time" class="form-control st-end" data-day="${d}" value="${x.end_time}" style="width:auto;padding:0.3rem 0.5rem;font-size:0.82rem">
+      </div>`; }).join('')}
+
+    <div class="bk-sub">Work-life balance</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+      <div class="form-group"><label>Obedňajšia prestávka od – do</label>
+        <div style="display:flex;gap:0.4rem;align-items:center">
+          <input type="time" class="form-control" id="st-break-start" value="${s.break_start || ''}" style="padding:0.3rem 0.5rem">
+          <span style="color:#7e7ea0">–</span>
+          <input type="time" class="form-control" id="st-break-end" value="${s.break_end || ''}" style="padding:0.3rem 0.5rem">
+        </div></div>
+      <div class="form-group"><label>Max. termínov za deň (0 = bez limitu)</label><input type="number" min="0" class="form-control" id="st-max-day" value="${s.max_per_day || 0}"></div>
+      <div class="form-group"><label>Max. hodín s klientmi za deň (0 = bez limitu)</label><input type="number" min="0" step="0.5" class="form-control" id="st-max-hours" value="${(s.max_minutes_per_day || 0) / 60}"></div>
+      <div class="form-group"><label>Max. termínov za týždeň (0 = bez limitu)</label><input type="number" min="0" class="form-control" id="st-max-week" value="${s.max_per_week || 0}"></div>
+    </div>
+
+    <div class="bk-sub">Služby</div>
+    <div style="display:flex;flex-wrap:wrap;gap:0.4rem 1rem">${_bookingServices.length
+      ? _bookingServices.map(sv => `<label class="bk-check"><input type="checkbox" class="st-svc" value="${esc(sv.id)}" ${s.service_ids.includes(sv.id) ? 'checked' : ''}> ${esc(sv.name)}</label>`).join('')
+      : '<span style="font-size:0.8rem;color:#7e7ea0">Žiadne služby</span>'}</div>
+    <div style="font-size:0.72rem;color:#7e7ea0;margin-top:0.3rem">Služba bez priradených ľudí je dostupná u všetkých.</div>
+
+    <div style="display:flex;gap:0.5rem;margin-top:1.25rem">
+      <button class="btn btn-primary" style="flex:1" onclick="saveStaff()">Uložiť</button>
+      <button class="btn btn-danger" onclick="deleteStaff('${s.id}')">Odstrániť</button>
+    </div>
+
+    <div class="bk-sub">Voľno a výnimky</div>
+    <div style="display:flex;gap:0.4rem;align-items:flex-end;flex-wrap:wrap">
+      <div class="form-group" style="margin:0"><label>Od</label><input type="date" class="form-control" id="st-off-from"></div>
+      <div class="form-group" style="margin:0"><label>Do</label><input type="date" class="form-control" id="st-off-to"></div>
+      <div class="form-group" style="margin:0"><label>Typ</label>
+        <select class="form-control" id="st-off-type" onchange="document.getElementById('st-off-times').style.display=this.value==='custom'?'flex':'none'">
+          <option value="closed">Celý deň voľno</option><option value="custom">Iné hodiny</option></select></div>
+      <div id="st-off-times" style="display:none;gap:0.3rem">
+        <input type="time" class="form-control" id="st-off-start" value="09:00" style="padding:0.3rem 0.5rem">
+        <input type="time" class="form-control" id="st-off-end" value="13:00" style="padding:0.3rem 0.5rem"></div>
+      <input class="form-control" id="st-off-note" placeholder="Poznámka (dovolenka…)" style="flex:1;min-width:140px">
+      <button class="btn btn-secondary btn-sm" onclick="addTimeOff('${s.id}')">+ Pridať</button>
+    </div>
+    <div style="margin-top:0.5rem" id="st-off-list">${timeOffListHtml(s)}</div>
+
+    <div class="bk-sub">Kalendáre</div>
+    <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap">
+      ${s.gcal_connected
+        ? `<span style="color:#1fd89a;font-weight:600;font-size:0.85rem">✅ Google Calendar ${esc(s.gcal_email || '')}</span>
+           <button class="btn btn-sm btn-danger" onclick="disconnectStaffGCal('${s.id}')">Odpojiť</button>`
+        : `<button class="btn btn-sm btn-primary" onclick="connectStaffGCal('${s.id}')">🔗 Prepojiť Google Calendar</button>`}
+    </div>
+    <div style="font-size:0.75rem;color:#7e7ea0;margin:0.4rem 0">Obsadené časy z Google Kalendára sa nedajú rezervovať a nové rezervácie sa doň zapíšu.</div>
+    <label style="font-size:0.78rem;color:#b8b8d0;font-weight:600">Odber kalendára (Apple, Outlook, Google – „pridať z URL“)</label>
+    <div style="display:flex;gap:0.4rem;margin-top:0.25rem">
+      <input class="form-control" readonly id="st-feed" value="${esc(s.feed_url)}" style="font-size:0.75rem">
+      <button class="btn btn-sm btn-secondary" onclick="navigator.clipboard.writeText(document.getElementById('st-feed').value).then(()=>showToast('Skopírované!','success'))">Kopírovať</button>
+      <button class="btn btn-sm btn-secondary" title="Vygenerovať novú adresu" onclick="resetStaffFeed('${s.id}')">↻</button>
+    </div>`;
+  document.getElementById('modal-staff').style.display = 'flex';
+}
+
+function timeOffListHtml(s) {
+  return s.time_off.map(o => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:0.35rem 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.84rem">
+        <span><strong>${o.date_from}${o.date_to !== o.date_from ? ' → ' + o.date_to : ''}</strong> — ${o.type === 'closed' ? 'voľno' : `${o.start_time}–${o.end_time}`}${o.note ? ` · ${esc(o.note)}` : ''}</span>
+        <button class="btn btn-sm btn-danger" onclick="deleteTimeOff('${s.id}','${o.id}')">✕</button>
+      </div>`).join('') || '<div style="font-size:0.8rem;color:#7e7ea0">Žiadne naplánované voľno</div>';
+}
+
+function closeStaffModal() { document.getElementById('modal-staff').style.display = 'none'; }
+
+async function staffApi(path, method, body) {
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/staff${path}`, {
+    method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined,
+  });
+  const data = r ? await r.json().catch(() => ({})) : {};
+  if (!r || !r.ok) { showToast(data.error || 'Chyba.', 'error'); return null; }
+  return data;
+}
+
+/** Reloads the team and updates the open modal's time-off list / feed URL without discarding unsaved edits. */
+async function refreshStaff(id) {
+  await loadBookingStaff();
+  const s = _bookingStaff.find(x => x.id === id);
+  if (!s) return;
+  const list = document.getElementById('st-off-list');
+  if (list) list.innerHTML = timeOffListHtml(s);
+  const feed = document.getElementById('st-feed');
+  if (feed) feed.value = s.feed_url;
+}
+
+async function saveStaff() {
+  const id = document.getElementById('st-id').value;
+  const val = x => document.getElementById(x).value;
+  const ok = await staffApi(`/${id}`, 'PUT', {
+    name: val('st-name'), email: val('st-email'), bio: val('st-bio'), photoUrl: val('st-photo'),
+    active: document.getElementById('st-active').checked,
+    breakStart: val('st-break-start'), breakEnd: val('st-break-end'),
+    maxPerDay: val('st-max-day'), maxMinutesPerDay: Math.round((parseFloat(val('st-max-hours')) || 0) * 60), maxPerWeek: val('st-max-week'),
+    serviceIds: [...document.querySelectorAll('.st-svc:checked')].map(i => i.value),
+  });
+  if (!ok) return;
+  const rows = [0, 1, 2, 3, 4, 5, 6].map(d => ({
+    day_of_week: d,
+    active: document.querySelector(`.st-day[data-day="${d}"]`).checked ? 1 : 0,
+    start_time: document.querySelector(`.st-start[data-day="${d}"]`).value || '09:00',
+    end_time: document.querySelector(`.st-end[data-day="${d}"]`).value || '17:00',
+  }));
+  if (!await staffApi(`/${id}/schedule`, 'PUT', rows)) return;
+  showToast('Uložené!', 'success');
+  closeStaffModal();
+  await Promise.all([loadBookingStaff(), loadBookingServices()]);
+}
+
+async function deleteStaff(id) {
+  if (!confirm('Odstrániť tohto člena tímu?')) return;
+  const r = await staffApi(`/${id}`, 'DELETE');
+  if (!r) return;
+  showToast(r.deactivated ? `Má ${r.upcoming} budúcich rezervácií – bol len deaktivovaný.` : 'Odstránené.', 'success');
+  closeStaffModal();
+  loadBookingStaff();
+}
+
+async function addTimeOff(id) {
+  const from = document.getElementById('st-off-from').value;
+  if (!from) { showToast('Vyberte dátum.', 'error'); return; }
+  const ok = await staffApi(`/${id}/time-off`, 'POST', {
+    dateFrom: from, dateTo: document.getElementById('st-off-to').value || from,
+    type: document.getElementById('st-off-type').value,
+    startTime: document.getElementById('st-off-start').value, endTime: document.getElementById('st-off-end').value,
+    note: document.getElementById('st-off-note').value,
+  });
+  if (ok) refreshStaff(id);
+}
+
+async function deleteTimeOff(id, offId) {
+  if (await staffApi(`/${id}/time-off/${offId}`, 'DELETE')) refreshStaff(id);
+}
+
+async function resetStaffFeed(id) {
+  if (!confirm('Vygenerovať novú adresu? Stará prestane fungovať.')) return;
+  if (await staffApi(`/${id}/feed-reset`, 'POST')) refreshStaff(id);
+}
+
+async function connectStaffGCal(id) {
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/staff/${id}/gcal/auth-url`);
+  const data = r ? await r.json().catch(() => ({})) : {};
+  if (data.url) window.location.href = data.url;
+  else showToast(data.error || 'Google Calendar nie je nakonfigurovaný.', 'error');
+}
+
+async function disconnectStaffGCal(id) {
+  if (!confirm('Naozaj odpojiť Google Calendar?')) return;
+  if (await staffApi(`/${id}/gcal`, 'DELETE')) { await loadBookingStaff(); openStaffModal(id); }
 }
 
 /* ── Bookings Calendar ─────────────────────────────────────────── */
@@ -2677,6 +2891,8 @@ function showDayBookings(ds) {
           <div>
             <span style="font-weight:700;font-size:0.9rem">${b.start_time} – ${b.end_time}</span>
             ${b.service_name ? `<span style="font-size:0.78rem;background:rgba(155,140,255,0.16);color:#5b4fff;border-radius:4px;padding:1px 6px;margin-left:6px">${escHtml(b.service_name)}</span>` : ''}
+            ${b.staff_name && _bookingStaff.length > 1 ? `<span class="bk-tag" style="margin-left:6px">👤 ${escHtml(b.staff_name)}</span>` : ''}
+            ${b.seats > 1 ? `<span class="bk-tag">👥 ${b.seats}</span>` : ''}
           </div>
           <span style="font-size:0.8rem;font-weight:600;color:${STATUS_COLOR[b.status]||'#eeeef5'}">${STATUS_LABEL[b.status]||''}</span>
         </div>
@@ -2720,7 +2936,7 @@ function showBookingDetail(id) {
 
   const [y,mo,d] = b.date.split('-').map(Number);
   const dateLabel = `${d}. ${BK_MONTHS[mo-1]} ${y}`;
-  const STATUS_LABEL = { confirmed: '✅ Potvrdená', cancelled: '❌ Zrušená', no_show: '👻 Nedostavil sa' };
+  const STATUS_LABEL = { confirmed: '✅ Potvrdená', cancelled: '❌ Zrušená', no_show: '👻 Nedostavil sa', completed: '✔️ Dokončená' };
   const STATUS_COLOR = { confirmed: '#1fd89a', cancelled: '#ff4060', no_show: '#f59e0b' };
 
   content.innerHTML = `
@@ -2734,11 +2950,19 @@ function showBookingDetail(id) {
         <div style="font-size:0.875rem;font-weight:700;margin-top:2px;color:#5b4fff">${escHtml(b.service_name)}</div>
       </div>` : '<div></div>'}
     </div>
+    ${b.staff_name || b.location_type ? `<div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:1rem">
+      ${b.staff_name ? `<span class="bk-tag">👤 ${escHtml(b.staff_name)}</span>` : ''}
+      ${b.seats > 1 ? `<span class="bk-tag">👥 ${b.seats} osoby</span>` : ''}
+      ${b.location_type ? `<span class="bk-tag">📍 ${{ in_person: 'Osobne', online: 'Online', phone: 'Telefonicky' }[b.location_type] || ''}${b.location_detail ? ': ' + escHtml(b.location_detail) : ''}</span>` : ''}
+    </div>` : ''}
     <div style="background:#111120;border-radius:8px;padding:0.75rem;margin-bottom:1rem">
       <div style="font-size:0.7rem;color:#7e7ea0;font-weight:600;margin-bottom:4px">ZÁKAZNÍK</div>
       <div style="font-weight:700">${escHtml(b.customer_name)}</div>
       <div style="font-size:0.82rem;color:#9898b8">${escHtml(b.customer_email)}</div>
       ${b.customer_phone ? `<div style="font-size:0.82rem;color:#9898b8">${escHtml(b.customer_phone)}</div>` : ''}
+      ${(b.answers || []).map(a => `<div style="font-size:0.82rem;margin-top:6px"><span style="color:#7e7ea0">${escHtml(a.q)}:</span> ${escHtml(a.a)}</div>`).join('')}
+      ${b.notes ? `<div style="font-size:0.82rem;margin-top:6px"><span style="color:#7e7ea0">Poznámka zákazníka:</span> ${escHtml(b.notes)}</div>` : ''}
+      ${b.cancel_reason ? `<div style="font-size:0.82rem;margin-top:6px;color:#ff4060">Dôvod zrušenia: ${escHtml(b.cancel_reason)}</div>` : ''}
     </div>
     ${b.ai_summary ? `
       <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:0.875rem;margin-bottom:1rem">
@@ -2754,9 +2978,20 @@ function showBookingDetail(id) {
         placeholder="Pridajte poznámky ku stretnutiu...">${escHtml(b.internal_notes || '')}</textarea>
       <button class="btn btn-sm btn-secondary" style="margin-top:0.4rem" onclick="saveBkNotes('${b.id}','${currentWidget?.id}')">Uložiť poznámky</button>
     </div>
-    ${b.status === 'confirmed' ? `<div style="display:flex;gap:0.5rem">
+    ${b.status === 'confirmed' ? `<div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+      <button class="btn btn-sm btn-secondary" onclick="document.getElementById('bk-move-box').style.display='block'">📅 Presunúť</button>
       <button class="btn btn-sm btn-danger" onclick="changeBookingStatus('${b.id}','cancelled');closeBkDetail()">Zrušiť rezerváciu</button>
+      <button class="btn btn-sm btn-secondary" onclick="changeBookingStatus('${b.id}','completed');closeBkDetail()">Dokončená</button>
       <button class="btn btn-sm btn-secondary" onclick="changeBookingStatus('${b.id}','no_show');closeBkDetail()">Neprišiel</button>
+    </div>
+    <div id="bk-move-box" style="display:none;margin-top:1rem;background:#111120;border-radius:10px;padding:0.875rem">
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
+        <input type="date" class="form-control" id="bk-move-date" style="width:auto" onchange="loadMoveSlots('${b.id}')">
+        ${_bookingStaff.length > 1 ? `<select class="form-control" id="bk-move-staff" style="width:auto" onchange="loadMoveSlots('${b.id}')">
+          ${_bookingStaff.filter(s => s.active).map(s => `<option value="${s.id}" ${s.id === b.staff_id ? 'selected' : ''}>${escHtml(s.name)}</option>`).join('')}</select>` : ''}
+      </div>
+      <div id="bk-move-slots" style="display:flex;flex-wrap:wrap;gap:0.4rem;margin-top:0.6rem"></div>
+      <div style="font-size:0.75rem;color:#7e7ea0;margin-top:0.4rem">Zákazník dostane e-mail s novým termínom a aktualizovanou pozvánkou do kalendára.</div>
     </div>` : ''}
   `;
   modal.style.display = 'flex';
@@ -2771,12 +3006,43 @@ function closeBkDetail(e) {
 function escHtml(s) { return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 async function changeBookingStatus(bookingId, status) {
+  let reason;
+  if (status === 'cancelled') {
+    reason = prompt('Zrušiť rezerváciu? Zákazník dostane e-mail.\nDôvod (nepovinné):', '');
+    if (reason === null) return;
+  }
   const r = await apiFetch(`/api/booking/${currentWidget.id}/bookings/${bookingId}`, {
     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ status }),
+    body: JSON.stringify({ status, reason }),
   });
   if (r && r.ok) { showToast('Stav aktualizovaný.', 'success'); renderBookingCalendar(); }
   else showToast('Chyba.', 'error');
+}
+
+async function loadMoveSlots(bookingId) {
+  const b = _bkAllBookings.find(x => x.id === bookingId);
+  const date = document.getElementById('bk-move-date').value;
+  const box = document.getElementById('bk-move-slots');
+  if (!b || !date) return;
+  const staffId = document.getElementById('bk-move-staff')?.value || b.staff_id || '';
+  const q = new URLSearchParams({ date, staffId, excludeBookingId: b.id });
+  if (b.service_id) q.set('serviceId', b.service_id);
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/slots?${q}`);
+  const slots = r && r.ok ? await r.json() : [];
+  box.innerHTML = slots.length
+    ? slots.map(s => `<button class="btn btn-sm btn-secondary" onclick="moveBooking('${b.id}','${date}','${s.start_time}','${s.staff_id}')">${s.start_time}</button>`).join('')
+    : '<span style="font-size:0.8rem;color:#7e7ea0">Žiadne voľné termíny.</span>';
+}
+
+async function moveBooking(bookingId, date, startTime, staffId) {
+  if (!confirm(`Presunúť na ${date} ${startTime}?`)) return;
+  const r = await apiFetch(`/api/booking/${currentWidget.id}/bookings/${bookingId}`, {
+    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ date, startTime, staffId }),
+  });
+  const data = r ? await r.json().catch(() => ({})) : {};
+  if (r && r.ok) { showToast('Rezervácia presunutá.', 'success'); closeBkDetail(); renderBookingCalendar(); }
+  else showToast(data.error || 'Chyba.', 'error');
 }
 
 async function saveBkNotes(bookingId, widgetId) {
@@ -2795,49 +3061,6 @@ async function saveBkNotes(bookingId, widgetId) {
   } else {
     showToast('Chyba pri ukladaní.', 'error');
   }
-}
-
-/* ── Google Calendar ──────────────────────────────────────────── */
-
-async function loadGCalStatus() {
-  const el = document.getElementById('bk-gcal-status');
-  if (!el || !currentWidget) return;
-
-  const r = await apiFetch(`/api/booking/${currentWidget.id}/gcal/status`);
-  if (!r || !r.ok) { el.innerHTML = '<div style="color:#7e7ea0;font-size:0.875rem">Google Calendar nedostupný.</div>'; return; }
-  const data = await r.json();
-
-  if (data.connected) {
-    el.innerHTML = `
-      <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
-        <span style="color:#1fd89a;font-weight:600">✅ Prepojený</span>
-        <span style="color:#9898b8;font-size:0.875rem">${escHtml(data.email||'')}</span>
-        <button class="btn btn-sm btn-danger" onclick="disconnectGCal()">Odpojiť</button>
-      </div>
-      <div style="margin-top:0.5rem;font-size:0.8rem;color:#9898b8">Nové rezervácie sa automaticky pridávajú do vášho Google Kalendára.</div>
-    `;
-  } else {
-    el.innerHTML = `
-      <div style="font-size:0.875rem;color:#9898b8;margin-bottom:0.75rem">Prepojte Google Kalendár, aby sa rezervácie automaticky zobrazovali vo vašom kalendári.</div>
-      <button class="btn btn-primary" onclick="connectGCal()">🔗 Prepojiť Google Calendar</button>
-      <div style="margin-top:0.5rem;font-size:0.75rem;color:#7e7ea0">Presmeruje vás na Google prihlasovaciu stránku.</div>
-    `;
-  }
-}
-
-async function connectGCal() {
-  const r = await apiFetch(`/api/booking/${currentWidget.id}/gcal/auth-url`);
-  if (!r) return;
-  const data = await r.json();
-  if (data.url) { window.location.href = data.url; }
-  else showToast(data.error || 'Google Calendar nie je nakonfigurovaný.', 'error');
-}
-
-async function disconnectGCal() {
-  if (!confirm('Naozaj odpojiť Google Calendar?')) return;
-  const r = await apiFetch(`/api/booking/${currentWidget.id}/gcal/disconnect`, { method: 'DELETE' });
-  if (r && r.ok) { showToast('Google Calendar odpojený.', 'success'); loadGCalStatus(); }
-  else showToast('Chyba.', 'error');
 }
 
 /* ── Embed code ───────────────────────────────────────────────── */

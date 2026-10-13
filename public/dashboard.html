@@ -6,6 +6,14 @@
   <title>Dashboard – Neoworkly</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/i18n.css">
+<style>
+  .bk-check { display:flex; align-items:center; gap:0.45rem; font-size:0.84rem; color:#eeeef5; font-weight:500; cursor:pointer; }
+  .bk-check input { width:15px; height:15px; accent-color:#5b4fff; }
+  .bk-sub { font-size:0.72rem; font-weight:700; color:#9898b8; letter-spacing:0.05em; text-transform:uppercase; margin:1.25rem 0 0.5rem; }
+  .bk-q { display:grid; grid-template-columns:2fr 1fr auto auto; gap:0.4rem; align-items:center; margin-bottom:0.4rem; }
+  .bk-staff-card { display:flex; justify-content:space-between; align-items:center; gap:0.75rem; padding:0.75rem 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .bk-tag { font-size:0.7rem; padding:1px 7px; border-radius:100px; background:rgba(255,255,255,0.06); color:#b8b8d0; margin-right:4px; white-space:nowrap; }
+</style>
 </head>
 <body>
 <div class="app-layout">
@@ -1101,6 +1109,39 @@
               <label>Potvrdzovacia správa (po úspešnej rezervácii)</label>
               <input type="text" class="form-control" id="bk-confirm-msg" placeholder="Rezervácia potvrdená! Tešíme sa na vás.">
             </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem">
+              <div class="form-group">
+                <label>Začiatky termínov každých X min (0 = podľa dĺžky služby)</label>
+                <input type="number" class="form-control" id="bk-interval" min="0" max="240" step="5" value="0">
+              </div>
+              <div class="form-group">
+                <label>Výber zamestnanca zákazníkom</label>
+                <select class="form-control" id="bk-staff-selection">
+                  <option value="choose">Zákazník si vyberie (alebo „Ktokoľvek“)</option>
+                  <option value="any">Automaticky – najmenej vyťažený</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Zrušenie / presun najneskôr X hodín vopred</label>
+                <input type="number" class="form-control" id="bk-cancel-hours" min="0" max="720" value="24">
+              </div>
+              <div class="form-group" style="display:flex;flex-direction:column;gap:0.4rem;justify-content:center">
+                <label class="bk-check"><input type="checkbox" id="bk-allow-cancel"> Zákazník môže zrušiť online</label>
+                <label class="bk-check"><input type="checkbox" id="bk-allow-reschedule"> Zákazník môže presunúť online</label>
+                <label class="bk-check"><input type="checkbox" id="bk-require-phone"> Telefón je povinný</label>
+              </div>
+            </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+              <div class="form-group">
+                <label>📧 Pripomienky zákazníkovi</label>
+                <div class="bk-rem-list" data-rem="customer"></div>
+              </div>
+              <div class="form-group">
+                <label>🔔 Pripomienky zamestnancovi</label>
+                <div class="bk-rem-list" data-rem="staff"></div>
+                <label class="bk-check" style="margin-top:0.4rem"><input type="checkbox" id="bk-notify-staff"> Posielať e-mail o nových, zrušených a presunutých rezerváciách</label>
+              </div>
+            </div>
           </div>
 
           <!-- Services panel -->
@@ -1252,45 +1293,30 @@
             </div>
           </div>
 
-          <!-- Schedule panel -->
+          <!-- Team panel -->
           <div class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Pracovné hodiny</div>
-                <div class="panel-subtitle">Nastavte dni a časy, kedy ste dostupní</div>
+                <div class="panel-title">👥 Tím a dostupnosť</div>
+                <div class="panel-subtitle">Pracovné hodiny, prestávky, limity work-life balance, voľno a kalendáre jednotlivých ľudí</div>
               </div>
-              <button class="btn btn-primary" onclick="saveBookingSchedule()">Uložiť</button>
+              <button class="btn btn-primary btn-sm" onclick="addStaff()">+ Pridať člena tímu</button>
             </div>
-            <div id="bk-schedule-grid" style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem"></div>
+            <div id="bk-staff-list" style="margin-top:0.5rem"></div>
           </div>
 
-          <!-- Overrides panel -->
+          <!-- Custom CSS panel -->
           <div class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Výnimky</div>
-                <div class="panel-subtitle">Zatvorené dni alebo špeciálne hodiny pre konkrétne dátumy</div>
+                <div class="panel-title">🧩 Vlastné CSS</div>
+                <div class="panel-subtitle">Pokročilé úpravy vzhľadu rezervačnej stránky a stránky správy rezervácie</div>
               </div>
+              <button class="btn btn-primary btn-sm" onclick="saveBookingCss()">Uložiť CSS</button>
             </div>
-            <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem">
-              <div class="form-group" style="margin:0;flex:0 0 auto">
-                <label>Dátum</label>
-                <input type="date" class="form-control" id="bk-exc-date">
-              </div>
-              <div class="form-group" style="margin:0;flex:0 0 auto">
-                <label>Typ</label>
-                <select class="form-control" id="bk-exc-type" onchange="toggleExcTime()">
-                  <option value="closed">Zatvorené celý deň</option>
-                  <option value="custom">Vlastné hodiny</option>
-                </select>
-              </div>
-              <div id="bk-exc-times" style="display:none;gap:0.5rem;align-items:flex-end">
-                <div class="form-group" style="margin:0"><label>Od</label><input type="time" class="form-control" id="bk-exc-start" value="09:00"></div>
-                <div class="form-group" style="margin:0"><label>Do</label><input type="time" class="form-control" id="bk-exc-end" value="17:00"></div>
-              </div>
-              <button class="btn btn-primary" onclick="addBookingOverride()" style="flex-shrink:0">+ Pridať výnimku</button>
-            </div>
-            <div id="bk-overrides-list"></div>
+            <textarea id="bk-custom-css" class="form-control" rows="7" spellcheck="false" style="font-family:ui-monospace,Menlo,monospace;font-size:0.8rem"
+              placeholder=".bk-header { border-radius: 0; }&#10;.slot-btn { font-weight: 800; }"></textarea>
+            <div style="font-size:0.75rem;color:#7e7ea0;margin-top:0.4rem">Užitočné triedy: .bk-header, .card, .svc-card, .cal-day, .slot-btn, .btn-next, .staff-chip, .success-screen</div>
           </div>
 
           <!-- Calendar / bookings panel -->
@@ -1318,19 +1344,6 @@
                 <button onclick="closeBkDetail()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;color:#7e7ea0">✕</button>
               </div>
               <div id="bk-detail-content"></div>
-            </div>
-          </div>
-
-          <!-- Google Calendar panel -->
-          <div class="panel">
-            <div class="panel-header">
-              <div>
-                <div class="panel-title">📆 Google Calendar</div>
-                <div class="panel-subtitle">Synchronizujte rezervácie do svojho Google Kalendára</div>
-              </div>
-            </div>
-            <div id="bk-gcal-status">
-              <div style="color:#7e7ea0;font-size:0.875rem">Načítavam stav...</div>
             </div>
           </div>
 
@@ -2077,10 +2090,39 @@
         <option value="GBP">GBP £</option>
       </select>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem">
+      <div class="form-group"><label>Rezerva pred (min)</label><input type="number" class="form-control" id="svc-buf-before" min="0" max="240" step="5" value="0"></div>
+      <div class="form-group"><label>Rezerva po (min)</label><input type="number" class="form-control" id="svc-buf-after" min="0" max="240" step="5" value="0"></div>
+      <div class="form-group"><label>Kapacita (osôb)</label><input type="number" class="form-control" id="svc-capacity" min="1" max="500" value="1"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:0.75rem">
+      <div class="form-group"><label>Miesto</label>
+        <select class="form-control" id="svc-location-type">
+          <option value="in_person">Osobne</option><option value="online">Online</option><option value="phone">Telefonicky</option>
+        </select></div>
+      <div class="form-group"><label>Adresa / odkaz na stretnutie</label><input type="text" class="form-control" id="svc-location-detail" placeholder="Hlavná 1, Bratislava alebo https://meet.google.com/..."></div>
+    </div>
+    <div class="form-group"><label>Kto službu poskytuje (nič = všetci)</label><div id="svc-staff" style="display:flex;flex-wrap:wrap;gap:0.4rem 1rem"></div></div>
+    <div class="form-group">
+      <label style="display:flex;justify-content:space-between;align-items:center">Otázky pre zákazníka
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addSvcQuestion()">+ Otázka</button></label>
+      <div id="svc-questions"></div>
+    </div>
     <div style="display:flex;gap:0.75rem;margin-top:1.25rem">
       <button class="btn btn-secondary" style="flex:1" onclick="closeServiceModal()">Zrušiť</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveService()">Uložiť</button>
     </div>
+  </div>
+</div>
+
+<!-- Staff Modal -->
+<div id="modal-staff" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:flex-start;justify-content:center;padding:0.75rem;overflow-y:auto" onclick="if(event.target===this)closeStaffModal()">
+  <div class="modal-box modal-box-lg" style="max-width:640px;margin:2rem auto" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="font-size:1.15rem;font-weight:700;margin:0">Člen tímu</h2>
+      <button onclick="closeStaffModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#9898b8">✕</button>
+    </div>
+    <div id="staff-modal-body"></div>
   </div>
 </div>
 
