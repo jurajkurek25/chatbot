@@ -1182,6 +1182,7 @@
     <form id="form-login" onsubmit="handleLogin(event)">
       <div class="field"><label>Email</label><input type="email" name="email" required placeholder="vas@email.sk" autocomplete="email"></div>
       <div class="field"><label>Heslo</label><input type="password" name="password" required placeholder="••••••••" autocomplete="current-password"></div>
+      <div class="field" id="login-2fa" style="display:none"><label>Kód z overovacej aplikácie (alebo záložný kód)</label><input name="code" inputmode="numeric" autocomplete="one-time-code" placeholder="123456"></div>
       <button type="submit" class="btn-submit" id="btn-login">Prihlásiť sa</button>
       <div class="auth-error" id="err-login"></div>
       <p style="text-align:center;margin-top:.75rem"><button type="button" onclick="switchAuthTab('forgot')" style="background:none;border:none;color:var(--muted2);font-size:.82rem;cursor:pointer;text-decoration:underline;font-family:inherit">Zabudli ste heslo?</button></p>
@@ -1312,19 +1313,43 @@
   }
 
   // ── LOGIN ──
+  let loginChallenge = null;
+  function resetLoginChallenge(f) {
+    loginChallenge = null;
+    f.code.value = ''; f.code.required = false;
+    document.getElementById('login-2fa').style.display = 'none';
+  }
   async function handleLogin(e) {
     e.preventDefault();
     const btn = document.getElementById('btn-login'), err = document.getElementById('err-login');
     err.textContent = ''; btn.disabled = true; btn.textContent = 'Prihlasujem...';
     const f = e.target;
     try {
-      const res = await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: f.email.value, password: f.password.value }) });
+      // Druhý krok (účty z Neoworkly Funnel so zapnutým 2FA): kód z aplikácie
+      const res = loginChallenge
+        ? await fetch('/api/auth/login/2fa', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ challenge: loginChallenge, code: f.code.value }) })
+        : await fetch('/api/auth/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ email: f.email.value, password: f.password.value }) });
       const data = await res.json();
+      if (data.expired) resetLoginChallenge(f);
       if (!res.ok) throw new Error(data.error || 'Nepodarilo sa prihlásiť');
+      if (data.twoFactor) {
+        loginChallenge = data.challenge;
+        document.getElementById('login-2fa').style.display = '';
+        f.code.required = true;
+        f.code.focus();
+        btn.disabled = false; btn.textContent = 'Overiť kód';
+        return;
+      }
       localStorage.setItem('nd_token', data.token);
       localStorage.setItem('nd_user', JSON.stringify(data.user));
       const sr = await fetch('/api/stripe/status', { headers: {'Authorization': `Bearer ${data.token}`} });
       const sd = await sr.json();
+      if (!sd.active) {
+        // Klient so starým predplatným Neoworkly Funnel (4 €) má prístup k sekcii Funnely
+        const fr = await fetch('/api/funnels/api/me', { headers: {'Authorization': `Bearer ${data.token}`} }).catch(() => null);
+        const fd = fr && fr.ok ? await fr.json() : null;
+        if (fd && fd.active) { window.location.href = '/dashboard?view=funnels'; return; }
+      }
       window.location.href = sd.active ? '/dashboard' : '/onboarding';
     } catch (ex) { err.textContent = ex.message; btn.disabled = false; btn.textContent = 'Prihlásiť sa'; }
   }

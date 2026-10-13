@@ -12,6 +12,12 @@ function getStripe() {
   return Stripe(process.env.STRIPE_SECRET_KEY);
 }
 
+// Staré predplatné Neoworkly Funnel (4 €) môže byť na tom istom Stripe účte – nie je to predplatné
+// Neoworkly (spracúva ho webhook funnela) a nesmie aktivovať ani deaktivovať účet podľa e-mailu
+const isFunnelPrice = id => Boolean(process.env.FUNNEL_SUBSCRIPTION_PRICE_ID) && id === process.env.FUNNEL_SUBSCRIPTION_PRICE_ID;
+const isFunnelSubscription = sub => (sub.items?.data || []).some(i => isFunnelPrice(i.price?.id));
+const isFunnelInvoice = inv => (inv.lines?.data || []).some(l => isFunnelPrice(l.price?.id || l.pricing?.price_details?.price));
+
 // POST /api/stripe/checkout — create Stripe Checkout Session
 router.post('/checkout', requireAuth, async (req, res) => {
   const db = getDb();
@@ -166,6 +172,7 @@ async function handleWebhook(req, res) {
     }
     case 'customer.subscription.updated': {
       const sub = event.data.object;
+      if (isFunnelSubscription(sub)) break;
       const isActive = sub.status === 'active' || sub.status === 'trialing';
       const status = isActive ? 'active' : 'inactive';
       const subPriceId = sub.items?.data?.[0]?.price?.id;
@@ -181,6 +188,7 @@ async function handleWebhook(req, res) {
     }
     case 'customer.subscription.deleted': {
       const sub = event.data.object;
+      if (isFunnelSubscription(sub)) break;
       const user = await resolveUser(sub.customer);
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('inactive', user.id);
@@ -190,6 +198,7 @@ async function handleWebhook(req, res) {
     }
     case 'invoice.payment_failed': {
       const inv = event.data.object;
+      if (isFunnelInvoice(inv)) break;
       const user = await resolveUser(inv.customer);
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('past_due', user.id);
@@ -236,9 +245,9 @@ router.get('/status', requireAuth, async (req, res) => {
       const stripe = getStripe();
       const customers = await stripe.customers.list({ email: user.email.toLowerCase(), limit: 5 });
       for (const customer of customers.data) {
-        const subs = await stripe.subscriptions.list({ customer: customer.id, status: 'active', limit: 1 });
-        if (subs.data.length > 0) {
-          const sub = subs.data[0];
+        const subs = await stripe.subscriptions.list({ customer: customer.id, status: 'active', limit: 5 });
+        const sub = subs.data.find(s => !isFunnelSubscription(s));
+        if (sub) {
           db.prepare('UPDATE users SET stripe_customer_id = ?, subscription_status = ?, subscription_id = ? WHERE id = ?')
             .run(customer.id, 'active', sub.id, req.userId);
           db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(req.userId);

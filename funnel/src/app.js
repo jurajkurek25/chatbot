@@ -95,8 +95,8 @@ module.exports = function createFunnelApp(stripe, stripeTest = null) {
   });
   app.use('/funnels/assets', express.static(PUBLIC_DIR, { maxAge: '1y', immutable: true }));
 
-  // Staré záložky na dashboard funnela => sekcia Funnely v Neoworkly
-  app.get(['/app', '/app/'], (req, res) => res.redirect(302, `/dashboard?view=funnels${req.query.stripe ? `&stripe=${encodeURIComponent(req.query.stripe)}` : ''}`));
+  // Staré záložky na dashboard funnela => sekcia Funnely v Neoworkly (na hlavnej doméne, kde je prihlásenie)
+  app.get(['/app', '/app/'], (req, res) => res.redirect(302, `${(process.env.APP_URL || '').replace(/\/$/, '')}/dashboard?view=funnels${req.query.stripe ? `&stripe=${encodeURIComponent(req.query.stripe)}` : ''}`));
 
   app.use((err, req, res, next) => {
     console.error('[funnel]', err);
