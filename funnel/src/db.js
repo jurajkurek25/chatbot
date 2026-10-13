@@ -109,7 +109,8 @@ const count = (type) => `SUM(CASE WHEN type = '${type}' THEN 1 ELSE 0 END)`;
 // Výsledky A/B testu kroku po variantoch od jeho spustenia
 async function variantStats(merchantId, stepId, since, mode = 'live') {
   const rows = await db.all(
-    `SELECT variant, ${count('view')} AS views, ${count('purchase')} AS purchases,
+    // Pri kroku „Zadarmo za kontakt“ je konverziou získaný kontakt
+    `SELECT variant, ${count('view')} AS views, SUM(CASE WHEN type IN ('purchase', 'lead') THEN 1 ELSE 0 END) AS purchases,
             SUM(CASE WHEN type = 'purchase' THEN amount ELSE 0 END) AS revenue
        FROM funnel_events WHERE merchant_id = ? AND step_id = ? AND mode = ? AND created_at >= ?
       GROUP BY variant`,
@@ -127,7 +128,7 @@ async function variantStats(merchantId, stepId, since, mode = 'live') {
 async function stepStats(merchantId, since, mode = 'live') {
   const counts = await db.all(
     `SELECT step_id AS "stepId", ${count('view')} AS views, ${count('purchase')} AS purchases,
-            ${count('decline')} AS declines
+            ${count('decline')} AS declines, ${count('lead')} AS leads
        FROM funnel_events WHERE merchant_id = ? AND mode = ? AND created_at >= ?
       GROUP BY step_id`,
     [merchantId, mode, since],
@@ -143,6 +144,7 @@ async function stepStats(merchantId, since, mode = 'live') {
     views: Number(r.views),
     purchases: Number(r.purchases),
     declines: Number(r.declines),
+    leads: Number(r.leads || 0),
     revenue: Object.fromEntries(revenue.filter((x) => x.stepId === r.stepId).map((x) => [x.currency, Number(x.amount)])),
   }));
 }

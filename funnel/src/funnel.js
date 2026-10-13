@@ -108,7 +108,9 @@ module.exports = function createFunnel(stripe, stripeTest) {
       });
       return next();
     }
-    if (!canSell(merchant)) return next(new PausedError(merchant));
+    if (!isActive(merchant) || merchant.blocked) return next(new PausedError(merchant));
+    // Bez Stripe účtu, ktorý prijíma platby, funguje iba krok „Zadarmo za kontakt“ (overí router.param)
+    req.canPay = canSell(merchant);
     const live = liveStripe(stripe, merchant);
     Object.assign(req, {
       mode: 'live',
@@ -131,9 +133,10 @@ module.exports = function createFunnel(stripe, stripeTest) {
     const resolved = resolveStep(req.merchant, stepId, variant);
     if (!resolved) return next(new HttpError(404, 'Neznámy krok funnela.'));
     const { step, product } = resolved;
+    if (step.kind !== 'lead' && req.mode === 'live' && !req.canPay) return next(new PausedError(req.merchant));
     // Cena opakovaného produktu patrí konkrétnemu Stripe účtu – ostrému alebo testovaciemu
-    const priceId = req.mode === 'test' ? product.test && product.test.priceId : product.stripePriceId;
-    if (product.type === 'recurring' && !priceId) {
+    const priceId = product && (req.mode === 'test' ? product.test && product.test.priceId : product.stripePriceId);
+    if (product && product.type === 'recurring' && !priceId) {
       return next(new HttpError(503, 'Produkt ešte nie je pripravený v testovacom režime.'));
     }
     req.step = { ...step, product, priceId };
@@ -348,6 +351,38 @@ module.exports = function createFunnel(stripe, stripeTest) {
     if (pi.status !== 'succeeded') throw new HttpError(402, 'Platba nebola dokončená.');
     await purchased(req, pi, token.c, { invoice_settings: { default_payment_method: pi.payment_method } });
     res.json(nextStep(req));
+  });
+
+  // ---------------------------------------------------------------------------
+  // Zadarmo za kontakt: e-mail (a meno) za digitálny produkt alebo lead magnet, bez platby.
+  // Kontakt sa uloží do Kontaktov Neoworkly, zákazníkovi príde produkt e-mailom.
+  // ---------------------------------------------------------------------------
+  router.post('/:step/lead', startLimit, async (req, res) => {
+    const { step } = req;
+    if (step.kind !== 'lead') throw new HttpError(400, 'Tento krok nezbiera kontakty.');
+    const email = String(req.body.email || '').trim().toLowerCase();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || email.length > 200) throw new HttpError(400, 'Neplatný e-mail.');
+    const name = String(req.body.name || '').trim().slice(0, 120);
+    if (step.askName && !name) throw new HttpError(400, 'Vyplň prosím meno.');
+    if (req.body.consent !== true) throw new HttpError(400, 'Potvrď prosím súhlas so spracovaním údajov.');
+    const marketing = Boolean(step.marketing && req.body.marketing === true);
+
+    const delivered = await require('../../services/funnelLeads').captureLead({
+      merchant: req.merchant, step, email, name, marketing, mode: req.mode,
+    });
+    await record({ merchantId: req.merchant.id, stepId: step.id, type: 'lead', variant: step.variant, mode: req.mode });
+    notify.leadCaptured(req.merchant, {
+      type: 'lead.captured',
+      id: `lead_${crypto.randomBytes(8).toString('hex')}`,
+      created: new Date().toISOString(),
+      mode: req.mode,
+      merchantId: req.merchant.id,
+      step: step.id,
+      customer: { email, name: name || null },
+      marketingConsent: marketing,
+      delivered,
+    }).catch((err) => console.error('[oznámenie]', err));
+    res.json({ next: step.onAccept, email });
   });
 
   // ---------------------------------------------------------------------------

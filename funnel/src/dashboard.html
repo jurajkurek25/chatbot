@@ -203,7 +203,7 @@
     </div>
     <div class="tiles" id="stats-tiles"></div>
     <div class="table-wrap"><table>
-      <thead><tr><th>Krok</th><th>Produkt</th><th class="num">Zobrazenia</th><th class="num">Nákupy</th>
+      <thead><tr><th>Krok</th><th>Produkt</th><th class="num">Zobrazenia</th><th class="num">Nákupy / kontakty</th>
         <th class="num">Odmietnutia</th><th class="num">Konverzia</th><th class="num">Tržby</th></tr></thead>
       <tbody id="stats-rows"></tbody>
     </table></div>
@@ -292,15 +292,29 @@
         <select name="kind">
           <option value="entry">Vstupný produkt (e-mail + karta)</option>
           <option value="offer">Chcem / Nechcem pridať</option>
+          <option value="lead">Zadarmo za kontakt (e-mail za produkt alebo lead magnet)</option>
         </select>
       </label>
-      <label>Produkt<select name="productId" required></select></label>
+      <label data-for="entry offer">Produkt<select name="productId"></select></label>
       <label>Funnel<select name="funnelId"><option value="">— bez funnela —</option></select></label>
       <label data-for="entry">Max. počet kusov<input name="maxQuantity" type="number" min="1" max="100" value="1"></label>
       <label>URL po prijatí<input name="onAccept" required placeholder="https://tvoj-web.sk/upsell"></label>
       <label data-for="offer">URL po odmietnutí<input name="onDecline" placeholder="https://tvoj-web.sk/downsell"></label>
       <label>Nadpis (nepovinné)<input name="stepTitle" maxlength="120" placeholder="predvolene názov a cena produktu"></label>
-      <label data-for="entry">Text tlačidla<input name="buttonText" maxlength="120" placeholder="Pokračovať"></label>
+      <label data-for="entry lead">Text tlačidla<input name="buttonText" maxlength="120" placeholder="Pokračovať"></label>
+      <label data-for="lead">Poslať digitálny produkt zadarmo
+        <select name="leadProductId"><option value="">— nič —</option></select></label>
+      <label data-for="lead">Poslať lead magnet
+        <select name="leadMagnetId"><option value="">— nič —</option></select></label>
+      <label data-for="lead">Uložiť kontakt do (widget)
+        <select name="leadWidgetId"><option value="">— podľa lead magnetu / prvý widget —</option></select></label>
+      <label data-for="lead" class="check"><input type="checkbox" name="askName"> Pýtať aj meno</label>
+      <label data-for="lead" class="check"><input type="checkbox" name="marketing"> Ponúknuť súhlas s posielaním noviniek</label>
+      <label data-for="lead">Text súhlasu s novinkami (nepovinné)<input name="marketingText" maxlength="200"
+        placeholder="Chcem dostávať novinky a tipy e-mailom (odhlásiť sa dá kedykoľvek)."></label>
+      <p class="hint form-note" data-for="lead">Zákazník zadá e-mail (a súhlas so spracovaním údajov), dostane vybraný
+        produkt alebo lead magnet e-mailom a kontakt sa uloží do Kontaktov. Stripe na tento krok netreba. Digitálne
+        produkty a lead magnety spravuješ v hlavnom dashboarde Neoworkly.</p>
       <label data-for="offer">Text „áno“<input name="yesText" maxlength="120" placeholder="Chcem pridať"></label>
       <label data-for="offer">Text „nie“<input name="noText" maxlength="120" placeholder="Nechcem pridať"></label>
       <label data-for="offer">Ak príde priamo (nie cez funnel), predať
@@ -312,7 +326,7 @@
         a zaplatí na stránke Stripe. Zákazníci z funnela majú ďalej cenu ponuky jedným klikom.</p>
       <label data-for="entry" class="check"><input type="checkbox" name="shipping"> Pýtať adresu doručenia
         (platí pre celý nákup vrátane upsellov)</label>
-      <div class="fields-editor">
+      <div class="fields-editor" data-for="entry offer">
         <strong>Voľné polia (napr. venovanie)</strong>
         <p class="hint">Zákazník ich vyplní pred platbou. Hodnoty uvidíš pri platbe v Stripe, v e-maile o objednávke
           aj vo webhooku. Najviac 5 na krok. Po pridaní polí alebo adresy vlož snippet kroku na web znova.</p>

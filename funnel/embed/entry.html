@@ -65,6 +65,9 @@
   var VARIANT_STORE = 'nw_variant_' + NW_MERCHANT + '_' + step;
   var variant = sessionStorage.getItem(VARIANT_STORE);
   var form = root.querySelector('form');
+  // E-mail z kroku „Zadarmo za kontakt“ (ak ním zákazník prešiel)
+  var savedEmail = sessionStorage.getItem('nw_email_' + NW_MERCHANT);
+  if (savedEmail && !form.email.value) form.email.value = savedEmail;
   var btn = form.querySelector('button');
   var msg = root.querySelector('.nw-msg');
   var elements, token, addressElement;

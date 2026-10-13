@@ -1,0 +1,152 @@
+<!-- ============ NEOWORKLY FUNNEL: Krok: {{STEP}} – zadarmo za kontakt ============ -->
+<form class="nw-lead nw-loading" data-step="{{STEP}}" novalidate>
+  <h3 class="nw-title" hidden></h3>
+  <label class="nw-name" hidden>Meno<input name="name" autocomplete="name" maxlength="120"></label>
+  <label>E-mail<input type="email" name="email" autocomplete="email" maxlength="200" required></label>
+  <label class="nw-check"><input type="checkbox" name="consent" required> <span class="nw-consent">Súhlasím so spracovaním osobných údajov na zaslanie materiálu.</span></label>
+  <label class="nw-check nw-marketing" hidden><input type="checkbox" name="marketing"> <span></span></label>
+  <button type="submit">Chcem to zadarmo</button>
+  <p class="nw-msg" role="alert"></p>
+  <p class="nw-powered"><a href="{{NW_API}}/" target="_blank" rel="noopener">Neoworkly Funnel</a></p>
+</form>
+<style>
+  .nw-lead .nw-paused{margin:0;text-align:center}
+  .nw-lead{max-width:420px;margin:32px auto;font-family:system-ui,sans-serif}
+  .nw-lead [hidden]{display:none!important}
+  .nw-lead.nw-loading{visibility:hidden}
+  .nw-lead.nw-loading *{transition:none!important}
+  .nw-lead .nw-title{margin:0 0 16px;text-align:center}
+  .nw-lead label{display:block;margin-bottom:12px;font-size:14px;color:#555}
+  .nw-lead input:not([type=checkbox]){display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border:1px solid #ccc;border-radius:8px;font:inherit;font-size:16px}
+  .nw-lead .nw-check{display:flex;gap:8px;align-items:flex-start;font-size:13px}
+  .nw-lead .nw-check input{margin-top:2px}
+  .nw-lead button{display:block;width:100%;padding:14px;border:0;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer;background:var(--nw-color,#1a9e55);color:var(--nw-text,#111)}
+  .nw-lead button:disabled{opacity:.6;cursor:wait}
+  .nw-lead .nw-msg{color:#c0392b;min-height:1em;text-align:center}
+  .nw-lead .nw-powered{margin:12px 0 0;text-align:center;font-size:12px;opacity:.7}
+  .nw-lead .nw-powered a{color:inherit;font-weight:600;text-decoration:none}
+</style>
+<script>
+(function () {
+  var NW_API = '{{NW_API}}';
+  var NW_MERCHANT = '{{NW_MERCHANT}}';
+  // Testovací režim: rovnaký kľúč ako pri ostatných krokoch (?neoworkly_test=…)
+  var TEST_STORE = 'nw_test_' + NW_MERCHANT;
+  var urlTest = new URLSearchParams(location.search).get('neoworkly_test');
+  if (urlTest === '0') sessionStorage.removeItem(TEST_STORE);
+  else if (urlTest) sessionStorage.setItem(TEST_STORE, urlTest);
+  var testKey = sessionStorage.getItem(TEST_STORE);
+
+  var root = document.querySelector('.nw-lead');
+  var step = root.dataset.step;
+  var VARIANT_STORE = 'nw_variant_' + NW_MERCHANT + '_' + step;
+  var variant = sessionStorage.getItem(VARIANT_STORE);
+  var button = root.querySelector('button');
+  var msg = root.querySelector('.nw-msg');
+  function field(n) { return root.querySelector('[name="' + n + '"]'); }
+
+  async function post(path, body) {
+    var headers = { 'Content-Type': 'application/json' };
+    if (testKey) headers['X-Neoworkly-Test'] = testKey;
+    var r = await fetch(NW_API + '/api/f/' + NW_MERCHANT + '/' + step + path, {
+      method: 'POST', headers: headers, body: JSON.stringify(Object.assign({ variant: variant }, body))
+    });
+    var data = await r.json();
+    if (!r.ok) throw Object.assign(new Error(data.error), { paused: data.paused, hide: data.hide });
+    return data;
+  }
+
+  function go(url) { location.href = new URL(url, location.href).href; }
+
+  // Odkaz s bezpečnou adresou (iba http/https)
+  function link(text, href) {
+    var a = document.createElement('a');
+    a.textContent = text;
+    a.href = /^https?:\/\//.test(href) ? href : '#';
+    a.target = '_blank';
+    a.rel = 'noopener';
+    return a;
+  }
+
+  function applyConfig(cfg) {
+    variant = cfg.variant;
+    sessionStorage.setItem(VARIANT_STORE, variant);
+    root.style.setProperty('--nw-color', cfg.color);
+    root.style.setProperty('--nw-text', cfg.textColor);
+    button.textContent = cfg.buttonText;
+    if (cfg.title) {
+      root.querySelector('.nw-title').textContent = cfg.title;
+      root.querySelector('.nw-title').hidden = false;
+    }
+    root.querySelector('.nw-name').hidden = !cfg.askName;
+    field('name').required = Boolean(cfg.askName);
+    if (cfg.marketing) {
+      root.querySelector('.nw-marketing span').textContent = cfg.marketingText;
+      root.querySelector('.nw-marketing').hidden = false;
+    }
+    // Súhlas s odkazmi na podmienky a ochranu osobných údajov obchodníka (ak ich má)
+    var consent = root.querySelector('.nw-consent');
+    if (cfg.privacyUrl) {
+      consent.append(' ', link('Ochrana osobných údajov', cfg.privacyUrl));
+    }
+    if (cfg.termsUrl) {
+      consent.append(' · ', link('Podmienky', cfg.termsUrl));
+    }
+    applyCustomCss(cfg.customCss);
+  }
+  function applyCustomCss(css) {
+    if (!css) return;
+    try {
+      var sheet = new CSSStyleSheet();
+      sheet.replaceSync(css);
+      document.adoptedStyleSheets = document.adoptedStyleSheets.concat(sheet);
+    } catch (e) {
+      var style = document.createElement('style');
+      style.textContent = css;
+      document.body.appendChild(style);
+    }
+  }
+  function show() { void root.offsetHeight; root.classList.remove('nw-loading'); }
+  setTimeout(show, 2500);
+  var seenKey = 'nw_seen_' + NW_MERCHANT + '_' + step;
+  var firstView = !sessionStorage.getItem(seenKey);
+  sessionStorage.setItem(seenKey, '1');
+  post('/view', { count: firstView }).then(applyConfig, function (err) {
+    if (err.paused) return paused(err);
+    msg.textContent = err.message;
+  }).then(show);
+  function paused(err) {
+    if (err.hide) {
+      root.style.display = 'none';
+      return;
+    }
+    var p = document.createElement('p');
+    p.className = 'nw-paused';
+    p.textContent = err.message;
+    root.replaceChildren(p);
+  }
+
+  root.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    var inputs = root.querySelectorAll('input');
+    for (var i = 0; i < inputs.length; i++) if (!inputs[i].reportValidity()) return;
+    button.disabled = true;
+    msg.textContent = '';
+    try {
+      var res = await post('/lead', {
+        email: field('email').value,
+        name: field('name').value,
+        consent: field('consent').checked,
+        marketing: field('marketing').checked,
+      });
+      // Vstupný krok ďalej v funneli si e-mail predvyplní
+      sessionStorage.setItem('nw_email_' + NW_MERCHANT, res.email);
+      go(res.next);
+    } catch (err) {
+      msg.textContent = err.message || 'Odoslanie zlyhalo.';
+      button.disabled = false;
+    }
+  });
+})();
+</script>
+<!-- ============ /NEOWORKLY FUNNEL ============ -->

@@ -14,7 +14,7 @@
   new ResizeObserver(reportHeight).observe(document.body);
   // Stripe (onboarding, portál) sa nedá otvoriť v iframe => celé okno
   function goTop(url) { (window.top || window).location.href = url; }
-  var KINDS = { entry: 'Vstupný produkt', offer: 'Chcem / Nechcem pridať' };
+  var KINDS = { entry: 'Vstupný produkt', offer: 'Chcem / Nechcem pridať', lead: 'Zadarmo za kontakt' };
   var TYPES = { one_time: 'Jednorazový', recurring: 'Opakovaný' };
 
   function el(tag, props) {
@@ -187,7 +187,7 @@
     steps.replaceChildren();
     Object.keys(s.steps).forEach(function (id) {
       var st = s.steps[id];
-      var product = s.products[st.productId];
+      var product = st.kind === 'lead' ? { name: leadLabel(st) } : s.products[st.productId];
       var idCell = el('td', {}, el('code', { textContent: id }));
       if (st.ab) idCell.append(' ', el('span', { className: 'status wait', textContent: 'A/B' }));
       steps.append(el('tr', {},
@@ -212,10 +212,10 @@
 
   }
 
-  // Zobrazí polia s data-for iba pre zvolený typ
+  // Zobrazí polia s data-for iba pre zvolený typ (data-for môže obsahovať viac typov oddelených medzerou)
   function toggleFields(form, value) {
     form.querySelectorAll('[data-for]').forEach(function (label) {
-      label.hidden = label.dataset.for !== value;
+      label.hidden = label.dataset.for.split(' ').indexOf(value) === -1;
     });
   }
 
@@ -301,6 +301,35 @@
   var stepForm = document.getElementById('step-form');
   stepForm.kind.onchange = function () { toggleFields(stepForm, stepForm.kind.value); };
 
+  // Krok „Zadarmo za kontakt“: digitálne produkty, lead magnety a widgety z hlavného účtu Neoworkly
+  var leadOptions = { products: [], leadMagnets: [], widgets: [] };
+  function fillSelect(select, items, label) {
+    var selected = select.value;
+    select.replaceChildren(select.options[0]);
+    items.forEach(function (i) { select.append(el('option', { value: i.id, textContent: label(i) })); });
+    select.value = selected;
+  }
+  async function loadLeadOptions() {
+    try {
+      leadOptions = await api('GET', '/lead-options');
+    } catch (err) {
+      return;
+    }
+    fillSelect(stepForm.leadProductId, leadOptions.products, function (p) { return p.title; });
+    fillSelect(stepForm.leadMagnetId, leadOptions.leadMagnets, function (l) { return l.name + ' (' + l.widgetName + ')'; });
+    fillSelect(stepForm.leadWidgetId, leadOptions.widgets, function (w) { return w.name; });
+    if (state && state.steps) render(state);
+  }
+  function leadLabel(st) {
+    var d = st.deliver || {};
+    var names = [
+      d.productId && (leadOptions.products.find(function (p) { return p.id === d.productId; }) || {}).title,
+      d.leadMagnetId && (leadOptions.leadMagnets.find(function (l) { return l.id === d.leadMagnetId; }) || {}).name
+    ].filter(Boolean);
+    return names.length ? 'Zadarmo: ' + names.join(' + ') : 'Iba kontakt';
+  }
+  loadLeadOptions();
+
   // Voľné polia kroku: riadok = názov, typ, max. dĺžka, povinné
   var fieldRows = document.getElementById('field-rows');
   var fieldAdd = document.getElementById('field-add');
@@ -334,7 +363,13 @@
     stepForm.slug.value = id;
     stepForm.slug.disabled = true;
     stepForm.kind.value = st.kind;
-    stepForm.productId.value = st.productId;
+    stepForm.productId.value = st.productId || '';
+    stepForm.leadProductId.value = (st.deliver && st.deliver.productId) || '';
+    stepForm.leadMagnetId.value = (st.deliver && st.deliver.leadMagnetId) || '';
+    stepForm.leadWidgetId.value = (st.deliver && st.deliver.widgetId) || '';
+    stepForm.askName.checked = !!st.askName;
+    stepForm.marketing.checked = !!st.marketing;
+    stepForm.marketingText.value = st.marketingText || '';
     stepForm.maxQuantity.value = st.maxQuantity || 1;
     stepForm.onAccept.value = st.onAccept;
     stepForm.onDecline.value = st.onDecline || '';
@@ -378,6 +413,14 @@
       shipping: stepForm.shipping.checked,
       directProductId: stepForm.directProductId.value,
       directShipping: stepForm.directShipping.checked,
+      deliver: {
+        productId: stepForm.leadProductId.value,
+        leadMagnetId: stepForm.leadMagnetId.value,
+        widgetId: stepForm.leadWidgetId.value
+      },
+      askName: stepForm.askName.checked,
+      marketing: stepForm.marketing.checked,
+      marketingText: stepForm.marketingText.value,
       fields: Array.prototype.map.call(fieldRows.children, function (row) { return row.read(); })
     }), 'Krok uložený.');
     if (ok) {
@@ -411,6 +454,7 @@
     var tiles = [
       ['Návštevy vstupného kroku', number(entryViews)],
       ['Nákupy', number(data.totals.purchases)],
+      ['Kontakty', number(data.totals.leads)],
       ['Konverzia funnela', percent(data.totals.conversion)],
       ['Tržby', money(data.totals.revenue)]
     ];
@@ -427,8 +471,8 @@
         name,
         el('td', { textContent: r.product || '—' }),
         el('td', { className: 'num', textContent: number(r.views) }),
-        el('td', { className: 'num', textContent: number(r.purchases) }),
-        el('td', { className: 'num', textContent: r.kind === 'entry' || r.kind === 'direct' ? '—' : number(r.declines) }),
+        el('td', { className: 'num', textContent: number(r.kind === 'lead' ? r.leads : r.purchases) }),
+        el('td', { className: 'num', textContent: r.kind === 'entry' || r.kind === 'direct' || r.kind === 'lead' ? '—' : number(r.declines) }),
         el('td', { className: 'num', textContent: percent(r.conversion) }),
         el('td', { className: 'num', textContent: money(r.revenue) })
       ));

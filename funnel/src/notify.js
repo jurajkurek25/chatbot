@@ -144,4 +144,33 @@ async function orderCompleted(merchant, order) {
   for (const r of results) if (r.status === 'rejected') console.error('[oznámenie]', r.reason);
 }
 
-module.exports = { orderCompleted, deliver, validateWebhookUrl, signature, newWebhookSecret };
+// Nový kontakt z kroku „Zadarmo za kontakt“: e-mail a webhook podľa nastavení. Nikdy nevyhodí chybu.
+async function leadCaptured(merchant, lead) {
+  const settings = { email: true, webhookUrl: '', ...merchant.funnel.notifications };
+  const test = lead.mode === 'test' ? '[TEST] ' : '';
+  const tasks = [];
+  if (settings.email) {
+    const what = [lead.delivered.product && `produkt „${lead.delivered.product}“`, lead.delivered.leadMagnet && `lead magnet „${lead.delivered.leadMagnet}“`]
+      .filter(Boolean).join(' a ');
+    tasks.push(mailer.sendMail({
+      to: merchant.email,
+      subject: `${test}Nový kontakt: ${lead.customer.email}`,
+      text: [
+        `${test}Nový kontakt vo funneli Neoworkly`,
+        '',
+        `E-mail: ${lead.customer.email}`,
+        ...(lead.customer.name ? [`Meno: ${lead.customer.name}`] : []),
+        `Súhlas s novinkami: ${lead.marketingConsent ? 'áno' : 'nie'}`,
+        `Krok funnela: ${lead.step}`,
+        ...(what ? [`Poslali sme: ${what}`] : []),
+        '',
+        'Kontakt nájdeš v Neoworkly v sekcii Kontakty.',
+      ].join('\n'),
+    }));
+  }
+  if (settings.webhookUrl) tasks.push(deliverWithRetries(settings.webhookUrl, settings.webhookSecret, lead));
+  const results = await Promise.allSettled(tasks);
+  for (const r of results) if (r.status === 'rejected') console.error('[oznámenie]', r.reason);
+}
+
+module.exports = { orderCompleted, leadCaptured, deliver, validateWebhookUrl, signature, newWebhookSecret };

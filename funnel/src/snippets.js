@@ -25,7 +25,8 @@ function priceLabel(product) {
 // pausedText / pausedUrl: čo vidí zákazník, keď predaj nebeží (napr. po skončení predplatného)
 const DEFAULT_APPEARANCE = { color: '#635bff', termsUrl: '', privacyUrl: '', customCss: '', pausedText: '', pausedUrl: '' };
 const MAX_CUSTOM_CSS = 20000;
-const DEFAULT_TEXTS = { buttonText: 'Pokračovať', yesText: 'Chcem pridať', noText: 'Nechcem pridať' };
+const DEFAULT_TEXTS = { buttonText: 'Pokračovať', yesText: 'Chcem pridať', noText: 'Nechcem pridať', leadButtonText: 'Chcem to zadarmo' };
+const DEFAULT_MARKETING_TEXT = 'Chcem dostávať novinky a tipy e-mailom (odhlásiť sa dá kedykoľvek).';
 
 // Farba textu na tlačidle: biela alebo čierna podľa toho, čo má väčší kontrast (WCAG)
 function textColorFor(hex) {
@@ -40,11 +41,17 @@ function stepConfig(merchant, stepId, variant = 'a') {
   const { step, product } = resolveStep(merchant, stepId, variant);
   const appearance = { ...DEFAULT_APPEARANCE, ...merchant.funnel.appearance };
   const defaultTitle = step.kind === 'entry' ? `${product.name} – ${priceLabel(product)} / ks` : '';
+  const lead = step.kind === 'lead';
   return {
     kind: step.kind,
     title: step.title || defaultTitle,
-    price: priceLabel(product),
-    buttonText: step.buttonText || DEFAULT_TEXTS.buttonText,
+    price: product ? priceLabel(product) : '',
+    buttonText: step.buttonText || (lead ? DEFAULT_TEXTS.leadButtonText : DEFAULT_TEXTS.buttonText),
+    ...(lead && {
+      askName: Boolean(step.askName),
+      marketing: Boolean(step.marketing),
+      marketingText: step.marketingText || DEFAULT_MARKETING_TEXT,
+    }),
     yesText: step.yesText || DEFAULT_TEXTS.yesText,
     noText: step.noText || DEFAULT_TEXTS.noText,
     maxQuantity: step.maxQuantity || 1,
@@ -63,6 +70,7 @@ function stepConfig(merchant, stepId, variant = 'a') {
 function stepSnippet(merchant, stepId) {
   const step = merchant.funnel.steps[stepId];
   const product = merchant.funnel.products[step.productId];
+  if (step.kind === 'lead') return render('lead.html', { STEP: stepId, NW_API: process.env.PUBLIC_URL, NW_MERCHANT: merchant.id });
   // Stripe kľúč a účet si snippet stiahne z API (/view) => funguje aj testovací režim
   // a po novom prepojení Stripe účtu netreba snippety vkladať znova
   const vars = { STEP: stepId, NW_API: process.env.PUBLIC_URL, NW_MERCHANT: merchant.id };
@@ -92,4 +100,4 @@ function snippetCsp(html) {
   ];
 }
 
-module.exports = { esc, snippetCsp, stepSnippet, stepConfig, priceLabel, textColorFor, DEFAULT_APPEARANCE, DEFAULT_TEXTS, MAX_CUSTOM_CSS };
+module.exports = { esc, snippetCsp, stepSnippet, stepConfig, priceLabel, textColorFor, DEFAULT_APPEARANCE, DEFAULT_TEXTS, DEFAULT_MARKETING_TEXT, MAX_CUSTOM_CSS };

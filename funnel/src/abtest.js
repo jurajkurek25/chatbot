@@ -21,6 +21,8 @@ function resolveStep(merchant, stepId, variant = 'a') {
   const v = base.ab && variant === 'b' ? 'b' : 'a';
   const overrides = v === 'b' ? Object.fromEntries(VARIANT_FIELDS.filter((f) => base.ab.b[f]).map((f) => [f, base.ab.b[f]])) : {};
   const step = { ...base, ...overrides, id: stepId, variant: v };
+  // Krok „Zadarmo za kontakt“ nemá produkt ani platbu
+  if (step.kind === 'lead') return { step, product: null };
   const product = merchant.funnel.products[step.productId];
   return product ? { step, product } : null;
 }

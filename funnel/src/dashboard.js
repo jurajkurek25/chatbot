@@ -21,6 +21,8 @@ const { rateLimit, MINUTE } = require('./ratelimit');
 const totp = require('./totp');
 const { getDb } = require('../../db/database');
 const passwords = require('../../services/passwords');
+// Načítané až pri použití: services/shop → payments → funnel/index by tu vytvorili kruhový require
+const funnelLeads = () => require('../../services/funnelLeads');
 
 const SLUG = /^[a-z0-9-]{1,40}$/;
 const INTERVALS = ['month', 'year'];
@@ -550,9 +552,10 @@ module.exports = function createDashboard(stripe, stripeTest = null) {
     const funnelId = String(req.body.funnelId || '');
     check(!funnelId || (req.merchant.funnel.funnels || {})[funnelId], 'Neznámy funnel.');
     check(SLUG.test(req.params.id), 'ID kroku: iba malé písmená, čísla a pomlčky.');
-    check(['entry', 'offer'].includes(kind), 'Neplatný typ kroku.');
-    check(req.merchant.funnel.products[productId], 'Vyber produkt.');
+    check(['entry', 'offer', 'lead'].includes(kind), 'Neplatný typ kroku.');
     check(isUrl(onAccept), 'Neplatná URL po prijatí.');
+    if (kind === 'lead') return saveLeadStep(req, res, { onAccept, texts, funnelId });
+    check(req.merchant.funnel.products[productId], 'Vyber produkt.');
 
     const fields = readFields(req.body);
     const step = { kind, productId, onAccept, ...texts };
@@ -584,10 +587,31 @@ module.exports = function createDashboard(stripe, stripeTest = null) {
     return save(req, res);
   });
 
+  // Zadarmo za kontakt: e-mail (voliteľne meno a súhlas s novinkami) za digitálny produkt a/alebo
+  // lead magnet; kontakt ide do Kontaktov zvoleného widgetu. Platby ani Stripe netreba.
+  function saveLeadStep(req, res, { onAccept, texts, funnelId }) {
+    const { deliver, error } = funnelLeads().cleanDeliver(req.merchant.neoworkly_user_id, req.body.deliver || {});
+    check(!error, error);
+    const marketingText = String(req.body.marketingText || '').trim();
+    check(marketingText.length <= 200, 'Text súhlasu s novinkami môže mať najviac 200 znakov.');
+    const step = { kind: 'lead', onAccept, ...texts, deliver };
+    if (funnelId) step.funnelId = funnelId;
+    if (req.body.askName === true) step.askName = true;
+    if (req.body.marketing === true) step.marketing = true;
+    if (marketingText) step.marketingText = marketingText;
+    const previous = req.merchant.funnel.steps[req.params.id];
+    if (previous && previous.ab && previous.kind === 'lead') step.ab = previous.ab;
+    req.merchant.funnel.steps[req.params.id] = step;
+    return save(req, res);
+  }
+
+  // Možnosti pre krok „Zadarmo za kontakt“: digitálne produkty, lead magnety a widgety (kam uložiť kontakt)
+  router.get('/api/lead-options', (req, res) => res.json(funnelLeads().leadOptions(req.merchant.neoworkly_user_id)));
+
   // Voliteľné vlastné texty kroku / variantu (prázdne = predvolené)
   function readTexts(kind, body) {
     const texts = {};
-    for (const key of kind === 'entry' ? ['title', 'buttonText'] : ['title', 'yesText', 'noText']) {
+    for (const key of kind === 'entry' || kind === 'lead' ? ['title', 'buttonText'] : ['title', 'yesText', 'noText']) {
       const value = String(body[key] || '').trim();
       check(value.length <= 120, 'Texty môžu mať najviac 120 znakov.');
       if (value) texts[key] = value;
@@ -644,7 +668,7 @@ module.exports = function createDashboard(stripe, stripeTest = null) {
     const split = Number(req.body.split);
     check(Number.isInteger(split) && split >= 1 && split <= 99, 'Rozdelenie návštevníkov: 1–99 % pre variant B.');
     const b = readTexts(step.kind, req.body);
-    const productId = String(req.body.productId || '');
+    const productId = step.kind === 'lead' ? '' : String(req.body.productId || '');
     if (productId && productId !== step.productId) {
       const { products } = req.merchant.funnel;
       check(products[productId], 'Neznámy produkt.');
@@ -680,12 +704,22 @@ module.exports = function createDashboard(stripe, stripeTest = null) {
     return {
       startedAt: step.ab.startedAt,
       split: step.ab.split,
-      currency: currencyOf(products[step.productId]),
+      currency: step.kind === 'lead' ? 'eur' : currencyOf(products[step.productId]),
       a: enrich(a),
       b: enrich(b),
       minViews: ab.MIN_VIEWS,
       ...ab.evaluate(a, b),
     };
+  }
+
+  // Čo krok „Zadarmo za kontakt“ posiela (do štatistík namiesto názvu produktu)
+  function leadLabel(step, opts) {
+    const d = step.deliver || {};
+    const names = [
+      d.productId && (opts.products.find((p) => p.id === d.productId) || {}).title,
+      d.leadMagnetId && (opts.leadMagnets.find((l) => l.id === d.leadMagnetId) || {}).name,
+    ].filter(Boolean);
+    return names.length ? `Zadarmo: ${names.join(' + ')}` : 'Zadarmo za kontakt';
   }
 
   // --- Štatistiky ---------------------------------------------------------------
@@ -698,7 +732,7 @@ module.exports = function createDashboard(stripe, stripeTest = null) {
     const funnelFilter = funnels[req.query.funnel] ? req.query.funnel : null;
     const rows = await db.stepStats(req.merchant.id, since);
     const byStep = Object.fromEntries(rows.map((r) => [r.stepId, r]));
-    const empty = { views: 0, purchases: 0, declines: 0, revenue: {} };
+    const empty = { views: 0, purchases: 0, declines: 0, leads: 0, revenue: {} };
     const addRevenue = (a, b) => {
       const sum = { ...a };
       for (const [cur, amount] of Object.entries(b)) sum[cur] = (sum[cur] || 0) + amount;
@@ -711,27 +745,30 @@ module.exports = function createDashboard(stripe, stripeTest = null) {
     const stepIds = Object.keys(steps).flatMap((id) => (byStep[`${id}:priamo`] || steps[id].direct ? [id, `${id}:priamo`] : [id]));
     const ids = [...stepIds, ...rows.map((r) => r.stepId).filter((id) => !stepIds.includes(id))]
       .filter((id) => !funnelFilter || ((steps[id] || directOf(id)) && (steps[id] || directOf(id)).funnelId === funnelFilter));
+    const leadOpts = funnelLeads().leadOptions(req.merchant.neoworkly_user_id);
     const list = await Promise.all(ids.map(async (id) => {
       const r = { ...empty, ...byStep[id] };
       const parent = directOf(id);
       const step = steps[id];
       const productId = parent ? parent.direct && parent.direct.productId : step && step.productId;
+      const isLead = step && step.kind === 'lead';
       return {
         stepId: id,
         funnelId: (step || parent) ? (step || parent).funnelId || null : null,
         kind: step ? step.kind : parent ? 'direct' : null,
-        product: products[productId] ? products[productId].name : null,
+        product: isLead ? leadLabel(step, leadOpts) : products[productId] ? products[productId].name : null,
         deleted: !step && !parent,
         views: r.views,
         purchases: r.purchases,
         declines: r.declines,
+        leads: r.leads,
         revenue: r.revenue,
-        conversion: conversion(r),
+        conversion: isLead ? (r.views ? r.leads / r.views : null) : conversion(r),
         ab: step && step.ab ? await abResults(req.merchant.id, id, step, products) : null,
       };
     }));
     const totals = list.reduce(
-      (t, r) => ({ views: t.views + r.views, purchases: t.purchases + r.purchases, declines: t.declines + r.declines, revenue: addRevenue(t.revenue, r.revenue) }),
+      (t, r) => ({ views: t.views + r.views, purchases: t.purchases + r.purchases, declines: t.declines + r.declines, leads: t.leads + r.leads, revenue: addRevenue(t.revenue, r.revenue) }),
       empty,
     );
     // Konverzia funnela = nákupy vo vstupnom kroku / jeho zobrazenia
@@ -812,7 +849,8 @@ module.exports = function createDashboard(stripe, stripeTest = null) {
   // --- Snippety ---------------------------------------------------------------
   router.get('/api/snippets/:step', (req, res) => {
     check(req.merchant.funnel.steps[req.params.step], 'Krok neexistuje.');
-    check(req.merchant.stripe_account_id, 'Najprv prepoj Stripe účet.');
+    // Krok „Zadarmo za kontakt“ funguje aj bez Stripe
+    check(req.merchant.funnel.steps[req.params.step].kind === 'lead' || req.merchant.stripe_account_id, 'Najprv prepoj Stripe účet.');
     const html = snippets.stepSnippet(req.merchant, req.params.step);
     // Vstupný krok sa dá zaplatiť aj na stránke Stripe – stačí odkaz alebo tlačidlo na webe
     const checkoutUrl = req.merchant.funnel.steps[req.params.step].kind === 'entry'
