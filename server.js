@@ -29,6 +29,7 @@ const facebookRoutes    = require('./routes/facebook');
 const ecomailRoutes     = require('./routes/ecomail');
 const paymentsRoutes    = require('./routes/payments');
 const shopRoutes        = require('./routes/shop');
+const driveRoutes       = require('./routes/drive');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -74,6 +75,7 @@ app.use('/api/scraper', scraperRoutes);
 app.use('/api/booking', bookingRoutes);
 app.use('/api/payments', paymentsRoutes);
 app.use('/api/shop', shopRoutes);
+app.use('/api/drive', driveRoutes);
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
@@ -121,6 +123,11 @@ app.get('/members/:storeId', (req, res) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.sendFile(path.join(__dirname, 'public', 'members.html'));
 });
+app.get('/s/:token', (req, res) => {
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Robots-Tag', 'noindex');
+  res.sendFile(path.join(__dirname, 'public', 'share.html'));
+});
 app.get('/wellbeing/:token', (req, res) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.sendFile(path.join(__dirname, 'public', 'wellbeing.html'));
@@ -137,4 +144,8 @@ app.listen(PORT, () => {
   require('./services/wellbeing').startBurnoutScheduler();
   require('./services/bookingPayments').startHoldSweeper();
   require('./funnel/src/retention').scheduleRetention(); // štatistiky funnelov staršie ako 13 mesiacov
+  // Kôš Disku: položky staršie ako 30 dní sa zmažú natrvalo (raz za deň)
+  const purge = () => { try { require('./services/drive').purgeTrash(); } catch (e) { console.error('[drive purge]', e.message); } };
+  setTimeout(purge, 60 * 1000).unref();
+  setInterval(purge, 24 * 3600 * 1000).unref();
 });

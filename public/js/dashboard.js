@@ -52,7 +52,18 @@ function closeMobileSidebar() {
 
 /* ── Init ─────────────────────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', async () => {
+  // Pozvánka do tímu: token sa podrží, kým sa používateľ neprihlási alebo nezaregistruje
+  const invite = new URLSearchParams(location.search).get('team_invite');
+  if (invite) { localStorage.setItem('nw_team_invite', invite); history.replaceState({}, '', '/dashboard'); }
   if (!getToken()) { window.location.href = '/'; return; }
+  const pendingInvite = localStorage.getItem('nw_team_invite');
+  if (pendingInvite) {
+    localStorage.removeItem('nw_team_invite');
+    const ar = await apiFetch('/api/team/accept', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: pendingInvite }) });
+    const ad = ar ? await ar.json().catch(() => ({})) : {};
+    if (ar && ar.ok) { showToast(`Ste v tíme ${ad.ownerName || ''} – súbory tímu nájdete v sekcii Disk.`); window._openView = 'drive'; }
+    else if (ar) showToast(ad.error || 'Pozvánku sa nepodarilo prijať.', 'error');
+  }
 
   const saved = localStorage.getItem('nd_user');
   if (saved) {
@@ -65,11 +76,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     const sr = await apiFetch('/api/stripe/status');
     if (sr) {
       const sdata = await sr.json();
-      if (!sdata.active) { window.location.href = '/onboarding'; return; }
+      if (!sdata.active) {
+        // Bez predplatného: člen tímu (Disk) alebo klient so starým predplatným Funnel (Funnely) zostáva
+        const [mr, fr] = await Promise.all([apiFetch('/api/team/memberships'), apiFetch('/api/funnels/api/me')]);
+        const teams = mr && mr.ok ? await mr.json() : [];
+        const funnel = fr && fr.ok ? await fr.json() : {};
+        if (!teams.length && !funnel.active) { window.location.href = '/onboarding'; return; }
+        window._openView = window._openView || (funnel.active ? 'funnels' : 'drive');
+      }
       if (!sdata.in_trial) renderBillingButton();
     }
   } catch { /* allow access on network error */ }
 
+  if (window._openView) showView(window._openView);
   loadWidgets();
   loadUsageBar();
 

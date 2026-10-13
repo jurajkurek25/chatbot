@@ -46,6 +46,8 @@ async function startApp() {
   app.use('/api/booking', require('../routes/booking'));
   app.use('/api/payments', require('../routes/payments'));
   app.use('/api/shop', require('../routes/shop'));
+  app.use('/api/drive', require('../routes/drive'));
+  app.use('/api/team', require('../routes/team'));
   const server = app.listen(0);
   await new Promise((r) => server.once('listening', r));
   const base = `http://127.0.0.1:${server.address().port}`;

@@ -508,6 +508,40 @@ function initDatabase() {
       created_at INTEGER NOT NULL DEFAULT (unixepoch()),
       UNIQUE(owner_user_id, email)
     );
+
+    -- Disk: priečinky a súbory účtu (tím podľa team_members), kôš cez trashed_at
+    CREATE TABLE IF NOT EXISTS drive_items (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      parent_id TEXT,
+      kind TEXT NOT NULL CHECK(kind IN ('folder','file')),
+      name TEXT NOT NULL,
+      stored_name TEXT,
+      mime TEXT,
+      size INTEGER NOT NULL DEFAULT 0,
+      system TEXT,
+      member_id TEXT REFERENCES members(id) ON DELETE SET NULL,
+      member_upload INTEGER NOT NULL DEFAULT 0,
+      created_by TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      trashed_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_drive_parent ON drive_items(owner_id, parent_id);
+    CREATE INDEX IF NOT EXISTS idx_drive_member ON drive_items(member_id);
+    CREATE TABLE IF NOT EXISTS drive_shares (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      item_id TEXT NOT NULL,
+      token TEXT NOT NULL UNIQUE,
+      allow_upload INTEGER NOT NULL DEFAULT 0,
+      password_hash TEXT,
+      expires_at INTEGER,
+      created_by TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      revoked_at INTEGER,
+      downloads INTEGER NOT NULL DEFAULT 0
+    );
   `);
 
   // Migrations: add columns for existing DBs

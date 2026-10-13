@@ -1342,15 +1342,8 @@
       }
       localStorage.setItem('nd_token', data.token);
       localStorage.setItem('nd_user', JSON.stringify(data.user));
-      const sr = await fetch('/api/stripe/status', { headers: {'Authorization': `Bearer ${data.token}`} });
-      const sd = await sr.json();
-      if (!sd.active) {
-        // Klient so starým predplatným Neoworkly Funnel (4 €) má prístup k sekcii Funnely
-        const fr = await fetch('/api/funnels/api/me', { headers: {'Authorization': `Bearer ${data.token}`} }).catch(() => null);
-        const fd = fr && fr.ok ? await fr.json() : null;
-        if (fd && fd.active) { window.location.href = '/dashboard?view=funnels'; return; }
-      }
-      window.location.href = sd.active ? '/dashboard' : '/onboarding';
+      // Dashboard sám rozhodne: predplatné, člen tímu, staré predplatné Funnel, inak onboarding
+      window.location.href = '/dashboard';
     } catch (ex) { err.textContent = ex.message; btn.disabled = false; btn.textContent = 'Prihlásiť sa'; }
   }
 
@@ -1397,7 +1390,7 @@
 
       localStorage.setItem('nd_token', data.token);
       localStorage.setItem('nd_user', JSON.stringify({ ...data.user, hasReferral: !!data.hasReferral }));
-      window.location.href = '/demo';
+      window.location.href = localStorage.getItem('nw_team_invite') ? '/dashboard' : '/demo';
     } catch (ex) {
       err.textContent = ex.message;
       btn.disabled = false;
