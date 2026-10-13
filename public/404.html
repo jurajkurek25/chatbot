@@ -191,6 +191,27 @@
     }
     @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
 
+    /* LIVE CHAT (real NeoworklyAI under the greeting bubble) */
+    .err-chat { max-width: 440px; margin: .75rem auto 0; text-align: left; animation: fadeUp .6s .45s ease both; opacity: 0; }
+    .chat-log { display: flex; flex-direction: column; gap: .6rem; max-height: 340px; overflow-y: auto; margin-bottom: .75rem; }
+    .chat-log:empty { display: none; }
+    .msg { font-size: .84rem; line-height: 1.6; padding: .7rem 1rem; border-radius: 16px; max-width: 88%; white-space: pre-wrap; word-break: break-word; }
+    .msg-user { align-self: flex-end; background: var(--grad); color: white; border-bottom-right-radius: 6px; }
+    .msg-bot { align-self: flex-start; background: var(--bg3); border: 1px solid var(--border); color: var(--muted2); border-bottom-left-radius: 6px; }
+    .msg-bot strong { color: var(--text); font-weight: 500; }
+    .msg-bot a { color: var(--accent2); }
+    .msg-bot.typing::after { content: ''; display: inline-block; width: 2px; height: .9em; background: var(--accent2); margin-left: 2px; vertical-align: middle; animation: blink .8s step-end infinite; }
+    .chat-chips { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: .75rem; }
+    .chat-chips:empty { display: none; }
+    .chat-chip { background: var(--surface); border: 1px solid var(--border); border-radius: 100px; padding: .35rem .9rem; font-size: .8rem; color: var(--muted2); cursor: pointer; font-family: inherit; transition: all .2s; }
+    .chat-chip:hover { border-color: var(--accent2); color: var(--text); }
+    .chat-form { display: flex; gap: .5rem; background: var(--bg3); border: 1px solid var(--border2); border-radius: 14px; padding: .35rem .35rem .35rem 1rem; transition: border-color .2s; }
+    .chat-form:focus-within { border-color: var(--accent2); }
+    .chat-input { flex: 1; min-width: 0; background: none; border: none; outline: none; color: var(--text); font-size: .9rem; font-family: inherit; }
+    .chat-input::placeholder { color: var(--muted); }
+    .chat-send { background: var(--grad); border: none; color: white; border-radius: 10px; width: 40px; height: 40px; font-size: 1.05rem; cursor: pointer; flex-shrink: 0; transition: opacity .2s; }
+    .chat-send:disabled { opacity: .45; cursor: default; }
+
     @keyframes fadeUp { from{opacity:0;transform:translateY(18px)} to{opacity:1;transform:translateY(0)} }
 
     /* FOOTER */
@@ -255,8 +276,17 @@
       <div class="bubble-avatar">🤖</div>
       <div class="bubble-text">
         <strong>NeoworklyAI</strong><br>
-        Ahoj! Táto stránka neexistuje, ale ja som tu 24/7. Môžem vám pomôcť nájsť čo hľadáte alebo vás nasmerovať na správne miesto.<span class="bubble-cursor"></span>
+        Ahoj! Táto stránka neexistuje, ale ja som tu 24/7. Môžem vám pomôcť nájsť čo hľadáte alebo vás nasmerovať na správne miesto.<span class="bubble-cursor" id="chat-cursor"></span>
       </div>
+    </div>
+
+    <div class="err-chat">
+      <div class="chat-log" id="chat-log" aria-live="polite"></div>
+      <div class="chat-chips" id="chat-chips"></div>
+      <form class="chat-form" id="chat-form" autocomplete="off">
+        <input class="chat-input" id="chat-input" maxlength="2000" placeholder="Napíšte svoju otázku…" aria-label="Napíšte svoju otázku…">
+        <button class="chat-send" id="chat-send" type="submit" title="Odoslať" aria-label="Odoslať">➤</button>
+      </form>
     </div>
   </div>
 </main>
@@ -266,5 +296,97 @@
   <div class="footer-copy">© 2025 Neoworkly. Všetky práva vyhradené.</div>
 </footer>
 <script src="/i18n.js?v=2"></script>
+<script>
+// Real NeoworklyAI chat in the 404 page's own style (talks to the same API as widget.js)
+(function () {
+  var WIDGET_ID = '3f9c2445-29e7-4d9a-bb4a-137739bfc89a';
+  var API = '/api/widget/' + WIDGET_ID;
+  var log = document.getElementById('chat-log'), form = document.getElementById('chat-form');
+  var input = document.getElementById('chat-input'), send = document.getElementById('chat-send');
+  var chips = document.getElementById('chat-chips');
+  var history = [], busy = false, sessionId;
+  try { sessionId = sessionStorage.getItem('nd404_sid'); } catch (e) {}
+  if (!sessionId) {
+    sessionId = 'p404-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+    try { sessionStorage.setItem('nd404_sid', sessionId); } catch (e) {}
+  }
+
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+  // hidden control tokens the bot may append (handled by the full widget, not here)
+  function clean(s) {
+    return s.replace(/__(DIRECTBOOK|LEADMAGNET):\{[^\n]*?\}/g, '').replace(/__(UNANSWERED|HANDOFF|BOOKING)__/g, '').replace(/_{2}[A-Z]*_*$/, '');
+  }
+  function render(s) {
+    return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/(https?:\/\/[^\s<)]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>');
+  }
+  function add(cls, html) {
+    var el = document.createElement('div');
+    el.className = 'msg ' + cls; el.innerHTML = html;
+    log.appendChild(el); log.scrollTop = log.scrollHeight;
+    return el;
+  }
+
+  function ask(text) {
+    text = text.trim();
+    if (!text || busy) return;
+    busy = true; send.disabled = true; input.value = ''; chips.innerHTML = '';
+    var cursor = document.getElementById('chat-cursor'); if (cursor) cursor.remove();
+    add('msg-user', esc(text));
+    var bot = add('msg-bot typing', '');
+    var full = '';
+    fetch(API + '/chat', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text, sessionId: sessionId, history: history.slice(-20), pageContext: { url: location.href, title: document.title } })
+    }).then(function (res) {
+      if (!res.ok || !res.body) throw new Error(res.status === 402 ? 'limit' : 'http');
+      var reader = res.body.getReader(), dec = new TextDecoder(), buf = '';
+      function pump() {
+        return reader.read().then(function (r) {
+          if (r.done) return;
+          buf += dec.decode(r.value, { stream: true });
+          var lines = buf.split('\n'); buf = lines.pop();
+          lines.forEach(function (line) {
+            if (line.indexOf('data: ') !== 0) return;
+            try {
+              var d = JSON.parse(line.slice(6));
+              if (d.text) full += d.text;
+              if (d.done && d.fullText) full = d.fullText;
+              if (d.error) throw new Error('http');
+              bot.innerHTML = render(clean(full));
+              log.scrollTop = log.scrollHeight;
+            } catch (e) { if (e.message === 'http') throw e; }
+          });
+          return pump();
+        });
+      }
+      return pump();
+    }).then(function () {
+      var answer = clean(full).trim();
+      if (!answer) throw new Error('http');
+      bot.innerHTML = render(answer);
+      history.push({ role: 'user', content: text }, { role: 'assistant', content: answer });
+    }).catch(function () {
+      bot.innerHTML = 'Prepáčte, teraz sa mi nepodarilo odpovedať. Skúste to o chvíľu znova alebo prejdite na <a href="/">hlavnú stránku</a>.';
+    }).then(function () {
+      bot.classList.remove('typing'); busy = false; send.disabled = false; input.focus();
+    });
+  }
+
+  form.addEventListener('submit', function (e) { e.preventDefault(); ask(input.value); });
+
+  // Suggested questions configured on the widget → chips in the page's pill style
+  fetch(API + '/config?lang=' + encodeURIComponent(document.documentElement.lang || 'sk'))
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(function (cfg) {
+      (cfg && cfg.suggested_questions || []).slice(0, 3).forEach(function (q) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.className = 'chat-chip'; b.textContent = q;
+        b.addEventListener('click', function () { ask(q); });
+        chips.appendChild(b);
+      });
+    }).catch(function () {});
+})();
+</script>
 </body>
 </html>

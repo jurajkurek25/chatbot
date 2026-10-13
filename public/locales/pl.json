@@ -653,7 +653,7 @@
   "automatickú analýzu": "automatickú analýzu",
   "automatický predaj v DMs": "automatický predaj v DMs",
   "bez nahrávania jediného súboru.": "bez nahrávania jediného súboru.",
-  "bez odpovede.": "bez odpovede.",
+  "bez odpovede.": "bez odpowiedzi.",
   "bez toho, aby opustil konverzáciu.": "bez toho, aby opustil konverzáciu.",
   "blogový článok": "blogový článok",
   "checkbox GDPR súhlasu": "checkbox GDPR súhlasu",
@@ -701,7 +701,7 @@
   "napr. spätný kontakt so zákazníkom, zasielanie cenovej ponuky, konzultácia...": "np. zwrotny kontakt z klientem, wysylanie oferty cenowej, konsultacja...",
   "napr. Živnostníci a malé firmy, ktoré chcú znížiť dane": "np. Samozatrudnieni i male firmy, ktoré chcu zniżyc dane",
   "navrhne zákazníkovi ďalší krok": "zaproponuje klientowi nastepny krok",
-  "neexistuje": "neexistuje",
+  "neexistuje": "nie istnieje",
   "nevedia kde začať": "nie wiedza gdzie zaczac",
   "neviete": "nie wiesz",
   "ochranou osobných údajov": "ochrona danych osobowych",
@@ -2763,5 +2763,6 @@
   "vasafirma.sk&#10;*.vasafirma.sk": "vasafirma.sk&#10;*.vasafirma.sk",
   "/kontakt&#10;/produkty/*": "/kontakt&#10;/produkty/*",
   "napr. 5": "napr. 5",
-  "Neoworkly × Shopify": "Neoworkly × Shopify"
+  "Neoworkly × Shopify": "Neoworkly × Shopify",
+  "Napíšte svoju otázku…": "Napisz swoje pytanie…"
 }

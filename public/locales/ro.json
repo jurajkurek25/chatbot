@@ -353,7 +353,7 @@
   "Odhlásiť sa": "Deconectare",
   "Odkaz na nákup (URL)": "Link de cumpărare (URL)",
   "Odkaz skopírovaný!": "Link copiat!",
-  "Odoslať": "Trimitere",
+  "Odoslať": "Trimite",
   "Odpojiť": "Deconectare",
   "Odpojiť Instagram? Bot prestane reagovať na komentáre.": "Deconectare Instagram? Bot nu va mai răspunde la comentarii.",
   "Odporúčaj keď:": "Recomandă când:",
@@ -653,7 +653,7 @@
   "automatickú analýzu": "analiză automată",
   "automatický predaj v DMs": "vânzări automate în DM-uri",
   "bez nahrávania jediného súboru.": "fără a încărca vreun fișier.",
-  "bez odpovede.": "bez odpovede.",
+  "bez odpovede.": "fără răspuns.",
   "bez toho, aby opustil konverzáciu.": "fără a abandona conversația.",
   "blogový článok": "articol de blog",
   "checkbox GDPR súhlasu": "checkbox de consimțământ GDPR",
@@ -701,7 +701,7 @@
   "napr. spätný kontakt so zákazníkom, zasielanie cenovej ponuky, konzultácia...": "de exemplu, contact înapoi cu clientul, trimiterea unei oferte de preț, consultație...",
   "napr. Živnostníci a malé firmy, ktoré chcú znížiť dane": "de exemplu, Antreprenori și micile întreprinderi care doresc să reducă impozitele",
   "navrhne zákazníkovi ďalší krok": "va sugera clientului pasul următor",
-  "neexistuje": "neexistuje",
+  "neexistuje": "nu există",
   "nevedia kde začať": "nu știu de unde să înceapă",
   "neviete": "nu știți",
   "ochranou osobných údajov": "protecția datelor cu caracter personal",
@@ -2704,5 +2704,6 @@
   "vasafirma.sk&#10;*.vasafirma.sk": "vasafirma.sk&#10;*.vasafirma.sk",
   "/kontakt&#10;/produkty/*": "/kontakt&#10;/produkty/*",
   "napr. 5": "napr. 5",
-  "Neoworkly × Shopify": "Neoworkly × Shopify"
+  "Neoworkly × Shopify": "Neoworkly × Shopify",
+  "Napíšte svoju otázku…": "Scrie întrebarea ta…"
 }
