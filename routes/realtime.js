@@ -29,6 +29,24 @@ router.delete('/links', workspace.middleware, workspace.writer, (req, res) => {
   res.json({ ok: true });
 });
 
+/** Hľadanie položiek naprieč modulmi (na prepájanie a rýchle otvorenie). */
+router.get('/search', workspace.middleware, (req, res) => {
+  const { getDb } = require('../db/database');
+  const db = getDb();
+  const q = String(req.query.q || '').trim().toLowerCase();
+  if (q.length < 2) return res.json([]);
+  const like = `%${q}%`;
+  const out = [];
+  const add = (type, rows, title) => rows.forEach(r => { const info = links.types.get(type)?.resolve(req.ownerId, r.id); if (info) out.push({ type, id: r.id, icon: links.types.get(type).icon, label: links.types.get(type).label, ...info, title: info.title || title(r) }); });
+  const has = t => links.known(t);
+  if (has('task')) add('task', db.prepare('SELECT id FROM tasks WHERE owner_id = ? AND lower(title) LIKE ? ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like));
+  if (has('note')) add('note', db.prepare("SELECT id FROM notes WHERE owner_id = ? AND visibility = 'workspace' AND lower(content) LIKE ? ORDER BY updated_at DESC LIMIT 8").all(req.ownerId, like));
+  if (has('doc')) add('doc', db.prepare('SELECT id FROM docs WHERE owner_id = ? AND (lower(title) LIKE ? OR lower(text) LIKE ?) ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like, like));
+  if (has('event')) add('event', db.prepare('SELECT id FROM calendar_events WHERE owner_id = ? AND lower(title) LIKE ? ORDER BY start_at DESC LIMIT 8').all(req.ownerId, like));
+  if (has('file')) add('file', db.prepare('SELECT id FROM drive_items WHERE owner_id = ? AND trashed_at IS NULL AND ref IS NULL AND lower(name) LIKE ? ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like));
+  res.json(out);
+});
+
 // Upozornenia (zvonček)
 const notifications = require('../services/notifications');
 router.get('/notifications', (req, res) => res.json({ items: notifications.list(req.userId), unread: notifications.unread(req.userId) }));

@@ -160,6 +160,8 @@ function showView(view) {
   document.getElementById('nav-shop').classList.toggle('active', view === 'shop');
   document.getElementById('nav-drive').classList.toggle('active', view === 'drive');
   document.getElementById('nav-marketing').classList.toggle('active', view === 'marketing');
+  // Tímové moduly (Úlohy, Kalendár, Poznámky, Dokumenty…) sa registrujú v NW_SUITE
+  if (typeof suiteShow === 'function' && suiteShow(view)) return;
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
@@ -2681,16 +2683,20 @@ async function loadPayments() {
     </table>` : '<div style="color:#7e7ea0;font-size:0.875rem">Zatiaľ žiadne platby.</div>';
 }
 
-// Návrat zo Stripe onboardingu (?stripe=return | test-return | expired) alebo odkaz na Funnely (?view=funnels)
-(function () {
+// Návrat zo Stripe onboardingu (?stripe=return | test-return | expired) alebo odkaz na sekciu (?view=funnels, ?view=tasks&task=…)
+// Po načítaní všetkých skriptov – tímové moduly sa registrujú až za dashboard.js
+document.addEventListener('DOMContentLoaded', function () {
   const p = new URLSearchParams(location.search);
   const back = p.get('stripe');
   const view = p.get('view');
-  if (!back && !['funnels', 'drive', 'shop', 'marketing'].includes(view)) return;
+  const suiteView = window.NW_SUITE && window.NW_SUITE[view];
+  if (!back && !suiteView && !['funnels', 'drive', 'shop', 'marketing'].includes(view)) return;
+  if (suiteView) window._suiteOpen = Object.fromEntries(p.entries());
+  if (suiteView && p.get('ws')) { try { localStorage.setItem('nw_ws', p.get('ws')); } catch { /* nič */ } }
   _funnelReturn = back;
   setTimeout(() => showView(back === 'test-return' || view === 'funnels' ? 'funnels' : back ? 'payments' : view), 300);
   window.history.replaceState({}, '', '/dashboard');
-})();
+});
 
 /* ── Team / staff ─────────────────────────────────────────────── */
 

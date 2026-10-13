@@ -38,9 +38,6 @@
       <button class="nav-item" onclick="showView('marketing')" id="nav-marketing">
         <span class="nav-icon">✉️</span> E-mail marketing
       </button>
-      <button class="nav-item" onclick="showView('drive')" id="nav-drive">
-        <span class="nav-icon">💾</span> Disk
-      </button>
       <button class="nav-item" onclick="showView('shop')" id="nav-shop">
         <span class="nav-icon">📦</span> Digitálne produkty
       </button>
@@ -52,6 +49,25 @@
       </button>
       <button class="nav-item" onclick="showView('coach')" id="nav-coach">
         <span class="nav-icon">🎓</span> AI Coach
+      </button>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Tím</div>
+      <button class="nav-item" onclick="showView('tasks')" id="nav-tasks">
+        <span class="nav-icon">✅</span> Úlohy
+      </button>
+      <button class="nav-item" onclick="showView('calendar')" id="nav-calendar">
+        <span class="nav-icon">📅</span> Kalendár
+      </button>
+      <button class="nav-item" onclick="showView('notes')" id="nav-notes">
+        <span class="nav-icon">🗒</span> Poznámky
+      </button>
+      <button class="nav-item" onclick="showView('docs')" id="nav-docs">
+        <span class="nav-icon">📄</span> Dokumenty
+      </button>
+      <button class="nav-item" onclick="showView('drive')" id="nav-drive">
+        <span class="nav-icon">💾</span> Disk
       </button>
     </div>
 
@@ -230,6 +246,12 @@
         </div>
         <div id="mk-body"></div>
       </div>
+
+      <!-- ── Tímová sada ─────────────────────────────── -->
+      <div id="view-tasks" style="display:none"><div id="tasks-body"></div></div>
+      <div id="view-calendar" style="display:none"><div id="calendar-body"></div></div>
+      <div id="view-notes" style="display:none"><div id="notes-body"></div></div>
+      <div id="view-docs" style="display:none"><div id="docs-body"></div></div>
 
       <!-- ── View: Drive ─────────────────────────────── -->
       <div id="view-drive" style="display:none"><div id="drive-body"></div></div>
@@ -2258,6 +2280,11 @@
 <script src="/js/shop-dashboard.js?v=1"></script>
 <script src="/js/drive-dashboard.js?v=1"></script>
 <script src="/js/marketing-dashboard.js?v=1"></script>
+<script src="/js/suite-common.js?v=1"></script>
+<script src="/js/tasks-dashboard.js?v=1"></script>
+<script src="/js/notes-dashboard.js?v=1"></script>
+<script src="/js/docs-dashboard.js?v=1"></script>
+<script src="/js/calendar-dashboard.js?v=1"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>
