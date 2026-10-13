@@ -9,7 +9,8 @@
     "build:widget": "node scripts/build-widget.js",
     "prestart": "npm run build:widget",
     "test": "node --test test/*.test.js funnel/test/*.test.js",
-    "rotate-encryption-key": "node funnel/scripts/rotate-totp-key.js"
+    "rotate-encryption-key": "node funnel/scripts/rotate-totp-key.js",
+    "build:apps": "node scripts/build-apps.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.39.0",
@@ -22,6 +23,7 @@
     "express5": "npm:express@^5.3.0",
     "googleapis": "^171.4.0",
     "jsonwebtoken": "^9.0.2",
+    "lib0": "^0.2.119",
     "mammoth": "^1.8.0",
     "multer": "^1.4.5-lts.1",
     "nodemailer": "^8.0.4",
@@ -29,6 +31,13 @@
     "stripe": "^16.0.0",
     "stripe18": "npm:stripe@^18.5.0",
     "terser": "^5.31.0",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "ws": "^8.22.0",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.33"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12",
+    "y-websocket": "^2.1.0"
   }
 }

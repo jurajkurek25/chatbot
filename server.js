@@ -77,6 +77,7 @@ app.use('/api/payments', paymentsRoutes);
 app.use('/api/shop', shopRoutes);
 app.use('/api/drive', driveRoutes);
 app.use('/api/marketing', require('./routes/marketing'));
+app.use('/api/realtime', require('./routes/realtime'));
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
@@ -139,7 +140,7 @@ app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Neoworkly running on http://localhost:${PORT}`);
   require('./services/bookingNotify').startReminderScheduler();
   require('./services/wellbeing').startBurnoutScheduler();
@@ -151,3 +152,9 @@ app.listen(PORT, () => {
   setTimeout(purge, 60 * 1000).unref();
   setInterval(purge, 24 * 3600 * 1000).unref();
 });
+
+// Spolupráca v reálnom čase (/ws, /yjs) na tom istom porte; pri vypnutí uloží otvorené dokumenty
+require('./services/realtime').attach(server);
+for (const sig of ['SIGTERM', 'SIGINT']) {
+  process.once(sig, () => { require('./services/realtime').flushAll(); process.exit(0); });
+}

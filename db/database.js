@@ -509,6 +509,26 @@ function initDatabase() {
       UNIQUE(owner_user_id, email)
     );
 
+    -- Spolupráca v reálnom čase: stav zdieľaných dokumentov (Yjs) a prepojenia medzi položkami modulov
+    CREATE TABLE IF NOT EXISTS yjs_docs (
+      name TEXT PRIMARY KEY,
+      state BLOB NOT NULL,
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS item_links (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      a_type TEXT NOT NULL,
+      a_id TEXT NOT NULL,
+      b_type TEXT NOT NULL,
+      b_id TEXT NOT NULL,
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(owner_id, a_type, a_id, b_type, b_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_links_a ON item_links(owner_id, a_type, a_id);
+    CREATE INDEX IF NOT EXISTS idx_links_b ON item_links(owner_id, b_type, b_id);
+
     -- E-mail marketing (Resend): kontakty so súhlasom, kampane, automatické série
     CREATE TABLE IF NOT EXISTS email_settings (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

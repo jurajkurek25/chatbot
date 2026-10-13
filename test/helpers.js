@@ -37,6 +37,8 @@ merchantKeys.client = (key) => {
   return keyClients[key];
 };
 
+// Tímové moduly pridávajú svoje routy sem (path, module)
+const extraRoutes = [];
 async function startApp() {
   const stripe = new FakeStripe();
   funnel.useStripe(stripe);
@@ -49,10 +51,18 @@ async function startApp() {
   app.use('/api/drive', require('../routes/drive'));
   app.use('/api/team', require('../routes/team'));
   app.use('/api/marketing', require('../routes/marketing'));
+  app.use('/api/realtime', require('../routes/realtime'));
+  for (const m of extraRoutes) app.use(m.path, require(m.module));
   const server = app.listen(0);
+  const wss = require('../services/realtime').attach(server);
   await new Promise((r) => server.once('listening', r));
   const base = `http://127.0.0.1:${server.address().port}`;
-  return { base, stripe, close: () => new Promise((r) => server.close(r)) };
+  const close = () => new Promise((r) => {
+    wss.clients.forEach((c) => c.terminate());
+    wss.close();
+    server.close(r);
+  });
+  return { base, stripe, server, close };
 }
 
 async function request(base, method, path, body, headers = {}) {
@@ -93,4 +103,4 @@ function signedEvent(ctx, event, secret) {
 
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-module.exports = { startApp, request, newUser, connectStripe, signedEvent, mails, keyClients, getDb, funnelDb, wait };
+module.exports = { extraRoutes, startApp, request, newUser, connectStripe, signedEvent, mails, keyClients, getDb, funnelDb, wait };

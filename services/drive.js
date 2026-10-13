@@ -18,13 +18,7 @@ const now = () => Math.floor(Date.now() / 1000);
 
 /* ── Prístup: majiteľ alebo člen tímu (readonly / editor) ───────── */
 
-/** Rola používateľa v pracovnom priestore majiteľa: 'owner' | 'editor' | 'readonly' | null */
-function roleIn(userId, ownerId) {
-  if (!ownerId || userId === ownerId) return 'owner';
-  const t = getDb().prepare('SELECT role FROM team_members WHERE owner_user_id = ? AND member_user_id = ? AND accepted = 1').get(ownerId, userId);
-  return t ? t.role : null;
-}
-const canWrite = role => role === 'owner' || role === 'editor';
+const { roleIn, canWrite } = require('./workspace');
 
 /* ── Položky a strom ────────────────────────────────────────────── */
 
@@ -243,3 +237,12 @@ module.exports = {
   fileToken, readFileToken, send, shareUrl, shareByToken, unlockKey, unlocked,
   clientsRoot, memberFolders, memberRootOf, copyOut,
 };
+
+// Súbory a priečinky Disku sa dajú prepájať s úlohami, poznámkami, udalosťami…
+require('./links').registerType('file', {
+  label: 'Súbor', icon: '📎',
+  resolve(ownerId, id) {
+    const it = liveItem(ownerId, id);
+    return it ? { title: it.name, url: `/dashboard?view=drive&item=${encodeURIComponent(id)}`, kind: it.kind } : null;
+  },
+});
