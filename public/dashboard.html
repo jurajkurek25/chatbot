@@ -529,6 +529,35 @@
                 <button class="btn btn-primary" id="btn-scrape" onclick="scrapeWebsite()">Skenovať</button>
               </div>
               <div id="scrape-status" style="display:none;font-size:0.82rem;margin-top:0.5rem;"></div>
+              <details style="margin-top:0.75rem">
+                <summary style="cursor:pointer;font-size:0.82rem;color:#9898b8">Pokročilé zdroje (Sitemap, XML feed)</summary>
+                <div style="margin-top:0.75rem">
+                  <label style="font-size:0.82rem">Sitemap – načíta stránky zo sitemap.xml (max 30)</label>
+                  <div class="input-add-row" style="margin:0.35rem 0 0.75rem">
+                    <input type="url" class="form-control" id="xml-sitemap-url" placeholder="https://vasafirma.sk/sitemap.xml">
+                    <button class="btn btn-secondary" onclick="importXml('sitemap')">Načítať</button>
+                  </div>
+                  <label style="font-size:0.82rem">Produktový XML feed – Heureka, Google Shopping, RSS (max 500 položiek)</label>
+                  <div class="input-add-row" style="margin-top:0.35rem">
+                    <input type="url" class="form-control" id="xml-feed-url" placeholder="https://vasafirma.sk/feed.xml">
+                    <button class="btn btn-secondary" onclick="importXml('feed')">Načítať</button>
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <!-- Q&A -->
+            <div id="qa-section" style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.08);">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Otázky a odpovede</div>
+              <div class="form-group">
+                <label>Otázka</label>
+                <input type="text" class="form-control" id="qa-question" placeholder="napr. Robíte dopravu zdarma?">
+              </div>
+              <div class="form-group">
+                <label>Odpoveď</label>
+                <textarea class="form-control" id="qa-answer" rows="3" placeholder="napr. Áno, pri objednávke nad 50 €."></textarea>
+              </div>
+              <button class="btn btn-primary" onclick="addQaKnowledge()">Pridať otázku</button>
             </div>
 
             <!-- Add Text -->
@@ -550,8 +579,8 @@
             <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.08);">
               <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Nahrať súbor</div>
               <div class="form-group">
-                <label>Súbor (PDF, TXT, MD, CSV – max 20MB)</label>
-                <input type="file" class="form-control" id="k-file" accept=".pdf,.txt,.md,.csv">
+                <label>Súbor (PDF, Word, TXT, MD, CSV – max 20MB)</label>
+                <input type="file" class="form-control" id="k-file" accept=".pdf,.docx,.txt,.md,.csv">
               </div>
               <div class="form-group">
                 <label>Nadpis (voliteľné)</label>

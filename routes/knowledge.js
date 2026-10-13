@@ -16,13 +16,14 @@ const upload = multer({
   dest: path.join(__dirname, '..', 'uploads'),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter(req, file, cb) {
-    const allowed = ['application/pdf', 'text/plain', 'text/markdown', 'text/csv'];
+    const allowed = ['application/pdf', 'text/plain', 'text/markdown', 'text/csv',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
     const ext = path.extname(file.originalname).toLowerCase();
-    const allowedExt = ['.pdf', '.txt', '.md', '.csv'];
+    const allowedExt = ['.pdf', '.docx', '.txt', '.md', '.csv'];
     if (allowed.includes(file.mimetype) || allowedExt.includes(ext)) {
       cb(null, true);
     } else {
-      cb(new Error('Nepodporovaný typ súboru. Povolené: PDF, TXT, MD, CSV'));
+      cb(new Error('Nepodporovaný typ súboru. Povolené: PDF, Word (.docx), TXT, MD, CSV'));
     }
   },
 });
@@ -64,6 +65,23 @@ router.post('/:widgetId/text', (req, res) => {
   }
 
   const item = insertKnowledgeItem(req.params.widgetId, title.trim(), content.trim(), 'text');
+  res.status(201).json(item);
+});
+
+// POST /api/knowledge/:widgetId/qa — question + answer pair
+router.post('/:widgetId/qa', (req, res) => {
+  if (!ownsWidget(req.params.widgetId, req.userId)) {
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  }
+
+  const question = String(req.body.question || '').trim().slice(0, 500);
+  const answer = String(req.body.answer || '').trim().slice(0, 10000);
+  if (!question || !answer) {
+    return res.status(400).json({ error: 'Otázka aj odpoveď sú povinné.' });
+  }
+
+  // stored as 'text' (source_type has a CHECK constraint); the "Otázka:" prefix marks it as Q&A
+  const item = insertKnowledgeItem(req.params.widgetId, question, `Otázka: ${question}\nOdpoveď: ${answer}`, 'text');
   res.status(201).json(item);
 });
 

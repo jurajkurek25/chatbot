@@ -3,7 +3,7 @@
 const express   = require('express');
 const { requireAuth } = require('../middleware/auth');
 const { getDb }       = require('../db/database');
-const { crawlSite }   = require('../services/scraper');
+const { crawlSite, importSitemap, importFeed } = require('../services/scraper');
 const { v4: uuidv4 }  = require('uuid');
 
 const router = express.Router();
@@ -61,5 +61,34 @@ router.post('/scan', async (req, res) => {
     return res.status(500).json({ error: 'Chyba pri skenovaní stránky: ' + err.message });
   }
 });
+
+// POST /api/scraper/sitemap  { url, widget_id }  — import pages listed in sitemap.xml
+// POST /api/scraper/feed     { url, widget_id }  — import products from an XML feed
+for (const [route, importer, sourceType, limit] of [
+  ['/sitemap', importSitemap, 'url', 30],
+  ['/feed', importFeed, 'url', 500],
+]) {
+  router.post(route, async (req, res) => {
+    let url = String(req.body.url || '').trim();
+    if (!url) return res.status(400).json({ error: 'URL je povinná.' });
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    try { new URL(url); } catch { return res.status(400).json({ error: 'Neplatná URL adresa.' }); }
+
+    const db = getDb();
+    const widget = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(req.body.widget_id, req.userId);
+    if (!widget) return res.status(403).json({ error: 'Widget nenájdený.' });
+
+    try {
+      const items = await importer(url, limit);
+      if (!items.length) return res.status(422).json({ error: 'V tomto XML sa nepodarilo nájsť žiadny obsah.' });
+      const stmt = db.prepare('INSERT INTO knowledge_items (id, widget_id, title, content, source_type) VALUES (?, ?, ?, ?, ?)');
+      db.transaction(rows => { for (const r of rows) stmt.run(uuidv4(), widget.id, r.title, r.content, sourceType); })(items);
+      res.json({ imported: items.length });
+    } catch (err) {
+      console.error(`[scraper${route}] error:`, err.message);
+      res.status(500).json({ error: 'Chyba pri načítaní XML: ' + err.message });
+    }
+  });
+}
 
 module.exports = router;

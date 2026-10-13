@@ -627,11 +627,11 @@ async function loadUnanswered() {
 function answerUnanswered(id) {
   const q = _unanswered.find(r => r.id === id);
   if (!q) return;
-  document.getElementById('k-title').value = q.question.slice(0, 200);
-  const content = document.getElementById('k-content');
-  content.value = '';
-  content.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  content.focus();
+  document.getElementById('qa-question').value = q.question.slice(0, 500);
+  const answer = document.getElementById('qa-answer');
+  answer.value = '';
+  answer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  answer.focus();
   _answeringId = id;
 }
 
@@ -648,7 +648,7 @@ function renderKnowledgeList(items) {
   }
   container.innerHTML = `<div class="knowledge-list">${items.map(item => `
     <div class="knowledge-item">
-      <div class="knowledge-icon">${item.source_type === 'pdf' ? '📄' : '📝'}</div>
+      <div class="knowledge-icon">${(item.preview || '').startsWith('Otázka:') ? '❓' : ({ pdf: '📄', url: '🌐' })[item.source_type] || '📝'}</div>
       <div class="knowledge-info">
         <div class="knowledge-title">${esc(item.title)}</div>
         <div class="knowledge-preview">${esc(item.preview || '')}</div>
@@ -697,6 +697,56 @@ async function scrapeWebsite() {
   }
 }
 
+async function addQaKnowledge() {
+  const question = document.getElementById('qa-question').value.trim();
+  const answer = document.getElementById('qa-answer').value.trim();
+  if (!question || !answer) { showToast('Zadajte otázku aj odpoveď.', 'error'); return; }
+
+  const res = await apiFetch(`/api/knowledge/${currentWidget.id}/qa`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, answer }),
+  });
+  const data = await res.json();
+  if (!res.ok) { showToast(data.error || 'Chyba.', 'error'); return; }
+  document.getElementById('qa-question').value = '';
+  document.getElementById('qa-answer').value = '';
+  showToast('Otázka pridaná!', 'success');
+  // Answered from the "Nezodpovedané otázky" list → remove it there
+  if (_answeringId) {
+    await apiFetch(`/api/knowledge/${currentWidget.id}/unanswered/${_answeringId}`, { method: 'DELETE' });
+    _answeringId = null;
+  }
+  loadKnowledge();
+}
+
+async function importXml(kind) {
+  const input = document.getElementById(kind === 'sitemap' ? 'xml-sitemap-url' : 'xml-feed-url');
+  const url = input.value.trim();
+  if (!url) { showToast('Zadajte URL adresu.', 'error'); return; }
+  const btn = input.nextElementSibling;
+  btn.disabled = true;
+  btn.textContent = '⏳ Načítavam...';
+  try {
+    const r = await apiFetch(`/api/scraper/${kind}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, widget_id: currentWidget.id }),
+    });
+    if (!r) throw new Error('no response');
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Chyba');
+    showToast(`✓ Importovaných ${d.imported} ${kind === 'sitemap' ? 'stránok' : 'položiek'}.`, 'success');
+    input.value = '';
+    loadKnowledge();
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Načítať';
+  }
+}
+
 async function addTextKnowledge() {
   const title = document.getElementById('k-title').value.trim();
   const content = document.getElementById('k-content').value.trim();
@@ -712,10 +762,6 @@ async function addTextKnowledge() {
     document.getElementById('k-title').value = '';
     document.getElementById('k-content').value = '';
     showToast('Dokument pridaný!', 'success');
-    if (_answeringId) {
-      await apiFetch(`/api/knowledge/${currentWidget.id}/unanswered/${_answeringId}`, { method: 'DELETE' });
-      _answeringId = null;
-    }
     loadKnowledge();
   } else {
     showToast(data.error || 'Chyba.', 'error');
