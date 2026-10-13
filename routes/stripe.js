@@ -68,10 +68,28 @@ router.post('/checkout', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/stripe/webhook — opening the URL in a browser; Stripe itself only POSTs
+router.get('/webhook', (req, res) => {
+  res.json({ ok: true, info: 'Stripe webhook endpoint. Stripe sends POST requests here.', secret_configured: !!process.env.STRIPE_WEBHOOK_SECRET });
+});
+
 // POST /api/stripe/webhook — Stripe webhook (raw body parsed in server.js)
-router.post('/webhook', async (req, res) => {
+// An error thrown while handling must still answer (500) — otherwise the request
+// hangs and Stripe only sees a timeout. A 500 also makes Stripe retry later.
+router.post('/webhook', (req, res) => {
+  handleWebhook(req, res).catch(err => {
+    console.error('[stripe] Webhook handler error:', err);
+    if (!res.headersSent) res.status(500).json({ error: 'Webhook handler error' });
+  });
+});
+
+async function handleWebhook(req, res) {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('[stripe] STRIPE_WEBHOOK_SECRET is not set — cannot verify webhooks.');
+    return res.status(500).send('Webhook Error: STRIPE_WEBHOOK_SECRET is not configured on the server');
+  }
 
   let event;
   try {
@@ -182,7 +200,7 @@ router.post('/webhook', async (req, res) => {
   }
 
   res.json({ received: true });
-});
+}
 
 // POST /api/stripe/portal — customer billing portal
 router.post('/portal', requireAuth, async (req, res) => {
