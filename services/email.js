@@ -272,4 +272,45 @@ async function sendPasswordReset({ toEmail, resetUrl }) {
   } catch (err) { console.error('[email] Password reset failed:', err.message); }
 }
 
-module.exports = { sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite, sendPasswordReset };
+/**
+ * Visitor asked for a human — send the conversation to the owner's handoff address.
+ * @param {object[]} opts.transcript - [{ role: 'user'|'assistant', content }]
+ */
+async function sendHandoffEmail({ toEmail, widgetName, channel, transcript }) {
+  const transport = createTransport();
+  if (!transport) {
+    console.log('[email] SMTP not configured, skipping handoff email.');
+    return;
+  }
+
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const rows = transcript.map(m => `
+      <div style="margin:0 0 10px;padding:10px 14px;border-radius:10px;font-size:14px;line-height:1.6;white-space:pre-wrap;${m.role === 'user' ? 'background:#eef2ff;color:#1e293b' : 'background:#f1f5f9;color:#475569'}">
+        <strong style="font-size:12px">${m.role === 'user' ? '👤 Návštevník' : '🤖 Bot'}</strong><br>${esc(m.content)}
+      </div>`).join('');
+
+  const html = `
+<!DOCTYPE html>
+<html lang="sk">
+<head><meta charset="UTF-8"></head>
+<body style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:#f8fafc;margin:0;padding:0">
+  <div style="max-width:560px;margin:32px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08)">
+    <div style="background:linear-gradient(135deg,#5b4fff,#9b8cff);padding:24px 32px">
+      <div style="font-size:20px;font-weight:800;color:white">Neoworkly</div>
+      <div style="color:rgba(255,255,255,0.85);font-size:14px;margin-top:4px">Návštevník chce hovoriť s človekom · ${esc(widgetName)} · ${esc(channel)}</div>
+    </div>
+    <div style="padding:24px 32px">${rows}</div>
+  </div>
+</body>
+</html>`;
+
+  try {
+    await transport.sendMail({ from: `"Neoworkly" <${from}>`, to: toEmail, subject: `👤 Návštevník žiada človeka – ${widgetName}`, html });
+    console.log(`[email] Handoff email sent to ${toEmail}`);
+  } catch (err) {
+    console.error('[email] Failed to send handoff email:', err.message);
+  }
+}
+
+module.exports = { sendHandoffEmail, sendLeadNotification, sendUsageNotification, sendLeadAutoReply, sendFollowUp, sendTeamInvite, sendPasswordReset };

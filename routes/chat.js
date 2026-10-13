@@ -7,6 +7,7 @@ const { streamChatResponse, summarizeConversation, analyzeConversationTrends } =
 const { sendLeadNotification, sendUsageNotification } = require('../services/email');
 const { nextMonthReset, maybeResetUsage } = require('./credits');
 const { accessOf, ownerAccess } = require('../middleware/subscription');
+const { takeHandoffToken, notifyHandoff } = require('../services/handoff');
 
 const router = express.Router();
 
@@ -222,6 +223,11 @@ router.post('/:widgetId/chat', async (req, res) => {
 
     let fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
 
+    // __HANDOFF__ — visitor asked for a human; e-mail the conversation once per conversation
+    const handoff = takeHandoffToken(fullText);
+    fullText = handoff.text;
+    const handoffRequested = handoff.requested;
+
     // __UNANSWERED__ — bot lacked the info; log the question for the owner and keep the token out of stored history
     if (fullText && fullText.includes('__UNANSWERED__')) {
       fullText = fullText.replace(/__UNANSWERED__/g, '').trim();
@@ -285,6 +291,14 @@ router.post('/:widgetId/chat', async (req, res) => {
       db.prepare('INSERT INTO messages (id, conversation_id, role, content) VALUES (?, ?, ?, ?)').run(
         uuidv4(), conversation.id, 'assistant', fullText
       );
+    }
+
+    if (handoffRequested) {
+      const marked = db.prepare('UPDATE conversations SET handoff_at = unixepoch() WHERE id = ? AND handoff_at IS NULL').run(conversation.id);
+      if (marked.changes) {
+        const transcript = db.prepare('SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at ASC, rowid ASC').all(conversation.id);
+        notifyHandoff(widget, transcript, 'Web chat');
+      }
     }
   } catch (err) {
     console.error('Chat error:', err);

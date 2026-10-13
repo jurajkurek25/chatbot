@@ -1284,7 +1284,7 @@
               }
 
               // Stream finished — detect tokens, then render markdown
-              let final = (parsed.fullText || fullText).replace(/__UNANSWERED__/g, '').trim();
+              let final = (parsed.fullText || fullText).replace(/__(UNANSWERED|HANDOFF)__/g, '').trim();
 
               // __DIRECTBOOK__:JSON — AI collected all info, try to book directly
               const directBookMatch = final.match(/__DIRECTBOOK__:(\{[\s\S]*?\})/);
@@ -1322,7 +1322,7 @@
                 first = false;
               }
               fullText += parsed.text;
-              typingEl.textContent = fullText.replace(/__UNANSWERED__/g, '');
+              typingEl.textContent = fullText.replace(/__(UNANSWERED|HANDOFF)__/g, '');
               scrollToBottom();
             }
           } catch { /* ignore parse errors */ }

@@ -380,6 +380,7 @@ function initDatabase() {
     `ALTER TABLE widgets ADD COLUMN no_context_message TEXT NOT NULL DEFAULT ''`,
     `ALTER TABLE widgets ADD COLUMN handoff_enabled INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE widgets ADD COLUMN handoff_email TEXT NOT NULL DEFAULT ''`,
+    `ALTER TABLE conversations ADD COLUMN handoff_at INTEGER`,
     `ALTER TABLE widgets ADD COLUMN cta_type TEXT NOT NULL DEFAULT 'contact'`,
     `ALTER TABLE widgets ADD COLUMN avatar_url TEXT`,
     `ALTER TABLE widgets ADD COLUMN proactive_enabled INTEGER NOT NULL DEFAULT 0`,

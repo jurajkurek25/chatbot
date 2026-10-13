@@ -157,11 +157,12 @@ function showView(view) {
 function showTab(tab) {
   closeMobileSidebar();
   currentTab = tab;
-  ['settings','knowledge','questions','embed','products','instagram','facebook','gdpr','booking','leadmagnets','insights','inbox','integrations'].forEach(t => {
+  ['overview','settings','knowledge','questions','embed','products','instagram','facebook','gdpr','booking','leadmagnets','insights','inbox','integrations'].forEach(t => {
     document.getElementById(`tab-${t}`)?.classList.toggle('active', t === tab);
     document.getElementById(`nav-${t}`)?.classList.toggle('active', t === tab);
   });
 
+  if (tab === 'overview') loadOverview();
   if (tab === 'knowledge') loadKnowledge();
   if (tab === 'embed') loadEmbedCode();
   if (tab === 'instagram') loadInstagramStatus();
@@ -302,7 +303,7 @@ async function openWidget(widgetId) {
   if (urlParams.get('ig_error') || urlParams.get('ig_connected')) {
     showTab('instagram');
   } else {
-    showTab('settings');
+    showTab('overview');
   }
 }
 
@@ -598,6 +599,56 @@ async function loadKnowledge() {
   const items = await res.json();
   renderKnowledgeList(items);
   loadUnanswered();
+}
+
+/* ── Overview ─────────────────────────────────────────────────── */
+async function loadOverview() {
+  const res = await apiFetch(`/api/insights/${currentWidget.id}/overview`);
+  if (!res || !res.ok) return;
+  const d = await res.json();
+
+  const steps = [
+    ['created', 'Chatbot vytvorený', 'settings'],
+    ['source_added', 'Pridať zdroj znalostí', 'knowledge'],
+    ['domains_set', 'Nastaviť povolené domény', 'settings'],
+    ['live', 'Vložiť na web', 'embed'],
+  ];
+  document.getElementById('ov-checklist-panel').style.display = steps.every(([k]) => d.checklist[k]) ? 'none' : '';
+  document.getElementById('ov-checklist').innerHTML = steps.map(([key, label, tab], i) => {
+    const done = d.checklist[key];
+    return `<button onclick="showTab('${tab}')" style="display:flex;align-items:center;gap:0.75rem;text-align:left;padding:0.85rem 1rem;border-radius:12px;cursor:pointer;font-family:inherit;
+      background:${done ? 'rgba(31,216,154,0.08)' : '#111120'};border:1px solid ${done ? 'rgba(31,216,154,0.3)' : 'rgba(255,255,255,0.08)'};color:#eeeef5">
+      <span style="width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-weight:700;
+        background:${done ? '#1fd89a' : 'rgba(91,79,255,0.18)'};color:${done ? '#080810' : '#9b8cff'}">${done ? '✓' : i + 1}</span>
+      <span><span style="display:block;font-size:0.7rem;font-weight:700;color:${done ? '#1fd89a' : '#7e7ea0'}">KROK ${i + 1}</span>
+      <span style="font-weight:600;font-size:0.9rem">${label}</span></span></button>`;
+  }).join('');
+
+  const card = (label, value, sub, color) => `<div class="panel" style="padding:1.1rem 1.25rem;margin:0">
+    <div style="font-size:0.72rem;font-weight:700;letter-spacing:0.08em;color:#9b8cff">${label}</div>
+    <div style="font-size:2rem;font-weight:800;margin:0.25rem 0;color:${color || '#eeeef5'}">${value}</div>
+    <div style="font-size:0.8rem;color:#9898b8">${sub}</div></div>`;
+  document.getElementById('ov-stats').innerHTML = [
+    card('SPRÁVY DNES', d.messages_today, d.messages_today ? 'otázok od návštevníkov' : 'Zatiaľ žiadna aktivita'),
+    card('SPRÁVY / 30 DNÍ', d.messages_30d, 'Celková prevádzka bota'),
+    card('ÚSPEŠNOSŤ', d.success_rate === null ? '—' : d.success_rate + ' %', 'Podľa zodpovedaných otázok', d.success_rate === null ? null : d.success_rate >= 80 ? '#1fd89a' : '#fbbf24'),
+    card('NEZODPOVEDANÉ', d.unanswered_30d, 'Medzery v znalostiach (30 dní)'),
+    card('ZDROJE', d.sources, 'Položiek v znalostnej báze'),
+  ].join('');
+
+  const max = Math.max(1, ...d.chart.map(c => c.count));
+  document.getElementById('ov-chart').innerHTML = d.chart.map(c =>
+    `<div title="${c.date}: ${c.count}" style="flex:1;border-radius:3px 3px 0 0;min-height:4px;height:${Math.round(c.count / max * 100)}%;background:${c.count ? '#5b4fff' : 'rgba(255,255,255,0.08)'}"></div>`
+  ).join('');
+  document.getElementById('ov-chart-from').textContent = d.chart[0]?.date || '';
+  document.getElementById('ov-chart-to').textContent = d.chart[d.chart.length - 1]?.date || '';
+
+  document.getElementById('ov-recent').innerHTML = d.recent_unanswered.length
+    ? d.recent_unanswered.map(r => `<div style="padding:0.6rem 0;border-bottom:1px solid rgba(255,255,255,0.06)">
+        <div style="font-size:0.9rem">${esc(r.question)}</div>
+        <div style="font-size:0.72rem;color:#7e7ea0">${new Date(r.created_at * 1000).toLocaleString('sk-SK')}</div></div>`).join('')
+      + `<button class="btn btn-sm btn-secondary" style="margin-top:0.75rem" onclick="showTab('knowledge')">Doplniť odpovede →</button>`
+    : '<div class="hint" style="text-align:center;padding:2rem 0">Žiadne nezodpovedané otázky. 🎉</div>';
 }
 
 let _unanswered = [];

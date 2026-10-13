@@ -1,6 +1,7 @@
 'use strict';
 
 const Anthropic = require('@anthropic-ai/sdk');
+const { takeHandoffToken, notifyHandoff } = require('./handoff');
 const { pickStartingModel, markModelGood, getNewestUntriedModel, tierOf, looksLikeModelIssue, withModelFallback } = require('./resolveModel');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -52,6 +53,21 @@ function buildProductsSection(products) {
 }
 
 /* ── System prompt builder ─────────────────────────────────────── */
+// Owner-configured answers + human handoff (shared by web, Messenger, Instagram)
+function buildBehaviorSection(widget) {
+  let s = '';
+  if (widget.no_context_message) {
+    s += `\n- Ak odpoveď NIE JE v znalostnej báze, odpovedz týmto textom (prelož ho do jazyka zákazníka): "${widget.no_context_message}"`;
+  }
+  if (widget.off_topic_message) {
+    s += `\n- Ak otázka vôbec nesúvisí s firmou, jej ponukou ani webom, odpovedz týmto textom (prelož ho do jazyka zákazníka): "${widget.off_topic_message}"`;
+  }
+  if (widget.handoff_enabled) {
+    s += `\n- Ak zákazník VÝSLOVNE požiada o človeka, operátora alebo podporu, potvrď mu, že konverzáciu odovzdávaš kolegovi, ktorý sa ozve, a na KONIEC odpovede vlož token: __HANDOFF__`;
+  }
+  return s ? `\n\n## VLASTNÉ PRAVIDLÁ MAJITEĽA${s}` : '';
+}
+
 function buildSystemPrompt(widget, knowledgeItems, products = [], pageContext = null) {
   const cfg = safeParseJSON(widget.cta_config, {});
 
@@ -134,7 +150,7 @@ Keď zákazník prejaví záujem alebo súhlas:
 - Odpovedaj VŽDY v jazyku zákazníka (podľa toho ako píše – sk, en, de, fr, es, pl, cs, hu, ro, hr alebo iný).
 - Nikdy si nevymýšľaj fakty, ceny, mená, kontakty ani referencie.
 - Nebuď agresívny ani nátlakový – predávaj cez dôveru a pochopenie.
-- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
+- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${buildBehaviorSection(widget)}${goalsSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
 }
 
 function loadProducts(widgetId) {
@@ -371,6 +387,11 @@ async function getChatResponseText(widget, knowledgeItems, history, userMessage)
   }));
 
   let text = response.content.find(b => b.type === 'text')?.text?.trim() || '';
+  const handoff = takeHandoffToken(text);
+  text = handoff.text;
+  if (handoff.requested) {
+    notifyHandoff(widget, [...history, { role: 'user', content: userMessage }, { role: 'assistant', content: text }], 'Messenger / Instagram');
+  }
   if (text.includes('__UNANSWERED__')) {
     text = text.replace(/__UNANSWERED__/g, '').trim();
     try {
