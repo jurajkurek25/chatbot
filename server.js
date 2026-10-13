@@ -38,6 +38,10 @@ initDatabase();
 app.use(cors());
 app.use(compression());
 
+// Funnely (Express 5 podaplikácia): /api/f, /api/funnels, /demo a Stripe webhooky funnela.
+// Pred express.json() – webhooky potrebujú surové telo a funnel si parsuje telá sám.
+app.use(require('./funnel').createApp());
+
 // Stripe webhook MUST receive raw body — mount before express.json()
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
@@ -132,4 +136,5 @@ app.listen(PORT, () => {
   require('./services/bookingNotify').startReminderScheduler();
   require('./services/wellbeing').startBurnoutScheduler();
   require('./services/bookingPayments').startHoldSweeper();
+  require('./funnel/src/retention').scheduleRetention(); // štatistiky funnelov staršie ako 13 mesiacov
 });

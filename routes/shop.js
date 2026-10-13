@@ -316,12 +316,12 @@ router.post('/public/:productId/checkout', async (req, res) => {
   if (!EMAIL.test(email || '')) return res.status(400).json({ error: 'Zadajte platný e-mail.' });
   if (!consent) return res.status(400).json({ error: 'Potvrďte súhlas s podmienkami.' });
   const amount = p.price > 0 ? payments.toCents(p.price) : 0;
+  if (amount && !payments.isReady(payments.getMerchant(p.user_id))) return res.status(503).json({ error: 'Predajca zatiaľ neprijíma platby online.' });
   const order = shop.createOrder({ userId: p.user_id, product: p, email, name, amount });
   if (!amount) {
     await shop.fulfilOrder(order.id);
     return res.json({ free: true });
   }
-  if (!payments.isReady(payments.getMerchant(p.user_id))) return res.status(503).json({ error: 'Predajca zatiaľ neprijíma platby online.' });
   try {
     const session = await payments.createCheckout(p.user_id, {
       kind: 'order', ref: order.id, amount, currency: p.currency, name: p.title, description: p.subtitle || undefined,

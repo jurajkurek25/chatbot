@@ -5,6 +5,8 @@ const path = require('path');
 const fs = require('fs');
 
 const DB_PATH = (() => {
+  // Tests run against an in-memory database
+  if (process.env.NEOWORKLY_DB_FILE) return process.env.NEOWORKLY_DB_FILE;
   // Keep backward-compatible filename; rename old file if it exists
   const newPath = path.join(__dirname, '..', 'data', 'neoworkly.db');
   const oldPath = path.join(__dirname, '..', 'data', 'neuradesk.db');
@@ -452,18 +454,6 @@ function initDatabase() {
       lesson_id TEXT NOT NULL REFERENCES course_lessons(id) ON DELETE CASCADE,
       completed_at INTEGER NOT NULL DEFAULT (unixepoch()),
       PRIMARY KEY (member_id, lesson_id)
-    );
-    CREATE TABLE IF NOT EXISTS merchant_payments (
-      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
-      mode TEXT,
-      stripe_account_id TEXT,
-      account_name TEXT,
-      secret_key_enc TEXT,
-      publishable_key TEXT,
-      webhook_id TEXT,
-      webhook_secret_enc TEXT,
-      currency TEXT NOT NULL DEFAULT 'EUR',
-      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
     CREATE TABLE IF NOT EXISTS booking_notifications (
       booking_id TEXT NOT NULL,
