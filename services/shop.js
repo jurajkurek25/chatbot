@@ -164,6 +164,7 @@ async function fulfilOrder(orderId, session) {
   const member = upsertMember(o.user_id, o.email, o.name);
   db.prepare('UPDATE orders SET member_id = ? WHERE id = ?').run(member.id, o.id);
   if (product) grantAccess(member, product, o.id);
+  require('./marketing').onPurchase(o.user_id, o.email, o.product_id); // séria „po nákupe“ (iba kontakty so súhlasom)
   await sendPurchaseEmail(db.prepare('SELECT * FROM orders WHERE id = ?').get(o.id), product, member)
     .catch(err => console.error('[shop mail]', err.message));
   return db.prepare('SELECT * FROM orders WHERE id = ?').get(o.id);

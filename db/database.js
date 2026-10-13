@@ -509,6 +509,89 @@ function initDatabase() {
       UNIQUE(owner_user_id, email)
     );
 
+    -- E-mail marketing (Resend): kontakty so súhlasom, kampane, automatické série
+    CREATE TABLE IF NOT EXISTS email_settings (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      from_name TEXT NOT NULL DEFAULT '',
+      from_local TEXT NOT NULL DEFAULT 'info',
+      reply_to TEXT NOT NULL DEFAULT '',
+      address TEXT NOT NULL DEFAULT '',
+      widget_optin INTEGER NOT NULL DEFAULT 1,
+      domain TEXT,
+      domain_id TEXT,
+      domain_status TEXT,
+      domain_records TEXT
+    );
+    CREATE TABLE IF NOT EXISTS email_contacts (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      status TEXT NOT NULL DEFAULT 'subscribed' CHECK(status IN ('subscribed','unsubscribed','bounced','complained')),
+      source TEXT NOT NULL DEFAULT 'manual',
+      tags TEXT NOT NULL DEFAULT '[]',
+      consent_at INTEGER,
+      unsubscribe_token TEXT NOT NULL UNIQUE,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(user_id, email)
+    );
+    CREATE TABLE IF NOT EXISTS email_campaigns (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL DEFAULT '',
+      subject TEXT NOT NULL DEFAULT '',
+      preheader TEXT NOT NULL DEFAULT '',
+      body TEXT NOT NULL DEFAULT '',
+      button_text TEXT NOT NULL DEFAULT '',
+      button_url TEXT NOT NULL DEFAULT '',
+      segment TEXT NOT NULL DEFAULT '{}',
+      status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','scheduled','sending','sent','failed')),
+      error TEXT,
+      scheduled_at INTEGER,
+      sent_at INTEGER,
+      recipients INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS email_sends (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      contact_id TEXT NOT NULL REFERENCES email_contacts(id) ON DELETE CASCADE,
+      campaign_id TEXT,
+      sequence_id TEXT,
+      step_index INTEGER,
+      resend_id TEXT,
+      status TEXT NOT NULL DEFAULT 'queued',
+      error TEXT,
+      opened_at INTEGER,
+      clicked_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(campaign_id, contact_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_email_sends_resend ON email_sends(resend_id);
+    CREATE INDEX IF NOT EXISTS idx_email_sends_user ON email_sends(user_id, created_at);
+    CREATE TABLE IF NOT EXISTS email_sequences (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL DEFAULT '',
+      trigger TEXT NOT NULL CHECK(trigger IN ('contact_added','lead_magnet','purchase','tag')),
+      trigger_ref TEXT,
+      active INTEGER NOT NULL DEFAULT 0,
+      steps TEXT NOT NULL DEFAULT '[]',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS email_enrollments (
+      id TEXT PRIMARY KEY,
+      sequence_id TEXT NOT NULL REFERENCES email_sequences(id) ON DELETE CASCADE,
+      contact_id TEXT NOT NULL REFERENCES email_contacts(id) ON DELETE CASCADE,
+      step INTEGER NOT NULL DEFAULT 0,
+      next_at INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','done','stopped')),
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(sequence_id, contact_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_email_enroll_due ON email_enrollments(status, next_at);
+
     -- Disk: priečinky a súbory účtu (tím podľa team_members), kôš cez trashed_at
     CREATE TABLE IF NOT EXISTS drive_items (
       id TEXT PRIMARY KEY,

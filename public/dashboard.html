@@ -35,6 +35,9 @@
       <button class="nav-item" onclick="showView('affiliate')" id="nav-affiliate">
         <span class="nav-icon">🎁</span> Affiliate
       </button>
+      <button class="nav-item" onclick="showView('marketing')" id="nav-marketing">
+        <span class="nav-icon">✉️</span> E-mail marketing
+      </button>
       <button class="nav-item" onclick="showView('drive')" id="nav-drive">
         <span class="nav-icon">💾</span> Disk
       </button>
@@ -215,6 +218,17 @@
       <!-- ── View: Funnels ──────────────────────────── -->
       <div id="view-funnels" style="display:none">
         <iframe id="funnels-frame" class="nw-frame" title="Funnely"></iframe>
+      </div>
+
+      <!-- ── View: E-mail marketing ──────────────────── -->
+      <div id="view-marketing" style="display:none">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+          <button class="btn btn-sm btn-primary" data-mk-tab="campaigns" onclick="mkTab('campaigns')">Kampane</button>
+          <button class="btn btn-sm btn-secondary" data-mk-tab="sequences" onclick="mkTab('sequences')">Automatické série</button>
+          <button class="btn btn-sm btn-secondary" data-mk-tab="contacts" onclick="mkTab('contacts')">Kontakty</button>
+          <button class="btn btn-sm btn-secondary" data-mk-tab="settings" onclick="mkTab('settings')">Odosielateľ a doména</button>
+        </div>
+        <div id="mk-body"></div>
       </div>
 
       <!-- ── View: Drive ─────────────────────────────── -->
@@ -2242,6 +2256,7 @@
 <script src="/js/dashboard.js?v=10"></script>
 <script src="/js/shop-dashboard.js?v=1"></script>
 <script src="/js/drive-dashboard.js?v=1"></script>
+<script src="/js/marketing-dashboard.js?v=1"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

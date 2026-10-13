@@ -74,6 +74,7 @@
       phone_label:'Telefón', phone_ph:'+421 900 000 000',
       gdpr_full:'Prečítal/a som si podmienky spracovania osobných údajov a súhlasím s nimi.*',
       gdpr_simple:'Súhlasím so spracovaním osobných údajov za účelom spätného kontaktu.*',
+      newsletter:'Chcem dostávať novinky e-mailom (odhlásiť sa dá kedykoľvek).',
       cancel:'Zrušiť', send:'Odoslať',
       gdpr_note:'Vaše osobné údaje spracúvame v súlade s GDPR.',
       gdpr_show:'Zobraziť podrobnosti', gdpr_hide:'Skryť',
@@ -104,6 +105,7 @@
       phone_label:'Phone', phone_ph:'+1 000 000 0000',
       gdpr_full:'I have read the personal data processing terms and I agree.*',
       gdpr_simple:'I consent to the processing of my personal data for contact purposes.*',
+      newsletter:'I want to receive news by email (unsubscribe anytime).',
       cancel:'Cancel', send:'Send',
       gdpr_note:'We process your personal data in accordance with GDPR.',
       gdpr_show:'Show details', gdpr_hide:'Hide',
@@ -134,6 +136,7 @@
       phone_label:'Telefon', phone_ph:'+49 000 0000000',
       gdpr_full:'Ich habe die Datenschutzbedingungen gelesen und stimme zu.*',
       gdpr_simple:'Ich stimme der Verarbeitung meiner Daten zum Zweck der Kontaktaufnahme zu.*',
+      newsletter:'Ich möchte Neuigkeiten per E-Mail erhalten (jederzeit abbestellbar).',
       cancel:'Abbrechen', send:'Senden',
       gdpr_note:'Ihre Daten werden DSGVO-konform verarbeitet.',
       gdpr_show:'Details anzeigen', gdpr_hide:'Verbergen',
@@ -164,6 +167,7 @@
       phone_label:'Téléphone', phone_ph:'+33 0 00 00 00 00',
       gdpr_full:"J'ai lu les conditions de traitement des données et j'accepte.*",
       gdpr_simple:'Je consens au traitement de mes données personnelles à des fins de contact.*',
+      newsletter:'Je souhaite recevoir les actualités par e-mail (désinscription à tout moment).',
       cancel:'Annuler', send:'Envoyer',
       gdpr_note:'Vos données personnelles sont traitées conformément au RGPD.',
       gdpr_show:'Afficher les détails', gdpr_hide:'Masquer',
@@ -194,6 +198,7 @@
       phone_label:'Teléfono', phone_ph:'+34 000 000 000',
       gdpr_full:'He leído las condiciones de tratamiento de datos y acepto.*',
       gdpr_simple:'Consiento el tratamiento de mis datos personales para fines de contacto.*',
+      newsletter:'Quiero recibir novedades por correo electrónico (baja en cualquier momento).',
       cancel:'Cancelar', send:'Enviar',
       gdpr_note:'Sus datos personales se procesan de acuerdo con el RGPD.',
       gdpr_show:'Mostrar detalles', gdpr_hide:'Ocultar',
@@ -224,6 +229,7 @@
       phone_label:'Telefon', phone_ph:'+48 000 000 000',
       gdpr_full:'Zapoznałem/łam się z warunkami przetwarzania danych i wyrażam zgodę.*',
       gdpr_simple:'Wyrażam zgodę na przetwarzanie danych osobowych w celu kontaktu.*',
+      newsletter:'Chcę otrzymywać nowości e-mailem (mogę zrezygnować w każdej chwili).',
       cancel:'Anuluj', send:'Wyślij',
       gdpr_note:'Przetwarzamy dane osobowe zgodnie z RODO.',
       gdpr_show:'Pokaż szczegóły', gdpr_hide:'Ukryj',
@@ -254,6 +260,7 @@
       phone_label:'Telefon', phone_ph:'+420 000 000 000',
       gdpr_full:'Přečetl/a jsem podmínky zpracování osobních údajů a souhlasím.*',
       gdpr_simple:'Souhlasím se zpracováním osobních údajů za účelem kontaktu.*',
+      newsletter:'Chci dostávat novinky e-mailem (odhlásit se lze kdykoli).',
       cancel:'Zrušit', send:'Odeslat',
       gdpr_note:'Vaše osobní údaje zpracováváme v souladu s GDPR.',
       gdpr_show:'Zobrazit podrobnosti', gdpr_hide:'Skrýt',
@@ -284,6 +291,7 @@
       phone_label:'Telefon', phone_ph:'+36 00 000 0000',
       gdpr_full:'Elolvastam az adatkezelési feltételeket és elfogadom azokat.*',
       gdpr_simple:'Hozzájárulok személyes adataim kapcsolatfelvétel céljára történő kezeléséhez.*',
+      newsletter:'Szeretnék e-mailben híreket kapni (bármikor leiratkozhatok).',
       cancel:'Mégsem', send:'Küldés',
       gdpr_note:'Személyes adatait a GDPR-nak megfelelően kezeljük.',
       gdpr_show:'Részletek megjelenítése', gdpr_hide:'Elrejtés',
@@ -314,6 +322,7 @@
       phone_label:'Telefon', phone_ph:'+40 000 000 000',
       gdpr_full:'Am citit condițiile de prelucrare a datelor și sunt de acord.*',
       gdpr_simple:'Sunt de acord cu prelucrarea datelor personale în scopul contactului.*',
+      newsletter:'Doresc să primesc noutăți pe e-mail (mă pot dezabona oricând).',
       cancel:'Anulați', send:'Trimiteți',
       gdpr_note:'Datele dvs. personale sunt prelucrate conform GDPR.',
       gdpr_show:'Afișați detalii', gdpr_hide:'Ascundeți',
@@ -344,6 +353,7 @@
       phone_label:'Telefon', phone_ph:'+385 00 000 0000',
       gdpr_full:'Pročitao/la sam uvjete obrade osobnih podataka i suglasan/na sam.*',
       gdpr_simple:'Suglasan/na sam s obradom osobnih podataka u svrhu kontakta.*',
+      newsletter:'Želim primati novosti e-poštom (odjava je moguća u bilo kojem trenutku).',
       cancel:'Odustani', send:'Pošalji',
       gdpr_note:'Vaše osobne podatke obrađujemo u skladu s GDPR-om.',
       gdpr_show:'Prikaži detalje', gdpr_hide:'Sakrij',
@@ -1539,6 +1549,12 @@
           <span>${gdprText ? wt('gdpr_full') : wt('gdpr_simple')}</span>
         </label>
       </div>
+      ${config.newsletter_optin ? `<div class="nd-field nd-gdpr-row">
+        <label style="display:flex;align-items:flex-start;gap:0.5rem;font-size:0.78rem;font-weight:400;color:#374151;cursor:pointer">
+          <input type="checkbox" id="nd-cf-news" style="margin-top:2px;width:14px;height:14px;flex-shrink:0">
+          <span>${wt('newsletter')}</span>
+        </label>
+      </div>` : ''}
       <div class="nd-contact-actions">
         <button class="nd-btn-full nd-btn-cancel" id="nd-cf-cancel">${wt('cancel')}</button>
         <button class="nd-btn-full nd-btn-submit" id="nd-cf-submit" style="background:${primary}">${wt('send')}</button>
@@ -1559,6 +1575,7 @@
     const email = emailEl?.value.trim();
     const phone = phoneEl?.value.trim();
     const gdprConsent = gdprEl?.checked;
+    const marketingConsent = !!shadow.getElementById('nd-cf-news')?.checked;
 
     if (!name || !email) {
       if (!name && nameEl) nameEl.style.borderColor = '#dc2626';
@@ -1599,7 +1616,7 @@
     fetch(`${BASE_URL}/api/widget/${WIDGET_ID}/leads`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, email, phone: phone || undefined, sessionId, gdprConsent: true })
+      body: JSON.stringify({ name, email, phone: phone || undefined, sessionId, gdprConsent: true, marketingConsent })
     }).catch(() => { /* ignore network errors */ });
   }
 

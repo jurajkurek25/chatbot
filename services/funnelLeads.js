@@ -84,7 +84,14 @@ async function captureLead({ merchant, step, email, name, marketing, mode }) {
     }
   }
 
+  // E-mail marketing: iba so súhlasom s novinkami a iba ostrý režim
+  if (mode === 'live' && marketing) {
+    const mk = require('./marketing');
+    mk.upsertContact(userId, { email, name, source: 'funnel', consent: true });
+  }
+
   if (lm) {
+    if (mode === 'live') require('./marketing').onLeadMagnet(userId, email, lm.id);
     if (mode === 'live' && !db.prepare('SELECT 1 FROM lead_magnet_leads WHERE lead_magnet_id = ? AND email = ?').get(lm.id, email)) {
       db.prepare('INSERT INTO lead_magnet_leads (id, lead_magnet_id, widget_id, email, name) VALUES (?, ?, ?, ?, ?)')
         .run(uuidv4(), lm.id, lm.widget_id, email, name || '');

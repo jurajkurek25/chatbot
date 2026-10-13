@@ -94,6 +94,10 @@ router.get('/:widgetId/config', (req, res) => {
     proactive_delay: widget.proactive_delay || 4,
     proactive_message: widget.proactive_message || '',
     gdpr_text: widget.gdpr_text || '',
+    newsletter_optin: (() => {
+      const s = require('../services/marketing').settings(widget.user_id);
+      return s.enabled && s.widgetOptin && require('../services/resend').configured();
+    })(),
     hide_branding: Boolean(widget.hide_branding) && isWhiteLabel,
     business_hours: widget.business_hours ? JSON.parse(widget.business_hours || '{}') : {},
     offline_message: widget.offline_message || '',
@@ -287,7 +291,7 @@ router.post('/:widgetId/leads', async (req, res) => {
   `).get(req.params.widgetId);
   if (!widgetRow) return res.status(404).json({ error: 'Widget nenájdený.' });
 
-  const { name, email, phone, sessionId, gdprConsent } = req.body;
+  const { name, email, phone, sessionId, gdprConsent, marketingConsent } = req.body;
   if (!name?.trim() || !email?.trim()) {
     return res.status(400).json({ error: 'Meno a email sú povinné.' });
   }
@@ -301,6 +305,11 @@ router.post('/:widgetId/leads', async (req, res) => {
   ).run(leadId, widgetRow.id, name.trim(), email.trim(), phone?.trim() || null, sessionId || null, gdprConsent ? 1 : 0);
 
   res.json({ ok: true, leadId });
+  // Súhlas s novinkami (nepovinné políčko) => kontakt pre e-mail marketing
+  if (marketingConsent === true) {
+    const owner = db.prepare('SELECT user_id FROM widgets WHERE id = ?').get(widgetRow.id);
+    require('../services/marketing').upsertContact(owner.user_id, { email, name, source: 'chatbot', consent: true });
+  }
 
   // Async: generate AI summary, then send email notification
   setImmediate(async () => {

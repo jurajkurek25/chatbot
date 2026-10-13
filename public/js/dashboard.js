@@ -148,6 +148,7 @@ function showView(view) {
   document.getElementById('view-funnels').style.display = view === 'funnels' ? '' : 'none';
   document.getElementById('view-shop').style.display = view === 'shop' ? '' : 'none';
   document.getElementById('view-drive').style.display = view === 'drive' ? '' : 'none';
+  document.getElementById('view-marketing').style.display = view === 'marketing' ? '' : 'none';
   document.getElementById('widget-nav-section').style.display = view === 'editor' ? '' : 'none';
 
   document.getElementById('nav-widgets').classList.toggle('active', view === 'widgets');
@@ -158,6 +159,7 @@ function showView(view) {
   document.getElementById('nav-funnels').classList.toggle('active', view === 'funnels');
   document.getElementById('nav-shop').classList.toggle('active', view === 'shop');
   document.getElementById('nav-drive').classList.toggle('active', view === 'drive');
+  document.getElementById('nav-marketing').classList.toggle('active', view === 'marketing');
 
   if (view === 'widgets') {
     document.getElementById('topbar-title').textContent = 'Moje widgety';
@@ -173,6 +175,11 @@ function showView(view) {
     document.getElementById('topbar-title').textContent = 'Affiliate';
     document.getElementById('topbar-actions').innerHTML = '';
     loadAffiliateStatus();
+  }
+  if (view === 'marketing') {
+    document.getElementById('topbar-title').textContent = 'E-mail marketing';
+    document.getElementById('topbar-actions').innerHTML = '';
+    loadMarketing();
   }
   if (view === 'drive') {
     document.getElementById('topbar-title').textContent = 'Disk';
@@ -2679,7 +2686,7 @@ async function loadPayments() {
   const p = new URLSearchParams(location.search);
   const back = p.get('stripe');
   const view = p.get('view');
-  if (!back && !['funnels', 'drive', 'shop'].includes(view)) return;
+  if (!back && !['funnels', 'drive', 'shop', 'marketing'].includes(view)) return;
   _funnelReturn = back;
   setTimeout(() => showView(back === 'test-return' || view === 'funnels' ? 'funnels' : back ? 'payments' : view), 300);
   window.history.replaceState({}, '', '/dashboard');

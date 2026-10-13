@@ -302,6 +302,7 @@ router.get('/public/:productId', (req, res) => {
     id: p.id, type: p.type, title: p.title, subtitle: p.subtitle, description: p.description, coverUrl: p.cover_url,
     price: p.price, currency: p.currency, accessDays: p.access_days, free: !(p.price > 0),
     purchasable: !(p.price > 0) || merchantReady, store: shop.storeOf(p.user_id), storeId: p.user_id,
+    newsletter: require('../services/marketing').settings(p.user_id).enabled,
     files: db.prepare('SELECT original_name, size FROM digital_files WHERE product_id = ? AND lesson_id IS NULL').all(p.id),
     curriculum: p.type !== 'file' ? curriculumOutline(p.id) : [],
     includes: p.type === 'membership' ? db.prepare(`SELECT p.title, p.type FROM membership_includes i JOIN digital_products p ON p.id = i.product_id WHERE i.membership_id = ? AND p.active = 1`).all(p.id) : [],
@@ -320,6 +321,7 @@ router.post('/public/:productId/checkout', async (req, res) => {
   if (amount && req.body.waiver !== true) return res.status(400).json({ error: 'Potvrďte okamžité sprístupnenie obsahu a stratu práva na odstúpenie od zmluvy.' });
   if (amount && !payments.isReady(payments.getMerchant(p.user_id))) return res.status(503).json({ error: 'Predajca zatiaľ neprijíma platby online.' });
   const order = shop.createOrder({ userId: p.user_id, product: p, email, name, amount });
+  if (req.body.marketing === true) require('../services/marketing').upsertContact(p.user_id, { email, name, source: 'customer', consent: true });
   if (amount) db.prepare('UPDATE orders SET withdrawal_waiver_at = unixepoch() WHERE id = ?').run(order.id);
   if (!amount) {
     await shop.fulfilOrder(order.id);

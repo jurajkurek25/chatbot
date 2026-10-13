@@ -125,6 +125,8 @@
               <span>Súhlasím so spracovaním osobných údajov na vybavenie objednávky predajcom ${esc(p.store.name)}.</span></label>
             ${p.free ? '' : `<label class="check"><input type="checkbox" id="b-waiver" required>
               <span>Žiadam o sprístupnenie obsahu ihneď po zaplatení a beriem na vedomie, že tým strácam právo odstúpiť od zmluvy do 14 dní.</span></label>`}
+            ${p.newsletter ? `<label class="check"><input type="checkbox" id="b-news">
+              <span>Chcem dostávať novinky e-mailom od ${esc(p.store.name)} (odhlásiť sa dá kedykoľvek).</span></label>` : ''}
             <button class="btn" type="submit">${p.free ? 'Získať zadarmo' : `Kúpiť za ${money(p.price, p.currency)}`}</button>
             <div id="buy-msg"></div>
           </form>` : '<div class="msg err">Predajca zatiaľ neprijíma platby online.</div>'}
@@ -148,6 +150,7 @@
         body: JSON.stringify({
           name: document.getElementById('b-name').value, email: document.getElementById('b-email').value,
           consent: document.getElementById('b-consent').checked, waiver: !p.free && document.getElementById('b-waiver').checked,
+          marketing: !!(document.getElementById('b-news') && document.getElementById('b-news').checked),
         }),
       });
       const d = await r.json();
