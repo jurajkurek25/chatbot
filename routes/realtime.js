@@ -44,6 +44,8 @@ router.get('/search', workspace.middleware, (req, res) => {
   if (has('doc')) add('doc', db.prepare('SELECT id FROM docs WHERE owner_id = ? AND (lower(title) LIKE ? OR lower(text) LIKE ?) ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like, like));
   if (has('event')) add('event', db.prepare('SELECT id FROM calendar_events WHERE owner_id = ? AND lower(title) LIKE ? ORDER BY start_at DESC LIMIT 8').all(req.ownerId, like));
   if (has('file')) add('file', db.prepare('SELECT id FROM drive_items WHERE owner_id = ? AND trashed_at IS NULL AND ref IS NULL AND lower(name) LIKE ? ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like));
+  if (has('message')) add('message', db.prepare(`SELECT m.id FROM chat_messages m JOIN chat_streams s ON s.id = m.stream_id
+    WHERE m.owner_id = ? AND s.kind = 'stream' AND s.private = 0 AND lower(m.content) LIKE ? ORDER BY m.id DESC LIMIT 8`).all(req.ownerId, like));
   res.json(out);
 });
 

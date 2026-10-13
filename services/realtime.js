@@ -72,6 +72,8 @@ function publishUser(userId, event) {
   for (const s of userSockets.get(userId) || []) sendJson(s, event);
 }
 
+const isOnline = userId => (userSockets.get(userId)?.size || 0) > 0;
+
 function onEventsSocket(socket, userId) {
   socket.user = userInfo(userId);
   socket.ownerIds = new Set();
@@ -285,4 +287,4 @@ function flushAll() {
   docs.forEach(d => { if (d.saveTimer) persist(d); });
 }
 
-module.exports = { ticket, readTicket, attach, publish, publishUser, presence, registerDocType, readDoc, writeDoc, deleteDoc, flushAll };
+module.exports = { ticket, readTicket, attach, publish, publishUser, isOnline, presence, registerDocType, readDoc, writeDoc, deleteDoc, flushAll };

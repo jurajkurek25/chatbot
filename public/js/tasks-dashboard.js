@@ -250,7 +250,7 @@
           ${s.canWrite ? '<input class="form-control" id="td-newlabel" placeholder="+ štítok (Enter)" style="font-size:0.8rem;margin-top:0.35rem">' : ''}</div>
         <div class="form-group"><div id="td-links"></div>
           ${s.canWrite ? '<label class="btn btn-sm btn-secondary" style="cursor:pointer;margin-top:0.4rem">📎 Pridať prílohu<input type="file" id="td-file" multiple hidden></label>' : ''}</div>
-        ${s.canWrite ? '<button class="btn btn-sm btn-danger" id="td-del" style="width:100%">Zmazať úlohu</button>' : ''}
+        ${s.canWrite ? '<button class="btn btn-sm btn-secondary" id="td-meet" style="width:100%;margin-bottom:0.5rem">🎥 Videohovor k úlohe</button><button class="btn btn-sm btn-danger" id="td-del" style="width:100%">Zmazať úlohu</button>' : ''}
         <div style="${s.muted};margin-top:0.5rem">${proj ? esc(proj.name) + ' · ' : ''}vytvorené ${s.date(t.createdAt, { dateStyle: 'short', timeStyle: 'short' })}</div>
       </aside></div><style>@media (max-width:720px){.nw-td-grid{grid-template-columns:1fr !important}}</style>`, (el, close) => {
       s.linksPanel(el.querySelector('#td-links'), 'task', t.id);
@@ -302,6 +302,10 @@
         for (const f of e.target.files) fd.append('files', f);
         showToast('Nahrávam…');
         if (await s.api('POST', `${T}/tasks/${t.id}/files`, fd, 'Príloha pridaná (uložená na Disku).')) s.linksPanel(el.querySelector('#td-links'), 'task', t.id);
+      };
+      el.querySelector('#td-meet').onclick = async () => {
+        const r = await s.api('POST', `${T}/tasks/${t.id}/meet`, {});
+        if (r) { close(); s.meet(r.room); openTask(t.id); }
       };
       el.querySelector('#td-del').onclick = async () => { if (confirm('Zmazať úlohu aj s podúlohami?') && await s.api('DELETE', `${T}/tasks/${t.id}`, undefined, 'Zmazané.')) { close(); render(); } };
     }, { wide: true });

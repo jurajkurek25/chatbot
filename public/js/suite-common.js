@@ -7,6 +7,7 @@
   const muted = 'color:#7e7ea0;font-size:0.78rem';
   let workspaces = [];
   let members = [];
+  let meetCfg = null;
   let ws = (() => { try { return localStorage.getItem('nw_ws') || null; } catch { return null; } })();
 
   const suite = {
@@ -136,6 +137,37 @@
       window._suiteOpen = Object.fromEntries(u.searchParams.entries());
       document.querySelectorAll('.modal-box').forEach(m => m.parentElement.remove());
       showView(u.searchParams.get('view'));
+    },
+    /** Videohovor (Jitsi): vlastný server sa vloží do Neoworkly, meet.jit.si sa otvorí v novom okne. */
+    async meet(room) {
+      if (!meetCfg) { const r = await apiFetch('/api/meet'); meetCfg = r && r.ok ? await r.json() : { embed: false }; }
+      const win = meetCfg.embed ? null : window.open('about:blank', '_blank'); // okno hneď po kliknutí (inak ho prehliadač zablokuje)
+      const r = await apiFetch(`/api/meet/${encodeURIComponent(room)}`);
+      const j = r && r.ok ? await r.json() : null;
+      if (!j) { if (win) win.close(); showToast('Videohovor nenájdený.', 'error'); return; }
+      if (win) { win.opener = null; win.location.href = j.url; return; }
+      const o = document.createElement('div');
+      o.style.cssText = 'position:fixed;inset:0;background:#080810;z-index:1200;display:flex;flex-direction:column';
+      o.innerHTML = `<div style="display:flex;align-items:center;gap:0.6rem;padding:0.55rem 0.9rem;border-bottom:1px solid rgba(255,255,255,0.08)">
+        <span style="font-weight:700">🎥 ${esc(j.title || 'Videohovor')}</span><span style="${muted}">${esc(j.domain)}</span>
+        <a class="btn btn-sm btn-secondary" style="margin-left:auto" href="${esc(j.url)}" target="_blank" rel="noopener">↗ Nové okno</a>
+        <button class="btn btn-sm btn-danger" data-leave>Opustiť</button></div><div data-jitsi style="flex:1;min-height:0"></div>`;
+      document.body.appendChild(o);
+      let api = null;
+      const leave = () => { try { if (api) api.dispose(); } catch { /* nič */ } o.remove(); };
+      o.querySelector('[data-leave]').onclick = leave;
+      try {
+        if (!window.JitsiMeetExternalAPI) await new Promise((ok, fail) => { const sc = document.createElement('script'); sc.src = `https://${j.domain}/external_api.js`; sc.onload = ok; sc.onerror = fail; document.head.appendChild(sc); });
+        api = new window.JitsiMeetExternalAPI(j.domain, {
+          roomName: j.room, jwt: j.jwt || undefined, parentNode: o.querySelector('[data-jitsi]'), width: '100%', height: '100%', lang: 'sk',
+          userInfo: { displayName: j.user.name, email: j.user.email },
+          configOverwrite: { prejoinConfig: { enabled: true }, disableDeepLinking: true },
+          interfaceConfigOverwrite: { DEFAULT_BACKGROUND: '#0d0d18' },
+        });
+        api.addListener('readyToClose', leave);
+      } catch {
+        o.querySelector('[data-jitsi]').innerHTML = `<p style="padding:2rem;text-align:center">Videohovor sa nepodarilo vložiť. <a href="${esc(j.url)}" target="_blank" rel="noopener" style="color:#c4bcff">Otvoriť v novom okne</a></p>`;
+      }
     },
     /** Parametre, s ktorými bola sekcia otvorená (task=…, note=…), použijú sa raz. */
     takeOpen(key) {

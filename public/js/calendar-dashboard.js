@@ -128,7 +128,7 @@
         <div class="form-group" style="flex:1"><label>Opakovať do</label><input class="form-control" id="ev-until" type="date" value="${e.repeatUntil ? dateVal(e.repeatUntil) : ''}" ${ro}></div></div>
       <div class="form-group"><label>Miesto</label><input class="form-control" id="ev-loc" value="${esc(e.location || '')}" ${ro}></div>
       <div class="form-group"><label>Popis</label><textarea class="form-control" id="ev-desc" rows="3" ${ro}>${esc(e.description || '')}</textarea></div>
-      ${e.meeting ? `<p style="margin-bottom:0.6rem"><a class="btn btn-primary" href="${esc(e.meeting)}" target="_blank" rel="noopener">🎥 Pripojiť sa k videohovoru</a> <span style="${s.muted}">${esc(e.meeting)}</span></p>` : ''}
+      ${e.meeting ? `<p style="margin-bottom:0.6rem"><button class="btn btn-primary" id="ev-join">🎥 Pripojiť sa k videohovoru</button> <span style="${s.muted}">${esc(e.meeting)}</span></p>` : ''}
       <label style="display:flex;gap:0.5rem;align-items:center;font-size:0.86rem;margin-bottom:0.8rem"><input type="checkbox" id="ev-meet" ${e.meeting ? 'checked' : ''} ${ro}> 🎥 Videohovor (Jitsi Meet)</label>
       </div><aside>
       <div class="form-group"><label>Účastníci</label>${s.members.map(m => `<label style="display:flex;gap:0.4rem;align-items:center;font-size:0.85rem;padding:0.1rem 0"><input type="checkbox" data-att="${esc(m.id)}" ${(e.attendees || []).includes(m.id) ? 'checked' : ''} ${ro}> ${s.avatar(m.id, 20)} ${esc(m.name)}</label>`).join('')}
@@ -139,6 +139,7 @@
       ${s.canWrite ? `<div style="display:flex;gap:0.5rem"><button class="btn btn-primary" id="ev-save">${isNew ? 'Vytvoriť' : 'Uložiť'}</button>${isNew ? '' : '<button class="btn btn-danger" id="ev-del" style="margin-left:auto">Zmazať</button>'}</div>` : ''}
       <style>@media (max-width:720px){.nw-ev-grid{grid-template-columns:1fr !important}}</style>`, (el, close) => {
       if (!isNew) s.linksPanel(el.querySelector('#ev-links'), 'event', e.id);
+      if (el.querySelector('#ev-join')) el.querySelector('#ev-join').onclick = () => s.meet(e.meeting.split('/').pop());
       el.querySelectorAll('[data-sw]').forEach(sw => { sw.onclick = () => { el.querySelectorAll('[data-sw]').forEach(x => { x.style.outline = x === sw ? '2px solid #fff' : 'none'; }); }; });
       if (!s.canWrite) return;
       el.querySelector('#ev-allday').onchange = ev => {

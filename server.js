@@ -83,6 +83,8 @@ app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/calendar', require('./routes/calendar'));
 app.use('/api/notes', require('./routes/notes'));
 app.use('/api/docs', require('./routes/docs'));
+app.use('/api/chat', require('./routes/chat'));
+app.use('/api/meet', require('./routes/meet'));
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);

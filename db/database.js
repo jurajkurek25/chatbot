@@ -665,6 +665,61 @@ function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_links_a ON item_links(owner_id, a_type, a_id);
     CREATE INDEX IF NOT EXISTS idx_links_b ON item_links(owner_id, b_type, b_id);
 
+    -- Tímový chat (podľa Zulipu): kanály s témami, súkromné kanály a priame správy (kind = 'dm')
+    CREATE TABLE IF NOT EXISTS chat_streams (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      kind TEXT NOT NULL DEFAULT 'stream' CHECK(kind IN ('stream','dm')),
+      name TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      private INTEGER NOT NULL DEFAULT 0,
+      dm_key TEXT,
+      archived INTEGER NOT NULL DEFAULT 0,
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      UNIQUE(owner_id, dm_key)
+    );
+    CREATE TABLE IF NOT EXISTS chat_members (
+      stream_id TEXT NOT NULL REFERENCES chat_streams(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      PRIMARY KEY (stream_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      stream_id TEXT NOT NULL REFERENCES chat_streams(id) ON DELETE CASCADE,
+      topic TEXT NOT NULL DEFAULT '',
+      user_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      files TEXT NOT NULL DEFAULT '[]',
+      meeting_room TEXT,
+      edited_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_chat_messages ON chat_messages(stream_id, topic, id);
+    CREATE TABLE IF NOT EXISTS chat_reactions (
+      message_id INTEGER NOT NULL REFERENCES chat_messages(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      emoji TEXT NOT NULL,
+      PRIMARY KEY (message_id, user_id, emoji)
+    );
+    -- Videohovory (Jitsi Meet) založené z chatu alebo úlohy; udalosti kalendára majú vlastné meeting_room
+    CREATE TABLE IF NOT EXISTS meetings (
+      room TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL DEFAULT '',
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    -- Prečítané: posledná prečítaná správa v kanáli/téme
+    CREATE TABLE IF NOT EXISTS chat_reads (
+      user_id TEXT NOT NULL,
+      stream_id TEXT NOT NULL REFERENCES chat_streams(id) ON DELETE CASCADE,
+      topic TEXT NOT NULL DEFAULT '',
+      last_id INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (user_id, stream_id, topic)
+    );
+
     -- E-mail marketing (Resend): kontakty so súhlasom, kampane, automatické série
     CREATE TABLE IF NOT EXISTS email_settings (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,

@@ -151,6 +151,13 @@ router.delete('/comments/:cid', W, (req, res) => {
   res.json({ ok: true });
 });
 
+/** Videohovor k úlohe: miestnosť Jitsi + komentár s odkazom (upozorní riešiteľov). */
+router.post('/tasks/:id/meet', W, ownTask, (req, res) => {
+  const room = require('../services/meet').create(req.ownerId, req.task.title, req.userId);
+  const r = tasks.addComment(req.ownerId, req.task, `🎥 Videohovor k úlohe: ${require('../services/calendar').meetUrl(room)}`, req.userId);
+  res.json({ room, comment: r.comment });
+});
+
 /** Príloha: súbor sa uloží na Disk (Prílohy úloh) a prepojí s úlohou. */
 router.post('/tasks/:id/files', W, ownTask, upload.array('files', 10), (req, res) => {
   const folder = drive.systemFolder(req.ownerId, 'task-files', 'Prílohy úloh');
