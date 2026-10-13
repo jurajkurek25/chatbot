@@ -432,6 +432,74 @@
                 </div>
               </div>
             </div>
+
+            <!-- Bot behaviour -->
+            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.08)">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.25rem">Správanie bota</div>
+              <div class="hint" style="margin-bottom:0.85rem">Nechajte prázdne pre predvolené správanie.</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Odpoveď mimo tému</label>
+                  <textarea class="form-control" id="s-off-topic" rows="3" placeholder="napr. Viem poradiť hlavne s informáciami z tohto webu. Skúste sa opýtať na naše produkty alebo služby."></textarea>
+                  <div class="hint">Keď sa návštevník pýta na niečo, čo s vaším biznisom nesúvisí.</div>
+                </div>
+                <div class="form-group">
+                  <label>Odpoveď bez podkladov</label>
+                  <textarea class="form-control" id="s-no-context" rows="3" placeholder="napr. Túto informáciu zatiaľ nemám. Napíšte nám cez kontaktný formulár."></textarea>
+                  <div class="hint">Keď odpoveď nie je v znalostnej báze.</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                  <input type="checkbox" id="s-handoff-enabled" style="width:16px;height:16px">
+                  Predanie človeku – keď návštevník výslovne požiada o človeka, pošleme konverzáciu na e-mail
+                </label>
+              </div>
+              <div class="form-group" style="max-width:360px">
+                <label>E-mail pre predanie človeku</label>
+                <input type="email" class="form-control" id="s-handoff-email" placeholder="podpora@vasafirma.sk">
+              </div>
+            </div>
+
+            <!-- Advanced: domains, visibility, position -->
+            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.08)">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.85rem">Rozšírené nastavenia</div>
+              <div class="form-group">
+                <label>Povolené domény (jedna na riadok)</label>
+                <textarea class="form-control" id="s-allowed-domains" rows="3" placeholder="vasafirma.sk&#10;*.vasafirma.sk"></textarea>
+                <div class="hint">Widget bude fungovať len na týchto weboch – nikto ho nevloží na cudzí web a nemíňa vaše kredity. Prázdne = všade. <b>example.com</b> zahŕňa aj www, <b>*.example.com</b> všetky subdomény.</div>
+              </div>
+              <div class="form-group">
+                <label>Zobraziť iba na stránkach (jedna na riadok)</label>
+                <textarea class="form-control" id="s-show-paths" rows="2" placeholder="/kontakt&#10;/produkty/*"></textarea>
+                <div class="hint">Prázdne = na všetkých stránkach. <b>*</b> zastúpi čokoľvek.</div>
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                  <input type="checkbox" id="s-hide-mobile" style="width:16px;height:16px">
+                  Skryť na mobiloch
+                </label>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Strana</label>
+                  <select class="form-control" id="s-side">
+                    <option value="right">Vpravo</option>
+                    <option value="left">Vľavo</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>z-index</label>
+                  <input type="number" class="form-control" id="s-z-index" min="1" placeholder="2147483000">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>Desktop X (px)</label><input type="number" class="form-control" id="s-offset-x" min="0" max="500"></div>
+                <div class="form-group"><label>Desktop Y (px)</label><input type="number" class="form-control" id="s-offset-y" min="0" max="500"></div>
+                <div class="form-group"><label>Mobil X (px)</label><input type="number" class="form-control" id="s-offset-x-mobile" min="0" max="200"></div>
+                <div class="form-group"><label>Mobil Y (px)</label><input type="number" class="form-control" id="s-offset-y-mobile" min="0" max="200"></div>
+              </div>
+            </div>
           </div>
         </div>
 

@@ -735,6 +735,37 @@
   shadow.appendChild(styleEl);
 
   /* ── Build DOM ──────────────────────────────────────────────── */
+  // Owner-configured side, offsets and z-index (floating mode only)
+  function positionCss() {
+    const side = config.widget_side === 'left' ? 'left' : 'right';
+    const other = side === 'left' ? 'right' : 'left';
+    const x = config.offset_x ?? 24, y = config.offset_y ?? 24;
+    const mx = config.offset_x_mobile ?? 12, my = config.offset_y_mobile ?? 12;
+    const z = config.z_index || 2147483000;
+    return `
+    #nd-launcher { ${side}: ${x}px; ${other}: auto; bottom: ${y}px; z-index: ${z}; }
+    #nd-window { ${side}: ${x}px; ${other}: auto; bottom: ${y + 68}px; z-index: ${z}; }
+    #nd-proactive-bubble { ${side}: ${x}px; ${other}: auto; bottom: ${y + 66}px; z-index: ${z}; }
+    #nd-proactive-bubble::after { ${side}: 20px; ${other}: auto; }
+    @media (max-width: 420px) {
+      #nd-launcher { ${side}: ${mx}px; bottom: ${my}px; }
+      #nd-window { ${side}: 10px; bottom: ${my + 68}px; }
+      #nd-proactive-bubble { ${side}: 10px; bottom: ${my + 66}px; }
+    }`;
+  }
+
+  // "Hide on mobile" and "show only on these pages" (patterns like /kontakt, /produkty/*)
+  function isAllowedHere() {
+    if (config.hide_on_mobile && window.matchMedia('(max-width: 768px)').matches) return false;
+    const paths = config.show_on_paths || [];
+    if (!paths.length) return true;
+    const here = location.pathname.replace(/\/+$/, '') || '/';
+    return paths.some(p => {
+      const re = new RegExp('^' + p.replace(/\/+$/, '').replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*') + '/?$');
+      return re.test(here) || re.test(here + '/');
+    });
+  }
+
   function buildDOM() {
     const primary = config.primary_color || '#2563eb';
 
@@ -742,7 +773,7 @@
 
     shadow.innerHTML = '';
     styleEl.textContent = CSS.replace(/var\(--nd-primary\)/g, primary)
-      + (INLINE_MODE ? CSS_INLINE : '');
+      + (INLINE_MODE ? CSS_INLINE : positionCss());
     shadow.appendChild(styleEl);
 
     // Launcher button (floating mode only)
@@ -1976,6 +2007,8 @@
       console.warn('[Neoworkly] Nepodarilo sa načítať konfiguráciu:', err.message);
       return;
     }
+
+    if (!INLINE_MODE && !isAllowedHere()) return;
 
     sessionId = getSessionId();
 

@@ -260,6 +260,11 @@ async function openWidget(widgetId) {
   document.getElementById('s-proactive-enabled').checked = Boolean(currentWidget.proactive_enabled);
   document.getElementById('s-proactive-message').value = currentWidget.proactive_message || '';
   document.getElementById('s-proactive-delay').value = currentWidget.proactive_delay || 4;
+  for (const [id, key, type] of EXTRA_SETTING_FIELDS) {
+    const el = document.getElementById(id);
+    if (type === 'check') el.checked = Boolean(currentWidget[key]);
+    else el.value = currentWidget[key] ?? '';
+  }
 
   // Avatar preview
   const preview = document.getElementById('s-avatar-preview');
@@ -500,6 +505,23 @@ function buildWelcomeMessage() {
 }
 
 /* ── Save Settings ─────────────────────────────────────────────── */
+// [element id, widget column, type] — saved/loaded generically, validated server-side
+const EXTRA_SETTING_FIELDS = [
+  ['s-off-topic', 'off_topic_message', 'text'],
+  ['s-no-context', 'no_context_message', 'text'],
+  ['s-handoff-enabled', 'handoff_enabled', 'check'],
+  ['s-handoff-email', 'handoff_email', 'text'],
+  ['s-allowed-domains', 'allowed_domains', 'text'],
+  ['s-show-paths', 'show_on_paths', 'text'],
+  ['s-hide-mobile', 'hide_on_mobile', 'check'],
+  ['s-side', 'widget_side', 'text'],
+  ['s-z-index', 'z_index', 'text'],
+  ['s-offset-x', 'offset_x', 'text'],
+  ['s-offset-y', 'offset_y', 'text'],
+  ['s-offset-x-mobile', 'offset_x_mobile', 'text'],
+  ['s-offset-y-mobile', 'offset_y_mobile', 'text'],
+];
+
 async function saveSettings() {
   if (!currentWidget) return;
   const body = {
@@ -513,6 +535,10 @@ async function saveSettings() {
     proactive_message: document.getElementById('s-proactive-message').value.trim(),
     proactive_delay: parseInt(document.getElementById('s-proactive-delay').value) || 4,
   };
+  for (const [id, key, type] of EXTRA_SETTING_FIELDS) {
+    const el = document.getElementById(id);
+    body[key] = type === 'check' ? el.checked : el.value;
+  }
   if (!body.name) { showToast('Názov widgetu je povinný.', 'error'); return; }
 
   const res = await apiFetch(`/api/widgets/${currentWidget.id}`, {

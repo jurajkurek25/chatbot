@@ -26,13 +26,33 @@ function checkRateLimit(ip) {
   return entry.count <= RATE_MAX;
 }
 
+// Allowed domains: when the owner lists domains, every public widget endpoint
+// rejects browser requests coming from any other site (Origin header).
+// Requests from our own app (dashboard preview, demo) are always allowed.
+function hostMatches(host, pattern) {
+  if (pattern.startsWith('*.')) return host.endsWith(pattern.slice(1));
+  return host === pattern || host === 'www.' + pattern;
+}
+router.param('widgetId', (req, res, next, widgetId) => {
+  const row = getDb().prepare('SELECT allowed_domains FROM widgets WHERE id = ?').get(widgetId);
+  const patterns = (row?.allowed_domains || '').split('\n').filter(Boolean);
+  const origin = req.headers.origin;
+  if (!patterns.length || !origin) return next();
+  let host;
+  try { host = new URL(origin).hostname.toLowerCase(); } catch { return res.status(403).json({ error: 'Doména nie je povolená.' }); }
+  const appHost = (() => { try { return new URL(process.env.APP_URL || '').hostname; } catch { return ''; } })();
+  if (host === appHost || host === 'localhost' || patterns.some(p => hostMatches(host, p))) return next();
+  return res.status(403).json({ error: 'Doména nie je povolená.', code: 'DOMAIN_NOT_ALLOWED' });
+});
+
 // GET /api/widget/:widgetId/config — public endpoint for widget configuration
 router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
     SELECT id, user_id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
            suggested_questions_i18n, active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text,
-           hide_branding, business_hours, offline_message, csat_enabled, welcome_message_b
+           hide_branding, business_hours, offline_message, csat_enabled, welcome_message_b,
+           widget_side, offset_x, offset_y, offset_x_mobile, offset_y_mobile, z_index, hide_on_mobile, show_on_paths
     FROM widgets WHERE id = ?
   `).get(req.params.widgetId);
 
@@ -79,6 +99,14 @@ router.get('/:widgetId/config', (req, res) => {
     csat_enabled: Boolean(widget.csat_enabled),
     ab_variant: Math.random() < 0.5 ? 'a' : 'b',
     welcome_message_b: widget.welcome_message_b || '',
+    widget_side: widget.widget_side || 'right',
+    offset_x: widget.offset_x ?? 24,
+    offset_y: widget.offset_y ?? 24,
+    offset_x_mobile: widget.offset_x_mobile ?? 12,
+    offset_y_mobile: widget.offset_y_mobile ?? 12,
+    z_index: widget.z_index || 2147483000,
+    hide_on_mobile: Boolean(widget.hide_on_mobile),
+    show_on_paths: (widget.show_on_paths || '').split('\n').filter(Boolean),
   });
 });
 

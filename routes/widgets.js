@@ -178,9 +178,40 @@ router.put('/:id', (req, res) => {
     widget.id
   );
 
+  // Newer settings — each one is written only when the client sends it
+  for (const [col, clean] of Object.entries(EXTRA_SETTINGS)) {
+    if (req.body[col] !== undefined) {
+      db.prepare(`UPDATE widgets SET ${col} = ? WHERE id = ?`).run(clean(req.body[col]), widget.id);
+    }
+  }
+
   const updated = db.prepare('SELECT * FROM widgets WHERE id = ?').get(widget.id);
   res.json(parseWidget(updated));
 });
+
+const clampInt = (min, max, def) => v => {
+  const n = parseInt(v, 10);
+  return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : def;
+};
+const lines = max => v => String(v || '').split(/\r?\n/).map(s => s.trim()).filter(Boolean).slice(0, 50).join('\n').slice(0, max);
+const text = max => v => String(v || '').trim().slice(0, max);
+
+const EXTRA_SETTINGS = {
+  // one host pattern per line: example.com, *.example.com (scheme/path are stripped)
+  allowed_domains: v => lines(2000)(String(v || '').toLowerCase().replace(/^[a-z]+:\/\//gm, '').replace(/[/:].*$/gm, '')),
+  widget_side:     v => (v === 'left' ? 'left' : 'right'),
+  offset_x:        clampInt(0, 500, 24),
+  offset_y:        clampInt(0, 500, 24),
+  offset_x_mobile: clampInt(0, 200, 12),
+  offset_y_mobile: clampInt(0, 200, 12),
+  z_index:         clampInt(1, 2147483647, 2147483000),
+  hide_on_mobile:  v => (v ? 1 : 0),
+  show_on_paths:   lines(2000),
+  off_topic_message:  text(1000),
+  no_context_message: text(1000),
+  handoff_enabled: v => (v ? 1 : 0),
+  handoff_email:   v => { const e = text(254)(v); return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : ''; },
+};
 
 // POST /api/widgets/:id/generate-gdpr — AI generates GDPR text from company info
 router.post('/:id/generate-gdpr', async (req, res) => {
