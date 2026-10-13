@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="referrer" content="no-referrer">
+  <title>Môj wellbeing</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --p: #5b4fff; --p-light: rgba(91,79,255,0.09);
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --text: #1e293b; --muted: #64748b; --border: #e2e8f0; --bg: #f5f3ff; --card: #fff;
+      --menstrual: #e11d48; --follicular: #16a34a; --ovulation: #d97706; --luteal: #7c3aed;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
+    .page { max-width: 760px; margin: 0 auto; padding: 0 1rem 4rem; }
+    .hero { background: linear-gradient(135deg, var(--p), #c084fc); color: #fff; padding: 2rem 1.5rem 3.25rem;
+            border-radius: 0 0 28px 28px; margin-bottom: -1.5rem; text-align: center; }
+    .hero h1 { font-size: 1.35rem; font-weight: 800; }
+    .hero p { font-size: .85rem; opacity: .9; margin-top: .3rem; }
+    .lock { display: inline-block; margin-top: .75rem; font-size: .75rem; background: rgba(255,255,255,.18); padding: 4px 12px; border-radius: 100px; }
+    .card { background: var(--card); border-radius: 16px; box-shadow: 0 2px 20px rgba(0,0,0,.05); padding: 1.4rem; margin-bottom: 1rem; }
+    .card:first-of-type { margin-top: 2rem; }
+    h2 { font-size: 1rem; font-weight: 800; margin-bottom: .3rem; }
+    .sub { font-size: .82rem; color: var(--muted); margin-bottom: 1rem; line-height: 1.5; }
+    .quick { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .6rem; }
+    .qbtn { border: 2px solid var(--border); background: #fff; border-radius: 14px; padding: .9rem .75rem; cursor: pointer;
+            font-family: inherit; text-align: left; transition: border-color .15s, background .15s; }
+    .qbtn:hover, .qbtn.sel { border-color: var(--p); background: var(--p-light); }
+    .qbtn .ic { font-size: 1.4rem; }
+    .qbtn .t { display: block; font-weight: 700; font-size: .88rem; margin-top: .3rem; color: var(--text); }
+    .qbtn .d { display: block; font-size: .72rem; color: var(--muted); margin-top: .15rem; }
+    label { display: block; font-size: .78rem; font-weight: 700; color: var(--muted); margin-bottom: .3rem; }
+    input, select { width: 100%; padding: .6rem .8rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: .9rem;
+                    font-family: inherit; color: var(--text); background: #fff; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .75rem; margin-bottom: .9rem; }
+    .btn { padding: .7rem 1.1rem; border-radius: 10px; border: none; font-size: .88rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn-p { background: var(--p); color: #fff; }
+    .btn-s { background: #f1f5f9; color: var(--text); }
+    .btn-d { background: #fee2e2; color: #b91c1c; }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+    .chk { display: flex; gap: .55rem; align-items: flex-start; font-size: .86rem; font-weight: 500; color: var(--text); cursor: pointer; }
+    .chk input { width: 18px; height: 18px; margin-top: 1px; accent-color: var(--p); flex-shrink: 0; }
+    .msg { padding: .8rem 1rem; border-radius: 10px; font-size: .86rem; font-weight: 600; margin-bottom: 1rem; }
+    .msg.ok { background: #dcfce7; color: #15803d; } .msg.err { background: #fee2e2; color: #b91c1c; }
+    .phase-table { width: 100%; border-collapse: collapse; font-size: .84rem; }
+    .phase-table td { padding: .45rem .3rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    .phase-table input, .phase-table select { padding: .4rem .5rem; font-size: .82rem; }
+    .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+    .days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+    .day { border-radius: 9px; padding: 5px 4px; min-height: 58px; font-size: .7rem; background: #f8fafc; border: 1.5px solid transparent; }
+    .day .n { font-weight: 800; font-size: .8rem; }
+    .day .b { color: var(--muted); }
+    .day .o { font-weight: 700; color: #0f766e; }
+    .day.today { border-color: var(--p); }
+    .dow { text-align: center; font-size: .68rem; font-weight: 700; color: var(--muted); }
+    .leave { display: flex; justify-content: space-between; align-items: center; gap: .5rem; padding: .55rem 0; border-bottom: 1px solid var(--border); font-size: .86rem; }
+    .hidden { display: none; }
+    @media (max-width: 600px) {
+      .phase-table tr { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: .4rem; padding: .5rem 0; border-bottom: 1px solid var(--border); }
+      .phase-table td { border: none; padding: 0; }
+      .phase-table td:first-child { grid-column: 1 / -1; }
+      .phase-table tr:first-child td:first-child { display: none; }
+    }
+    .muted { color: var(--muted); font-size: .82rem; }
+  </style>
+</head>
+<body>
+<div class="page" id="app"><div class="card"><p class="muted">Načítavam...</p></div></div>
+<script>
+(function () {
+  'use strict';
+  let token = location.pathname.split('/').filter(Boolean).pop();
+  const api = (p = '') => `${location.origin}/api/booking/wellbeing/${encodeURIComponent(token)}${p}`;
+  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const PHASES = {
+    menstrual:  { label: 'Menštruačná', color: 'var(--menstrual)', hint: 'Nižšia energia – dovoľte si menej.' },
+    follicular: { label: 'Folikulárna', color: 'var(--follicular)', hint: 'Energia stúpa, dobrý čas na náročnejšie dni.' },
+    ovulation:  { label: 'Ovulačná', color: 'var(--ovulation)', hint: 'Zvyčajne najviac energie a komunikatívnosti.' },
+    luteal:     { label: 'Luteálna', color: 'var(--luteal)', hint: 'Energia klesá, viac prestávok pomáha.' },
+  };
+  const LEAVE = {
+    menstrual:     { ic: '🩸', t: 'Menštruačné voľno', d: 'Bez vysvetľovania' },
+    mental_health: { ic: '🧠', t: 'Deň pre duševné zdravie', d: 'Oddych je tiež práca' },
+    sick:          { ic: '🤒', t: 'PN / choroba', d: 'Uzdravte sa' },
+    vacation:      { ic: '🌴', t: 'Dovolenka', d: 'Vyberte dátumy' },
+  };
+  let data = null, flash = null, leaveReason = null;
+
+  const today = () => data.days[0].date;
+  const fmt = d => { const [y, m, dd] = d.split('-').map(Number); return `${dd}. ${m}.`; };
+
+  async function call(path, method, body) {
+    const r = await fetch(api(path), { method, headers: { 'Content-Type': 'application/json' }, body: body ? JSON.stringify(body) : undefined });
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(j.error || 'Nastala chyba.');
+    return j;
+  }
+
+  async function load() {
+    try { data = await call('', 'GET'); }
+    catch (e) { document.getElementById('app').innerHTML = `<div class="card" style="margin-top:2rem"><p class="muted">${esc(e.message)}</p></div>`; return; }
+    if (/^#[0-9a-f]{6}$/i.test(data.primaryColor || '')) document.documentElement.style.setProperty('--p', data.primaryColor);
+    render();
+  }
+
+  function resultText(r) {
+    if (!r) return '';
+    const parts = [];
+    if (r.reassigned) parts.push(`${r.reassigned} ${r.reassigned === 1 ? 'termín prevzal kolega' : 'termíny prevzali kolegovia'}`);
+    if (r.cancelled) parts.push(`${r.cancelled} zrušených – zákazníci dostali ospravedlnenie a odkaz na nový termín (bez uvedenia dôvodu)`);
+    if (r.kept) parts.push(`${r.kept} ponechaných`);
+    return parts.length ? ' ' + parts.join(', ') + '.' : ' V tom čase ste nemali žiadne rezervácie.';
+  }
+
+  function render() {
+    const d = data;
+    const rules = d.phaseRules || {};
+    const firstDow = (new Date(d.days[0].date + 'T12:00:00Z').getUTCDay() + 6) % 7;
+    document.getElementById('app').innerHTML = `
+      <div class="hero">
+        <h1>Ahoj ${esc(d.name)} 💜</h1>
+        <p>Váš súkromný priestor pre voľno a work-life balance · ${esc(d.business || '')}</p>
+        <span class="lock">🔒 ${d.shareWithOwner ? 'Zdieľate dôvody voľna a fázu cyklu so zamestnávateľom' : 'Údaje vidíte iba vy – zamestnávateľ vidí len „nedostupná/ý“'}</span>
+      </div>
+
+      <div class="card">
+        ${flash ? `<div class="msg ${flash.ok ? 'ok' : 'err'}">${esc(flash.text)}</div>` : ''}
+        <h2>Potrebujem voľno</h2>
+        <p class="sub">Jedným klikom zablokujete kalendár. Termíny v tom čase sa presunú na voľného kolegu, alebo ich zrušíme so zdvorilým ospravedlnením.</p>
+        <div class="quick">${Object.entries(LEAVE).map(([k, v]) => `
+          <button class="qbtn ${leaveReason === k ? 'sel' : ''}" data-leave="${k}"><span class="ic">${v.ic}</span><span class="t">${v.t}</span><span class="d">${v.d}</span></button>`).join('')}
+        </div>
+        <div id="leave-form" class="${leaveReason ? '' : 'hidden'}" style="margin-top:1rem">
+          <div class="grid">
+            <div><label>Od</label><input type="date" id="lv-from" value="${today()}" min="${today()}"></div>
+            <div><label>Do</label><input type="date" id="lv-to" value="${today()}" min="${today()}"></div>
+            <div><label>Existujúce termíny</label>
+              <select id="lv-handle">
+                <option value="reassign">Presunúť na kolegu, inak zrušiť</option>
+                <option value="cancel">Zrušiť s ospravedlnením</option>
+                <option value="keep">Ponechať (vybavím sama/sám)</option>
+              </select></div>
+          </div>
+          <button class="btn btn-p" id="lv-save">Potvrdiť voľno</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Cyklus a energia</h2>
+        <p class="sub">Voliteľné. Podľa predpovede fáz si nastavíte, koľko termínov denne a dokedy chcete pracovať – systém to automaticky dodrží.</p>
+        <label class="chk" style="margin-bottom:1rem"><input type="checkbox" id="cy-on" ${d.cycleEnabled ? 'checked' : ''}> Sledovať cyklus a upravovať dostupnosť podľa fáz</label>
+        <div id="cy-box" class="${d.cycleEnabled ? '' : 'hidden'}">
+          <div class="grid">
+            <div><label>Začiatok poslednej menštruácie</label><input type="date" id="cy-start" value="${d.cycleLastStart || ''}" max="${today()}"></div>
+            <div><label>Dĺžka cyklu (dni)</label><input type="number" id="cy-len" min="20" max="45" value="${d.cycleLength}"></div>
+            <div><label>Dĺžka menštruácie (dni)</label><input type="number" id="cy-per" min="1" max="10" value="${d.periodLength}"></div>
+          </div>
+          <div class="row" style="margin-bottom:1.1rem">
+            <button class="btn btn-s" id="cy-today">🩸 Dnes mi začala menštruácia</button>
+            <label class="chk" style="margin:0"><input type="checkbox" id="cy-today-off"> a beriem si dnes voľno</label>
+          </div>
+          <table class="phase-table">
+            <tr><td></td><td><label style="margin:0">Režim</label></td><td><label style="margin:0">Max. termínov/deň</label></td><td><label style="margin:0">Končím najneskôr</label></td></tr>
+            ${Object.entries(PHASES).map(([k, p]) => { const r = rules[k] || {}; return `
+            <tr>
+              <td><span class="dot" style="background:${p.color}"></span><strong>${p.label}</strong><div class="muted" style="font-size:.72rem">${p.hint}</div></td>
+              <td><select data-ph="${k}" data-f="mode">
+                <option value="normal" ${r.mode !== 'limit' && r.mode !== 'off' ? 'selected' : ''}>Bežne</option>
+                <option value="limit" ${r.mode === 'limit' ? 'selected' : ''}>Obmedziť</option>
+                <option value="off" ${r.mode === 'off' ? 'selected' : ''}>Bez termínov</option></select></td>
+              <td><input type="number" min="0" max="50" data-ph="${k}" data-f="maxPerDay" value="${r.maxPerDay || ''}" placeholder="–"></td>
+              <td><input type="time" data-ph="${k}" data-f="endTime" value="${r.endTime || ''}"></td>
+            </tr>`; }).join('')}
+          </table>
+        </div>
+        <button class="btn btn-p" id="cy-save" style="margin-top:1rem">Uložiť nastavenia</button>
+      </div>
+
+      <div class="card">
+        <h2>Najbližších 5 týždňov</h2>
+        <p class="sub">${d.cycleEnabled && d.cycleLastStart ? Object.values(PHASES).map(p => `<span class="dot" style="background:${p.color}"></span>${p.label}`).join(' &nbsp; ') : 'Predpoveď fáz sa zobrazí po zapnutí sledovania cyklu.'}</p>
+        <div class="days">
+          ${['Po','Ut','St','Št','Pi','So','Ne'].map(x => `<div class="dow">${x}</div>`).join('')}
+          ${'<div></div>'.repeat(firstDow)}
+          ${d.days.map((x, i) => `<div class="day ${i === 0 ? 'today' : ''}" style="${x.phase ? `border-top:4px solid ${PHASES[x.phase].color}` : ''}">
+            <div class="n">${fmt(x.date)}</div>
+            ${x.off ? `<div class="o">${esc(x.off)}</div>` : x.bookings ? `<div class="b">${x.bookings} ${x.bookings === 1 ? 'termín' : x.bookings < 5 ? 'termíny' : 'termínov'}</div>` : ''}
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Naplánované voľno</h2>
+        ${d.leave.length ? d.leave.map(l => `<div class="leave">
+          <span><strong>${fmt(l.date_from)}${l.date_to !== l.date_from ? ' – ' + fmt(l.date_to) : ''}</strong> · ${esc(l.label)}${l.type === 'custom' ? ` (${l.start_time}–${l.end_time})` : ''}${l.private ? '' : ' <span class="muted">· zadal zamestnávateľ</span>'}</span>
+          ${l.private ? `<button class="btn btn-d" data-del="${l.id}" style="padding:.4rem .7rem">Zrušiť</button>` : ''}
+        </div>`).join('') : '<p class="muted">Zatiaľ žiadne.</p>'}
+      </div>
+
+      <div class="card">
+        <h2>Súkromie</h2>
+        <label class="chk" style="margin-bottom:.9rem"><input type="checkbox" id="pv-share" ${d.shareWithOwner ? 'checked' : ''}>
+          <span>Dobrovoľne povoľujem zamestnávateľovi vidieť dôvod môjho voľna a aktuálnu fázu cyklu (napr. ak sme sa tak dohodli). Súhlas môžete kedykoľvek odvolať.</span></label>
+        <div class="row">
+          <button class="btn btn-s" id="pv-save">Uložiť súkromie</button>
+          <button class="btn btn-s" id="pv-reset">🔑 Vygenerovať nový odkaz</button>
+        </div>
+        <p class="muted" style="margin-top:.75rem">Ak by sa odkaz dostal k niekomu inému, vygenerujte nový – starý prestane fungovať. Novú adresu si uložte do záložiek.</p>
+      </div>`;
+    bind();
+  }
+
+  function bind() {
+    const $ = id => document.getElementById(id);
+    document.querySelectorAll('[data-leave]').forEach(b => b.onclick = () => { leaveReason = b.dataset.leave; render(); });
+    $('lv-save') && ($('lv-save').onclick = () => act(async () => {
+      const r = await call('/leave', 'POST', { reason: leaveReason, dateFrom: $('lv-from').value, dateTo: $('lv-to').value, handle: $('lv-handle').value });
+      leaveReason = null;
+      return [r, `Voľno je zapísané.${resultText(r.result)}`];
+    }));
+    $('cy-on').onchange = e => $('cy-box').classList.toggle('hidden', !e.target.checked);
+    $('cy-save').onclick = () => act(async () => {
+      const phaseRules = {};
+      document.querySelectorAll('[data-ph]').forEach(el => { (phaseRules[el.dataset.ph] ||= {})[el.dataset.f] = el.value; });
+      return [await call('', 'PUT', { cycleEnabled: $('cy-on').checked, cycleLastStart: $('cy-start').value, cycleLength: $('cy-len').value,
+        periodLength: $('cy-per').value, phaseRules }), 'Nastavenia sú uložené a platia pre nové rezervácie.'];
+    });
+    $('cy-today').onclick = () => act(async () => {
+      const off = $('cy-today-off').checked;
+      const r = await call('/period-start', 'POST', { leaveDays: off ? 1 : 0, handle: 'reassign' });
+      return [r, `Predpoveď je aktualizovaná.${off ? ' Dnes máte voľno.' + resultText(r.result) : ''}`];
+    });
+    document.querySelectorAll('[data-del]').forEach(b => b.onclick = () => act(async () => [await call(`/leave/${b.dataset.del}`, 'DELETE'), 'Voľno bolo zrušené.']));
+    $('pv-save').onclick = () => act(async () => [await call('', 'PUT', { shareWithOwner: $('pv-share').checked }), 'Uložené.']);
+    $('pv-reset').onclick = () => {
+      if (!confirm('Vygenerovať nový odkaz? Starý prestane fungovať.')) return;
+      act(async () => {
+        const r = await call('/reset', 'POST');
+        token = r.token;
+        history.replaceState(null, '', `/wellbeing/${token}`);
+        return [await call('', 'GET'), 'Nový odkaz je aktívny – uložte si túto stránku do záložiek.'];
+      });
+    };
+  }
+
+  async function act(fn) {
+    document.querySelectorAll('.btn').forEach(b => b.disabled = true);
+    try { const [d, text] = await fn(); data = d; flash = { ok: true, text }; }
+    catch (e) { flash = { ok: false, text: e.message }; }
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>

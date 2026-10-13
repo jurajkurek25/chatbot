@@ -2600,8 +2600,16 @@ function staffSummary(s) {
     s.max_per_week ? `max ${s.max_per_week}/týždeň` : '',
     s.gcal_connected ? '📆 Google' : '',
     s.time_off.length ? `🌴 ${s.time_off.length}× voľno` : '',
+    s.max_consecutive ? `max ${s.max_consecutive} za sebou` : '',
+    s.no_meeting_days.length ? `🚫 ${s.no_meeting_days.map(d => ['Ne','Po','Ut','St','Št','Pi','So'][d]).join(' ')}` : '',
+    s.day_end ? `🌙 do ${s.day_end}` : '',
+    s.cycle_phase_today ? `🌸 ${{ menstrual: 'menštruačná', follicular: 'folikulárna', ovulation: 'ovulačná', luteal: 'luteálna' }[s.cycle_phase_today]} fáza` : '',
   ].filter(Boolean);
-  return tags.map(t => `<span class="bk-tag">${esc(t)}</span>`).join('');
+  const b = s.burnout || {};
+  const warn = b.alert === 'load' ? `⚠️ Riziko vyhorenia – vyťaženosť ${b.loads.join('/')} %`
+             : b.alert === 'no_break' ? `⚠️ ${b.daysSinceBreak} dní bez voľna` : '';
+  return tags.map(t => `<span class="bk-tag">${esc(t)}</span>`).join('')
+    + (warn ? `<span class="bk-tag" style="background:rgba(245,158,11,0.16);color:#fbbf24">${esc(warn)}</span>` : '');
 }
 
 function renderStaffList() {
@@ -2665,6 +2673,16 @@ function openStaffModal(id) {
       <div class="form-group"><label>Max. termínov za deň (0 = bez limitu)</label><input type="number" min="0" class="form-control" id="st-max-day" value="${s.max_per_day || 0}"></div>
       <div class="form-group"><label>Max. hodín s klientmi za deň (0 = bez limitu)</label><input type="number" min="0" step="0.5" class="form-control" id="st-max-hours" value="${(s.max_minutes_per_day || 0) / 60}"></div>
       <div class="form-group"><label>Max. termínov za týždeň (0 = bez limitu)</label><input type="number" min="0" class="form-control" id="st-max-week" value="${s.max_per_week || 0}"></div>
+      <div class="form-group"><label>Max. termínov za sebou (0 = bez limitu)</label><input type="number" min="0" class="form-control" id="st-max-consec" value="${s.max_consecutive || 0}"></div>
+      <div class="form-group"><label>…potom prestávka aspoň (min)</label><input type="number" min="0" step="5" class="form-control" id="st-consec-break" value="${s.consecutive_break ?? 15}"></div>
+      <div class="form-group"><label>Žiadne termíny po (koniec dňa)</label><input type="time" class="form-control" id="st-day-end" value="${s.day_end || ''}"></div>
+      <div class="form-group"><label>Dni bez stretnutí</label>
+        <div style="display:flex;flex-wrap:wrap;gap:0.3rem 0.75rem;padding-top:0.3rem">${[1,2,3,4,5,6,0].map(d => `<label class="bk-check"><input type="checkbox" class="st-nomeet" value="${d}" ${s.no_meeting_days.includes(d) ? 'checked' : ''}> ${['Ne','Po','Ut','St','Št','Pi','So'][d]}</label>`).join('')}</div></div>
+    </div>
+    <div style="background:rgba(155,140,255,0.08);border:1px solid rgba(155,140,255,0.25);border-radius:10px;padding:0.8rem;margin-top:0.25rem">
+      <div style="font-size:0.85rem;font-weight:700;margin-bottom:0.25rem">💜 Súkromný wellbeing</div>
+      <div style="font-size:0.78rem;color:#b8b8d0;line-height:1.5;margin-bottom:0.6rem">Člen tímu si cez súkromný odkaz sám nastaví menštruačné voľno, deň pre duševné zdravie, PN a sledovanie cyklu s limitmi podľa fáz. Vy uvidíte len „nedostupná/ý“ – dôvod a fázu iba ak to sám povolí.${s.shares_wellbeing ? ' <strong style="color:#1fd89a">Zdieľa s vami.</strong>' : ''}</div>
+      <button class="btn btn-sm btn-secondary" onclick="sendWellbeingLink('${s.id}')">✉️ ${s.wellbeing_link_sent ? 'Poslať odkaz znova' : 'Poslať súkromný odkaz e-mailom'}</button>
     </div>
 
     <div class="bk-sub">Služby</div>
@@ -2679,17 +2697,21 @@ function openStaffModal(id) {
     </div>
 
     <div class="bk-sub">Voľno a výnimky</div>
-    <div style="display:flex;gap:0.4rem;align-items:flex-end;flex-wrap:wrap">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:0.5rem;align-items:end">
       <div class="form-group" style="margin:0"><label>Od</label><input type="date" class="form-control" id="st-off-from"></div>
       <div class="form-group" style="margin:0"><label>Do</label><input type="date" class="form-control" id="st-off-to"></div>
       <div class="form-group" style="margin:0"><label>Typ</label>
         <select class="form-control" id="st-off-type" onchange="document.getElementById('st-off-times').style.display=this.value==='custom'?'flex':'none'">
           <option value="closed">Celý deň voľno</option><option value="custom">Iné hodiny</option></select></div>
-      <div id="st-off-times" style="display:none;gap:0.3rem">
+      <div id="st-off-times" style="display:none;gap:0.3rem;grid-column:1/-1">
         <input type="time" class="form-control" id="st-off-start" value="09:00" style="padding:0.3rem 0.5rem">
         <input type="time" class="form-control" id="st-off-end" value="13:00" style="padding:0.3rem 0.5rem"></div>
-      <input class="form-control" id="st-off-note" placeholder="Poznámka (dovolenka…)" style="flex:1;min-width:140px">
-      <button class="btn btn-secondary btn-sm" onclick="addTimeOff('${s.id}')">+ Pridať</button>
+      <div class="form-group" style="margin:0"><label>Dôvod</label>
+        <select class="form-control" id="st-off-reason"><option value="vacation">Dovolenka</option><option value="sick">PN</option><option value="mental_health">Deň pre duševné zdravie</option><option value="other">Iné</option></select></div>
+      <div class="form-group" style="margin:0"><label>Existujúce termíny</label>
+        <select class="form-control" id="st-off-handle"><option value="reassign">Presunúť na kolegu, inak zrušiť</option><option value="cancel">Zrušiť s ospravedlnením</option><option value="keep">Ponechať</option></select></div>
+      <input class="form-control" id="st-off-note" placeholder="Poznámka">
+      <button class="btn btn-secondary" onclick="addTimeOff('${s.id}')">+ Pridať voľno</button>
     </div>
     <div style="margin-top:0.5rem" id="st-off-list">${timeOffListHtml(s)}</div>
 
@@ -2713,8 +2735,8 @@ function openStaffModal(id) {
 function timeOffListHtml(s) {
   return s.time_off.map(o => `
       <div style="display:flex;justify-content:space-between;align-items:center;padding:0.35rem 0;border-bottom:1px solid rgba(255,255,255,0.06);font-size:0.84rem">
-        <span><strong>${o.date_from}${o.date_to !== o.date_from ? ' → ' + o.date_to : ''}</strong> — ${o.type === 'closed' ? 'voľno' : `${o.start_time}–${o.end_time}`}${o.note ? ` · ${esc(o.note)}` : ''}</span>
-        <button class="btn btn-sm btn-danger" onclick="deleteTimeOff('${s.id}','${o.id}')">✕</button>
+        <span><strong>${o.date_from}${o.date_to !== o.date_from ? ' → ' + o.date_to : ''}</strong> — ${esc(o.label || 'Voľno')}${o.type === 'closed' ? '' : ` (${o.start_time}–${o.end_time})`}${o.note ? ` · ${esc(o.note)}` : ''}${o.private ? ' <span style="color:#7e7ea0">🔒</span>' : ''}</span>
+        ${o.private ? '' : `<button class="btn btn-sm btn-danger" onclick="deleteTimeOff('${s.id}','${o.id}')">✕</button>`}
       </div>`).join('') || '<div style="font-size:0.8rem;color:#7e7ea0">Žiadne naplánované voľno</div>';
 }
 
@@ -2748,6 +2770,8 @@ async function saveStaff() {
     active: document.getElementById('st-active').checked,
     breakStart: val('st-break-start'), breakEnd: val('st-break-end'),
     maxPerDay: val('st-max-day'), maxMinutesPerDay: Math.round((parseFloat(val('st-max-hours')) || 0) * 60), maxPerWeek: val('st-max-week'),
+    maxConsecutive: val('st-max-consec'), consecutiveBreak: val('st-consec-break'), dayEnd: val('st-day-end'),
+    noMeetingDays: [...document.querySelectorAll('.st-nomeet:checked')].map(i => +i.value),
     serviceIds: [...document.querySelectorAll('.st-svc:checked')].map(i => i.value),
   });
   if (!ok) return;
@@ -2780,8 +2804,19 @@ async function addTimeOff(id) {
     type: document.getElementById('st-off-type').value,
     startTime: document.getElementById('st-off-start').value, endTime: document.getElementById('st-off-end').value,
     note: document.getElementById('st-off-note').value,
+    reason: document.getElementById('st-off-reason').value,
+    handle: document.getElementById('st-off-handle').value,
   });
-  if (ok) refreshStaff(id);
+  if (!ok) return;
+  const parts = [ok.reassigned && `${ok.reassigned} presunutých na kolegu`, ok.cancelled && `${ok.cancelled} zrušených (zákazníci dostali e-mail)`, ok.kept && `${ok.kept} ponechaných`].filter(Boolean);
+  showToast(`Voľno pridané.${parts.length ? ' Rezervácie: ' + parts.join(', ') + '.' : ''}`, 'success');
+  refreshStaff(id);
+  renderBookingCalendar();
+}
+
+async function sendWellbeingLink(id) {
+  const r = await staffApi(`/${id}/wellbeing-link`, 'POST');
+  if (r) { showToast(`Súkromný odkaz odoslaný na ${r.email}.`, 'success'); refreshStaff(id); }
 }
 
 async function deleteTimeOff(id, offId) {

@@ -108,6 +108,10 @@ app.get('/book/:widgetId', (req, res) => {
 app.get('/booking/manage/:token', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'booking-manage.html'))
 );
+app.get('/wellbeing/:token', (req, res) => {
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.sendFile(path.join(__dirname, 'public', 'wellbeing.html'));
+});
 
 // 404 handler — must be last
 app.use((req, res) => {
@@ -117,4 +121,5 @@ app.use((req, res) => {
 app.listen(PORT, () => {
   console.log(`Neoworkly running on http://localhost:${PORT}`);
   require('./services/bookingNotify').startReminderScheduler();
+  require('./services/wellbeing').startBurnoutScheduler();
 });

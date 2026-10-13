@@ -115,6 +115,35 @@ function resolveService(cfg, serviceId) {
            capacity: 1, location_type: 'in_person', location_detail: '', questions: '[]', price: null };
 }
 
+/* ── Cycle phases (wellbeing) ─────────────────────────────────── */
+
+const PHASES = ['menstrual', 'follicular', 'ovulation', 'luteal'];
+const daysBetween = (a, b) => Math.round((Date.UTC(...b.split('-').map((n, i) => i === 1 ? n - 1 : +n)) - Date.UTC(...a.split('-').map((n, i) => i === 1 ? n - 1 : +n))) / 86400000);
+
+/**
+ * Predicted cycle phase on `date` from the last period start, cycle and period length.
+ * Ovulation is estimated ~14 days before the next period (window of 4 days).
+ */
+function cyclePhase(staff, date) {
+  if (!staff.cycle_enabled || !staff.cycle_last_start) return null;
+  const len = Math.max(20, Math.min(45, staff.cycle_length || 28));
+  const per = Math.max(1, Math.min(10, staff.period_length || 5));
+  const day = ((daysBetween(staff.cycle_last_start, date) % len) + len) % len; // 0-based cycle day
+  if (day < per) return 'menstrual';
+  if (day >= len - 16 && day < len - 12) return 'ovulation';
+  if (day >= len - 12) return 'luteal';
+  return 'follicular';
+}
+
+/** The staff member's rule for the phase on `date`: { mode: normal|limit|off, maxPerDay, endTime }. */
+function phaseRule(staff, date) {
+  const phase = cyclePhase(staff, date);
+  if (!phase) return null;
+  let rules = {};
+  try { rules = JSON.parse(staff.phase_rules || '{}'); } catch {}
+  return { phase, ...(rules[phase] || { mode: 'normal' }) };
+}
+
 /* ── Slot engine ──────────────────────────────────────────────── */
 
 /** Working window for a staff member on a date, honouring time off (single days or ranges). */
@@ -139,9 +168,19 @@ function staffSlots({ cfg, staff, service, date, gcalBusy = [], seats = 1, exclu
   if (date < today || date > addDays(today, cfg.max_advance_days)) return [];
   if (gcalBusy.some(b => b.allDay)) return [];
 
+  let noMeeting = [];
+  try { noMeeting = JSON.parse(staff.no_meeting_days || '[]'); } catch {}
+  if (noMeeting.includes(dayOfWeek(date))) return [];
+  const rule = phaseRule(staff, date);
+  if (rule && rule.mode === 'off') return [];
+
   const win = workingWindow(staff, date);
   if (!win) return [];
   let [winStart, winEnd] = win;
+  if (staff.day_end) winEnd = Math.min(winEnd, toMins(staff.day_end));
+  if (rule && rule.mode === 'limit' && rule.endTime) winEnd = Math.min(winEnd, toMins(rule.endTime));
+  let maxPerDay = staff.max_per_day || 0;
+  if (rule && rule.mode === 'limit' && rule.maxPerDay > 0) maxPerDay = maxPerDay ? Math.min(maxPerDay, rule.maxPerDay) : rule.maxPerDay;
 
   const dur = service.duration_mins;
   const before = service.buffer_before || 0, after = service.buffer_after || 0;
@@ -179,6 +218,19 @@ function staffSlots({ cfg, staff, service, date, gcalBusy = [], seats = 1, exclu
   const breakE = staff.break_end ? toMins(staff.break_end) : null;
   const overlaps = (aS, aE, bS, bE) => aS < bE && aE > bS;
 
+  // Max sessions in a row: sessions closer than `consecutive_break` minutes form one run
+  const runTooLong = (cS, cE) => {
+    if (!(staff.max_consecutive > 0)) return false;
+    const gapNeeded = staff.consecutive_break || 0;
+    const list = [...sessionList.map(x => [toMins(x.start_time), toMins(x.end_time)]), [cS, cE]].sort((a, b) => a[0] - b[0]);
+    let run = 1;
+    for (let i = 1; i < list.length; i++) {
+      run = list[i][0] - list[i - 1][1] < gapNeeded ? run + 1 : 1;
+      if (run > staff.max_consecutive) return true;
+    }
+    return false;
+  };
+
   const slots = [];
   for (let cur = winStart; cur + dur <= winEnd; cur += step) {
     if (cur < minStart) continue;
@@ -201,7 +253,8 @@ function staffSlots({ cfg, staff, service, date, gcalBusy = [], seats = 1, exclu
     if (gcalBusy.some(b => overlaps(cur, cur + dur, b.startMins, b.endMins))) continue;
 
     // Work-life limits
-    if (staff.max_per_day > 0 && sessionList.length + 1 > staff.max_per_day) continue;
+    if (maxPerDay > 0 && sessionList.length + 1 > maxPerDay) continue;
+    if (runTooLong(cur, cur + dur)) continue;
     if (staff.max_minutes_per_day > 0 && dayMinutes + dur > staff.max_minutes_per_day) continue;
     if (staff.max_per_week > 0 && weekCount + 1 > staff.max_per_week) continue;
 
@@ -233,6 +286,6 @@ async function availableSlots({ cfg, serviceId, staffId, date, seats = 1, exclud
 }
 
 module.exports = {
-  toMins, fromMins, todayInTz, zonedToUtc, addDays, dayOfWeek, newToken,
-  ensureStaff, createStaff, staffForService, resolveService, staffSlots, availableSlots,
+  toMins, fromMins, todayInTz, zonedToUtc, addDays, dayOfWeek, newToken, daysBetween, PHASES, cyclePhase, phaseRule,
+  ensureStaff, createStaff, staffForService, resolveService, workingWindow, staffSlots, availableSlots,
 };

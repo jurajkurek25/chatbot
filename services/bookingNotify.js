@@ -240,6 +240,18 @@ async function notify(kind, bookingId, extra = {}) {
       `${esc(b.customer_name)} presunul(a) rezerváciu${esc(old)}.`, 'REQUEST');
   }
 
+  if (kind === 'staff_changed') {
+    if (!once(b.id, `staff_${b.reschedule_count}`)) return;
+    await sendMail({
+      to: b.customer_email, business: ctx.business, replyTo: ctx.staffEmail,
+      subject: `Zmena v rezervácii – ${b.date} ${b.start_time}`,
+      html: layout(ctx, { heading: 'Termín platí, mení sa kolega', intro: `Dobrý deň ${esc(b.customer_name)}, váš termín zostáva rovnaký. Obslúži vás ${esc(ctx.staff?.name || 'iný kolega')}.`,
+        rows: bookingRows(ctx), buttons: [...manageBtn, ...calButtons], note: policyNote(ctx) }),
+      ics: buildIcs(ctx), icsMethod: 'REQUEST',
+    });
+    await staffMail(`Prevzatá rezervácia: ${b.customer_name} – ${b.date} ${b.start_time}`, 'Prevzali ste rezerváciu', 'Táto rezervácia vám bola priradená:', 'REQUEST');
+  }
+
   if (kind === 'reminder_customer') {
     await sendMail({
       to: b.customer_email, business: ctx.business, replyTo: ctx.staffEmail,
@@ -297,4 +309,16 @@ function startReminderScheduler() {
   setTimeout(tick, 5000).unref?.();
 }
 
-module.exports = { notify, buildIcs, buildStaffFeed, calendarLinks, loadContext, runReminders, startReminderScheduler, manageUrl };
+/** Sends the staff member their private wellbeing link (the owner never sees it). */
+async function sendWellbeingLink(staff, business, token) {
+  return sendMail({
+    to: staff.email, business, subject: `Váš súkromný wellbeing odkaz – ${business}`,
+    html: layout({ color: '#5b4fff', business }, {
+      heading: 'Váš súkromný wellbeing priestor',
+      intro: `Dobrý deň ${esc(staff.name)}, cez tento odkaz si môžete sami nastaviť voľno (aj menštruačné alebo pre duševné zdravie) a sledovanie cyklu s vlastnými limitmi termínov. Údaje vidíte iba vy – zamestnávateľ vidí len to, že ste nedostupná/ý, pokiaľ mu to sami nepovolíte.`,
+      buttons: [['Otvoriť môj wellbeing', `${appUrl()}/wellbeing/${token}`, true]],
+      note: 'Odkaz nikomu neposielajte. Kedykoľvek si ho môžete na stránke vygenerovať nanovo.' }),
+  });
+}
+
+module.exports = { esc, layout, sendMail, appUrl, sendWellbeingLink, notify, buildIcs, buildStaffFeed, calendarLinks, loadContext, runReminders, startReminderScheduler, manageUrl };

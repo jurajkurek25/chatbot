@@ -10,6 +10,7 @@ const { requireAuth } = require('../middleware/auth');
 const gcal = require('../services/gcal');
 const core = require('../services/bookingCore');
 const notifyMod = require('../services/bookingNotify');
+const wellbeing = require('../services/wellbeing');
 
 const logoStorage = multer.diskStorage({
   destination(req, file, cb) {
@@ -217,14 +218,7 @@ async function rescheduleBooking(cfg, booking, { date, startTime, staffId }) {
   return { booking: updated };
 }
 
-function cancelBooking(cfg, booking, { by, reason }) {
-  const db = getDb();
-  db.prepare("UPDATE bookings SET status = 'cancelled', cancelled_by = ?, cancel_reason = ? WHERE id = ?")
-    .run(by, reason ? String(reason).slice(0, 500) : null, booking.id);
-  const staff = booking.staff_id && db.prepare('SELECT * FROM booking_staff WHERE id = ?').get(booking.staff_id);
-  if (staff && booking.gcal_event_id) setImmediate(() => gcal.deleteEvent(withTz(staff, cfg), booking.gcal_event_id).catch(() => {}));
-  notify('cancelled', booking.id);
-}
+const cancelBooking = wellbeing.cancelBooking;
 
 /* ════════════════════════════════════════════════════════════════
    CUSTOMER SELF-SERVICE (manage link from the e-mail, no login)
@@ -305,6 +299,100 @@ router.get('/feed/:token.ics', (req, res) => {
   const cfg = db.prepare('SELECT * FROM booking_configs WHERE id = ?').get(staff.booking_config_id);
   res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
   res.send(notifyMod.buildStaffFeed(staff, cfg));
+});
+
+/* ════════════════════════════════════════════════════════════════
+   STAFF WELLBEING (private link, no login — health data stays with the staff member)
+   ════════════════════════════════════════════════════════════════ */
+
+function loadWellbeing(req, res, next) {
+  const db = getDb();
+  const staff = db.prepare('SELECT * FROM booking_staff WHERE wellbeing_token = ?').get(String(req.params.token || ''));
+  if (!staff) return res.status(404).json({ error: 'Odkaz je neplatný alebo bol zmenený.' });
+  req.staff = staff;
+  req.cfg = db.prepare('SELECT * FROM booking_configs WHERE id = ?').get(staff.booking_config_id);
+  next();
+}
+
+const PHASE_KEYS = core.PHASES;
+function cleanPhaseRules(input) {
+  const out = {};
+  for (const k of PHASE_KEYS) {
+    const r = input && input[k] || {};
+    out[k] = {
+      mode: ['normal', 'limit', 'off'].includes(r.mode) ? r.mode : 'normal',
+      maxPerDay: Math.max(0, Math.min(50, parseInt(r.maxPerDay, 10) || 0)),
+      endTime: TIME.test(r.endTime || '') ? r.endTime : '',
+    };
+  }
+  return JSON.stringify(out);
+}
+
+function wellbeingView(staff, cfg) {
+  const db = getDb();
+  const today = core.todayInTz(cfg.timezone);
+  const design = parseJSON(cfg.design_config, {});
+  const widget = db.prepare('SELECT bot_name, primary_color FROM widgets WHERE id = ?').get(cfg.widget_id) || {};
+  const days = [];
+  for (let i = 0; i < 35; i++) {
+    const d = core.addDays(today, i);
+    const off = db.prepare('SELECT reason FROM booking_time_off WHERE staff_id = ? AND date_from <= ? AND date_to >= ? AND type = \'closed\' LIMIT 1').get(staff.id, d, d);
+    days.push({ date: d, phase: core.cyclePhase(staff, d), off: off ? (LEAVE_LABEL[off.reason] || 'Voľno') : null,
+      bookings: db.prepare("SELECT COUNT(*) AS n FROM bookings WHERE staff_id = ? AND date = ? AND status = 'confirmed'").get(staff.id, d).n });
+  }
+  return {
+    name: staff.name, business: design.calendarName || widget.bot_name, primaryColor: design.primaryColor || widget.primary_color,
+    shareWithOwner: !!staff.share_with_owner, cycleEnabled: !!staff.cycle_enabled, cycleLastStart: staff.cycle_last_start,
+    cycleLength: staff.cycle_length, periodLength: staff.period_length, phaseRules: parseJSON(staff.phase_rules, {}),
+    leave: db.prepare('SELECT id, date_from, date_to, type, start_time, end_time, note, reason, private FROM booking_time_off WHERE staff_id = ? AND date_to >= ? ORDER BY date_from')
+      .all(staff.id, today).map(o => ({ ...o, label: LEAVE_LABEL[o.reason] || 'Voľno' })),
+    days,
+  };
+}
+
+router.get('/wellbeing/:token', loadWellbeing, (req, res) => res.json(wellbeingView(req.staff, req.cfg)));
+
+router.put('/wellbeing/:token', loadWellbeing, (req, res) => {
+  const s = req.staff, b = req.body || {};
+  const int = (v, d, min, max) => { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.max(min, Math.min(max, n)) : d; };
+  getDb().prepare(`UPDATE booking_staff SET share_with_owner = ?, cycle_enabled = ?, cycle_last_start = ?, cycle_length = ?, period_length = ?, phase_rules = ? WHERE id = ?`)
+    .run(b.shareWithOwner !== undefined ? (b.shareWithOwner ? 1 : 0) : s.share_with_owner,
+         b.cycleEnabled !== undefined ? (b.cycleEnabled ? 1 : 0) : s.cycle_enabled,
+         b.cycleLastStart === '' ? null : (DATE.test(b.cycleLastStart || '') ? b.cycleLastStart : s.cycle_last_start),
+         int(b.cycleLength, s.cycle_length, 20, 45), int(b.periodLength, s.period_length, 1, 10),
+         b.phaseRules !== undefined ? cleanPhaseRules(b.phaseRules) : s.phase_rules, s.id);
+  res.json(wellbeingView(getDb().prepare('SELECT * FROM booking_staff WHERE id = ?').get(s.id), req.cfg));
+});
+
+/** "My period started today" — updates the prediction, optionally takes menstrual leave. */
+router.post('/wellbeing/:token/period-start', loadWellbeing, async (req, res) => {
+  const date = DATE.test(req.body?.date || '') ? req.body.date : core.todayInTz(req.cfg.timezone);
+  getDb().prepare('UPDATE booking_staff SET cycle_enabled = 1, cycle_last_start = ? WHERE id = ?').run(date, req.staff.id);
+  let result = null;
+  const days = Math.max(0, Math.min(5, parseInt(req.body?.leaveDays, 10) || 0));
+  if (days) {
+    result = await wellbeing.takeLeave({ cfg: req.cfg, staff: req.staff, dateFrom: date, dateTo: core.addDays(date, days - 1),
+      reason: 'menstrual', privateEntry: true, handle: HANDLES.includes(req.body?.handle) ? req.body.handle : 'reassign' });
+  }
+  res.json({ ...wellbeingView(getDb().prepare('SELECT * FROM booking_staff WHERE id = ?').get(req.staff.id), req.cfg), result });
+});
+
+router.post('/wellbeing/:token/leave', loadWellbeing, async (req, res) => {
+  const opts = leaveInput(req.body, ['vacation', 'sick', 'menstrual', 'mental_health', 'other']);
+  if (opts.error) return res.status(400).json({ error: opts.error });
+  const result = await wellbeing.takeLeave({ cfg: req.cfg, staff: req.staff, privateEntry: true, ...opts });
+  res.json({ ...wellbeingView(req.staff, req.cfg), result });
+});
+
+router.delete('/wellbeing/:token/leave/:id', loadWellbeing, (req, res) => {
+  getDb().prepare('DELETE FROM booking_time_off WHERE id = ? AND staff_id = ?').run(req.params.id, req.staff.id);
+  res.json(wellbeingView(req.staff, req.cfg));
+});
+
+router.post('/wellbeing/:token/reset', loadWellbeing, (req, res) => {
+  const token = core.newToken();
+  getDb().prepare('UPDATE booking_staff SET wellbeing_token = ? WHERE id = ?').run(token, req.staff.id);
+  res.json({ token });
 });
 
 /* ════════════════════════════════════════════════════════════════
@@ -561,25 +649,37 @@ function ownedStaff(req, res, next) {
 const staffAuth = [requireAuth, owned, ownedStaff];
 const feedUrl = s => `${(process.env.APP_URL || process.env.BASE_URL || 'https://neoworkly.com').replace(/\/$/, '')}/api/booking/feed/${s.ics_token}.ics`;
 
-function staffView(s) {
+const LEAVE_LABEL = { vacation: 'Dovolenka', sick: 'PN', menstrual: 'Menštruačné voľno', mental_health: 'Deň pre duševné zdravie', other: 'Voľno' };
+
+function staffView(s, cfg) {
   const db = getDb();
+  const shared = !!s.share_with_owner;
+  const timeOff = db.prepare('SELECT id, date_from, date_to, type, start_time, end_time, note, reason, private FROM booking_time_off WHERE staff_id = ? AND date_to >= date(\'now\', \'-1 day\') ORDER BY date_from').all(s.id)
+    .map(o => (o.private && !shared)
+      ? { id: o.id, date_from: o.date_from, date_to: o.date_to, type: o.type, start_time: o.start_time, end_time: o.end_time, note: '', label: 'Nedostupná/ý', private: 1 }
+      : { ...o, label: LEAVE_LABEL[o.reason] || 'Voľno' });
+  const today = core.todayInTz(cfg.timezone);
   return {
     id: s.id, name: s.name, email: s.email, bio: s.bio, photo_url: s.photo_url, active: !!s.active, display_order: s.display_order,
     break_start: s.break_start, break_end: s.break_end, max_per_day: s.max_per_day, max_minutes_per_day: s.max_minutes_per_day,
     max_per_week: s.max_per_week, gcal_connected: !!s.gcal_access_token, gcal_email: s.gcal_email, feed_url: feedUrl(s),
+    max_consecutive: s.max_consecutive, consecutive_break: s.consecutive_break, no_meeting_days: parseJSON(s.no_meeting_days, []), day_end: s.day_end,
+    wellbeing_link_sent: !!s.wellbeing_token, shares_wellbeing: shared,
+    cycle_phase_today: shared ? core.cyclePhase(s, today) : undefined,
+    burnout: wellbeing.burnoutStatus(s, cfg),
     schedules: db.prepare('SELECT day_of_week, start_time, end_time, active FROM booking_staff_schedules WHERE staff_id = ? ORDER BY day_of_week').all(s.id),
-    time_off: db.prepare('SELECT id, date_from, date_to, type, start_time, end_time, note FROM booking_time_off WHERE staff_id = ? AND date_to >= date(\'now\', \'-1 day\') ORDER BY date_from').all(s.id),
+    time_off: timeOff,
     service_ids: db.prepare('SELECT service_id FROM booking_service_staff WHERE staff_id = ?').all(s.id).map(r => r.service_id),
   };
 }
 
-router.get('/:widgetId/staff', auth, (req, res) => res.json(core.ensureStaff(req.cfg).map(staffView)));
+router.get('/:widgetId/staff', auth, (req, res) => res.json(core.ensureStaff(req.cfg).map(s => staffView(s, req.cfg))));
 
 router.post('/:widgetId/staff', auth, (req, res) => {
   const name = String(req.body?.name || '').trim().slice(0, 100);
   if (!name) return res.status(400).json({ error: 'Meno je povinné.' });
   const s = core.createStaff(req.cfg, { name, email: String(req.body.email || '').trim().slice(0, 200) });
-  res.json(staffView(s));
+  res.json(staffView(s, req.cfg));
 });
 
 router.put('/:widgetId/staff/:staffId', staffAuth, (req, res) => {
@@ -587,7 +687,8 @@ router.put('/:widgetId/staff/:staffId', staffAuth, (req, res) => {
   const int = (v, d) => { const n = parseInt(v, 10); return Number.isFinite(n) && n >= 0 ? Math.min(n, 100000) : d; };
   const time = (v, d) => v === '' || v === null ? null : (TIME.test(v || '') ? v : d);
   getDb().prepare(`UPDATE booking_staff SET name = ?, email = ?, bio = ?, photo_url = ?, active = ?, display_order = ?,
-                   break_start = ?, break_end = ?, max_per_day = ?, max_minutes_per_day = ?, max_per_week = ? WHERE id = ?`)
+                   break_start = ?, break_end = ?, max_per_day = ?, max_minutes_per_day = ?, max_per_week = ?,
+                   max_consecutive = ?, consecutive_break = ?, no_meeting_days = ?, day_end = ? WHERE id = ?`)
     .run(b.name !== undefined ? String(b.name).trim().slice(0, 100) || s.name : s.name,
          b.email !== undefined ? String(b.email).trim().slice(0, 200) : s.email,
          b.bio !== undefined ? String(b.bio).trim().slice(0, 1000) : s.bio,
@@ -595,14 +696,17 @@ router.put('/:widgetId/staff/:staffId', staffAuth, (req, res) => {
          b.active !== undefined ? (b.active ? 1 : 0) : s.active,
          int(b.displayOrder, s.display_order),
          time(b.breakStart, s.break_start), time(b.breakEnd, s.break_end),
-         int(b.maxPerDay, s.max_per_day), int(b.maxMinutesPerDay, s.max_minutes_per_day), int(b.maxPerWeek, s.max_per_week), s.id);
+         int(b.maxPerDay, s.max_per_day), int(b.maxMinutesPerDay, s.max_minutes_per_day), int(b.maxPerWeek, s.max_per_week),
+         int(b.maxConsecutive, s.max_consecutive), int(b.consecutiveBreak, s.consecutive_break),
+         Array.isArray(b.noMeetingDays) ? JSON.stringify([...new Set(b.noMeetingDays.map(Number).filter(d => d >= 0 && d <= 6))]) : s.no_meeting_days,
+         time(b.dayEnd, s.day_end), s.id);
   if (Array.isArray(b.serviceIds)) {
     const db = getDb();
     const own = db.prepare('SELECT id FROM booking_services WHERE booking_config_id = ?').all(req.cfg.id).map(r => r.id);
     db.prepare('DELETE FROM booking_service_staff WHERE staff_id = ?').run(s.id);
     for (const id of b.serviceIds) if (own.includes(id)) db.prepare('INSERT OR IGNORE INTO booking_service_staff (service_id, staff_id) VALUES (?, ?)').run(id, s.id);
   }
-  res.json(staffView(getDb().prepare('SELECT * FROM booking_staff WHERE id = ?').get(s.id)));
+  res.json(staffView(getDb().prepare('SELECT * FROM booking_staff WHERE id = ?').get(s.id), req.cfg));
 });
 
 router.delete('/:widgetId/staff/:staffId', staffAuth, (req, res) => {
@@ -627,20 +731,44 @@ router.put('/:widgetId/staff/:staffId/schedule', staffAuth, (req, res) => {
   res.json({ ok: true });
 });
 
-router.post('/:widgetId/staff/:staffId/time-off', staffAuth, (req, res) => {
-  const { dateFrom, dateTo, type, startTime, endTime, note } = req.body || {};
+const HANDLES = ['reassign', 'cancel', 'keep'];
+
+/** Validates a leave request body → takeLeave options or { error }. */
+function leaveInput(body, reasons) {
+  const { dateFrom, dateTo, type, startTime, endTime, note, reason, handle } = body || {};
   const to = dateTo || dateFrom;
-  if (!DATE.test(dateFrom || '') || !DATE.test(to) || to < dateFrom) return res.status(400).json({ error: 'Neplatný dátum.' });
+  if (!DATE.test(dateFrom || '') || !DATE.test(to) || to < dateFrom) return { error: 'Neplatný dátum.' };
   const custom = type === 'custom';
-  getDb().prepare('INSERT INTO booking_time_off (id, staff_id, date_from, date_to, type, start_time, end_time, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(uuidv4(), req.staff.id, dateFrom, to, custom ? 'custom' : 'closed', custom ? (startTime || '09:00') : null, custom ? (endTime || '17:00') : null,
-         String(note || '').slice(0, 200));
-  res.json({ ok: true });
+  if (custom && (!TIME.test(startTime || '') || !TIME.test(endTime || '') || endTime <= startTime)) return { error: 'Neplatný čas.' };
+  return { dateFrom, dateTo: to, type: custom ? 'custom' : 'closed', startTime: custom ? startTime : null, endTime: custom ? endTime : null,
+           note, reason: reasons.includes(reason) ? reason : 'other', handle: HANDLES.includes(handle) ? handle : 'keep' };
+}
+
+router.post('/:widgetId/staff/:staffId/time-off', staffAuth, async (req, res) => {
+  const opts = leaveInput(req.body, ['vacation', 'sick', 'mental_health', 'other']);
+  if (opts.error) return res.status(400).json({ error: opts.error });
+  res.json({ ok: true, ...(await wellbeing.takeLeave({ cfg: req.cfg, staff: req.staff, ...opts })) });
 });
 
 router.delete('/:widgetId/staff/:staffId/time-off/:offId', staffAuth, (req, res) => {
-  getDb().prepare('DELETE FROM booking_time_off WHERE id = ? AND staff_id = ?').run(req.params.offId, req.staff.id);
+  // Leave entered privately by the staff member can only be removed by them
+  getDb().prepare('DELETE FROM booking_time_off WHERE id = ? AND staff_id = ? AND private = 0').run(req.params.offId, req.staff.id);
   res.json({ ok: true });
+});
+
+/** Emails the staff member their private wellbeing link (never returned to the owner). */
+router.post('/:widgetId/staff/:staffId/wellbeing-link', staffAuth, async (req, res) => {
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(req.staff.email || '')) return res.status(400).json({ error: 'Najprv vyplňte e-mail člena tímu.' });
+  let token = req.staff.wellbeing_token;
+  if (!token) {
+    token = core.newToken();
+    getDb().prepare('UPDATE booking_staff SET wellbeing_token = ? WHERE id = ?').run(token, req.staff.id);
+  }
+  const design = parseJSON(req.cfg.design_config, {});
+  const widget = getDb().prepare('SELECT bot_name FROM widgets WHERE id = ?').get(req.params.widgetId) || {};
+  const sent = await notifyMod.sendWellbeingLink(req.staff, design.calendarName || widget.bot_name || 'Neoworkly', token);
+  if (!sent) return res.status(503).json({ error: 'E-mail sa nepodarilo odoslať (skontrolujte SMTP nastavenia).' });
+  res.json({ ok: true, email: req.staff.email });
 });
 
 router.post('/:widgetId/staff/:staffId/feed-reset', staffAuth, (req, res) => {
