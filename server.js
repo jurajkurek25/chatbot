@@ -46,6 +46,9 @@ app.use(require('./funnel').createApp());
 // Stripe webhook MUST receive raw body — mount before express.json()
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
+// Grafika: návrhy s obrázkami potrebujú väčšie telo (vlastný parser v routeri)
+app.use('/api/graphics', require('./routes/graphics'));
+
 // rawBody is kept for webhook signature checks (Meta)
 app.use(express.json({ limit: '10mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -142,6 +145,7 @@ app.get('/form/:token', (req, res) => {
 });
 app.get('/docs/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'doc.html')));
 app.get('/boards/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'board.html')));
+app.get('/graphics/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'graphic.html')));
 app.get('/s/:token', (req, res) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-Robots-Tag', 'noindex');

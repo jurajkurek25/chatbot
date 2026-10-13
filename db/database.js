@@ -715,6 +715,41 @@ function initDatabase() {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    -- Grafika zo šablón (podľa Aktivisda): značka tímu, tímové šablóny a návrhy (fabric.js JSON)
+    CREATE TABLE IF NOT EXISTS brand_kits (
+      owner_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      colors TEXT NOT NULL DEFAULT '{}',
+      fonts TEXT NOT NULL DEFAULT '{}',
+      logos TEXT NOT NULL DEFAULT '[]',
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS design_templates (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      category TEXT NOT NULL DEFAULT 'Tím',
+      width INTEGER NOT NULL,
+      height INTEGER NOT NULL,
+      data TEXT NOT NULL,
+      thumb TEXT NOT NULL DEFAULT '',
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS designs (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL DEFAULT 'Návrh',
+      width INTEGER NOT NULL,
+      height INTEGER NOT NULL,
+      data TEXT NOT NULL DEFAULT '',
+      template_id TEXT,
+      thumb TEXT NOT NULL DEFAULT '',
+      drive_item_id TEXT,
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
     -- Formuláre (podľa HeyForm): polia a nastavenia v JSON, verejný odkaz /form/:token
     CREATE TABLE IF NOT EXISTS forms (
       id TEXT PRIMARY KEY,

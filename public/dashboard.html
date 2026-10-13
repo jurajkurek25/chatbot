@@ -15,6 +15,7 @@
   .bk-staff-card { display:flex; justify-content:space-between; align-items:center; gap:0.75rem; padding:0.75rem 0; border-bottom:1px solid rgba(255,255,255,0.06); }
   .bk-tag { font-size:0.7rem; padding:1px 7px; border-radius:100px; background:rgba(255,255,255,0.06); color:#b8b8d0; margin-right:4px; white-space:nowrap; }
 </style>
+  <link rel="stylesheet" href="/apps/graphic/graphic-editor.css?v=1"><!-- písma značky pre náhľady šablón -->
 </head>
 <body>
 <div class="app-layout">
@@ -71,6 +72,9 @@
       </button>
       <button class="nav-item" onclick="showView('boards')" id="nav-boards">
         <span class="nav-icon">🎨</span> Tabule
+      </button>
+      <button class="nav-item" onclick="showView('graphics')" id="nav-graphics">
+        <span class="nav-icon">🖼</span> Grafika
       </button>
       <button class="nav-item" onclick="showView('forms')" id="nav-forms">
         <span class="nav-icon">📝</span> Formuláre
@@ -263,6 +267,7 @@
       <div id="view-notes" style="display:none"><div id="notes-body"></div></div>
       <div id="view-docs" style="display:none"><div id="docs-body"></div></div>
       <div id="view-boards" style="display:none"><div id="boards-body"></div></div>
+      <div id="view-graphics" style="display:none"><div id="graphics-body"></div></div>
       <div id="view-forms" style="display:none"><div id="forms-body"></div></div>
 
       <!-- ── View: Drive ─────────────────────────────── -->
@@ -2300,6 +2305,7 @@
 <script src="/js/calendar-dashboard.js?v=2"></script>
 <script src="/js/forms-dashboard.js?v=1"></script>
 <script src="/js/boards-dashboard.js?v=1"></script>
+<script src="/js/graphics-dashboard.js?v=1"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

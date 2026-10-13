@@ -18,8 +18,8 @@ const cssFromPackages = {
   },
 };
 
-// Veľké aplikácie s mnohými jazykmi (Excalidraw) idú ako ES modul s rozdelením: jazyky sa načítajú až pri potrebe
-const ESM = { 'board-editor.jsx': 'board' };
+// Aplikácie s množstvom súborov majú vlastný priečinok; Excalidraw ide ako ES modul s rozdelením (jazyky sa načítajú až pri potrebe)
+const OWN = { 'board-editor.jsx': { dir: 'board', esm: true }, 'graphic-editor.js': { dir: 'graphic', esm: false } };
 const common = {
   bundle: true, minify: true, target: ['es2020'],
   loader: { '.js': 'jsx', '.woff': 'file', '.woff2': 'file', '.ttf': 'file', '.png': 'file', '.svg': 'file' },
@@ -40,11 +40,12 @@ async function build() {
   const files = fs.readdirSync(SRC).filter(f => /^[a-z-]+\.jsx?$/.test(f));
   if (!files.length) return console.log('Žiadne aplikácie na zostavenie.');
   const outputs = [];
-  const iife = files.filter(f => !ESM[f]).map(f => path.join(SRC, f));
+  const iife = files.filter(f => !OWN[f]).map(f => path.join(SRC, f));
   if (iife.length) outputs.push((await esbuild.build({ ...common, entryPoints: iife, outdir: OUT, format: 'iife' })).metafile.outputs);
-  for (const [f, dir] of Object.entries(ESM).filter(([f]) => files.includes(f))) {
+  for (const [f, { dir, esm }] of Object.entries(OWN).filter(([f]) => files.includes(f))) {
     fs.rmSync(path.join(OUT, dir), { recursive: true, force: true });
-    outputs.push((await esbuild.build({ ...common, entryPoints: [path.join(SRC, f)], outdir: path.join(OUT, dir), format: 'esm', splitting: true, chunkNames: 'chunks/[name]-[hash]' })).metafile.outputs);
+    const opts = esm ? { format: 'esm', splitting: true, chunkNames: 'chunks/[name]-[hash]' } : { format: 'iife' };
+    outputs.push((await esbuild.build({ ...common, ...opts, entryPoints: [path.join(SRC, f)], outdir: path.join(OUT, dir) })).metafile.outputs);
   }
   if (files.includes('board-editor.jsx')) copyExcalidrawFonts();
   for (const [file, info] of outputs.flatMap(o => Object.entries(o))) {
