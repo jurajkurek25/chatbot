@@ -28,6 +28,7 @@ const insightsRoutes    = require('./routes/insights');
 const facebookRoutes    = require('./routes/facebook');
 const ecomailRoutes     = require('./routes/ecomail');
 const paymentsRoutes    = require('./routes/payments');
+const shopRoutes        = require('./routes/shop');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -68,6 +69,7 @@ app.use('/api/coach', coachRoutes);
 app.use('/api/scraper', scraperRoutes);
 app.use('/api/booking', bookingRoutes);
 app.use('/api/payments', paymentsRoutes);
+app.use('/api/shop', shopRoutes);
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
@@ -110,6 +112,11 @@ app.get('/book/:widgetId', (req, res) => {
 app.get('/booking/manage/:token', (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'booking-manage.html'))
 );
+app.get('/p/:productId', (req, res) => res.sendFile(path.join(__dirname, 'public', 'product.html')));
+app.get('/members/:storeId', (req, res) => {
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.sendFile(path.join(__dirname, 'public', 'members.html'));
+});
 app.get('/wellbeing/:token', (req, res) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.sendFile(path.join(__dirname, 'public', 'wellbeing.html'));

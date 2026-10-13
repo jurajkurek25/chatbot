@@ -2641,7 +2641,7 @@ async function loadPayments() {
       ${s.recent.map(p => `<tr style="border-top:1px solid rgba(255,255,255,0.06)">
         <td style="padding:0.5rem 0.4rem">${new Date(p.created_at * 1000).toLocaleDateString('sk-SK')}</td>
         <td>${esc(p.customer_name)}<div style="color:#7e7ea0;font-size:0.75rem">${esc(p.customer_email)}</div></td>
-        <td>${esc(p.service_name || 'Rezervácia')}<div style="color:#7e7ea0;font-size:0.75rem">${p.type === 'booking' ? `📅 ${p.date} ${p.start_time}` : ''}</div></td>
+        <td>${esc(p.service_name || 'Rezervácia')}<div style="color:#7e7ea0;font-size:0.75rem">${p.type === 'booking' ? `📅 ${p.date} ${p.start_time}` : '📦 digitálny produkt'}</div></td>
         <td style="font-weight:700">${fmtMoney(p.amount_paid, p.currency)}${p.amount_refunded ? `<div style="color:#ff4060;font-size:0.75rem">−${fmtMoney(p.amount_refunded, p.currency)}</div>` : ''}</td>
         <td>${LABEL[p.payment_status] || p.payment_status}</td></tr>`).join('')}
     </table>` : '<div style="color:#7e7ea0;font-size:0.875rem">Zatiaľ žiadne platby.</div>';

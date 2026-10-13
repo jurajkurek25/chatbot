@@ -350,6 +350,109 @@ function initDatabase() {
       staff_id TEXT NOT NULL REFERENCES booking_staff(id) ON DELETE CASCADE,
       PRIMARY KEY (service_id, staff_id)
     );
+    CREATE TABLE IF NOT EXISTS shop_settings (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      store_name TEXT NOT NULL DEFAULT '',
+      primary_color TEXT NOT NULL DEFAULT '#5b4fff',
+      support_email TEXT NOT NULL DEFAULT '',
+      custom_css TEXT NOT NULL DEFAULT ''
+    );
+    CREATE TABLE IF NOT EXISTS digital_products (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL DEFAULT 'file',
+      title TEXT NOT NULL,
+      subtitle TEXT NOT NULL DEFAULT '',
+      description TEXT NOT NULL DEFAULT '',
+      price REAL,
+      currency TEXT NOT NULL DEFAULT 'EUR',
+      cover_url TEXT NOT NULL DEFAULT '',
+      access_days INTEGER NOT NULL DEFAULT 0,
+      thank_you TEXT NOT NULL DEFAULT '',
+      active INTEGER NOT NULL DEFAULT 1,
+      display_order INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_digital_products_user ON digital_products(user_id);
+    CREATE TABLE IF NOT EXISTS course_modules (
+      id TEXT PRIMARY KEY,
+      product_id TEXT NOT NULL REFERENCES digital_products(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      position INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS course_lessons (
+      id TEXT PRIMARY KEY,
+      module_id TEXT NOT NULL REFERENCES course_modules(id) ON DELETE CASCADE,
+      product_id TEXT NOT NULL REFERENCES digital_products(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      video_url TEXT NOT NULL DEFAULT '',
+      free_preview INTEGER NOT NULL DEFAULT 0,
+      position INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS digital_files (
+      id TEXT PRIMARY KEY,
+      product_id TEXT NOT NULL REFERENCES digital_products(id) ON DELETE CASCADE,
+      lesson_id TEXT REFERENCES course_lessons(id) ON DELETE CASCADE,
+      stored_name TEXT NOT NULL,
+      original_name TEXT NOT NULL,
+      mime TEXT NOT NULL DEFAULT 'application/octet-stream',
+      size INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS membership_includes (
+      membership_id TEXT NOT NULL REFERENCES digital_products(id) ON DELETE CASCADE,
+      product_id TEXT NOT NULL REFERENCES digital_products(id) ON DELETE CASCADE,
+      PRIMARY KEY (membership_id, product_id)
+    );
+    CREATE TABLE IF NOT EXISTS members (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      email TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      last_login_at INTEGER,
+      UNIQUE (user_id, email)
+    );
+    CREATE TABLE IF NOT EXISTS member_login_tokens (
+      token_hash TEXT PRIMARY KEY,
+      member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      expires_at INTEGER NOT NULL,
+      used_at INTEGER
+    );
+    CREATE TABLE IF NOT EXISTS orders (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      product_id TEXT REFERENCES digital_products(id) ON DELETE SET NULL,
+      product_title TEXT NOT NULL DEFAULT '',
+      member_id TEXT REFERENCES members(id) ON DELETE SET NULL,
+      email TEXT NOT NULL,
+      name TEXT NOT NULL DEFAULT '',
+      amount INTEGER NOT NULL DEFAULT 0,
+      amount_refunded INTEGER NOT NULL DEFAULT 0,
+      currency TEXT NOT NULL DEFAULT 'EUR',
+      status TEXT NOT NULL DEFAULT 'pending',
+      stripe_session_id TEXT,
+      stripe_payment_intent TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      paid_at INTEGER
+    );
+    CREATE INDEX IF NOT EXISTS idx_orders_user ON orders(user_id, created_at);
+    CREATE TABLE IF NOT EXISTS product_access (
+      member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      product_id TEXT NOT NULL REFERENCES digital_products(id) ON DELETE CASCADE,
+      order_id TEXT,
+      granted_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      expires_at INTEGER,
+      revoked INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (member_id, product_id)
+    );
+    CREATE TABLE IF NOT EXISTS lesson_progress (
+      member_id TEXT NOT NULL REFERENCES members(id) ON DELETE CASCADE,
+      lesson_id TEXT NOT NULL REFERENCES course_lessons(id) ON DELETE CASCADE,
+      completed_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      PRIMARY KEY (member_id, lesson_id)
+    );
     CREATE TABLE IF NOT EXISTS merchant_payments (
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       mode TEXT,

@@ -16,7 +16,13 @@ router.get('/status', requireAuth, (req, res) => {
     FROM bookings b JOIN widgets w ON w.id = b.widget_id
     WHERE w.user_id = ? AND b.payment_status IN ('paid', 'refunded', 'partially_refunded')
     ORDER BY b.created_at DESC LIMIT 50`).all(req.userId);
-  res.json({ ...payments.publicStatus(payments.getMerchant(req.userId)), recent: recent.map(r => ({ ...r, type: 'booking' })) });
+  const orders = getDb().prepare(`
+    SELECT id, name AS customer_name, email AS customer_email, product_title AS service_name, status, amount AS amount_paid,
+           amount_refunded, currency, created_at, CASE WHEN amount_refunded >= amount THEN 'refunded' WHEN amount_refunded > 0 THEN 'partially_refunded' ELSE 'paid' END AS payment_status
+    FROM orders WHERE user_id = ? AND amount > 0 AND status IN ('paid', 'refunded') ORDER BY created_at DESC LIMIT 50`).all(req.userId);
+  const all = [...recent.map(r => ({ ...r, type: 'booking' })), ...orders.map(o => ({ ...o, type: 'order' }))]
+    .sort((a, b) => b.created_at - a.created_at).slice(0, 50);
+  res.json({ ...payments.publicStatus(payments.getMerchant(req.userId)), recent: all });
 });
 
 router.get('/connect/start', requireAuth, (req, res) => {
