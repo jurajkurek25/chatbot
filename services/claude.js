@@ -245,7 +245,10 @@ async function streamChatResponse(widget, knowledgeItems, history, userMessage, 
   const leadMagnets     = loadLeadMagnets(widget.id);
   const bookingSection  = buildBookingSection(widget.id, bookingCfg);
   const lmSection       = buildLeadMagnetSection(leadMagnets);
-  const systemPrompt    = buildSystemPrompt(widget, knowledgeItems, products, pageContext) + bookingSection + lmSection;
+  const unansweredSection = `\n\n## NEZODPOVEDANÉ OTÁZKY
+Ak sa zákazník pýta na konkrétnu informáciu o firme, produktoch alebo službách a odpoveď NIE JE v znalostnej báze ani v produktoch, na KONIEC odpovede vlož token: __UNANSWERED__
+Nevkladaj ho pri pozdravoch, small talku ani keď odpoveď poznáš.`;
+  const systemPrompt    = buildSystemPrompt(widget, knowledgeItems, products, pageContext) + bookingSection + lmSection + unansweredSection;
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },

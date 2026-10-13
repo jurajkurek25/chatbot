@@ -571,6 +571,47 @@ async function loadKnowledge() {
   if (!res) return;
   const items = await res.json();
   renderKnowledgeList(items);
+  loadUnanswered();
+}
+
+let _unanswered = [];
+let _answeringId = null;
+
+async function loadUnanswered() {
+  const res = await apiFetch(`/api/knowledge/${currentWidget.id}/unanswered`);
+  if (!res || !res.ok) return;
+  const rows = await res.json();
+  const section = document.getElementById('unanswered-section');
+  section.style.display = rows.length ? '' : 'none';
+  document.getElementById('unanswered-list').innerHTML = `<div class="knowledge-list">${rows.map(r => `
+    <div class="knowledge-item">
+      <div class="knowledge-icon">❓</div>
+      <div class="knowledge-info">
+        <div class="knowledge-title">${esc(r.question)}</div>
+        <div class="knowledge-meta">${new Date(r.created_at * 1000).toLocaleString('sk-SK')}</div>
+      </div>
+      <button class="btn btn-sm btn-primary" onclick="answerUnanswered('${r.id}')">Odpovedať</button>
+      <button class="btn btn-sm btn-secondary" onclick="dismissUnanswered('${r.id}')" title="Skryť">✕</button>
+    </div>
+  `).join('')}</div>`;
+  _unanswered = rows;
+}
+
+// Prefill the "Pridať text" form with the question so the owner just types the answer
+function answerUnanswered(id) {
+  const q = _unanswered.find(r => r.id === id);
+  if (!q) return;
+  document.getElementById('k-title').value = q.question.slice(0, 200);
+  const content = document.getElementById('k-content');
+  content.value = '';
+  content.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  content.focus();
+  _answeringId = id;
+}
+
+async function dismissUnanswered(id) {
+  await apiFetch(`/api/knowledge/${currentWidget.id}/unanswered/${id}`, { method: 'DELETE' });
+  loadUnanswered();
 }
 
 function renderKnowledgeList(items) {
@@ -645,6 +686,10 @@ async function addTextKnowledge() {
     document.getElementById('k-title').value = '';
     document.getElementById('k-content').value = '';
     showToast('Dokument pridaný!', 'success');
+    if (_answeringId) {
+      await apiFetch(`/api/knowledge/${currentWidget.id}/unanswered/${_answeringId}`, { method: 'DELETE' });
+      _answeringId = null;
+    }
     loadKnowledge();
   } else {
     showToast(data.error || 'Chyba.', 'error');

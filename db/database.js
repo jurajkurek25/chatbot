@@ -302,6 +302,15 @@ function initDatabase() {
       created_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    /* ── Questions the bot couldn't answer from the knowledge base ── */
+    CREATE TABLE IF NOT EXISTS unanswered_questions (
+      id TEXT PRIMARY KEY,
+      widget_id TEXT NOT NULL REFERENCES widgets(id) ON DELETE CASCADE,
+      question TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_unanswered_widget ON unanswered_questions(widget_id, created_at);
+
     /* ── Facebook Messenger ──────────────────────────────────── */
     CREATE TABLE IF NOT EXISTS facebook_connections (
       id TEXT PRIMARY KEY,

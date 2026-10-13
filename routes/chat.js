@@ -181,7 +181,15 @@ router.post('/:widgetId/chat', async (req, res) => {
       ? { url: pageContext.url.slice(0, 512), title: String(pageContext.title || '').slice(0, 200) }
       : null;
 
-    const fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+    let fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+
+    // __UNANSWERED__ — bot lacked the info; log the question for the owner and keep the token out of stored history
+    if (fullText && fullText.includes('__UNANSWERED__')) {
+      fullText = fullText.replace(/__UNANSWERED__/g, '').trim();
+      db.prepare('INSERT INTO unanswered_questions (id, widget_id, question) VALUES (?, ?, ?)').run(
+        uuidv4(), widget.id, message.trim().slice(0, 500)
+      );
+    }
 
     // Save assistant response + track usage
     if (fullText && owner) {

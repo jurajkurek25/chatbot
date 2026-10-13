@@ -106,6 +106,30 @@ router.delete('/:widgetId/:itemId', (req, res) => {
   res.json({ success: true });
 });
 
+// GET /api/knowledge/:widgetId/unanswered — questions the bot couldn't answer
+router.get('/:widgetId/unanswered', (req, res) => {
+  if (!ownsWidget(req.params.widgetId, req.userId)) {
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  }
+
+  const rows = getDb().prepare(
+    'SELECT id, question, created_at FROM unanswered_questions WHERE widget_id = ? ORDER BY created_at DESC LIMIT 100'
+  ).all(req.params.widgetId);
+  res.json(rows);
+});
+
+// DELETE /api/knowledge/:widgetId/unanswered/:id — dismiss (e.g. answer was added to knowledge base)
+router.delete('/:widgetId/unanswered/:id', (req, res) => {
+  if (!ownsWidget(req.params.widgetId, req.userId)) {
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  }
+
+  getDb().prepare('DELETE FROM unanswered_questions WHERE id = ? AND widget_id = ?').run(
+    req.params.id, req.params.widgetId
+  );
+  res.json({ success: true });
+});
+
 function insertKnowledgeItem(widgetId, title, content, sourceType) {
   const db = getDb();
   const id = uuidv4();
