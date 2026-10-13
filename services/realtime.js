@@ -38,6 +38,7 @@ function readTicket(t) {
 /* ── Udalosti priestoru a prítomnosť ────────────────────────── */
 
 const rooms = new Map(); // ownerId → Set<socket>
+const userSockets = new Map(); // userId → Set<socket>
 
 function userInfo(userId) {
   return getDb().prepare('SELECT id, name, email FROM users WHERE id = ?').get(userId) || { id: userId, name: '' };
@@ -66,9 +67,16 @@ function broadcastPresence(ownerId) {
   publish(ownerId, { type: 'presence', users: presence(ownerId) });
 }
 
+/** Pošle udalosť konkrétnemu používateľovi (všetky jeho okná), napr. nové upozornenie. */
+function publishUser(userId, event) {
+  for (const s of userSockets.get(userId) || []) sendJson(s, event);
+}
+
 function onEventsSocket(socket, userId) {
   socket.user = userInfo(userId);
   socket.ownerIds = new Set();
+  if (!userSockets.has(userId)) userSockets.set(userId, new Set());
+  userSockets.get(userId).add(socket);
   socket.on('message', raw => {
     let m;
     try { m = JSON.parse(String(raw)); } catch { return; }
@@ -85,6 +93,7 @@ function onEventsSocket(socket, userId) {
     }
   });
   socket.on('close', () => {
+    userSockets.get(userId)?.delete(socket);
     for (const ownerId of socket.ownerIds) {
       rooms.get(ownerId)?.delete(socket);
       broadcastPresence(ownerId);
@@ -276,4 +285,4 @@ function flushAll() {
   docs.forEach(d => { if (d.saveTimer) persist(d); });
 }
 
-module.exports = { ticket, readTicket, attach, publish, presence, registerDocType, readDoc, writeDoc, deleteDoc, flushAll };
+module.exports = { ticket, readTicket, attach, publish, publishUser, presence, registerDocType, readDoc, writeDoc, deleteDoc, flushAll };

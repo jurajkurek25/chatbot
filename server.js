@@ -78,6 +78,11 @@ app.use('/api/shop', shopRoutes);
 app.use('/api/drive', driveRoutes);
 app.use('/api/marketing', require('./routes/marketing'));
 app.use('/api/realtime', require('./routes/realtime'));
+// Tímová sada: úlohy, kalendár, poznámky, dokumenty
+app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/calendar', require('./routes/calendar'));
+app.use('/api/notes', require('./routes/notes'));
+app.use('/api/docs', require('./routes/docs'));
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
@@ -125,6 +130,7 @@ app.get('/members/:storeId', (req, res) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.sendFile(path.join(__dirname, 'public', 'members.html'));
 });
+app.get('/docs/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'doc.html')));
 app.get('/s/:token', (req, res) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
   res.setHeader('X-Robots-Tag', 'noindex');
@@ -147,6 +153,7 @@ const server = app.listen(PORT, () => {
   require('./services/bookingPayments').startHoldSweeper();
   require('./funnel/src/retention').scheduleRetention(); // štatistiky funnelov staršie ako 13 mesiacov
   require('./services/marketing').startScheduler(); // kampane, automatické série (Resend)
+  require('./services/tasks').startScheduler(); // pripomienky úloh
   // Kôš Disku: položky staršie ako 30 dní sa zmažú natrvalo (raz za deň)
   const purge = () => { try { require('./services/drive').purgeTrash(); } catch (e) { console.error('[drive purge]', e.message); } };
   setTimeout(purge, 60 * 1000).unref();

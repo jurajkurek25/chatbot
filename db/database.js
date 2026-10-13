@@ -509,6 +509,142 @@ function initDatabase() {
       UNIQUE(owner_user_id, email)
     );
 
+    -- Úlohy (podľa Vikunja): projekty, stĺpce kanbanu, úlohy, riešitelia, štítky, komentáre
+    CREATE TABLE IF NOT EXISTS projects (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '#5b4fff',
+      description TEXT NOT NULL DEFAULT '',
+      archived INTEGER NOT NULL DEFAULT 0,
+      position REAL NOT NULL DEFAULT 0,
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS task_buckets (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      position REAL NOT NULL DEFAULT 0,
+      is_done INTEGER NOT NULL DEFAULT 0
+    );
+    CREATE TABLE IF NOT EXISTS tasks (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      bucket_id TEXT,
+      parent_id TEXT,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      done INTEGER NOT NULL DEFAULT 0,
+      done_at INTEGER,
+      due_at INTEGER,
+      start_at INTEGER,
+      priority INTEGER NOT NULL DEFAULT 0,
+      percent INTEGER NOT NULL DEFAULT 0,
+      position REAL NOT NULL DEFAULT 0,
+      repeat_days INTEGER NOT NULL DEFAULT 0,
+      remind_at INTEGER,
+      reminded INTEGER NOT NULL DEFAULT 0,
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_tasks_project ON tasks(project_id, bucket_id, position);
+    CREATE INDEX IF NOT EXISTS idx_tasks_due ON tasks(owner_id, due_at);
+    CREATE TABLE IF NOT EXISTS task_assignees (
+      task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      PRIMARY KEY (task_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS labels (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      color TEXT NOT NULL DEFAULT '#9b8cff',
+      UNIQUE(owner_id, name)
+    );
+    CREATE TABLE IF NOT EXISTS task_labels (
+      task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      label_id TEXT NOT NULL REFERENCES labels(id) ON DELETE CASCADE,
+      PRIMARY KEY (task_id, label_id)
+    );
+    CREATE TABLE IF NOT EXISTS task_comments (
+      id TEXT PRIMARY KEY,
+      task_id TEXT NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      user_id TEXT,
+      body TEXT NOT NULL,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    -- Kalendár (FullCalendar): udalosti tímu, účastníci, videohovor
+    CREATE TABLE IF NOT EXISTS calendar_events (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
+      location TEXT NOT NULL DEFAULT '',
+      start_at INTEGER NOT NULL,
+      end_at INTEGER NOT NULL,
+      all_day INTEGER NOT NULL DEFAULT 0,
+      color TEXT NOT NULL DEFAULT '#5b4fff',
+      repeat TEXT NOT NULL DEFAULT 'none' CHECK(repeat IN ('none','daily','weekly','monthly','yearly')),
+      repeat_until INTEGER,
+      meeting_room TEXT,
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_events_owner ON calendar_events(owner_id, start_at);
+    CREATE TABLE IF NOT EXISTS event_attendees (
+      event_id TEXT NOT NULL REFERENCES calendar_events(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      PRIMARY KEY (event_id, user_id)
+    );
+    CREATE TABLE IF NOT EXISTS calendar_feeds (
+      user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      token TEXT NOT NULL UNIQUE
+    );
+
+    -- Rýchle poznámky (podľa Memos) a dokumenty (BlockNote, obsah v yjs_docs)
+    CREATE TABLE IF NOT EXISTS notes (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id TEXT NOT NULL,
+      content TEXT NOT NULL,
+      visibility TEXT NOT NULL DEFAULT 'workspace' CHECK(visibility IN ('workspace','private')),
+      pinned INTEGER NOT NULL DEFAULT 0,
+      archived INTEGER NOT NULL DEFAULT 0,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_notes_owner ON notes(owner_id, created_at);
+    CREATE TABLE IF NOT EXISTS docs (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL DEFAULT 'Bez názvu',
+      icon TEXT NOT NULL DEFAULT '📄',
+      drive_item_id TEXT,
+      text TEXT NOT NULL DEFAULT '',
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
+    -- Upozornenia v aplikácii (pridelenie úlohy, komentár, pozvánka, zmienka…)
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      owner_id TEXT,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT NOT NULL DEFAULT '',
+      url TEXT NOT NULL DEFAULT '',
+      read_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, created_at);
+
     -- Spolupráca v reálnom čase: stav zdieľaných dokumentov (Yjs) a prepojenia medzi položkami modulov
     CREATE TABLE IF NOT EXISTS yjs_docs (
       name TEXT PRIMARY KEY,
@@ -763,6 +899,7 @@ function initDatabase() {
     `ALTER TABLE leads ADD COLUMN marketing_consent INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE leads ADD COLUMN source TEXT`,
     `ALTER TABLE orders ADD COLUMN withdrawal_waiver_at INTEGER`,
+    `ALTER TABLE drive_items ADD COLUMN ref TEXT`,
     `ALTER TABLE conversations ADD COLUMN live_agent INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE conversations ADD COLUMN csat_rating INTEGER`,
     `ALTER TABLE widgets ADD COLUMN ecomail_api_key TEXT`,

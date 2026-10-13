@@ -126,10 +126,28 @@ function trashList(ownerId) {
                           ORDER BY d.trashed_at DESC`).all(ownerId);
 }
 
+/* ── Odkazové položky: dokumenty, tabule… ktoré žijú v module, ale na Disku sa dajú triediť a zdieľať ── */
+const refTypes = new Map(); // typ → { openUrl(ownerId, id), destroy(ownerId, id), text(ownerId, id) }
+function registerRef(type, def) { refTypes.set(type, def); }
+function refOf(item) {
+  if (!item?.ref) return null;
+  const [type, id] = item.ref.split(':');
+  const def = refTypes.get(type);
+  return def ? { type, id, def } : null;
+}
+/** Vytvorí položku Disku pre objekt modulu (napr. dokument) v priečinku parentId. */
+function addRef(ownerId, parentId, { name, mime, ref }, createdBy) {
+  const id = uuidv4();
+  getDb().prepare(`INSERT INTO drive_items (id, owner_id, parent_id, kind, name, mime, size, ref, created_by) VALUES (?, ?, ?, 'file', ?, ?, 0, ?, ?)`)
+    .run(id, ownerId, parentId || null, cleanName(name) || 'Bez názvu', mime, ref, createdBy);
+  return getItem(ownerId, id);
+}
+
 function destroy(ownerId, item) {
   const db = getDb();
   const all = descendants(ownerId, item.id);
   for (const d of all) if (d.stored_name) fs.unlink(path.join(DIR, d.stored_name), () => {});
+  for (const d of all) { const r = refOf(d); if (r) { try { r.def.destroy(ownerId, r.id); } catch (e) { console.error('[drive ref]', e.message); } } }
   db.transaction(() => {
     for (const d of all) db.prepare('DELETE FROM drive_shares WHERE item_id = ?').run(d.id);
     for (const d of all.reverse()) db.prepare('DELETE FROM drive_items WHERE id = ?').run(d.id);
@@ -172,6 +190,7 @@ function readFileToken(token) {
 const INLINE = /^(image\/(png|jpeg|gif|webp)|application\/pdf|video\/(mp4|webm)|audio\/(mpeg|mp4|ogg|wav|webm)|text\/plain)$/;
 
 function send(res, item, inline) {
+  if (!item.stored_name) return res.status(404).send('Tento dokument sa otvára v editore Neoworkly.');
   const file = path.join(DIR, item.stored_name);
   if (!fs.existsSync(file)) return res.status(404).send('Súbor nenájdený.');
   const show = inline && INLINE.test(item.mime);
@@ -202,6 +221,27 @@ function unlocked(s, key) {
   if (!s.password_hash) return true;
   const t = readFileToken(key);
   return !!t && t.i === s.id && t.s === `k:${passwordTag(s)}`;
+}
+
+/** Uloží nahraté súbory (multer do DIR), ak sa zmestia do kvóty; inak ich zmaže. */
+function storeFiles(ownerId, parentId, files, createdBy) {
+  if (!files?.length) return { error: 'Vyberte súbor.' };
+  const total = files.reduce((n, f) => n + f.size, 0);
+  if (usage(ownerId) + total > quotaBytes()) {
+    files.forEach(f => fs.unlink(f.path, () => {}));
+    return { error: 'Na Disku nie je dosť miesta.', status: 413 };
+  }
+  return { items: files.map(f => addFile(ownerId, parentId, f, createdBy)) };
+}
+
+/** Systémový priečinok v koreni Disku (napr. „Prílohy úloh“), vytvorí sa pri prvom použití. */
+function systemFolder(ownerId, key, name) {
+  const db = getDb();
+  const existing = db.prepare("SELECT * FROM drive_items WHERE owner_id = ? AND parent_id IS NULL AND kind = 'folder' AND system = ? AND trashed_at IS NULL").get(ownerId, key);
+  if (existing) return existing;
+  const f = createFolder(ownerId, null, name, 'system');
+  db.prepare('UPDATE drive_items SET system = ? WHERE id = ?').run(key, f.id);
+  return getItem(ownerId, f.id);
 }
 
 /* ── Priečinky klientov (členská sekcia) ─────────────────────────── */
@@ -235,7 +275,7 @@ module.exports = {
   DIR, quotaBytes, roleIn, canWrite, getItem, liveItem, children, pathOf, isWithin, descendants, usage,
   createFolder, addFile, update, trash, restore, trashList, destroy, purgeTrash, search, cleanName,
   fileToken, readFileToken, send, shareUrl, shareByToken, unlockKey, unlocked,
-  clientsRoot, memberFolders, memberRootOf, copyOut,
+  clientsRoot, memberFolders, memberRootOf, copyOut, storeFiles, systemFolder, registerRef, refOf, addRef,
 };
 
 // Súbory a priečinky Disku sa dajú prepájať s úlohami, poznámkami, udalosťami…

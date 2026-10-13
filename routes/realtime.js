@@ -29,4 +29,9 @@ router.delete('/links', workspace.middleware, workspace.writer, (req, res) => {
   res.json({ ok: true });
 });
 
+// Upozornenia (zvonček)
+const notifications = require('../services/notifications');
+router.get('/notifications', (req, res) => res.json({ items: notifications.list(req.userId), unread: notifications.unread(req.userId) }));
+router.post('/notifications/read', (req, res) => { notifications.markRead(req.userId, req.body?.id); res.json({ unread: notifications.unread(req.userId) }); });
+
 module.exports = router;

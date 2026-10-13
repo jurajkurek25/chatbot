@@ -33,21 +33,16 @@ const upload = multer({
 });
 const unlinkAll = files => (files || []).forEach(f => fs.unlink(f.path, () => {}));
 
-/** Uloží nahraté súbory do priečinka, ak sa zmestia do kvóty účtu; inak ich zmaže. */
-function storeUploads(ownerId, parentId, files, createdBy) {
-  if (!files?.length) return { error: 'Vyberte súbor.' };
-  const total = files.reduce((n, f) => n + f.size, 0);
-  if (drive.usage(ownerId) + total > drive.quotaBytes()) {
-    unlinkAll(files);
-    return { error: 'Na Disku nie je dosť miesta.', status: 413 };
-  }
-  return { items: files.map(f => drive.addFile(ownerId, parentId, f, createdBy)) };
-}
+const storeUploads = drive.storeFiles;
 
-const view = (item, extra = {}) => ({
-  id: item.id, kind: item.kind, name: item.name, mime: item.mime, size: item.size,
-  updatedAt: item.updated_at, createdAt: item.created_at, system: item.system || null, ...extra,
-});
+const view = (item, extra = {}) => {
+  const ref = drive.refOf(item);
+  return {
+    id: item.id, kind: item.kind, name: item.name, mime: item.mime, size: item.size,
+    updatedAt: item.updated_at, createdAt: item.created_at, system: item.system || null,
+    ...(ref && { ref: ref.type, openUrl: ref.def.openUrl(item.owner_id, ref.id) }), ...extra,
+  };
+};
 
 /** E-mail majiteľovi, keď klient nahrá súbory (cez odkaz alebo členskú sekciu). */
 function notifyOwner(ownerId, folderPath, names, who) {
@@ -177,6 +172,8 @@ router.delete('/trash', ...auth, writer, (req, res) => {
 /** Krátkodobý odkaz na stiahnutie / náhľad (prehliadač nevie poslať hlavičku Authorization). */
 router.get('/items/:id/url', ...auth, item, (req, res) => {
   if (req.item.kind !== 'file') return res.status(400).json({ error: 'Priečinok sa nedá stiahnuť.' });
+  const ref = drive.refOf(req.item);
+  if (ref) return res.json({ url: ref.def.openUrl(req.ownerId, ref.id), open: true });
   res.json({ url: `/api/drive/f/${drive.fileToken(req.item.id, 'u')}${req.query.inline ? '?inline=1' : ''}` });
 });
 
@@ -255,6 +252,7 @@ router.get('/targets', ...auth, (req, res) => {
 
 function fileItem(req, res, next) {
   if (req.item.kind !== 'file') return res.status(400).json({ error: 'Vyberte súbor, nie priečinok.' });
+  if (drive.refOf(req.item) && !req.path.endsWith('/to-knowledge')) return res.status(400).json({ error: 'Dokument najprv exportujte z editora (PDF/HTML).' });
   next();
 }
 
@@ -286,7 +284,9 @@ router.post('/items/:id/to-knowledge', ...auth, writer, item, fileItem, async (r
   const w = db.prepare('SELECT id FROM widgets WHERE id = ? AND user_id = ?').get(req.body?.widgetId, req.ownerId);
   if (!w) return res.status(404).json({ error: 'Widget nenájdený.' });
   try {
-    const content = await parseFile(path.join(drive.DIR, req.item.stored_name), req.item.mime, req.item.name);
+    const ref = drive.refOf(req.item);
+    const content = ref ? String(ref.def.text(req.ownerId, ref.id) || '') : await parseFile(path.join(drive.DIR, req.item.stored_name), req.item.mime, req.item.name);
+    if (!content.trim()) return res.status(422).json({ error: 'Dokument je prázdny.' });
     db.prepare("INSERT INTO knowledge_items (id, widget_id, title, content, source_type) VALUES (?, ?, ?, ?, 'pdf')").run(uuidv4(), w.id, req.item.name, content);
     res.json({ ok: true, chars: content.length });
   } catch (err) {
