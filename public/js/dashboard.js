@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (sr) {
       const sdata = await sr.json();
       if (!sdata.active) { window.location.href = '/onboarding'; return; }
-      renderBillingButton();
+      if (!sdata.in_trial) renderBillingButton();
     }
   } catch { /* allow access on network error */ }
 
@@ -1731,6 +1731,16 @@ async function loadUsageBar() {
       resetLabel.textContent = `Obnoví sa ${resetDate.toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit' })}`;
     }
 
+    const trialRow = document.getElementById('trial-row');
+    if (trialRow) {
+      trialRow.style.display = d.in_trial ? '' : 'none';
+      if (d.in_trial) {
+        const end = new Date(d.trial_until * 1000).toLocaleDateString('sk-SK', { day: '2-digit', month: '2-digit' });
+        resetLabel.textContent = '';
+        document.getElementById('trial-until').textContent = end;
+      }
+    }
+
     if (d.extra_credits > 0) {
       extraRow.style.display = '';
       extraRow.textContent = `+ ${d.extra_credits} extra kreditov`;
@@ -1743,7 +1753,7 @@ async function loadUsageBar() {
     if (banner) {
       if (pct >= 100) {
         banner.style.display = '';
-        banner.innerHTML = `⛔ Mesačný limit vyčerpaný. Chatbot neodpovedá. <button class="btn btn-sm btn-primary" style="margin-left:0.5rem" onclick="openCreditsModal()">Dobiť kredity</button>`;
+        banner.innerHTML = `⛔ ${d.in_trial ? 'Limit skúšobného obdobia' : 'Mesačný limit'} vyčerpaný. Chatbot neodpovedá. <button class="btn btn-sm btn-primary" style="margin-left:0.5rem" onclick="openCreditsModal()">Dobiť kredity</button>`;
         banner.style.background = '#fef2f2';
         banner.style.borderColor = '#fecaca';
         banner.style.color = '#b91c1c';

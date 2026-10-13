@@ -4,10 +4,10 @@ const express = require('express');
 const Stripe = require('stripe');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
+const { accessOf, BASE_RESPONSES } = require('../middleware/subscription');
 
 const router = express.Router();
 
-const BASE_RESPONSES = 500;
 const PACKAGES = [
   { id: 'p5',  amount_eur: 5,  credits: 100 },
   { id: 'p8r', amount_eur: 8,  credits: 200 }, // auto-refill pack
@@ -44,22 +44,25 @@ function maybeResetUsage(db, userId, user) {
 router.get('/status', requireAuth, (req, res) => {
   const db = getDb();
   const user = db.prepare(
-    'SELECT ai_responses_this_month, ai_responses_reset_at, extra_response_credits FROM users WHERE id = ?'
+    'SELECT ai_responses_this_month, ai_responses_reset_at, extra_response_credits, subscription_status, free_until, trial_until FROM users WHERE id = ?'
   ).get(req.userId);
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
 
   const thisMonth = maybeResetUsage(db, req.userId, user);
   const extra = user.extra_response_credits || 0;
+  const { inTrial, responseLimit } = accessOf(user);
 
   // Reload reset_at after potential reset
   const freshUser = db.prepare('SELECT ai_responses_reset_at FROM users WHERE id = ?').get(req.userId);
 
-  const baseUsed = Math.min(thisMonth, BASE_RESPONSES);
-  const baseRemaining = Math.max(0, BASE_RESPONSES - thisMonth);
-  const usagePct = Math.min(100, Math.round((thisMonth / BASE_RESPONSES) * 100));
+  const baseUsed = Math.min(thisMonth, responseLimit);
+  const baseRemaining = Math.max(0, responseLimit - thisMonth);
+  const usagePct = Math.min(100, Math.round((thisMonth / responseLimit) * 100));
 
   res.json({
-    base_responses: BASE_RESPONSES,
+    base_responses: responseLimit,
+    in_trial: inTrial,
+    trial_until: inTrial ? user.trial_until : null,
     used_this_month: thisMonth,
     base_remaining: baseRemaining,
     extra_credits: extra,

@@ -8,6 +8,7 @@ const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
 const { sendPasswordReset } = require('../services/email');
+const { TRIAL_DAYS } = require('../middleware/subscription');
 
 const router = express.Router();
 const SALT_ROUNDS = 12;
@@ -61,9 +62,10 @@ router.post('/register', async (req, res) => {
     const id = uuidv4();
     const myReferralCode = uniqueReferralCode(db, name);
 
+    const trialUntil = Math.floor(Date.now() / 1000) + TRIAL_DAYS * 86400;
     db.prepare(
-      'INSERT INTO users (id, email, password_hash, name, referral_code, referred_by) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, email.toLowerCase(), passwordHash, name.trim(), myReferralCode, referredById);
+      'INSERT INTO users (id, email, password_hash, name, referral_code, referred_by, trial_until, ai_responses_reset_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, email.toLowerCase(), passwordHash, name.trim(), myReferralCode, referredById, trialUntil, trialUntil);
 
     const token = signToken(id);
     return res.status(201).json({

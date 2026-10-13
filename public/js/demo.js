@@ -11,7 +11,7 @@ if (!token) window.location.href = '/';
     });
     if (r.ok) {
       const d = await r.json();
-      if (d.active) { window.location.href = '/dashboard'; return; }
+      if (d.active && !d.in_trial) { window.location.href = '/dashboard'; return; }
     }
   } catch (_) {}
 })();

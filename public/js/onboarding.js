@@ -78,11 +78,14 @@ function logout() {
 // STEP 1 – Subscription
 // ════════════════════════════════════════════════════════════════
 
+let subStatus = {};
+
 async function checkSubscription() {
   try {
     const r = await fetch(`${API}/api/stripe/status`, { headers: authHeaders() });
     if (!r.ok) return false;
     const data = await r.json();
+    subStatus = data;
     return data.active === true;
   } catch {
     return false;
@@ -161,9 +164,19 @@ async function handleStripeReturn() {
 }
 
 function showSubscriptionActive() {
-  document.getElementById('btn-checkout').style.display = 'none';
+  document.getElementById('btn-checkout')?.style.setProperty('display', 'none');
   document.querySelector('.pricing-box-note').style.display = 'none';
   document.getElementById('subscription-active-msg').style.display = 'block';
+}
+
+// Trial: keep the plan buttons visible but let the user continue without paying
+function showTrialActive() {
+  const end = new Date(subStatus.trial_until * 1000).toLocaleDateString('sk-SK');
+  const msg = document.getElementById('subscription-active-msg');
+  msg.querySelector('h3').textContent = '🎁 Máte 14 dní zadarmo';
+  msg.querySelector('p').textContent = `Skúšobné obdobie so 100 AI odpoveďami platí do ${end}. Predplatné môžete aktivovať kedykoľvek.`;
+  msg.querySelector('button').textContent = 'Pokračovať zadarmo →';
+  msg.style.display = 'block';
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -570,7 +583,7 @@ async function init() {
   const active = await checkSubscription();
   if (active) {
     // Show active state in step 1
-    showSubscriptionActive();
+    if (subStatus.in_trial) showTrialActive(); else showSubscriptionActive();
 
     // Ensure widget exists and load knowledge
     await ensureWidget();
@@ -586,6 +599,7 @@ async function init() {
       goToStep(1);
     }
   } else {
+    if (subStatus.trial_until) showToast('Skúšobné obdobie skončilo. Pre pokračovanie aktivujte predplatné.', 'info');
     goToStep(1);
   }
 }

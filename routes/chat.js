@@ -5,7 +5,8 @@ const { v4: uuidv4 } = require('uuid');
 const { getDb, searchKnowledge } = require('../db/database');
 const { streamChatResponse, summarizeConversation, analyzeConversationTrends } = require('../services/claude');
 const { sendLeadNotification, sendUsageNotification } = require('../services/email');
-const { BASE_RESPONSES, nextMonthReset, maybeResetUsage } = require('./credits');
+const { nextMonthReset, maybeResetUsage } = require('./credits');
+const { accessOf, ownerAccess } = require('../middleware/subscription');
 
 const router = express.Router();
 
@@ -29,7 +30,7 @@ function checkRateLimit(ip) {
 router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
-    SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
+    SELECT id, user_id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
            suggested_questions_i18n, active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text,
            hide_branding, business_hours, offline_message, csat_enabled, welcome_message_b
     FROM widgets WHERE id = ?
@@ -41,6 +42,10 @@ router.get('/:widgetId/config', (req, res) => {
 
   // hide_branding is only active on the White Label plan
   const owner = db.prepare('SELECT subscription_plan FROM users WHERE id = ?').get(widget.user_id);
+  // Hide the widget once the owner has no subscription / trial left
+  if (!ownerAccess(widget.user_id).hasAccess) {
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  }
   const isWhiteLabel = owner?.subscription_plan === 'white_label';
 
   res.json({
@@ -119,14 +124,20 @@ router.post('/:widgetId/chat', async (req, res) => {
 
   // Check monthly usage limit
   const owner = db.prepare(
-    'SELECT id, email, name, ai_responses_this_month, ai_responses_reset_at, extra_response_credits, usage_notified_80, usage_notified_100 FROM users WHERE id = ?'
+    'SELECT id, email, name, ai_responses_this_month, ai_responses_reset_at, extra_response_credits, usage_notified_80, usage_notified_100, subscription_status, free_until, trial_until FROM users WHERE id = ?'
   ).get(widget.user_id);
+  const access = accessOf(owner);
+  const responseLimit = access.responseLimit;
+
+  if (!access.hasAccess) {
+    return res.status(403).json({ error: 'Chatbot momentálne nie je aktívny.', code: 'NO_SUBSCRIPTION' });
+  }
 
   if (owner) {
     const thisMonth = maybeResetUsage(db, owner.id, owner);
     const extra = owner.extra_response_credits || 0;
 
-    if (thisMonth >= BASE_RESPONSES && extra <= 0) {
+    if (thisMonth >= responseLimit && extra <= 0) {
       return res.status(402).json({
         error: 'Mesačný limit AI odpovedí bol vyčerpaný. Vlastník chatbota si musí dobiť kredity.',
         code: 'LIMIT_REACHED',
@@ -204,7 +215,7 @@ router.post('/:widgetId/chat', async (req, res) => {
       const currentMonth = freshOwner.ai_responses_this_month || 0;
       const currentExtra = freshOwner.extra_response_credits || 0;
 
-      if (currentMonth < BASE_RESPONSES) {
+      if (currentMonth < responseLimit) {
         db.prepare('UPDATE users SET ai_responses_this_month = ai_responses_this_month + 1 WHERE id = ?').run(owner.id);
       } else if (currentExtra > 0) {
         db.prepare('UPDATE users SET extra_response_credits = extra_response_credits - 1 WHERE id = ?').run(owner.id);
@@ -214,10 +225,10 @@ router.post('/:widgetId/chat', async (req, res) => {
       const newCount = currentMonth + 1;
       setImmediate(() => {
         try {
-          if (newCount >= BASE_RESPONSES && !freshOwner.usage_notified_100) {
+          if (newCount >= responseLimit && !freshOwner.usage_notified_100) {
             db.prepare('UPDATE users SET usage_notified_100 = 1 WHERE id = ?').run(owner.id);
             sendUsageNotification({ toEmail: owner.email, ownerName: owner.name, pct: 100, extra: currentExtra }).catch(() => {});
-          } else if (newCount >= BASE_RESPONSES * 0.8 && !freshOwner.usage_notified_80) {
+          } else if (newCount >= responseLimit * 0.8 && !freshOwner.usage_notified_80) {
             db.prepare('UPDATE users SET usage_notified_80 = 1 WHERE id = ?').run(owner.id);
             sendUsageNotification({ toEmail: owner.email, ownerName: owner.name, pct: 80, extra: currentExtra }).catch(() => {});
           }

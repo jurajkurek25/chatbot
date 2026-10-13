@@ -14,6 +14,7 @@ const {
   graphRequestDirect,
 } = require('../services/instagram');
 const { getChatResponseText } = require('../services/claude');
+const { ownerAccess } = require('../middleware/subscription');
 
 const router = express.Router();
 
@@ -284,6 +285,7 @@ async function handleIncomingDM(igUserId, msgData) {
   // Fetch widget + knowledge
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ?').get(conn.widget_id);
   if (!widget) return;
+  if (!ownerAccess(widget.user_id).hasAccess) return; // subscription / trial ended
 
   const knowledgeItems = searchKnowledge(widget.id, text);
 

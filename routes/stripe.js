@@ -4,6 +4,7 @@ const express = require('express');
 const Stripe = require('stripe');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
+const { accessOf } = require('../middleware/subscription');
 
 const router = express.Router();
 
@@ -206,12 +207,13 @@ router.post('/portal', requireAuth, async (req, res) => {
 // If user has no stripe_customer_id yet, searches Stripe by email to auto-link
 router.get('/status', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until, trial_until FROM users WHERE id = ?').get(req.userId);
   const now = Math.floor(Date.now() / 1000);
   const inFreePeriod = user?.free_until && user.free_until > now;
+  const { inTrial } = accessOf(user);
 
   // If not yet active and no customer_id, try to find & sync from Stripe by email
-  if (user && user.subscription_status !== 'active' && !inFreePeriod && !user.stripe_customer_id) {
+  if (user && user.subscription_status !== 'active' && !inFreePeriod && !inTrial && !user.stripe_customer_id) {
     try {
       const stripe = getStripe();
       const customers = await stripe.customers.list({ email: user.email.toLowerCase(), limit: 5 });
@@ -233,12 +235,14 @@ router.get('/status', requireAuth, async (req, res) => {
   }
 
   res.json({
-    active: user?.subscription_status === 'active' || !!inFreePeriod,
+    active: user?.subscription_status === 'active' || !!inFreePeriod || inTrial,
     status: user?.subscription_status || 'inactive',
     plan: user?.subscription_plan || 'pro',
     onboarding_done: Boolean(user?.onboarding_done),
     free_until: user?.free_until || null,
     in_free_period: !!inFreePeriod,
+    in_trial: inTrial,
+    trial_until: user?.trial_until || null,
   });
 });
 

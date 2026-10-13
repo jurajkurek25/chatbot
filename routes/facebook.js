@@ -6,6 +6,7 @@ const { v4: uuidv4 } = require('uuid');
 const { requireAuth } = require('../middleware/auth');
 const { getDb, searchKnowledge } = require('../db/database');
 const { getChatResponseText } = require('../services/claude');
+const { ownerAccess } = require('../middleware/subscription');
 
 const router = express.Router();
 
@@ -290,6 +291,7 @@ async function handleFbDM(widgetId, senderId, pageId, msgData) {
   // Fetch widget + knowledge for Claude
   const widget = db.prepare('SELECT * FROM widgets WHERE id = ?').get(conn.widget_id);
   if (!widget) return;
+  if (!ownerAccess(widget.user_id).hasAccess) return; // subscription / trial ended
 
   const knowledgeItems = searchKnowledge(widget.id, text);
 

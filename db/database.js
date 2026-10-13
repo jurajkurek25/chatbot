@@ -366,6 +366,7 @@ function initDatabase() {
     `ALTER TABLE users ADD COLUMN extra_response_credits INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN usage_notified_80 INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE users ADD COLUMN usage_notified_100 INTEGER NOT NULL DEFAULT 0`,
+    `ALTER TABLE users ADD COLUMN trial_until INTEGER`,
     `ALTER TABLE widgets ADD COLUMN cta_type TEXT NOT NULL DEFAULT 'contact'`,
     `ALTER TABLE widgets ADD COLUMN avatar_url TEXT`,
     `ALTER TABLE widgets ADD COLUMN proactive_enabled INTEGER NOT NULL DEFAULT 0`,
