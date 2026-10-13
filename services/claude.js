@@ -238,6 +238,11 @@ Booking URL (priamy odkaz): ${bookingUrl}
 KRITICKÉ: Použi JEDEN token (__DIRECTBOOK__ ALEBO __BOOKING__) IBA raz za konverzáciu. NIKDY nezobrazuj formulár automaticky.`;
 }
 
+// Bot appends __UNANSWERED__ when the knowledge base lacks the answer — caller logs the question
+const UNANSWERED_SECTION = `\n\n## NEZODPOVEDANÉ OTÁZKY
+Ak sa zákazník pýta na konkrétnu informáciu o firme, produktoch alebo službách a odpoveď NIE JE v znalostnej báze ani v produktoch, na KONIEC odpovede vlož token: __UNANSWERED__
+Nevkladaj ho pri pozdravoch, small talku ani keď odpoveď poznáš.`;
+
 /* ── Streaming chat response ───────────────────────────────────── */
 async function streamChatResponse(widget, knowledgeItems, history, userMessage, res, pageContext = null) {
   const products        = loadProducts(widget.id);
@@ -245,10 +250,7 @@ async function streamChatResponse(widget, knowledgeItems, history, userMessage, 
   const leadMagnets     = loadLeadMagnets(widget.id);
   const bookingSection  = buildBookingSection(widget.id, bookingCfg);
   const lmSection       = buildLeadMagnetSection(leadMagnets);
-  const unansweredSection = `\n\n## NEZODPOVEDANÉ OTÁZKY
-Ak sa zákazník pýta na konkrétnu informáciu o firme, produktoch alebo službách a odpoveď NIE JE v znalostnej báze ani v produktoch, na KONIEC odpovede vlož token: __UNANSWERED__
-Nevkladaj ho pri pozdravoch, small talku ani keď odpoveď poznáš.`;
-  const systemPrompt    = buildSystemPrompt(widget, knowledgeItems, products, pageContext) + bookingSection + lmSection + unansweredSection;
+  const systemPrompt    = buildSystemPrompt(widget, knowledgeItems, products, pageContext) + bookingSection + lmSection + UNANSWERED_SECTION;
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
@@ -352,10 +354,10 @@ Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
   }
 }
 
-/* ── Non-streaming response (for Instagram DMs) ───────────────── */
+/* ── Non-streaming response (for Instagram + Messenger DMs) ────── */
 async function getChatResponseText(widget, knowledgeItems, history, userMessage) {
   const products = loadProducts(widget.id);
-  const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products);
+  const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products) + UNANSWERED_SECTION;
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
@@ -368,7 +370,17 @@ async function getChatResponseText(widget, knowledgeItems, history, userMessage)
     messages,
   }));
 
-  return response.content.find(b => b.type === 'text')?.text?.trim() || '';
+  let text = response.content.find(b => b.type === 'text')?.text?.trim() || '';
+  if (text.includes('__UNANSWERED__')) {
+    text = text.replace(/__UNANSWERED__/g, '').trim();
+    try {
+      const { getDb } = require('../db/database');
+      getDb().prepare('INSERT INTO unanswered_questions (id, widget_id, question) VALUES (?, ?, ?)').run(
+        require('uuid').v4(), widget.id, String(userMessage).trim().slice(0, 500)
+      );
+    } catch (err) { console.error('unanswered log error:', err.message); }
+  }
+  return text;
 }
 
 /* ── AI conversation summary for leads ────────────────────────── */
