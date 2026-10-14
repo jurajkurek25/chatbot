@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Video štúdio – Neoworkly</title>
+  <link rel="stylesheet" href="/apps/graphic/graphic-editor.css?v=1"><!-- písma značky na titulky -->
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #0d0d18; color: #eeeef5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { display: flex; flex-direction: column; }
+    button, input, select { font: inherit; }
+    .bar { display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; padding: .55rem 1rem; background: #080810; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .bar a.back { color: #9b8cff; text-decoration: none; font-weight: 700; font-size: .9rem; }
+    .bar h1 { font-size: 1.05rem; margin: 0 .4rem; }
+    .bar #name { background: transparent; color: #eeeef5; border: 1px solid rgba(255,255,255,.12); border-radius: 8px; padding: .35rem .5rem; width: 200px; }
+    .sp { flex: 1; }
+    button { background: #18182a; color: #eeeef5; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: .42rem .75rem; font-size: .82rem; font-weight: 600; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: rgba(155,140,255,.5); }
+    button:disabled { opacity: .4; cursor: default; }
+    button.primary { background: #5b4fff; border-color: #5b4fff; color: #fff; }
+    .main { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 1fr) 300px; }
+    .center { display: flex; flex-direction: column; min-height: 0; }
+    #stageWrap { flex: 1; min-height: 0; display: none; flex-direction: column; align-items: center; justify-content: center; gap: .6rem; padding: 1rem; background: #0a0a14; }
+    #cv { max-width: 100%; max-height: calc(100vh - 330px); background: #000; box-shadow: 0 10px 40px rgba(0,0,0,.6); border-radius: 6px; }
+    .ctrl { display: flex; gap: .6rem; align-items: center; } #pos { font-size: .82rem; color: #9898b8; font-variant-numeric: tabular-nums; }
+    #empty { margin: auto; max-width: 560px; text-align: center; color: #9898b8; border: 2px dashed rgba(255,255,255,.12); border-radius: 16px; padding: 2.5rem 1.5rem; }
+    #empty h2 { color: #eeeef5; margin: .2rem 0 .5rem; }
+    .tl { background: #111120; border-top: 1px solid rgba(255,255,255,.06); padding: .6rem 1rem; }
+    .tl .head { display: flex; gap: .5rem; align-items: center; margin-bottom: .5rem; font-size: .82rem; color: #9898b8; }
+    #timeline { display: flex; gap: .4rem; overflow-x: auto; min-height: 92px; }
+    .clip { position: relative; min-width: 120px; flex-basis: 0; background: #18182a; border: 2px solid transparent; border-radius: 10px; overflow: hidden; cursor: pointer; }
+    .clip.on { border-color: #9b8cff; }
+    .clip img { width: 100%; height: 58px; object-fit: cover; display: block; opacity: .85; }
+    .clip .meta { font-size: .72rem; padding: .25rem .4rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #c4c4dc; }
+    .clip .meta span { float: right; color: #9b8cff; }
+    .clip [data-rm] { position: absolute; top: 4px; right: 4px; padding: 0 .35rem; font-size: .7rem; background: rgba(0,0,0,.6); }
+    aside { background: #111120; border-left: 1px solid rgba(255,255,255,.06); overflow: auto; padding: .9rem; }
+    aside h4 { margin: 1rem 0 .5rem; font-size: .78rem; text-transform: uppercase; letter-spacing: .05em; color: #9898b8; }
+    aside h4:first-child { margin-top: 0; }
+    aside label { display: block; font-size: .78rem; color: #9898b8; margin: .5rem 0 .2rem; }
+    aside label.chk { display: flex; gap: .4rem; align-items: center; color: #c4c4dc; }
+    aside input[type=text], aside select { width: 100%; background: #0d0d18; color: #eeeef5; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: .4rem .5rem; font-size: .85rem; }
+    aside input[type=range] { width: 100%; accent-color: #5b4fff; }
+    aside input[type=color] { width: 34px; height: 28px; border: 0; background: none; padding: 0; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; }
+    #swatches { display: inline-flex; gap: .25rem; vertical-align: middle; } #swatches button { width: 22px; height: 22px; border-radius: 50%; padding: 0; border: 2px solid rgba(255,255,255,.2); }
+    .hint { font-size: .78rem; color: #7e7ea0; line-height: 1.45; }
+    #modal, #loading, #exporting { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50; align-items: center; justify-content: center; padding: 1rem; }
+    .mbox { background: #18182a; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 1rem; width: min(560px, 100%); max-height: 80vh; overflow: auto; }
+    .mhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; }
+    .crumbs { font-size: .82rem; margin-bottom: .6rem; } .crumbs a { color: #9b8cff; text-decoration: none; }
+    .list { display: flex; flex-direction: column; gap: .3rem; } .list button { text-align: left; }
+    .exp { background: #18182a; border: 1px solid rgba(155,140,255,.4); border-radius: 14px; padding: 1.2rem 1.4rem; width: min(420px, 100%); }
+    .pbar { height: 8px; background: rgba(255,255,255,.08); border-radius: 6px; overflow: hidden; margin: .8rem 0; } #progress { height: 100%; width: 0; background: #5b4fff; transition: width .3s; }
+    #toast { display: none; position: fixed; bottom: 1.2rem; left: 50%; transform: translateX(-50%); background: #18182a; border: 1px solid rgba(155,140,255,.4); color: #eeeef5; padding: .6rem 1rem; border-radius: 10px; font-size: .86rem; z-index: 70; }
+    @media (max-width: 900px) { .main { grid-template-columns: 1fr; } aside { border-left: 0; } }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a class="back" href="/dashboard?view=drive">← Disk</a><h1>🎬 Video štúdio</h1>
+    <input id="name" value="Video" title="Názov výsledného súboru">
+    <span class="sp"></span>
+    <button id="addDrive" class="primary">💾 Pridať klip z Disku</button><button id="addFile">⬆ Z počítača</button><input type="file" id="file" accept="video/*" multiple hidden>
+    <button id="dl" class="need">⬇ Exportovať</button><button id="save" class="need primary write">💾 Exportovať na Disk</button>
+  </div>
+  <div class="main">
+    <div class="center">
+      <div id="empty"><div style="font-size:2.4rem">🎬</div><h2>Krátke videá pre web a sociálne siete</h2>
+        <p>Pridajte klipy z Disku alebo z počítača, orežte ich, zoraďte, vyberte formát (napr. 9:16 na Reels) a pridajte titulok s logom vašej značky.</p>
+        <p class="hint">Spracúva sa vo vašom prehliadači – export trvá približne toľko, ako je video dlhé. Nechajte túto kartu otvorenú.</p></div>
+      <div id="stageWrap"><canvas id="cv" width="1280" height="720"></canvas><div class="ctrl"><button id="play" class="primary need">▶ Prehrať</button><span id="pos"></span></div></div>
+      <div class="tl"><div class="head"><strong>Časová os</strong><span id="dur"></span><span class="hint">Klipy presúvajte myšou</span></div><div id="timeline"></div></div>
+    </div>
+    <aside id="settings">
+      <h4>Strih</h4><div id="trim"></div>
+      <h4>Formát</h4>
+      <div class="two"><select id="format"><option value="16:9">16:9 YouTube, web</option><option value="9:16">9:16 Reels, TikTok</option><option value="1:1">1:1 príspevok</option><option value="4:5">4:5 Instagram</option></select>
+        <select id="fit"><option value="cover">Vyplniť (orezať)</option><option value="contain">Celé video</option></select></div>
+      <label>Pozadie <input type="color" id="bg" value="#000000"></label>
+      <h4>Titulok</h4>
+      <input type="text" id="title" placeholder="Napr. Nová kolekcia je tu">
+      <div class="two"><div><label>Poloha</label><select id="titlePos"><option value="bottom">Dole</option><option value="center">Stred</option><option value="top">Hore</option></select></div>
+        <div><label>Veľkosť</label><input type="range" id="titleSize" min="4" max="14" value="7"></div></div>
+      <label>Farba <input type="color" id="titleColor" value="#ffffff"> <span id="swatches"></span></label>
+      <label class="chk"><input type="checkbox" id="titleBar" checked> Podklad vo farbe značky</label>
+      <h4>Logo</h4>
+      <label class="chk"><input type="checkbox" id="useLogo" checked> Logo značky</label>
+      <select id="logoPos"><option value="tr">Vpravo hore</option><option value="tl">Vľavo hore</option><option value="br">Vpravo dole</option><option value="bl">Vľavo dole</option></select>
+      <h4>Zvuk</h4>
+      <label>Zvuk videa</label><input type="range" id="origVol" min="0" max="1" step="0.05" value="1">
+      <label>Hudba: <span id="musicName">bez hudby</span></label>
+      <div class="two"><button id="musicDrive">💾 Z Disku</button><button id="musicFile">⬆ Súbor</button></div><input type="file" id="mfile" accept="audio/*" hidden>
+      <button id="musicDel" style="margin-top:.3rem;width:100%">Bez hudby</button>
+      <label>Hlasitosť hudby</label><input type="range" id="musicVol" min="0" max="1" step="0.05" value="0.4">
+    </aside>
+  </div>
+  <div id="modal"></div>
+  <div id="loading"><div class="exp">Načítavam video…</div></div>
+  <div id="exporting"><div class="exp"><strong>Exportujem video…</strong><div class="pbar"><div id="progress"></div></div><p class="hint">Video sa prehráva do súboru – nechajte kartu otvorenú.</p><button id="cancelExport">Zrušiť</button></div></div>
+  <div id="toast"></div>
+  <script type="module" src="/apps/video/video-tool.js?v=1"></script>
+</body>
+</html>

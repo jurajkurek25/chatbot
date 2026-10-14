@@ -88,6 +88,12 @@
       <button class="nav-item" onclick="showView('drive')" id="nav-drive">
         <span class="nav-icon">💾</span> Disk
       </button>
+      <a class="nav-item" href="/pdf" id="nav-pdf" onclick="this.href = '/pdf' + (window.NW && NW.suite && NW.suite.ws ? '?ws=' + encodeURIComponent(NW.suite.ws) : '')">
+        <span class="nav-icon">📑</span> PDF nástroje
+      </a>
+      <a class="nav-item" href="/video" id="nav-video" onclick="this.href = '/video' + (window.NW && NW.suite && NW.suite.ws ? '?ws=' + encodeURIComponent(NW.suite.ws) : '')">
+        <span class="nav-icon">🎬</span> Video štúdio
+      </a>
     </div>
 
     <div class="sidebar-section" id="widget-nav-section" style="display:none">

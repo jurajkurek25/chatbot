@@ -147,6 +147,7 @@ app.get('/form/:token', (req, res) => {
 app.get('/docs/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'doc.html')));
 app.get('/boards/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'board.html')));
 app.get('/pdf', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pdf.html')));
+app.get('/video', (req, res) => res.sendFile(path.join(__dirname, 'public', 'video.html')));
 app.get('/sheets/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sheet.html')));
 app.get('/graphics/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'graphic.html')));
 app.get('/s/:token', (req, res) => {
