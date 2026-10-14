@@ -68,4 +68,19 @@ describe('grafika zo šablón', () => {
     await owner.api('DELETE', `/api/drive/trash/${item.id}`);
     assert.equal(getDb().prepare('SELECT COUNT(*) AS n FROM designs WHERE id = ?').get(d.id).n, 0);
   });
+
+  it('prezentácia: šablóna so snímkami, priečinok Prezentácie, oddelený zoznam, text zo všetkých snímok', async () => {
+    const t = (await owner.api('GET', `${G}/templates/builtin:deck`)).body;
+    assert.equal(t.kind, 'deck');
+    assert.equal(t.pages.length, 4);
+    const data = JSON.stringify({ nwDeck: 1, pages: [{ objects: [{ type: 'Textbox', text: 'Úvod' }] }, { objects: [{ type: 'Textbox', text: 'Ďakujem' }] }] });
+    const d = (await owner.api('POST', `${G}/designs`, { title: 'Kvartál', kind: 'deck', width: 1920, height: 1080, data })).body;
+    assert.equal(d.kind, 'deck');
+    const item = getDb().prepare('SELECT parent_id FROM drive_items WHERE id = ?').get(d.driveItemId);
+    assert.equal(getDb().prepare('SELECT name FROM drive_items WHERE id = ?').get(item.parent_id).name, 'Prezentácie');
+    assert.deepEqual((await owner.api('GET', `${G}/designs?kind=deck`)).body.map((x) => x.title), ['Kvartál']);
+    assert.ok(!(await owner.api('GET', `${G}/designs`)).body.some((x) => x.kind === 'deck'));
+    assert.equal(require('../services/graphics').textOf(data), 'Úvod Ďakujem');
+    assert.equal((await owner.api('POST', `${G}/designs/${d.id}/duplicate`, {})).body.kind, 'deck');
+  });
 });

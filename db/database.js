@@ -1038,6 +1038,8 @@ function initDatabase() {
     `ALTER TABLE leads ADD COLUMN source TEXT`,
     `ALTER TABLE orders ADD COLUMN withdrawal_waiver_at INTEGER`,
     `ALTER TABLE drive_items ADD COLUMN ref TEXT`,
+    `ALTER TABLE designs ADD COLUMN kind TEXT NOT NULL DEFAULT 'graphic'`,
+    `ALTER TABLE design_templates ADD COLUMN kind TEXT NOT NULL DEFAULT 'graphic'`,
     `ALTER TABLE conversations ADD COLUMN live_agent INTEGER NOT NULL DEFAULT 0`,
     `ALTER TABLE conversations ADD COLUMN csat_rating INTEGER`,
     `ALTER TABLE widgets ADD COLUMN ecomail_api_key TEXT`,

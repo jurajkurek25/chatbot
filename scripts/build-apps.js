@@ -19,7 +19,7 @@ const cssFromPackages = {
 };
 
 // Aplikácie s množstvom súborov majú vlastný priečinok; Excalidraw ide ako ES modul s rozdelením (jazyky sa načítajú až pri potrebe)
-const OWN = { 'board-editor.jsx': { dir: 'board', esm: true }, 'sheet-editor.js': { dir: 'sheet', esm: true }, 'graphic-editor.js': { dir: 'graphic', esm: false } };
+const OWN = { 'board-editor.jsx': { dir: 'board', esm: true }, 'sheet-editor.js': { dir: 'sheet', esm: true }, 'graphic-editor.js': { dir: 'graphic', esm: true } };
 const common = {
   bundle: true, minify: true, target: ['es2020'],
   loader: { '.js': 'jsx', '.woff': 'file', '.woff2': 'file', '.ttf': 'file', '.png': 'file', '.svg': 'file' },

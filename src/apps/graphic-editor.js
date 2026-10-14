@@ -1,6 +1,6 @@
 // Grafický editor Neoworkly (podľa Aktivisda): fabric.js (MIT), značka tímu, šablóny so zamknutými vrstvami,
 // export PNG / JPG / PDF a uloženie na Disk. Zostavenie: npm run build:apps → public/apps/graphic-editor.js
-import { Canvas, Textbox, Rect, Circle, FabricImage, FabricObject, Shadow, util } from 'fabric';
+import { Canvas, StaticCanvas, Textbox, Rect, Circle, FabricImage, FabricObject, Shadow, util } from 'fabric';
 import '@fontsource/inter/400.css';
 import '@fontsource/inter/700.css';
 import '@fontsource/montserrat/400.css';
@@ -23,6 +23,7 @@ const MAX_IMG = 1800; // px – väčšie obrázky sa pri vložení zmenšia
 
 let meta, canvas, zoom = 1, readonly = false, unlocked = false;
 let history = [], future = [], restoring = false, saveT = null, dirty = false;
+let deck = null; // prezentácia: { pages: [objekt plátna], cur, thumbs: [] }
 
 async function api(method, path, body) {
   const r = await fetch(`${path}${path.includes('?') ? '&' : '?'}ws=${encodeURIComponent(ws)}`, {
@@ -101,7 +102,14 @@ function applyLocks() {
   canvas.requestRenderAll();
 }
 
-const json = () => JSON.stringify(canvas.toObject(PROPS.concat(['nwLabel'])));
+const pageObj = () => canvas.toObject(PROPS.concat(['nwLabel']));
+const json = () => JSON.stringify(pageObj());
+/** Celý dokument na uloženie: jedna grafika alebo všetky snímky prezentácie. */
+function docJSON() {
+  if (!deck) return json();
+  deck.pages[deck.cur] = pageObj();
+  return JSON.stringify({ nwDeck: 1, pages: deck.pages });
+}
 function snapshot() {
   if (restoring) return;
   history.push(json());
@@ -132,8 +140,11 @@ async function save() {
   if (!dirty || readonly) return;
   dirty = false;
   try {
-    const thumb = exportURL('jpeg', 360 / Math.max(meta.width, meta.height), 0.75);
-    await api('PATCH', `/api/graphics/designs/${id}`, { data: json(), thumb });
+    const small = 360 / Math.max(meta.width, meta.height);
+    if (deck) deck.thumbs[deck.cur] = exportURL('jpeg', small, 0.75);
+    const thumb = deck ? (deck.thumbs[0] || exportURL('jpeg', small, 0.75)) : exportURL('jpeg', small, 0.75);
+    await api('PATCH', `/api/graphics/designs/${id}`, { data: docJSON(), thumb });
+    if (deck) strip();
     $('#status').textContent = 'Uložené';
   } catch (e) { dirty = true; $('#status').textContent = e.message; }
 }
@@ -153,11 +164,9 @@ function exportURL(format, scale = 1, quality = 0.92) {
 }
 const dataURLtoBlob = url => fetch(url).then(r => r.blob());
 
-/** PDF s jedným obrázkom JPEG (veľkosť strany podľa návrhu, 150 DPI). */
-async function pdfBlob() {
-  const url = exportURL('jpeg', 1, 0.92);
-  const bin = atob(url.split(',')[1]);
-  const img = Uint8Array.from(bin, c => c.charCodeAt(0));
+/** PDF: každá strana jeden obrázok JPEG (veľkosť podľa návrhu, 150 DPI). */
+async function pdfBlob(urls = [exportURL('jpeg', 1, 0.92)]) {
+  const imgs = urls.map(u => Uint8Array.from(atob(u.split(',')[1]), c => c.charCodeAt(0)));
   const w = meta.width * 72 / 150, h = meta.height * 72 / 150;
   const enc = new TextEncoder();
   const parts = [];
@@ -166,14 +175,21 @@ async function pdfBlob() {
   const push = p => { const b = typeof p === 'string' ? enc.encode(p) : p; parts.push(b); len += b.length; };
   const obj = (n, body) => { offsets[n] = len; push(`${n} 0 obj\n`); body(); push('\nendobj\n'); };
   push('%PDF-1.4\n');
+  const n = imgs.length;
+  // objekty: 1 katalóg, 2 strany, potom pre každú stranu: strana, obrázok, obsah
+  const kids = imgs.map((_, i) => `${3 + i * 3} 0 R`).join(' ');
   obj(1, () => push('<< /Type /Catalog /Pages 2 0 R >>'));
-  obj(2, () => push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>'));
-  obj(3, () => push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w.toFixed(2)} ${h.toFixed(2)}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>`));
-  obj(4, () => { push(`<< /Type /XObject /Subtype /Image /Width ${meta.width} /Height ${meta.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n`); push(img); push('\nendstream'); });
+  obj(2, () => push(`<< /Type /Pages /Kids [${kids}] /Count ${n} >>`));
   const content = `q ${w.toFixed(2)} 0 0 ${h.toFixed(2)} 0 0 cm /Im0 Do Q`;
-  obj(5, () => push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+  imgs.forEach((img, i) => {
+    const b = 3 + i * 3;
+    obj(b, () => push(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${w.toFixed(2)} ${h.toFixed(2)}] /Resources << /XObject << /Im0 ${b + 1} 0 R >> >> /Contents ${b + 2} 0 R >>`));
+    obj(b + 1, () => { push(`<< /Type /XObject /Subtype /Image /Width ${meta.width} /Height ${meta.height} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n`); push(img); push('\nendstream'); });
+    obj(b + 2, () => push(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+  });
+  const total = 3 + n * 3;
   const xref = len;
-  push(`xref\n0 6\n0000000000 65535 f \n${[1, 2, 3, 4, 5].map(n => `${String(offsets[n]).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
+  push(`xref\n0 ${total}\n0000000000 65535 f \n${Array.from({ length: total - 1 }, (_, i) => `${String(offsets[i + 1]).padStart(10, '0')} 00000 n \n`).join('')}trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`);
   return new Blob(parts, { type: 'application/pdf' });
 }
 function download(blob, name) {
@@ -385,6 +401,120 @@ async function applyBrand() {
   toast('Farby a písma značky použité.');
 }
 
+/* ── Prezentácia (snímky) ── */
+/** Obrázok ľubovoľnej snímky (aj inej ako práve upravovanej) – na export a prezentovanie. */
+async function renderPage(obj, format = 'jpeg', scale = 1, quality = 0.9) {
+  const sc = new StaticCanvas(null, { width: meta.width, height: meta.height, enableRetinaScaling: false });
+  await sc.loadFromJSON(obj);
+  sc.getObjects().filter(o => String(o.nwRole || '').startsWith('slot-')).forEach(o => { o.visible = false; });
+  sc.renderAll();
+  const url = sc.toDataURL({ format, quality, multiplier: scale });
+  sc.dispose();
+  return url;
+}
+async function allPages(format, scale, quality) {
+  deck.pages[deck.cur] = pageObj();
+  const out = [];
+  for (const p of deck.pages) out.push(await renderPage(p, format, scale, quality));
+  return out;
+}
+async function gotoPage(i) {
+  if (!deck || i === deck.cur || i < 0 || i >= deck.pages.length) return;
+  const small = 360 / Math.max(meta.width, meta.height);
+  deck.thumbs[deck.cur] = exportURL('jpeg', small, 0.75);
+  deck.pages[deck.cur] = pageObj();
+  deck.cur = i;
+  restoring = true;
+  await canvas.loadFromJSON(deck.pages[i]);
+  restoring = false;
+  applyLocks();
+  history = [json()];
+  future = [];
+  layers();
+  props();
+  strip();
+}
+function strip() {
+  const el = $('#pages');
+  if (!deck || !el) return;
+  el.style.display = 'flex';
+  el.innerHTML = deck.pages.map((p, i) => `<button class="pg ${i === deck.cur ? 'on' : ''}" data-pg="${i}" title="Snímka ${i + 1}">${deck.thumbs[i] ? `<img src="${deck.thumbs[i]}" alt="">` : ''}<span>${i + 1}</span></button>`).join('')
+    + (readonly ? '' : `<div class="pgact"><button id="pgNew" title="Nová snímka (rovnaké pozadie a logo)">＋</button><button id="pgDup" title="Duplikovať snímku">⧉</button>
+      <button id="pgLeft" title="Posunúť doľava">◀</button><button id="pgRight" title="Posunúť doprava">▶</button><button id="pgDel" title="Zmazať snímku">🗑</button></div>`);
+  el.querySelectorAll('[data-pg]').forEach(b => { b.onclick = () => gotoPage(Number(b.dataset.pg)); });
+  if (readonly) return;
+  const insert = async obj => {
+    deck.pages[deck.cur] = pageObj();
+    deck.pages.splice(deck.cur + 1, 0, obj);
+    deck.thumbs.splice(deck.cur + 1, 0, null);
+    const next = deck.cur + 1;
+    deck.cur = next - 1;
+    await gotoPage(next);
+    dirty = true; scheduleSave();
+  };
+  $('#pgDup').onclick = () => insert(JSON.parse(JSON.stringify(pageObj())));
+  // nová snímka: ponechá iba zamknuté vrstvy značky (pozadie, akcenty) a logo
+  $('#pgNew').onclick = () => { const o = pageObj(); o.objects = o.objects.filter(x => x.nwLocked || x.nwRole === 'logo'); insert(o); };
+  const swap = d => {
+    const j = deck.cur + d;
+    if (j < 0 || j >= deck.pages.length) return;
+    deck.pages[deck.cur] = pageObj();
+    [deck.pages[deck.cur], deck.pages[j]] = [deck.pages[j], deck.pages[deck.cur]];
+    [deck.thumbs[deck.cur], deck.thumbs[j]] = [deck.thumbs[j], deck.thumbs[deck.cur]];
+    deck.cur = j;
+    strip(); dirty = true; scheduleSave();
+  };
+  $('#pgLeft').onclick = () => swap(-1);
+  $('#pgRight').onclick = () => swap(1);
+  $('#pgDel').onclick = async () => {
+    if (deck.pages.length < 2) return toast('Prezentácia musí mať aspoň jednu snímku.');
+    if (!confirm(`Zmazať snímku ${deck.cur + 1}?`)) return;
+    const i = deck.cur;
+    deck.pages.splice(i, 1);
+    deck.thumbs.splice(i, 1);
+    deck.cur = -1;
+    await gotoPage(Math.min(i, deck.pages.length - 1));
+    dirty = true; scheduleSave();
+  };
+}
+async function renderThumbs() {
+  const small = 360 / Math.max(meta.width, meta.height);
+  for (let i = 0; i < deck.pages.length; i++) if (!deck.thumbs[i]) { deck.thumbs[i] = await renderPage(deck.pages[i], 'jpeg', small, 0.7); strip(); }
+}
+/** Prezentovanie na celú obrazovku: šípky / klik / medzerník, Esc koniec. */
+async function present() {
+  toast('Pripravujem prezentáciu…');
+  const slides = deck ? await allPages('jpeg', Math.min(1, 1920 / meta.width), 0.9) : [exportURL('jpeg', 1, 0.9)];
+  let i = deck ? deck.cur : 0;
+  const o = document.createElement('div');
+  o.id = 'show';
+  o.innerHTML = '<img alt=""><div class="cnt"></div>';
+  document.body.appendChild(o);
+  const show = () => { o.querySelector('img').src = slides[i]; o.querySelector('.cnt').textContent = `${i + 1} / ${slides.length}`; };
+  const end = () => { document.removeEventListener('keydown', key); if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); o.remove(); };
+  const key = e => {
+    if (['ArrowRight', 'ArrowDown', ' ', 'PageDown', 'Enter'].includes(e.key)) { e.preventDefault(); if (i < slides.length - 1) { i++; show(); } }
+    if (['ArrowLeft', 'ArrowUp', 'PageUp', 'Backspace'].includes(e.key)) { e.preventDefault(); if (i > 0) { i--; show(); } }
+    if (e.key === 'Escape') end();
+  };
+  o.onclick = e => { if (e.clientX < innerWidth / 3) { if (i > 0) { i--; show(); } } else if (i < slides.length - 1) { i++; show(); } else end(); };
+  document.addEventListener('keydown', key);
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && document.body.contains(o)) end(); }, { once: true });
+  show();
+  o.requestFullscreen?.().catch(() => {});
+}
+async function pptxBlob() {
+  const { default: PptxGenJS } = await import('pptxgenjs');
+  const pptx = new PptxGenJS();
+  const w = 13.333, h = w * meta.height / meta.width;
+  pptx.defineLayout({ name: 'NW', width: w, height: h });
+  pptx.layout = 'NW';
+  pptx.title = meta.title;
+  const pages = deck ? await allPages('jpeg', 1, 0.9) : [exportURL('jpeg', 1, 0.9)];
+  pages.forEach(data => pptx.addSlide().addImage({ data, x: 0, y: 0, w, h }));
+  return pptx.write({ outputType: 'blob' });
+}
+
 /* ── Štart ── */
 async function start() {
   if (!token) { location.href = '/'; return; }
@@ -402,17 +532,44 @@ async function start() {
   $('#size').textContent = `${meta.width} × ${meta.height} px`;
   await Promise.all(meta.fonts.filter(f => !['Georgia', 'Arial'].includes(f)).flatMap(f => ['400', '700', '800'].map(w => document.fonts.load(`${w} 40px "${f}"`).catch(() => null))));
   canvas = new Canvas($('#c'), { preserveObjectStacking: true, backgroundColor: '#ffffff', selection: !readonly });
-  if (meta.data) {
+  const parsed = meta.data ? JSON.parse(meta.data) : null;
+  if (parsed && parsed.nwDeck) {
+    deck = { pages: parsed.pages, cur: 0, thumbs: [] };
+    restoring = true;
+    await canvas.loadFromJSON(deck.pages[0]);
+    restoring = false;
+  } else if (parsed) {
     restoring = true;
     await canvas.loadFromJSON(meta.data);
     restoring = false;
   } else if (meta.templateId) {
-    // nový návrh zo vstavanej šablóny: vrstvy so značkou tímu
+    // nový návrh zo vstavanej šablóny: vrstvy so značkou tímu (prezentácia = viac snímok)
     const t = await api('GET', `/api/graphics/templates/${encodeURIComponent(meta.templateId)}`);
-    if (t.layers) (await fromLayers(t.layers)).forEach(o => canvas.add(o));
-    else if (t.data) { restoring = true; await canvas.loadFromJSON(t.data); restoring = false; }
+    if (t.pages) {
+      const pages = [];
+      for (const layers of t.pages) { canvas.clear(); canvas.backgroundColor = '#ffffff'; (await fromLayers(layers)).forEach(o => canvas.add(o)); pages.push(pageObj()); }
+      deck = { pages, cur: 0, thumbs: [] };
+      restoring = true;
+      await canvas.loadFromJSON(pages[0]);
+      restoring = false;
+    } else if (t.layers) (await fromLayers(t.layers)).forEach(o => canvas.add(o));
+    else if (t.data) {
+      const td = JSON.parse(t.data);
+      restoring = true;
+      if (td.nwDeck) { deck = { pages: td.pages, cur: 0, thumbs: [] }; await canvas.loadFromJSON(td.pages[0]); } else await canvas.loadFromJSON(t.data);
+      restoring = false;
+    }
+  }
+  if (!deck && meta.kind === 'deck') deck = { pages: [pageObj()], cur: 0, thumbs: [] };
+  if (deck) {
+    document.body.classList.add('deck');
+    $('.back').textContent = '← Prezentácie';
+    $('.back').href = `/dashboard?view=decks&ws=${encodeURIComponent(meta.ownerId)}`;
+    // náhľady ostatných snímok
+    renderThumbs();
   }
   applyLocks();
+  if (deck) strip();
   fit();
   window.addEventListener('resize', fit);
   history = [json()];
@@ -468,20 +625,24 @@ async function start() {
       const t = b.dataset.export;
       if (t === 'png') download(await dataURLtoBlob(exportURL('png')), fileName('png'));
       if (t === 'jpg') download(await dataURLtoBlob(exportURL('jpeg')), fileName('jpg'));
-      if (t === 'pdf') download(await pdfBlob(), fileName('pdf'));
+      if (t === 'pdf') { if (deck) toast('Pripravujem PDF…'); download(await pdfBlob(deck ? await allPages('jpeg', 1, 0.9) : undefined), fileName('pdf')); }
+      if (t === 'pptx') { toast('Pripravujem PowerPoint…'); download(await pptxBlob(), fileName('pptx')); }
+      if (t === 'present') present();
       if (t === 'drive') {
         try {
           const fd = new FormData();
-          fd.append('files', new File([await dataURLtoBlob(exportURL('png'))], fileName('png'), { type: 'image/png' }));
+          // prezentácia ide na Disk ako PDF so všetkými snímkami, grafika ako PNG
+          if (deck) fd.append('files', new File([await pdfBlob(await allPages('jpeg', 1, 0.9))], fileName('pdf'), { type: 'application/pdf' }));
+          else fd.append('files', new File([await dataURLtoBlob(exportURL('png'))], fileName('png'), { type: 'image/png' }));
           await api('POST', `/api/drive/files${meta.folderId ? `?parentId=${encodeURIComponent(meta.folderId)}` : ''}`, fd);
-          toast('PNG uložené na Disk (priečinok Grafika).');
+          toast(deck ? 'PDF uložené na Disk (priečinok Prezentácie).' : 'PNG uložené na Disk (priečinok Grafika).');
         } catch (e) { toast(e.message); }
       }
       if (t === 'template') {
         const name = prompt('Názov tímovej šablóny:', meta.title);
         if (!name) return;
         try {
-          await api('POST', '/api/graphics/templates', { title: name, width: meta.width, height: meta.height, data: json(), thumb: exportURL('jpeg', 360 / Math.max(meta.width, meta.height), 0.75) });
+          await api('POST', '/api/graphics/templates', { title: name, kind: deck ? 'deck' : 'graphic', width: meta.width, height: meta.height, data: docJSON(), thumb: deck ? (deck.thumbs[0] || undefined) : exportURL('jpeg', 360 / Math.max(meta.width, meta.height), 0.75) });
           toast('Šablóna uložená – tím ju nájde pri novom návrhu.');
         } catch (e) { toast(e.message); }
       }

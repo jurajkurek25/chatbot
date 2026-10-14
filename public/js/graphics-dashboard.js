@@ -7,12 +7,23 @@
   const su = () => window.NW.suite;
   let tab = 'designs';
   let brand = null;
+  let kind = 'graphic'; // 'graphic' = Grafika, 'deck' = Prezentácie (ten istý editor so snímkami)
+  const VIEW = { graphic: 'graphics', deck: 'decks' };
+  const root = () => `${VIEW[kind]}-body`;
 
+  /** Obe sekcie zdieľajú tento modul; skrytá sekcia sa vyprázdni, aby sa neopakovali id prvkov. */
+  function enter(k) {
+    kind = k;
+    const other = $(`${VIEW[k === 'deck' ? 'graphic' : 'deck']}-body`);
+    if (other) other.innerHTML = '';
+    return load();
+  }
   window.NW_SUITE = window.NW_SUITE || {};
-  window.NW_SUITE.graphics = { title: 'Grafika', load };
+  window.NW_SUITE.graphics = { title: 'Grafika', load: () => enter('graphic') };
+  window.NW_SUITE.decks = { title: 'Prezentácie', load: () => enter('deck') };
   if (window.NW && NW.rt) {
     let t;
-    NW.rt.on('design', () => { clearTimeout(t); t = setTimeout(() => { if ($('view-graphics') && $('view-graphics').style.display !== 'none' && tab === 'designs') body(); }, 500); });
+    NW.rt.on('design', () => { clearTimeout(t); t = setTimeout(() => { const v = $(`view-${VIEW[kind]}`); if (v && v.style.display !== 'none' && tab === 'designs') body(); }, 500); });
   }
 
   /** Náhľad vstavanej šablóny ako SVG vo farbách a písmach značky. */
@@ -44,11 +55,11 @@
     const s = su();
     brand = await s.api('GET', `${G}/brand`);
     if (!brand) return;
-    $('graphics-body').innerHTML = `<div style="display:flex;gap:0.6rem;align-items:center;margin-bottom:0.9rem;flex-wrap:wrap">
-        <div style="display:flex;gap:0.3rem">${[['designs', '🖼 Návrhy'], ['brand', '🎨 Značka']].map(([k, l]) => `<button class="nav-item ${tab === k ? 'active' : ''}" data-gt="${k}" style="width:auto">${l}</button>`).join('')}</div>
-        <span style="margin-left:auto;display:flex;gap:0.5rem;align-items:center">${s.wsPicker(load)}${s.canWrite ? '<button class="btn btn-primary" id="gr-new">+ Nový návrh</button>' : ''}</span></div>
+    $(root()).innerHTML = `<div style="display:flex;gap:0.6rem;align-items:center;margin-bottom:0.9rem;flex-wrap:wrap">
+        <div style="display:flex;gap:0.3rem">${[['designs', kind === 'deck' ? '📽 Prezentácie' : '🖼 Návrhy'], ['brand', '🎨 Značka']].map(([k, l]) => `<button class="nav-item ${tab === k ? 'active' : ''}" data-gt="${k}" style="width:auto">${l}</button>`).join('')}</div>
+        <span style="margin-left:auto;display:flex;gap:0.5rem;align-items:center">${s.wsPicker(load)}${s.canWrite ? `<button class="btn btn-primary" id="gr-new">${kind === 'deck' ? '+ Nová prezentácia' : '+ Nový návrh'}</button>` : ''}</span></div>
       <div id="gr-body"></div>`;
-    document.querySelectorAll('#graphics-body [data-gt]').forEach(b => { b.onclick = () => { tab = b.dataset.gt; load(); }; });
+    document.querySelectorAll(`#${root()} [data-gt]`).forEach(b => { b.onclick = () => { tab = b.dataset.gt; load(); }; });
     if ($('gr-new')) $('gr-new').onclick = gallery;
     body();
   }
@@ -56,22 +67,22 @@
 
   async function designs() {
     const s = su();
-    const list = (await s.api('GET', `${G}/designs`)) || [];
+    const list = (await s.api('GET', `${G}/designs?kind=${kind}`)) || [];
     $('gr-body').innerHTML = list.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:0.85rem">${list.map(d => `
       <div class="panel" style="margin:0;padding:0.6rem;display:flex;flex-direction:column;gap:0.45rem">
-        <a href="${esc(d.url)}" style="display:flex;align-items:center;justify-content:center;aspect-ratio:1;background:#0a0a14;border-radius:8px;overflow:hidden">
+        <a href="${esc(d.url)}" style="display:flex;align-items:center;justify-content:center;aspect-ratio:${kind === 'deck' ? '16/9' : '1'};background:#0a0a14;border-radius:8px;overflow:hidden">
           ${d.thumb ? `<img src="${d.thumb}" alt="" style="max-width:100%;max-height:100%;object-fit:contain">` : '<span style="font-size:2rem">🖼</span>'}</a>
         <a href="${esc(d.url)}" style="font-weight:700;color:#eeeef5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(d.title)}</a>
         <div style="${s.muted}">${d.width}×${d.height} · ${esc(d.author)} · ${s.date(d.updatedAt, { dateStyle: 'short' })}</div>
         ${s.canWrite ? `<div style="display:flex;gap:0.3rem"><button class="btn btn-sm btn-secondary" data-dup="${esc(d.id)}" title="Duplikovať">⧉</button><button class="btn btn-sm btn-danger" data-del="${esc(d.id)}" title="Do koša">✕</button></div>` : ''}</div>`).join('')}</div>`
-      : `<div class="empty-state"><div class="empty-state-icon">🖼</div><p>Zatiaľ žiadna grafika. ${s.canWrite ? 'Vyberte šablónu – príspevok na Instagram, story, plagát, miniatúru… Farby a logo sa doplnia zo značky tímu.' : ''}</p></div>`;
+      : (kind === 'deck' ? `<div class="empty-state"><div class="empty-state-icon">📽</div><p>Zatiaľ žiadna prezentácia. ${s.canWrite ? 'Začnite šablónou vo farbách značky – úvodná snímka, obsah, fotka a záver. Prezentujete priamo z prehliadača, export do PDF aj PowerPointu.' : ''}</p></div>` : `<div class="empty-state"><div class="empty-state-icon">🖼</div><p>Zatiaľ žiadna grafika. ${s.canWrite ? 'Vyberte šablónu – príspevok na Instagram, story, plagát, miniatúru… Farby a logo sa doplnia zo značky tímu.' : ''}</p></div>`);
     document.querySelectorAll('#gr-body [data-dup]').forEach(b => { b.onclick = async () => { if (await s.api('POST', `${G}/designs/${b.dataset.dup}/duplicate`, {}, 'Skopírované.')) designs(); }; });
     document.querySelectorAll('#gr-body [data-del]').forEach(b => { b.onclick = async () => { if (confirm('Presunúť návrh do koša na Disku?') && await s.api('DELETE', `${G}/designs/${b.dataset.del}`, undefined, 'Presunuté do koša.')) designs(); }; });
   }
 
   async function gallery() {
     const s = su();
-    const tpls = (await s.api('GET', `${G}/templates`)) || [];
+    const tpls = ((await s.api('GET', `${G}/templates`)) || []).filter(t => (t.kind || 'graphic') === kind);
     const groups = {};
     tpls.forEach(t => { (groups[t.team ? '⭐ Šablóny tímu' : t.category] = groups[t.team ? '⭐ Šablóny tímu' : t.category] || []).push(t); });
     const card = t => `<button data-tpl="${esc(t.id)}" style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:0.45rem;cursor:pointer;color:#eeeef5;text-align:left">
@@ -82,11 +93,11 @@
       ${Object.entries(groups).map(([g, list]) => `<div style="font-weight:700;margin:0.8rem 0 0.4rem">${esc(g)}</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.6rem;align-items:start">${list.map(card).join('')}</div>`).join('')}
       <div style="font-weight:700;margin:1rem 0 0.4rem">Prázdne plátno</div>
-      <div style="display:flex;gap:0.4rem;flex-wrap:wrap">${Object.entries(brand.sizes).map(([k, z]) => `<button class="btn btn-sm btn-secondary" data-blank="${k}">${esc(z.label)} <span style="${s.muted}">${z.width}×${z.height}</span></button>`).join('')}</div>`, (el, close) => {
+      <div style="display:flex;gap:0.4rem;flex-wrap:wrap">${Object.entries(brand.sizes).filter(([, z]) => (z.kind || 'graphic') === kind).map(([k, z]) => `<button class="btn btn-sm btn-secondary" data-blank="${k}">${esc(z.label)} <span style="${s.muted}">${z.width}×${z.height}</span></button>`).join('')}</div>`, (el, close) => {
       el.querySelectorAll('[data-tpl]').forEach(b => {
         b.onclick = async () => {
           const t = tpls.find(x => x.id === b.dataset.tpl);
-          const body = { title: t.title, width: t.width, height: t.height, templateId: t.id };
+          const body = { title: t.title, kind, width: t.width, height: t.height, templateId: t.id };
           if (t.team) { const full = await s.api('GET', `${G}/templates/${t.id}`); if (!full) return; body.data = full.data; body.thumb = t.thumb; }
           const d = await s.api('POST', `${G}/designs`, body);
           if (d) { close(); location.href = d.url; }
@@ -95,7 +106,7 @@
       el.querySelectorAll('[data-blank]').forEach(b => {
         b.onclick = async () => {
           const z = brand.sizes[b.dataset.blank];
-          const d = await s.api('POST', `${G}/designs`, { title: z.label, width: z.width, height: z.height });
+          const d = await s.api('POST', `${G}/designs`, { title: z.label, kind, width: z.width, height: z.height });
           if (d) { close(); location.href = d.url; }
         };
       });

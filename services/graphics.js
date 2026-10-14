@@ -27,6 +27,7 @@ const SIZES = {
   'yt-thumb': { label: 'YouTube miniatúra', width: 1280, height: 720 },
   'a4': { label: 'Plagát A4', width: 1240, height: 1754 },
   'banner': { label: 'Banner na web', width: 1600, height: 500 },
+  'slide': { label: 'Prezentácia 16:9', width: 1920, height: 1080, kind: 'deck' },
 };
 
 /**
@@ -84,6 +85,34 @@ const BUILTIN = {
     { type: 'text', x: 100, y: 1435, w: 620, text: 'Prihláška: mojweb.sk', font: 'heading', size: 50, weight: 800, color: 'brand.secondary', align: 'center', name: 'Text tlačidla' },
     { type: 'logo', x: 900, y: 1560, w: 240, h: 120, name: 'Logo' },
   ] },
+  deck: { title: 'Prezentácia značky', size: 'slide', pages: [
+    [
+      { type: 'rect', x: 0, y: 0, w: 1920, h: 1080, fill: 'brand.primary', locked: true, name: 'Pozadie' },
+      { type: 'circle', x: 1700, y: 160, r: 380, fill: 'brand.accent', opacity: 0.9, locked: true, name: 'Kruh' },
+      { type: 'text', x: 140, y: 360, w: 1300, text: 'Názov prezentácie', font: 'heading', size: 130, weight: 800, color: '#ffffff', lineHeight: 1.05, name: 'Nadpis' },
+      { type: 'text', x: 140, y: 640, w: 1300, text: 'Podnadpis · meno · dátum', font: 'body', size: 48, color: '#ffffff', name: 'Podnadpis' },
+      { type: 'logo', x: 140, y: 880, w: 260, h: 120, name: 'Logo' },
+    ],
+    [
+      { type: 'rect', x: 0, y: 0, w: 1920, h: 1080, fill: 'brand.background', locked: true, name: 'Pozadie' },
+      { type: 'rect', x: 140, y: 150, w: 120, h: 14, fill: 'brand.accent', locked: true, name: 'Akcent' },
+      { type: 'text', x: 140, y: 200, w: 1640, text: 'Nadpis snímky', font: 'heading', size: 84, weight: 800, color: 'brand.text', name: 'Nadpis' },
+      { type: 'text', x: 140, y: 380, w: 1640, text: '• Prvý dôležitý bod\n• Druhý bod s vysvetlením\n• Tretí bod', font: 'body', size: 50, color: 'brand.text', lineHeight: 1.6, name: 'Body' },
+      { type: 'logo', x: 1620, y: 950, w: 180, h: 80, name: 'Logo' },
+    ],
+    [
+      { type: 'rect', x: 0, y: 0, w: 1920, h: 1080, fill: 'brand.background', locked: true, name: 'Pozadie' },
+      { type: 'image', x: 0, y: 0, w: 900, h: 1080, name: 'Fotka' },
+      { type: 'text', x: 1000, y: 260, w: 800, text: 'Fotka a text', font: 'heading', size: 80, weight: 800, color: 'brand.text', lineHeight: 1.1, name: 'Nadpis' },
+      { type: 'text', x: 1000, y: 520, w: 800, text: 'Krátky popis k fotke – čo na nej je a prečo je to dôležité.', font: 'body', size: 44, color: 'brand.text', lineHeight: 1.45, name: 'Text' },
+    ],
+    [
+      { type: 'rect', x: 0, y: 0, w: 1920, h: 1080, fill: 'brand.secondary', locked: true, name: 'Pozadie' },
+      { type: 'text', x: 160, y: 380, w: 1600, text: 'Ďakujem!', font: 'heading', size: 150, weight: 800, color: '#ffffff', align: 'center', name: 'Nadpis' },
+      { type: 'text', x: 160, y: 620, w: 1600, text: 'meno@firma.sk · www.firma.sk', font: 'body', size: 48, color: 'brand.accent', align: 'center', name: 'Kontakt' },
+      { type: 'logo', x: 830, y: 820, w: 260, h: 120, name: 'Logo' },
+    ],
+  ] },
   webinar: { title: 'Banner na webinár', size: 'banner', layers: [
     { type: 'rect', x: 0, y: 0, w: 1600, h: 500, fill: 'brand.secondary', locked: true, name: 'Pozadie' },
     { type: 'circle', x: 1420, y: 80, r: 260, fill: 'brand.primary', opacity: 0.7, name: 'Kruh' },
@@ -124,20 +153,22 @@ function saveBrand(ownerId, b) {
 /* ── Šablóny ── */
 
 function templates(ownerId) {
-  const builtin = Object.entries(BUILTIN).map(([k, t]) => ({ id: `builtin:${k}`, title: t.title, category: SIZES[t.size].label, size: t.size, width: SIZES[t.size].width, height: SIZES[t.size].height, layers: t.layers, builtin: true }));
-  const team = getDb().prepare('SELECT id, title, category, width, height, thumb, created_by, created_at FROM design_templates WHERE owner_id = ? ORDER BY created_at DESC').all(ownerId)
-    .map(t => ({ id: t.id, title: t.title, category: t.category, width: t.width, height: t.height, thumb: t.thumb, createdBy: t.created_by, team: true }));
+  const builtin = Object.entries(BUILTIN).map(([k, t]) => ({ id: `builtin:${k}`, title: t.title, category: SIZES[t.size].label, size: t.size, kind: kindOf(t.size), width: SIZES[t.size].width, height: SIZES[t.size].height, layers: t.layers || t.pages[0], pages: t.pages ? t.pages.length : 1, builtin: true }));
+  const team = getDb().prepare('SELECT id, title, category, kind, width, height, thumb, created_by, created_at FROM design_templates WHERE owner_id = ? ORDER BY created_at DESC').all(ownerId)
+    .map(t => ({ id: t.id, title: t.title, category: t.category, kind: t.kind, width: t.width, height: t.height, thumb: t.thumb, createdBy: t.created_by, team: true }));
   return [...team, ...builtin];
 }
 
 function template(ownerId, id) {
   if (String(id).startsWith('builtin:')) {
     const t = BUILTIN[String(id).slice(8)];
-    return t ? { id, title: t.title, width: SIZES[t.size].width, height: SIZES[t.size].height, layers: t.layers, builtin: true } : null;
+    return t ? { id, title: t.title, kind: kindOf(t.size), width: SIZES[t.size].width, height: SIZES[t.size].height, layers: t.layers, pages: t.pages, builtin: true } : null;
   }
   const t = getDb().prepare('SELECT * FROM design_templates WHERE id = ? AND owner_id = ?').get(id, ownerId);
-  return t ? { id: t.id, title: t.title, width: t.width, height: t.height, data: t.data, team: true, createdBy: t.created_by } : null;
+  return t ? { id: t.id, title: t.title, kind: t.kind, width: t.width, height: t.height, data: t.data, team: true, createdBy: t.created_by } : null;
 }
+const kindOf = size => SIZES[size]?.kind || 'graphic';
+const KINDS = ['graphic', 'deck'];
 
 const dims = (w, h) => [Math.max(50, Math.min(5000, Math.round(Number(w) || 0))), Math.max(50, Math.min(5000, Math.round(Number(h) || 0)))];
 const thumbOk = t => (typeof t === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(t) && t.length < 400000 ? t : '');
@@ -147,8 +178,8 @@ function saveTemplate(ownerId, b, userId) {
   if (!data || data.length > MAX_DATA) return { error: 'Šablóna je prázdna alebo príliš veľká.' };
   const [width, height] = dims(b.width, b.height);
   const id = uuidv4();
-  getDb().prepare('INSERT INTO design_templates (id, owner_id, title, category, width, height, data, thumb, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(id, ownerId, String(b.title || 'Šablóna').slice(0, 120), String(b.category || 'Tím').slice(0, 60), width, height, data, thumbOk(b.thumb), userId);
+  getDb().prepare('INSERT INTO design_templates (id, owner_id, kind, title, category, width, height, data, thumb, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(id, ownerId, KINDS.includes(b.kind) ? b.kind : 'graphic', String(b.title || 'Šablóna').slice(0, 120), String(b.category || 'Tím').slice(0, 60), width, height, data, thumbOk(b.thumb), userId);
   realtime.publish(ownerId, { type: 'design', template: id });
   return { id };
 }
@@ -168,10 +199,11 @@ function createDesign(ownerId, b, userId) {
   if (data.length > MAX_DATA) return { error: 'Návrh je príliš veľký.' };
   const id = uuidv4();
   const name = String(b.title || 'Návrh').trim().slice(0, 200) || 'Návrh';
-  const folder = drive.systemFolder(ownerId, 'graphics', 'Grafika');
+  const kind = KINDS.includes(b.kind) ? b.kind : 'graphic';
+  const folder = kind === 'deck' ? drive.systemFolder(ownerId, 'decks', 'Prezentácie') : drive.systemFolder(ownerId, 'graphics', 'Grafika');
   const item = drive.addRef(ownerId, folder.id, { name, mime: MIME, ref: `design:${id}` }, `user:${userId}`);
-  getDb().prepare('INSERT INTO designs (id, owner_id, title, width, height, data, template_id, thumb, drive_item_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-    .run(id, ownerId, name, width, height, data, b.templateId ? String(b.templateId).slice(0, 60) : null, thumbOk(b.thumb), item.id, userId);
+  getDb().prepare('INSERT INTO designs (id, owner_id, kind, title, width, height, data, template_id, thumb, drive_item_id, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .run(id, ownerId, kind, name, width, height, data, b.templateId ? String(b.templateId).slice(0, 60) : null, thumbOk(b.thumb), item.id, userId);
   realtime.publish(ownerId, { type: 'design', id });
   return { design: getDesign(ownerId, id) };
 }
@@ -190,14 +222,14 @@ function updateDesign(ownerId, d, b) {
 
 const designView = d => {
   const author = d.created_by && getDb().prepare('SELECT name FROM users WHERE id = ?').get(d.created_by);
-  return { id: d.id, title: d.title, width: d.width, height: d.height, thumb: d.thumb, templateId: d.template_id, author: author?.name || '',
+  return { id: d.id, kind: d.kind, title: d.title, width: d.width, height: d.height, thumb: d.thumb, templateId: d.template_id, author: author?.name || '',
     driveItemId: d.drive_item_id, updatedAt: d.updated_at, createdAt: d.created_at, url: openUrl(d.owner_id, d.id) };
 };
 
 /** Texty z návrhu (hľadanie). */
 function textOf(data) {
   const out = [];
-  const walk = o => { if (!o || typeof o !== 'object') return; if (typeof o.text === 'string') out.push(o.text); (o.objects || []).forEach(walk); };
+  const walk = o => { if (!o || typeof o !== 'object') return; if (typeof o.text === 'string') out.push(o.text); (o.objects || []).forEach(walk); (o.pages || []).forEach(walk); };
   walk(parse(data, {}));
   return out.join(' ');
 }

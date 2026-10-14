@@ -36,7 +36,7 @@ router.delete('/templates/:id', W, (req, res) => {
 
 router.get('/designs', (req, res) => {
   const rows = getDb().prepare(`SELECT d.* FROM designs d JOIN drive_items i ON i.id = d.drive_item_id
-                                WHERE d.owner_id = ? AND i.trashed_at IS NULL ORDER BY d.updated_at DESC LIMIT 200`).all(req.ownerId);
+                                WHERE d.owner_id = ? AND i.trashed_at IS NULL AND d.kind = ? ORDER BY d.updated_at DESC LIMIT 200`).all(req.ownerId, req.query.kind === 'deck' ? 'deck' : 'graphic');
   res.json(rows.map(g.designView));
 });
 router.post('/designs', W, (req, res) => {
@@ -62,7 +62,7 @@ router.patch('/designs/:id', W, own, (req, res) => {
 });
 router.post('/designs/:id/duplicate', W, own, (req, res) => {
   const d = req.design;
-  const r = g.createDesign(req.ownerId, { title: `${d.title} (kópia)`, width: d.width, height: d.height, data: d.data, thumb: d.thumb, templateId: d.template_id }, req.userId);
+  const r = g.createDesign(req.ownerId, { title: `${d.title} (kópia)`, kind: d.kind, width: d.width, height: d.height, data: d.data, thumb: d.thumb, templateId: d.template_id }, req.userId);
   res.json(g.designView(r.design));
 });
 router.delete('/designs/:id', W, own, (req, res) => {
