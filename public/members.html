@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Členská sekcia</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --p: #5b4fff; --p-light: rgba(91,79,255,0.09);
+      --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+      --bg: #f1f5f9; --card: #ffffff; --radius: 16px; --btn-radius: 10px;
+    }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5; }
+    .top { background: var(--card); border-bottom: 1px solid var(--border); }
+    .top-in { max-width: 1040px; margin: 0 auto; padding: .9rem 1rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+    .brand { font-weight: 800; color: var(--p); cursor: pointer; }
+    .who { font-size: .8rem; color: var(--muted); display: flex; gap: .75rem; align-items: center; }
+    .page { max-width: 1040px; margin: 0 auto; padding: 1.5rem 1rem 4rem; }
+    .narrow { max-width: 440px; margin: 3rem auto; }
+    .card { background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 20px rgba(0,0,0,.06); padding: 1.5rem; margin-bottom: 1.25rem; }
+    h1 { font-size: 1.4rem; font-weight: 800; margin-bottom: .4rem; }
+    h2 { font-size: 1rem; font-weight: 800; margin-bottom: .8rem; }
+    .muted { color: var(--muted); font-size: .85rem; }
+    input[type=email] { width: 100%; padding: .7rem .9rem; border: 1.5px solid var(--border); border-radius: 9px; font-size: .95rem; font-family: inherit; margin: .9rem 0 .2rem; }
+    input:focus { outline: none; border-color: var(--p); }
+    .btn { display: inline-block; padding: .7rem 1.1rem; border-radius: var(--btn-radius); border: none; background: var(--p); color: #fff; font-size: .9rem; font-weight: 700; cursor: pointer; font-family: inherit; text-decoration: none; }
+    .btn.full { width: 100%; margin-top: .8rem; }
+    .btn.s { background: var(--bg); color: var(--text); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+    .link { background: none; border: none; color: var(--p); font: inherit; font-weight: 600; cursor: pointer; padding: 0; }
+    .msg { padding: .8rem 1rem; border-radius: 10px; font-size: .88rem; font-weight: 600; margin-bottom: 1rem; }
+    .msg.ok { background: #dcfce7; color: #15803d; }
+    .msg.err { background: #fee2e2; color: #b91c1c; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+    .tile { background: var(--card); border-radius: var(--radius); box-shadow: 0 2px 20px rgba(0,0,0,.06); overflow: hidden; cursor: pointer; text-align: left; border: none; font: inherit; color: inherit; }
+    .tile img, .tile .ph { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: var(--p-light); }
+    .tile .ph { display: flex; align-items: center; justify-content: center; font-size: 2rem; }
+    .tile .body { padding: 1rem; }
+    .tile .title { font-weight: 800; margin-bottom: .2rem; }
+    .bar { height: 6px; background: var(--border); border-radius: 6px; margin-top: .6rem; overflow: hidden; }
+    .bar span { display: block; height: 100%; background: var(--p); }
+    .course { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+    @media (max-width: 860px) { .course { grid-template-columns: 1fr; } }
+    .toc .module-title { font-weight: 700; font-size: .85rem; color: var(--muted); margin: .8rem 0 .3rem; }
+    .toc .module-title:first-child { margin-top: 0; }
+    .toc button { display: flex; gap: .5rem; width: 100%; text-align: left; padding: .45rem .5rem; border: none; background: none; border-radius: 8px; font: inherit; font-size: .88rem; color: var(--text); cursor: pointer; }
+    .toc button.on { background: var(--p-light); color: var(--p); font-weight: 700; }
+    .toc .done { color: #16a34a; }
+    .video { position: relative; width: 100%; aspect-ratio: 16 / 9; margin-bottom: 1rem; }
+    .video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 10px; }
+    .content { white-space: pre-line; font-size: .95rem; margin-bottom: 1rem; }
+    .files { list-style: none; margin-bottom: 1rem; }
+    .files li { padding: .5rem 0; border-bottom: 1px solid var(--border); font-size: .9rem; display: flex; justify-content: space-between; gap: 1rem; }
+    .files li:last-child { border-bottom: none; }
+    .files a { color: var(--p); font-weight: 600; text-decoration: none; }
+    .nav { display: flex; justify-content: space-between; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .back { margin-bottom: 1rem; }
+  </style>
+  <style id="custom-css"></style>
+</head>
+<body>
+<div class="top"><div class="top-in"><span class="brand" id="brand">Členská sekcia</span><span class="who" id="who"></span></div></div>
+<div class="page" id="app"><div class="card"><p class="muted">Načítavam...</p></div></div>
+<script>
+(function () {
+  'use strict';
+  const storeId = location.pathname.split('/').filter(Boolean).pop();
+  const API = `/api/shop/m/${encodeURIComponent(storeId)}`;
+  const KEY = `nw_member_${storeId}`;
+  const esc = s => String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  const size = b => b > 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} kB`;
+  const ICON = { file: '📎', course: '🎓', membership: '⭐' };
+  const app = document.getElementById('app');
+  let flash = '';
+  let product = null;
+
+  const store = { get() { try { return localStorage.getItem(KEY); } catch { return null; } },
+                  set(v) { try { v ? localStorage.setItem(KEY, v) : localStorage.removeItem(KEY); } catch {} } };
+
+  async function api(path, opts = {}) {
+    const r = await fetch(API + path, { ...opts, headers: { 'Content-Type': 'application/json', 'X-Member-Token': store.get() || '', ...(opts.headers || {}) } });
+    const d = await r.json().catch(() => ({}));
+    if (r.status === 401 && store.get()) { store.set(null); flash = '<div class="msg err">Prihlásenie vypršalo. Prihláste sa znova.</div>'; showLogin(); throw new Error('401'); }
+    if (!r.ok) throw new Error(d.error || 'Chyba. Skúste to znova.');
+    return d;
+  }
+
+  function theme(s) {
+    document.getElementById('brand').textContent = s.name;
+    document.title = `Členská sekcia – ${s.name}`;
+    if (/^#[0-9a-f]{6}$/i.test(s.color || '')) {
+      document.documentElement.style.setProperty('--p', s.color);
+      document.documentElement.style.setProperty('--p-light', `rgba(${parseInt(s.color.slice(1, 3), 16)},${parseInt(s.color.slice(3, 5), 16)},${parseInt(s.color.slice(5, 7), 16)},.1)`);
+    }
+    document.getElementById('custom-css').textContent = s.customCss || '';
+  }
+
+  /* ── Prihlásenie (odkaz e-mailom, bez hesla) ─────────────────── */
+  function showLogin() {
+    document.getElementById('who').innerHTML = '';
+    app.innerHTML = `<div class="narrow"><div class="card">${flash}
+      <h1>Prihlásenie</h1>
+      <p class="muted">Zadajte e-mail, ktorým ste nakupovali. Pošleme vám odkaz na prihlásenie – heslo nepotrebujete.</p>
+      <form id="login"><input type="email" id="l-email" required autocomplete="email" placeholder="vas@email.sk">
+        <button class="btn full" type="submit">Poslať odkaz</button></form></div></div>`;
+    flash = '';
+    document.getElementById('login').addEventListener('submit', async e => {
+      e.preventDefault();
+      const btn = e.target.querySelector('button');
+      btn.disabled = true;
+      try {
+        await api('/login-request', { method: 'POST', body: JSON.stringify({ email: document.getElementById('l-email').value }) });
+        e.target.outerHTML = '<div class="msg ok">Ak k tomuto e-mailu existuje prístup, poslali sme naň odkaz na prihlásenie. Platí 7 dní.</div>';
+      } catch (err) {
+        btn.disabled = false;
+        e.target.insertAdjacentHTML('beforeend', `<div class="msg err" style="margin-top:1rem">${esc(err.message)}</div>`);
+      }
+    });
+  }
+
+  /* ── Moje produkty ─────────────────────────────────────────────── */
+  async function showHome() {
+    product = null;
+    const [d, folders] = await Promise.all([api('/me'), drive('/folders').catch(() => [])]);
+    document.getElementById('who').innerHTML = `${esc(d.member.email)} <button class="link" id="logout">Odhlásiť</button>`;
+    document.getElementById('logout').onclick = () => { store.set(null); location.hash = ''; showLogin(); };
+    app.innerHTML = `${flash}<h1 style="margin-bottom:1rem">Môj obsah</h1>${d.products.length ? `<div class="grid">${d.products.map(p => `
+      <button class="tile" data-id="${esc(p.id)}">
+        ${p.cover_url ? `<img src="${esc(p.cover_url)}" alt="">` : `<div class="ph">${ICON[p.type] || '📦'}</div>`}
+        <div class="body"><div class="title">${esc(p.title)}</div>
+          ${p.subtitle ? `<div class="muted">${esc(p.subtitle)}</div>` : ''}
+          ${p.lessons ? `<div class="bar"><span style="width:${Math.round(100 * p.completed / p.lessons)}%"></span></div><div class="muted" style="margin-top:.3rem">${p.completed} / ${p.lessons} lekcií</div>` : ''}
+          ${p.expiresAt ? `<div class="muted" style="margin-top:.3rem">Prístup do ${new Date(p.expiresAt * 1000).toLocaleDateString('sk-SK')}</div>` : ''}
+        </div></button>`).join('')}</div>` : folders.length ? '' : '<div class="card"><p class="muted">Zatiaľ tu nemáte žiadny obsah.</p></div>'}
+      ${folders.length ? `<h1 style="margin:1.5rem 0 1rem">Moje dokumenty</h1><div class="grid">${folders.map(f => `
+        <button class="tile" data-doc="${esc(f.id)}"><div class="ph">📁</div><div class="body"><div class="title">${esc(f.name)}</div>
+          <div class="muted">${f.canUpload ? 'Môžete sem aj nahrávať' : 'Dokumenty od nás pre vás'}</div></div></button>`).join('')}</div>` : ''}`;
+    flash = '';
+    app.querySelectorAll('[data-id]').forEach(t => { t.onclick = () => { location.hash = `p=${t.dataset.id}`; }; });
+    app.querySelectorAll('[data-doc]').forEach(t => { t.onclick = () => { location.hash = `d=${t.dataset.doc}`; }; });
+  }
+
+  /* ── Moje dokumenty: priečinky od obchodníka na Disku ───────────── */
+  async function drive(path, opts = {}) {
+    const r = await fetch(`/api/drive/m/${encodeURIComponent(storeId)}${path}`, { ...opts, headers: { 'X-Member-Token': store.get() || '', ...(opts.headers || {}) } });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.error || 'Chyba. Skúste to znova.');
+    return d;
+  }
+
+  async function showDocs(folderId) {
+    const d = await drive(`/items?parent=${encodeURIComponent(folderId)}`);
+    const dl = async id => { location.href = (await drive(`/file/${encodeURIComponent(id)}`)).url; };
+    app.innerHTML = `<button class="link back" id="back">← Môj obsah</button>${flash}<div class="card">
+      <div class="muted" style="margin-bottom:.6rem">${d.path.map((p, i) => i === d.path.length - 1 ? `<b>${esc(p.name)}</b>` : `<button class="link" data-folder="${esc(p.id)}">${esc(p.name)}</button>`).join(' / ')}</div>
+      ${d.items.length ? `<ul class="files">${d.items.map(i => i.kind === 'folder'
+        ? `<li><button class="link" data-folder="${esc(i.id)}">📁 ${esc(i.name)}</button></li>`
+        : `<li><button class="link" data-file="${esc(i.id)}">⬇ ${esc(i.name)}</button><span class="muted">${size(i.size)}</span></li>`).join('')}</ul>` : '<p class="muted">Zatiaľ tu nie sú žiadne dokumenty.</p>'}
+      ${d.canUpload ? `<p style="margin-top:1rem"><label class="btn s" style="cursor:pointer">⬆ Nahrať súbory<input type="file" id="up" multiple hidden></label></p>` : ''}</div>`;
+    flash = '';
+    document.getElementById('back').onclick = () => { location.hash = ''; };
+    app.querySelectorAll('[data-folder]').forEach(b => { b.onclick = () => { location.hash = `d=${b.dataset.folder}`; }; });
+    app.querySelectorAll('[data-file]').forEach(b => { b.onclick = () => dl(b.dataset.file); });
+    const up = document.getElementById('up');
+    if (up) up.onchange = async () => {
+      const fd = new FormData();
+      for (const f of up.files) fd.append('files', f);
+      up.disabled = true;
+      try {
+        await drive(`/upload?parent=${encodeURIComponent(folderId)}`, { method: 'POST', body: fd });
+        flash = `<div class="msg ok">Nahraté ✓ (${up.files.length})</div>`;
+      } catch (err) { flash = `<div class="msg err">${esc(err.message)}</div>`; }
+      showDocs(folderId).catch(() => {});
+    };
+    window.scrollTo(0, 0);
+  }
+
+  /* ── Produkt: súbory, kurz (lekcie, pokrok), členstvo ─────────── */
+  const filesList = files => files.length ? `<ul class="files">${files.map(f => `<li><a href="${esc(f.url)}">⬇ ${esc(f.name)}</a><span class="muted">${size(f.size)}</span></li>`).join('')}</ul>` : '';
+
+  async function showProduct(id, lessonId) {
+    if (!product || product.id !== id) product = await api(`/products/${encodeURIComponent(id)}`);
+    const p = product;
+    const lessons = p.modules.flatMap(m => m.lessons);
+    const back = '<button class="link back" id="back">← Môj obsah</button>';
+    if (!lessons.length) {
+      app.innerHTML = `${back}<div class="card"><h1>${esc(p.title)}</h1>${p.subtitle ? `<p class="muted">${esc(p.subtitle)}</p>` : ''}</div>
+        ${p.description ? `<div class="card"><div class="content">${esc(p.description)}</div></div>` : ''}
+        ${p.files.length ? `<div class="card"><h2>Súbory na stiahnutie</h2>${filesList(p.files)}</div>` : ''}
+        ${p.includes.length ? `<div class="card"><h2>Obsah členstva</h2><ul class="files">${p.includes.map(i => `<li><button class="link" data-open="${esc(i.id)}">${ICON[i.type] || '📦'} ${esc(i.title)}</button></li>`).join('')}</ul></div>` : ''}`;
+    } else {
+      const current = lessons.find(l => l.id === lessonId) || lessons.find(l => !l.completed) || lessons[0];
+      const i = lessons.indexOf(current);
+      app.innerHTML = `${back}<div class="course">
+        <aside class="card toc"><h2>${esc(p.title)}</h2>
+          <div class="muted" style="margin-bottom:.8rem">${lessons.filter(l => l.completed).length} / ${lessons.length} hotovo</div>
+          ${p.files.length ? `<div class="module-title">Materiály</div>${filesList(p.files)}` : ''}
+          ${p.modules.map(m => `<div class="module-title">${esc(m.title)}</div>${m.lessons.map(l => `
+            <button data-lesson="${esc(l.id)}" class="${l.id === current.id ? 'on' : ''}"><span class="${l.completed ? 'done' : ''}">${l.completed ? '✓' : '○'}</span>${esc(l.title)}</button>`).join('')}`).join('')}
+        </aside>
+        <main class="card">
+          <h1>${esc(current.title)}</h1>
+          ${current.embed ? `<div class="video"><iframe src="${esc(current.embed)}" allow="autoplay; fullscreen; picture-in-picture; encrypted-media" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div>` : ''}
+          ${current.videoUrl ? `<p style="margin-bottom:1rem"><a class="btn s" href="${esc(current.videoUrl)}" target="_blank" rel="noopener">▶ Pozrieť video</a></p>` : ''}
+          ${current.content ? `<div class="content">${esc(current.content)}</div>` : ''}
+          ${filesList(current.files)}
+          <div class="nav">
+            <button class="btn s" id="prev" ${i === 0 ? 'disabled' : ''}>← Predchádzajúca</button>
+            <button class="btn ${current.completed ? 's' : ''}" id="done">${current.completed ? '✓ Hotovo (zrušiť)' : 'Označiť ako hotové'}</button>
+            <button class="btn s" id="next" ${i === lessons.length - 1 ? 'disabled' : ''}>Ďalšia →</button>
+          </div>
+        </main></div>`;
+      app.querySelectorAll('[data-lesson]').forEach(b => { b.onclick = () => { location.hash = `p=${p.id}&l=${b.dataset.lesson}`; }; });
+      document.getElementById('prev').onclick = () => { location.hash = `p=${p.id}&l=${lessons[i - 1].id}`; };
+      document.getElementById('next').onclick = () => { location.hash = `p=${p.id}&l=${lessons[i + 1].id}`; };
+      document.getElementById('done').onclick = async () => {
+        const completed = !current.completed;
+        await api(`/lessons/${encodeURIComponent(current.id)}/progress`, { method: 'POST', body: JSON.stringify({ completed }) });
+        current.completed = completed;
+        // Po dokončení rovno na ďalšiu lekciu
+        if (completed && i < lessons.length - 1) location.hash = `p=${p.id}&l=${lessons[i + 1].id}`;
+        else showProduct(p.id, current.id);
+      };
+    }
+    document.getElementById('back').onclick = () => { location.hash = ''; };
+    app.querySelectorAll('[data-open]').forEach(b => { b.onclick = () => { location.hash = `p=${b.dataset.open}`; }; });
+    window.scrollTo(0, 0);
+  }
+
+  function route() {
+    if (!store.get()) return showLogin();
+    const h = new URLSearchParams(location.hash.slice(1));
+    (h.get('p') ? showProduct(h.get('p'), h.get('l')) : h.get('d') ? showDocs(h.get('d')) : showHome()).catch(err => {
+      if (err.message === '401') return;
+      app.innerHTML = `<div class="msg err">${esc(err.message)}</div><button class="link" onclick="location.hash=''">← Môj obsah</button>`;
+    });
+  }
+
+  /* ── Štart: odkaz z e-mailu (?login=) alebo návrat zo Stripe (?order=) ── */
+  async function start() {
+    const r = await fetch(API);
+    if (!r.ok) { app.innerHTML = '<div class="card"><p class="muted">Obchod sa nenašiel.</p></div>'; return; }
+    theme((await r.json()).store);
+    const q = new URLSearchParams(location.search);
+    history.replaceState(null, '', location.pathname + location.hash); // token nesmie ostať v adrese
+    if (q.get('login')) {
+      try {
+        store.set((await api('/login', { method: 'POST', body: JSON.stringify({ token: q.get('login') }) })).session);
+      } catch (err) { flash = `<div class="msg err">${esc(err.message)}</div>`; }
+    }
+    if (q.get('order')) {
+      app.innerHTML = '<div class="card"><p class="muted">Overujem platbu…</p></div>';
+      for (let i = 0; i < 6; i++) {
+        const o = await api('/order', { method: 'POST', body: JSON.stringify({ sessionId: q.get('order') }) }).catch(() => null);
+        if (o && o.status === 'paid') {
+          if (o.session) store.set(o.session);
+          flash = o.session || store.get()
+            ? '<div class="msg ok">Ďakujeme za nákup ✓ Obsah nájdete nižšie, potvrdenie sme poslali aj e-mailom.</div>'
+            : `<div class="msg ok">Ďakujeme za nákup ✓ Na ${esc(o.email)} sme poslali odkaz na prihlásenie.</div>`;
+          break;
+        }
+        if (i === 5) flash = '<div class="msg ok">Platbu ešte spracúvame. Prístup vám pošleme e-mailom hneď, ako ju Stripe potvrdí.</div>';
+        else await new Promise(res => setTimeout(res, 1500));
+      }
+    }
+    window.addEventListener('hashchange', route);
+    route();
+  }
+  start();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Grafika – Neoworkly</title>
+  <link rel="stylesheet" href="/apps/graphic/graphic-editor.css?v=1">
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #0d0d18; color: #eeeef5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { display: flex; flex-direction: column; }
+    button { font: inherit; }
+    .bar { display: flex; gap: .5rem; align-items: center; padding: .5rem 1rem; background: #080810; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .bar a.back { color: #9b8cff; text-decoration: none; font-weight: 700; font-size: .9rem; white-space: nowrap; }
+    .bar input { flex: 1; min-width: 0; max-width: 380px; background: transparent; border: 1px solid transparent; border-radius: 8px; color: #eeeef5; font: inherit; font-size: 1.05rem; font-weight: 700; padding: .35rem .5rem; }
+    .bar input:hover:not(:disabled), .bar input:focus { border-color: rgba(255,255,255,.14); outline: none; }
+    .sp { flex: 1; }
+    .btn, .bar button { background: #111120; color: #eeeef5; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: .4rem .7rem; font-size: .82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .bar button:hover, .btn:hover { border-color: rgba(155,140,255,.5); }
+    .bar .primary { background: #5b4fff; border-color: #5b4fff; }
+    .muted { font-size: .75rem; color: #7e7ea0; white-space: nowrap; }
+    .main { flex: 1; min-height: 0; display: grid; grid-template-columns: 230px minmax(0, 1fr) 270px; }
+    aside { background: #111120; border-right: 1px solid rgba(255,255,255,.06); overflow: auto; padding: .8rem; }
+    aside.right { border-right: 0; border-left: 1px solid rgba(255,255,255,.06); }
+    h4 { margin: .2rem 0 .6rem; font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; color: #9898b8; }
+    .tools { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: 1rem; }
+    .tools button, .wide { background: #18182a; color: #eeeef5; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: .6rem .4rem; cursor: pointer; font-size: .8rem; font-weight: 600; }
+    .tools button:hover, .wide:hover { border-color: #5b4fff; }
+    .wide { width: 100%; margin-bottom: .5rem; }
+    .wide.primary, button.primary { background: #5b4fff; border-color: #5b4fff; color: #fff; }
+    #logos { display: grid; grid-template-columns: 1fr 1fr; gap: .4rem; margin-bottom: 1rem; }
+    #logos button { background: #fff; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: .3rem; height: 56px; cursor: pointer; }
+    #logos img { max-width: 100%; max-height: 100%; }
+    .center { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+    #stage { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: auto; background: #0a0a14; background-image: radial-gradient(rgba(255,255,255,.05) 1px, transparent 1px); background-size: 18px 18px; }
+    .canvas-wrap { box-shadow: 0 10px 40px rgba(0,0,0,.6); }
+    .layer { display: flex; gap: .45rem; align-items: center; padding: .35rem .45rem; border-radius: 7px; cursor: pointer; font-size: .82rem; }
+    .layer:hover { background: rgba(255,255,255,.04); }
+    .layer.on { background: rgba(91,79,255,.2); }
+    .layer .ic { width: 18px; text-align: center; color: #9898b8; }
+    .layer .nm { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #props .row { margin-bottom: .7rem; }
+    #props .row.two { display: grid; grid-template-columns: 1fr 90px; gap: .4rem; }
+    #props label { display: block; font-size: .75rem; color: #9898b8; margin-bottom: .25rem; }
+    #props textarea, #props select, #props input[type=number] { width: 100%; background: #0d0d18; color: #eeeef5; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: .45rem .55rem; font: inherit; font-size: .85rem; }
+    #props textarea { resize: vertical; }
+    #props input[type=range] { width: 100%; accent-color: #5b4fff; }
+    .btns { display: flex; gap: .3rem; flex-wrap: wrap; }
+    .btns button { flex: 1; min-width: 34px; background: #18182a; color: #eeeef5; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: .4rem; cursor: pointer; }
+    .btns button.on { background: #5b4fff; border-color: #5b4fff; }
+    .btns button.danger { color: #ff6080; }
+    .sw { display: flex; flex-wrap: wrap; gap: .3rem; align-items: center; }
+    .sw button { width: 26px; height: 26px; border-radius: 50%; border: 2px solid rgba(255,255,255,.15); cursor: pointer; padding: 0; }
+    .sw button.on { outline: 2px solid #fff; outline-offset: 2px; }
+    .sw input[type=color] { width: 30px; height: 28px; border: 0; background: none; padding: 0; cursor: pointer; }
+    .chk { display: flex !important; gap: .4rem; align-items: center; font-size: .8rem !important; color: #c4c4dc !important; margin-top: .6rem; }
+    .hint { font-size: .78rem; color: #7e7ea0; line-height: 1.45; }
+    .msg { max-width: 520px; margin: 4rem auto; text-align: center; color: #9898b8; }
+    .menu { position: absolute; right: 1rem; top: 3.1rem; background: #18182a; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: .35rem; display: none; z-index: 30; min-width: 230px; }
+    .menu button { display: block; width: 100%; text-align: left; background: none; border: 0; color: #eeeef5; padding: .5rem .7rem; border-radius: 6px; font-size: .85rem; cursor: pointer; }
+    .menu button:hover { background: rgba(91,79,255,.18); }
+    .menu hr { border: 0; border-top: 1px solid rgba(255,255,255,.08); margin: .3rem 0; }
+    #toast { display: none; position: fixed; bottom: 1.2rem; left: 50%; transform: translateX(-50%); background: #18182a; border: 1px solid rgba(155,140,255,.4); color: #eeeef5; padding: .6rem 1rem; border-radius: 10px; font-size: .86rem; z-index: 60; }
+    #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55); z-index: 50; align-items: center; justify-content: center; padding: 1rem; }
+    .mbox { background: #18182a; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 1rem; width: min(640px, 100%); max-height: 80vh; overflow: auto; }
+    .mhead { display: flex; justify-content: space-between; align-items: center; margin-bottom: .6rem; }
+    .mhead button { background: #111120; color: #eeeef5; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; padding: .2rem .55rem; cursor: pointer; }
+    .crumbs { font-size: .82rem; margin-bottom: .6rem; } .crumbs a { color: #9b8cff; text-decoration: none; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: .5rem; }
+    .grid button { display: flex; flex-direction: column; gap: .3rem; align-items: center; background: #111120; color: #eeeef5; border: 1px solid rgba(255,255,255,.08); border-radius: 10px; padding: .7rem .4rem; cursor: pointer; font-size: 1.4rem; }
+    .grid button span { font-size: .75rem; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #pages { display: none; gap: .45rem; align-items: center; padding: .5rem .8rem; background: #111120; border-top: 1px solid rgba(255,255,255,.06); overflow-x: auto; }
+    .pg { position: relative; flex-shrink: 0; width: 112px; height: 63px; border-radius: 6px; border: 2px solid transparent; background: #0a0a14; padding: 0; cursor: pointer; overflow: hidden; }
+    .pg.on { border-color: #9b8cff; }
+    .pg img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .pg span { position: absolute; left: 4px; bottom: 2px; font-size: .68rem; color: #fff; background: rgba(0,0,0,.55); padding: 0 4px; border-radius: 4px; }
+    .pgact { display: flex; gap: .25rem; flex-shrink: 0; margin-left: .3rem; }
+    .pgact button { background: #18182a; color: #eeeef5; border: 1px solid rgba(255,255,255,.08); border-radius: 7px; padding: .35rem .55rem; cursor: pointer; }
+    .deck-only { display: none !important; } body.deck .deck-only { display: block !important; }
+    #show { position: fixed; inset: 0; background: #000; z-index: 100; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+    #show img { max-width: 100%; max-height: 100%; }
+    #show .cnt { position: absolute; bottom: .8rem; right: 1rem; color: rgba(255,255,255,.5); font-size: .8rem; }
+    body.ro .left .tools, body.ro #applyBrand { display: none; }
+    @media (max-width: 900px) { .main { grid-template-columns: 1fr; grid-template-rows: auto 60vh auto; } aside { border: 0; max-height: 40vh; } #size, .zoom { display: none; } }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a class="back" href="/dashboard?view=graphics">← Grafika</a>
+    <input id="title" placeholder="Návrh" maxlength="200" disabled>
+    <span class="muted" id="size"></span>
+    <span class="sp"></span>
+    <span class="muted" id="status">Načítavam…</span>
+    <button id="undo" title="Späť (Ctrl+Z)">↶</button><button id="redo" title="Znova (Ctrl+Shift+Z)">↷</button>
+    <span class="zoom"><button id="zout">−</button> <span class="muted" id="zoomLbl">100 %</span> <button id="zin">+</button> <button id="zfit">Prispôsobiť</button></span>
+    <button class="primary" id="exportBtn">Exportovať ▾</button>
+  </div>
+  <div class="menu" id="menu">
+    <button data-export="png">⬇ PNG (najvyššia kvalita)</button>
+    <button data-export="jpg">⬇ JPG (menší súbor)</button>
+    <button data-export="pdf">⬇ PDF (na tlač)</button>
+    <button data-export="pptx" class="deck-only">⬇ PowerPoint .pptx (aj DeckCraft)</button>
+    <button data-export="present" class="deck-only">▶ Prezentovať na celú obrazovku</button>
+    <hr>
+    <button data-export="drive">💾 Uložiť na Disk</button>
+    <button data-export="template">⭐ Uložiť ako šablónu tímu</button>
+  </div>
+  <div class="main">
+    <aside class="left">
+      <h4>Pridať</h4>
+      <div class="tools">
+        <button data-add="heading">𝗧 Nadpis</button><button data-add="text">T Text</button>
+        <button data-add="rect">■ Obdĺžnik</button><button data-add="circle">● Kruh</button>
+        <button id="addImg">🖼 Obrázok</button><button id="addDrive">💾 Z Disku</button>
+        <button data-add="slot">⬚ Miesto na fotku</button>
+      </div>
+      <h4>Logá značky</h4>
+      <div id="logos"></div>
+      <button class="wide" id="applyBrand" title="Prefarbí prvky s farbami a písmami značky podľa aktuálneho nastavenia tímu">🎨 Použiť aktuálnu značku</button>
+      <h4 style="margin-top:1rem">Vrstvy</h4>
+      <div id="layers"></div>
+    </aside>
+    <div class="center"><div id="stage"><div class="canvas-wrap"><canvas id="c"></canvas></div></div><div id="pages"></div></div>
+    <aside class="right" id="props"></aside>
+  </div>
+  <div id="toast"></div>
+  <div id="modal"></div>
+  <script type="module" src="/apps/graphic/graphic-editor.js?v=2"></script>
+</body>
+</html>

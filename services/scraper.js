@@ -11,7 +11,8 @@ const MAX_CONTENT_LEN = 6000;       // chars stored per page
 const CRAWL_DELAY_MS  = 150;        // polite delay between requests
 
 /* ── HTTP fetch ─────────────────────────────────────────────── */
-function fetchPage(rawUrl, redirects = 0) {
+// opts.xml accepts XML responses (sitemaps, product feeds); opts.maxBytes caps the body
+function fetchPage(rawUrl, redirects = 0, opts = {}) {
   return new Promise((resolve, reject) => {
     if (redirects > 5) return reject(new Error('Too many redirects'));
     let parsed;
@@ -21,7 +22,7 @@ function fetchPage(rawUrl, redirects = 0) {
     const req = lib.get(rawUrl, {
       headers: {
         'User-Agent': 'NeoworklyBot/1.0 (knowledge-scanner)',
-        'Accept': 'text/html,application/xhtml+xml',
+        'Accept': opts.xml ? 'application/xml,text/xml,*/*' : 'text/html,application/xhtml+xml',
         'Accept-Language': 'sk,cs,en',
       },
       timeout: TIMEOUT_MS,
@@ -31,19 +32,22 @@ function fetchPage(rawUrl, redirects = 0) {
         try {
           const next = new URL(res.headers.location, rawUrl).href;
           res.resume();
-          resolve(fetchPage(next, redirects + 1));
+          resolve(fetchPage(next, redirects + 1, opts));
         } catch { reject(new Error('Bad redirect')); }
         return;
       }
       if (res.statusCode !== 200) { res.resume(); return reject(new Error(`HTTP ${res.statusCode}`)); }
       const ct = res.headers['content-type'] || '';
-      if (!ct.includes('text/html')) { res.resume(); return reject(new Error('Not HTML')); }
+      if (!(opts.xml ? /xml|text\/plain/.test(ct) : ct.includes('text/html'))) { res.resume(); return reject(new Error(opts.xml ? 'Not XML' : 'Not HTML')); }
 
+      const maxBytes = opts.maxBytes || MAX_BODY_BYTES;
       let body = '', total = 0;
+      res.setEncoding('utf8');
       res.on('data', chunk => {
-        total += chunk.length;
-        if (total > MAX_BODY_BYTES) { req.destroy(); return; }
+        total += Buffer.byteLength(chunk);
         body += chunk;
+        // Oversized: keep what we have (destroying alone would leave the promise pending)
+        if (total > maxBytes) { resolve(body); req.destroy(); }
       });
       res.on('end', () => resolve(body));
       res.on('error', reject);
@@ -160,4 +164,62 @@ async function crawlSite(startUrl, maxPages = MAX_PAGES) {
   return results;
 }
 
-module.exports = { crawlSite };
+/* ── Sitemap import ─────────────────────────────────────────── */
+function xmlText(s) {
+  return s.replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').replace(/<[^>]+>/g, ' ')
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;|&apos;/g, "'")
+    .replace(/\s{2,}/g, ' ').trim();
+}
+
+async function importSitemap(sitemapUrl, maxPages = MAX_PAGES) {
+  let xml = await fetchPage(sitemapUrl, 0, { xml: true, maxBytes: 5 * 1024 * 1024 });
+  let locs = [...xml.matchAll(/<loc>([\s\S]*?)<\/loc>/gi)].map(m => xmlText(m[1]));
+  // Sitemap index → follow the first child sitemap
+  if (/<sitemapindex/i.test(xml) && locs.length) {
+    xml = await fetchPage(locs[0], 0, { xml: true, maxBytes: 5 * 1024 * 1024 });
+    locs = [...xml.matchAll(/<loc>([\s\S]*?)<\/loc>/gi)].map(m => xmlText(m[1]));
+  }
+  const results = [];
+  for (const url of locs.filter(u => !SKIP_EXT.test(u))) {
+    if (results.length >= maxPages) break;
+    try {
+      const { title, content } = extractContent(await fetchPage(url), url);
+      if (content.trim().length > 100) results.push({ url, title, content });
+    } catch { /* skip */ }
+    if (CRAWL_DELAY_MS > 0) await new Promise(r => setTimeout(r, CRAWL_DELAY_MS));
+  }
+  return results;
+}
+
+/* ── Product / XML feed import (Heureka, Google Shopping, RSS, Atom) ── */
+const FEED_ITEM = /<(SHOPITEM|item|entry|product|offer)\b[^>]*>([\s\S]*?)<\/\1>/gi;
+const FEED_TITLE = ['PRODUCTNAME', 'PRODUCT', 'g:title', 'title', 'name'];
+
+async function importFeed(feedUrl, maxItems = 500) {
+  const xml = await fetchPage(feedUrl, 0, { xml: true, maxBytes: 20 * 1024 * 1024 });
+  const items = [];
+  for (const m of xml.matchAll(FEED_ITEM)) {
+    if (items.length >= maxItems) break;
+    const fields = {};
+    // CDATA may contain HTML — flatten it to escaped text so its element stays a leaf
+    const body = m[2].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, (_, t) =>
+      xmlText(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'));
+    // Heureka <PARAM><PARAM_NAME>Farba</PARAM_NAME><VAL>čierna</VAL></PARAM> → "Farba: čierna"
+    const params = [...body.matchAll(/<PARAM>[\s\S]*?<PARAM_NAME>([\s\S]*?)<\/PARAM_NAME>[\s\S]*?<VAL>([\s\S]*?)<\/VAL>[\s\S]*?<\/PARAM>/g)]
+      .map(p => `${xmlText(p[1])}: ${xmlText(p[2])}`);
+    // leaf elements only: <TAG>value</TAG> without nested tags
+    for (const f of body.replace(/<PARAM>[\s\S]*?<\/PARAM>/g, '').matchAll(/<([\w:.-]+)[^>]*>((?:(?!<[\w:.-]+[\s>])[\s\S])*?)<\/\1>/g)) {
+      const v = xmlText(f[2]);
+      if (v && !fields[f[1]]) fields[f[1]] = v.slice(0, 800);
+    }
+    const titleKey = FEED_TITLE.find(k => fields[k]);
+    if (!titleKey) continue;
+    const content = Object.entries(fields)
+      .filter(([k]) => !/IMG|image|PARAM_NAME/i.test(k))
+      .map(([k, v]) => `${k.replace(/^g:/, '')}: ${v}`).concat(params).join('\n').slice(0, 2000);
+    items.push({ title: fields[titleKey].slice(0, 200), content });
+  }
+  return items;
+}
+
+module.exports = { crawlSite, importSitemap, importFeed };

@@ -27,6 +27,9 @@ const leadMagnetsRoutes = require('./routes/lead-magnets');
 const insightsRoutes    = require('./routes/insights');
 const facebookRoutes    = require('./routes/facebook');
 const ecomailRoutes     = require('./routes/ecomail');
+const paymentsRoutes    = require('./routes/payments');
+const shopRoutes        = require('./routes/shop');
+const driveRoutes       = require('./routes/drive');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -36,10 +39,18 @@ initDatabase();
 app.use(cors());
 app.use(compression());
 
+// Funnely (Express 5 podaplikácia): /api/f, /api/funnels, /demo a Stripe webhooky funnela.
+// Pred express.json() – webhooky potrebujú surové telo a funnel si parsuje telá sám.
+app.use(require('./funnel').createApp());
+
 // Stripe webhook MUST receive raw body — mount before express.json()
 app.use('/api/stripe/webhook', express.raw({ type: 'application/json' }));
 
-app.use(express.json({ limit: '10mb' }));
+// Grafika: návrhy s obrázkami potrebujú väčšie telo (vlastný parser v routeri)
+app.use('/api/graphics', require('./routes/graphics'));
+
+// rawBody is kept for webhook signature checks (Meta)
+app.use(express.json({ limit: '10mb', verify: (req, res, buf) => { req.rawBody = buf; } }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // widget.js: short cache so customers always get fresh translations
@@ -65,6 +76,22 @@ app.use('/api/demo', demoRoutes);
 app.use('/api/coach', coachRoutes);
 app.use('/api/scraper', scraperRoutes);
 app.use('/api/booking', bookingRoutes);
+app.use('/api/payments', paymentsRoutes);
+app.use('/api/shop', shopRoutes);
+app.use('/api/drive', driveRoutes);
+app.use('/api/marketing', require('./routes/marketing'));
+app.use('/api/realtime', require('./routes/realtime'));
+// Tímová sada: úlohy, kalendár, poznámky, dokumenty
+app.use('/api/tasks', require('./routes/tasks'));
+app.use('/api/calendar', require('./routes/calendar'));
+app.use('/api/notes', require('./routes/notes'));
+app.use('/api/docs', require('./routes/docs'));
+app.use('/api/teamchat', require('./routes/teamchat'));
+app.use('/api/meet', require('./routes/meet'));
+app.use('/api/forms', require('./routes/forms'));
+app.use('/api/boards', require('./routes/boards'));
+app.use('/api/sheets', require('./routes/sheets'));
+app.use('/api/mail', require('./routes/mail'));
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
@@ -104,12 +131,57 @@ app.get('/book/:widgetId', (req, res) => {
   res.setHeader('X-Frame-Options', 'ALLOWALL');
   res.sendFile(path.join(__dirname, 'public', 'booking.html'));
 });
+app.get('/booking/manage/:token', (req, res) =>
+  res.sendFile(path.join(__dirname, 'public', 'booking-manage.html'))
+);
+app.get('/p/:productId', (req, res) => res.sendFile(path.join(__dirname, 'public', 'product.html')));
+app.get('/members/:storeId', (req, res) => {
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.sendFile(path.join(__dirname, 'public', 'members.html'));
+});
+app.get('/form/:token', (req, res) => {
+  // Formulár sa dá vložiť na web klienta (iframe)
+  res.setHeader('Content-Security-Policy', "frame-ancestors *");
+  res.setHeader('X-Frame-Options', 'ALLOWALL');
+  res.sendFile(path.join(__dirname, 'public', 'form.html'));
+});
+app.get('/docs/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'doc.html')));
+app.get('/boards/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'board.html')));
+app.get('/pdf', (req, res) => res.sendFile(path.join(__dirname, 'public', 'pdf.html')));
+app.get('/video', (req, res) => res.sendFile(path.join(__dirname, 'public', 'video.html')));
+app.get('/sheets/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sheet.html')));
+app.get('/graphics/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'graphic.html')));
+app.get('/s/:token', (req, res) => {
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.setHeader('X-Robots-Tag', 'noindex');
+  res.sendFile(path.join(__dirname, 'public', 'share.html'));
+});
+app.get('/wellbeing/:token', (req, res) => {
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.sendFile(path.join(__dirname, 'public', 'wellbeing.html'));
+});
 
 // 404 handler — must be last
 app.use((req, res) => {
   res.status(404).sendFile(path.join(__dirname, 'public', '404.html'));
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Neoworkly running on http://localhost:${PORT}`);
+  require('./services/bookingNotify').startReminderScheduler();
+  require('./services/wellbeing').startBurnoutScheduler();
+  require('./services/bookingPayments').startHoldSweeper();
+  require('./funnel/src/retention').scheduleRetention(); // štatistiky funnelov staršie ako 13 mesiacov
+  require('./services/marketing').startScheduler(); // kampane, automatické série (Resend)
+  require('./services/tasks').startScheduler(); // pripomienky úloh
+  // Kôš Disku: položky staršie ako 30 dní sa zmažú natrvalo (raz za deň)
+  const purge = () => { try { require('./services/drive').purgeTrash(); } catch (e) { console.error('[drive purge]', e.message); } };
+  setTimeout(purge, 60 * 1000).unref();
+  setInterval(purge, 24 * 3600 * 1000).unref();
 });
+
+// Spolupráca v reálnom čase (/ws, /yjs) na tom istom porte; pri vypnutí uloží otvorené dokumenty
+require('./services/realtime').attach(server);
+for (const sig of ['SIGTERM', 'SIGINT']) {
+  process.once(sig, () => { require('./services/realtime').flushAll(); process.exit(0); });
+}

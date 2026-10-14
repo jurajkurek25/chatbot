@@ -6,6 +6,16 @@
   <title>Dashboard – Neoworkly</title>
   <link rel="stylesheet" href="/css/style.css">
   <link rel="stylesheet" href="/css/i18n.css">
+<style>
+  .nw-frame { width:100%; border:0; display:block; min-height:420px; background:transparent; }
+  .bk-check { display:flex; align-items:center; gap:0.45rem; font-size:0.84rem; color:#eeeef5; font-weight:500; cursor:pointer; }
+  .bk-check input { width:15px; height:15px; accent-color:#5b4fff; }
+  .bk-sub { font-size:0.72rem; font-weight:700; color:#9898b8; letter-spacing:0.05em; text-transform:uppercase; margin:1.25rem 0 0.5rem; }
+  .bk-q { display:grid; grid-template-columns:2fr 1fr auto auto; gap:0.4rem; align-items:center; margin-bottom:0.4rem; }
+  .bk-staff-card { display:flex; justify-content:space-between; align-items:center; gap:0.75rem; padding:0.75rem 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+  .bk-tag { font-size:0.7rem; padding:1px 7px; border-radius:100px; background:rgba(255,255,255,0.06); color:#b8b8d0; margin-right:4px; white-space:nowrap; }
+</style>
+  <link rel="stylesheet" href="/apps/graphic/graphic-editor.css?v=1"><!-- písma značky pre náhľady šablón -->
 </head>
 <body>
 <div class="app-layout">
@@ -26,13 +36,74 @@
       <button class="nav-item" onclick="showView('affiliate')" id="nav-affiliate">
         <span class="nav-icon">🎁</span> Affiliate
       </button>
+      <button class="nav-item" onclick="showView('marketing')" id="nav-marketing">
+        <span class="nav-icon">✉️</span> E-mail marketing
+      </button>
+      <button class="nav-item" onclick="showView('shop')" id="nav-shop">
+        <span class="nav-icon">📦</span> Digitálne produkty
+      </button>
+      <button class="nav-item" onclick="showView('funnels')" id="nav-funnels">
+        <span class="nav-icon">🔀</span> Funnely
+      </button>
+      <button class="nav-item" onclick="showView('payments')" id="nav-payments">
+        <span class="nav-icon">💳</span> Platby
+      </button>
       <button class="nav-item" onclick="showView('coach')" id="nav-coach">
         <span class="nav-icon">🎓</span> AI Coach
       </button>
     </div>
 
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Tím</div>
+      <button class="nav-item" onclick="showView('chat')" id="nav-chat">
+        <span class="nav-icon">💬</span> Chat <span id="nav-chat-badge" style="display:none;margin-left:auto;background:#5b4fff;color:#fff;border-radius:10px;font-size:0.7rem;padding:0 6px;font-weight:700"></span>
+      </button>
+      <button class="nav-item" onclick="showView('mail')" id="nav-mail">
+        <span class="nav-icon">✉️</span> Pošta
+      </button>
+      <button class="nav-item" onclick="showView('tasks')" id="nav-tasks">
+        <span class="nav-icon">✅</span> Úlohy
+      </button>
+      <button class="nav-item" onclick="showView('calendar')" id="nav-calendar">
+        <span class="nav-icon">📅</span> Kalendár
+      </button>
+      <button class="nav-item" onclick="showView('notes')" id="nav-notes">
+        <span class="nav-icon">🗒</span> Poznámky
+      </button>
+      <button class="nav-item" onclick="showView('docs')" id="nav-docs">
+        <span class="nav-icon">📄</span> Dokumenty
+      </button>
+      <button class="nav-item" onclick="showView('sheets')" id="nav-sheets">
+        <span class="nav-icon">📊</span> Tabuľky
+      </button>
+      <button class="nav-item" onclick="showView('boards')" id="nav-boards">
+        <span class="nav-icon">🎨</span> Tabule
+      </button>
+      <button class="nav-item" onclick="showView('decks')" id="nav-decks">
+        <span class="nav-icon">📽</span> Prezentácie
+      </button>
+      <button class="nav-item" onclick="showView('graphics')" id="nav-graphics">
+        <span class="nav-icon">🖼</span> Grafika
+      </button>
+      <button class="nav-item" onclick="showView('forms')" id="nav-forms">
+        <span class="nav-icon">📝</span> Formuláre
+      </button>
+      <button class="nav-item" onclick="showView('drive')" id="nav-drive">
+        <span class="nav-icon">💾</span> Disk
+      </button>
+      <a class="nav-item" href="/pdf" id="nav-pdf" onclick="this.href = '/pdf' + (window.NW && NW.suite && NW.suite.ws ? '?ws=' + encodeURIComponent(NW.suite.ws) : '')">
+        <span class="nav-icon">📑</span> PDF nástroje
+      </a>
+      <a class="nav-item" href="/video" id="nav-video" onclick="this.href = '/video' + (window.NW && NW.suite && NW.suite.ws ? '?ws=' + encodeURIComponent(NW.suite.ws) : '')">
+        <span class="nav-icon">🎬</span> Video štúdio
+      </a>
+    </div>
+
     <div class="sidebar-section" id="widget-nav-section" style="display:none">
       <div class="sidebar-section-label">Aktuálny widget</div>
+      <button class="nav-item" onclick="showTab('overview')" id="nav-overview">
+        <span class="nav-icon">🏠</span> Prehľad
+      </button>
       <button class="nav-item" onclick="showTab('settings')" id="nav-settings">
         <span class="nav-icon">⚙️</span> Nastavenia
       </button>
@@ -77,19 +148,23 @@
 
     <div class="sidebar-footer" id="sidebar-footer">
       <!-- Usage bar -->
-      <div style="margin-bottom:0.75rem;padding:0.75rem;background:#f1f5f9;border-radius:10px">
+      <div style="margin-bottom:0.75rem;padding:0.75rem;background:#111120;border-radius:10px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.35rem">
-          <span style="font-size:0.75rem;font-weight:600;color:#475569">AI odpovede</span>
-          <span style="font-size:0.72rem;color:#64748b" id="usage-count">—</span>
+          <span style="font-size:0.75rem;font-weight:600;color:#b8b8d0">AI odpovede</span>
+          <span style="font-size:0.72rem;color:#9898b8" id="usage-count">—</span>
         </div>
-        <div style="height:6px;background:#e2e8f0;border-radius:99px;overflow:hidden">
-          <div id="usage-bar-fill" style="height:100%;background:#2563eb;border-radius:99px;transition:width 0.4s;width:0%"></div>
+        <div style="height:6px;background:#24243a;border-radius:99px;overflow:hidden">
+          <div id="usage-bar-fill" style="height:100%;background:#5b4fff;border-radius:99px;transition:width 0.4s;width:0%"></div>
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:0.4rem">
-          <span style="font-size:0.7rem;color:#94a3b8" id="usage-reset-label"></span>
-          <button style="font-size:0.7rem;font-weight:600;color:#2563eb;background:none;border:none;cursor:pointer;padding:0" onclick="openCreditsModal()">+ Dobiť</button>
+          <span style="font-size:0.7rem;color:#7e7ea0" id="usage-reset-label"></span>
+          <button style="font-size:0.7rem;font-weight:600;color:#5b4fff;background:none;border:none;cursor:pointer;padding:0" onclick="openCreditsModal()">+ Dobiť</button>
         </div>
-        <div id="usage-extra-row" style="display:none;margin-top:0.3rem;font-size:0.7rem;color:#16a34a;font-weight:600"></div>
+        <div id="usage-extra-row" style="display:none;margin-top:0.3rem;font-size:0.7rem;color:#1fd89a;font-weight:600"></div>
+        <div id="trial-row" style="display:none;margin-top:0.4rem;font-size:0.72rem;color:#b8b8d0;line-height:1.4">
+          🎁 Skúšobné obdobie do <b id="trial-until"></b>
+          <a href="/onboarding" style="display:block;font-weight:700;color:#5b4fff;text-decoration:none">Aktivovať predplatné →</a>
+        </div>
         <div id="usage-warning-banner" style="display:none;margin-top:0.5rem;font-size:0.75rem;font-weight:600;padding:0.4rem 0.6rem;border-radius:8px;border:1px solid;line-height:1.4"></div>
       </div>
 
@@ -161,9 +236,9 @@
                 <option value="contacted">🟡 Kontaktovaný</option>
                 <option value="closed">🟢 Uzavretý</option>
               </select>
-              <div style="display:flex;gap:0.35rem;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden">
-                <button id="leads-view-list-btn" onclick="setLeadsView('list')" style="padding:0.38rem 0.7rem;border:none;background:#2563eb;color:white;cursor:pointer;font-size:0.8rem;font-weight:600" title="Zoznam">☰</button>
-                <button id="leads-view-kanban-btn" onclick="setLeadsView('kanban')" style="padding:0.38rem 0.7rem;border:none;background:white;color:#64748b;cursor:pointer;font-size:0.8rem;font-weight:600" title="Kanban">⊞</button>
+              <div style="display:flex;gap:0.35rem;border:1px solid rgba(255,255,255,0.08);border-radius:8px;overflow:hidden">
+                <button id="leads-view-list-btn" onclick="setLeadsView('list')" style="padding:0.38rem 0.7rem;border:none;background:#5b4fff;color:white;cursor:pointer;font-size:0.8rem;font-weight:600" title="Zoznam">☰</button>
+                <button id="leads-view-kanban-btn" onclick="setLeadsView('kanban')" style="padding:0.38rem 0.7rem;border:none;background:#18182a;color:#9898b8;cursor:pointer;font-size:0.8rem;font-weight:600" title="Kanban">⊞</button>
               </div>
               <button class="btn btn-secondary" onclick="exportLeadsCSV()" style="font-size:0.875rem;padding:0.4rem 0.9rem;white-space:nowrap">📥 Export CSV</button>
             </div>
@@ -184,6 +259,65 @@
         </div>
       </div>
 
+      <!-- ── View: Funnels ──────────────────────────── -->
+      <div id="view-funnels" style="display:none">
+        <iframe id="funnels-frame" class="nw-frame" title="Funnely"></iframe>
+      </div>
+
+      <!-- ── View: E-mail marketing ──────────────────── -->
+      <div id="view-marketing" style="display:none">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+          <button class="btn btn-sm btn-primary" data-mk-tab="campaigns" onclick="mkTab('campaigns')">Kampane</button>
+          <button class="btn btn-sm btn-secondary" data-mk-tab="sequences" onclick="mkTab('sequences')">Automatické série</button>
+          <button class="btn btn-sm btn-secondary" data-mk-tab="contacts" onclick="mkTab('contacts')">Kontakty</button>
+          <button class="btn btn-sm btn-secondary" data-mk-tab="settings" onclick="mkTab('settings')">Odosielateľ a doména</button>
+        </div>
+        <div id="mk-body"></div>
+      </div>
+
+      <!-- ── Tímová sada ─────────────────────────────── -->
+      <div id="view-mail" style="display:none"><div id="mail-body"></div></div>
+      <div id="view-chat" style="display:none"><div id="chat-body"></div></div>
+      <div id="view-tasks" style="display:none"><div id="tasks-body"></div></div>
+      <div id="view-calendar" style="display:none"><div id="calendar-body"></div></div>
+      <div id="view-notes" style="display:none"><div id="notes-body"></div></div>
+      <div id="view-docs" style="display:none"><div id="docs-body"></div></div>
+      <div id="view-sheets" style="display:none"><div id="sheets-body"></div></div>
+      <div id="view-boards" style="display:none"><div id="boards-body"></div></div>
+      <div id="view-decks" style="display:none"><div id="decks-body"></div></div>
+      <div id="view-graphics" style="display:none"><div id="graphics-body"></div></div>
+      <div id="view-forms" style="display:none"><div id="forms-body"></div></div>
+
+      <!-- ── View: Drive ─────────────────────────────── -->
+      <div id="view-drive" style="display:none"><div id="drive-body"></div></div>
+
+      <!-- ── View: Digital products ─────────────────── -->
+      <div id="view-shop" style="display:none">
+        <div style="display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem">
+          <button class="btn btn-sm btn-primary" data-shop-tab="products" onclick="shopTab('products')">Produkty</button>
+          <button class="btn btn-sm btn-secondary" data-shop-tab="orders" onclick="shopTab('orders')">Objednávky</button>
+          <button class="btn btn-sm btn-secondary" data-shop-tab="members" onclick="shopTab('members')">Členovia</button>
+          <button class="btn btn-sm btn-secondary" data-shop-tab="settings" onclick="shopTab('settings')">Nastavenia obchodu</button>
+        </div>
+        <div id="shop-body"></div>
+      </div>
+
+      <!-- ── View: Payments ─────────────────────────── -->
+      <div id="view-payments" style="display:none">
+        <div style="margin-bottom:1.5rem">
+          <iframe id="pay-frame" class="nw-frame" title="Prepojenie Stripe"></iframe>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div>
+              <div class="panel-title">Posledné platby</div>
+              <div class="panel-subtitle">Spoplatnené rezervácie a predaje · faktúry a výplaty nájdete v Stripe</div>
+            </div>
+          </div>
+          <div id="pay-recent"></div>
+        </div>
+      </div>
+
       <!-- ── View: Affiliate ────────────────────────── -->
       <div id="view-affiliate" style="display:none">
 
@@ -197,9 +331,9 @@
 
           <!-- Referral link -->
           <div style="margin-bottom:1.5rem">
-            <label style="font-weight:600;font-size:0.875rem;color:#374151;display:block;margin-bottom:0.5rem">Váš referral odkaz</label>
+            <label style="font-weight:600;font-size:0.875rem;color:#eeeef5;display:block;margin-bottom:0.5rem">Váš referral odkaz</label>
             <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
-              <input type="text" class="form-control" id="aff-share-url" readonly style="flex:1;min-width:200px;font-size:0.875rem;background:#f8fafc">
+              <input type="text" class="form-control" id="aff-share-url" readonly style="flex:1;min-width:200px;font-size:0.875rem;background:#111120">
               <button class="btn btn-secondary" onclick="copyAffiliateLink()">📋 Kopírovať</button>
             </div>
             <div class="hint" style="margin-top:0.375rem">Váš referral kód: <strong id="aff-code">—</strong></div>
@@ -207,31 +341,31 @@
 
           <!-- Stats row -->
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:1.5rem">
-            <div style="background:#f0f9ff;border-radius:10px;padding:1rem;text-align:center">
-              <div style="font-size:1.75rem;font-weight:700;color:#0369a1" id="aff-referred-count">0</div>
-              <div style="font-size:0.78rem;color:#64748b;margin-top:0.25rem">Pozvaných užívateľov</div>
+            <div style="background:rgba(14,165,233,0.1);border-radius:10px;padding:1rem;text-align:center">
+              <div style="font-size:1.75rem;font-weight:700;color:#38bdf8" id="aff-referred-count">0</div>
+              <div style="font-size:0.78rem;color:#9898b8;margin-top:0.25rem">Pozvaných užívateľov</div>
             </div>
-            <div style="background:#f0fdf4;border-radius:10px;padding:1rem;text-align:center">
-              <div style="font-size:1.75rem;font-weight:700;color:#16a34a" id="aff-paid-referrals">0</div>
-              <div style="font-size:0.78rem;color:#64748b;margin-top:0.25rem">Platiacich zákazníkov</div>
+            <div style="background:rgba(31,216,154,0.08);border-radius:10px;padding:1rem;text-align:center">
+              <div style="font-size:1.75rem;font-weight:700;color:#1fd89a" id="aff-paid-referrals">0</div>
+              <div style="font-size:0.78rem;color:#9898b8;margin-top:0.25rem">Platiacich zákazníkov</div>
             </div>
-            <div style="background:#fefce8;border-radius:10px;padding:1rem;text-align:center">
-              <div style="font-size:1.75rem;font-weight:700;color:#ca8a04" id="aff-credits">0 €</div>
-              <div style="font-size:0.78rem;color:#64748b;margin-top:0.25rem">Zostatok kreditov</div>
+            <div style="background:rgba(245,158,11,0.08);border-radius:10px;padding:1rem;text-align:center">
+              <div style="font-size:1.75rem;font-weight:700;color:#fbbf24" id="aff-credits">0 €</div>
+              <div style="font-size:0.78rem;color:#9898b8;margin-top:0.25rem">Zostatok kreditov</div>
             </div>
-            <div style="background:#faf5ff;border-radius:10px;padding:1rem;text-align:center">
+            <div style="background:rgba(155,140,255,0.1);border-radius:10px;padding:1rem;text-align:center">
               <div style="font-size:1.75rem;font-weight:700;color:#7c3aed" id="aff-free-months">0</div>
-              <div style="font-size:0.78rem;color:#64748b;margin-top:0.25rem">Voľné mesiace k dispozícii</div>
+              <div style="font-size:0.78rem;color:#9898b8;margin-top:0.25rem">Voľné mesiace k dispozícii</div>
             </div>
           </div>
 
           <!-- Free period info -->
-          <div id="aff-free-period-info" style="display:none;padding:0.75rem 1rem;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;margin-bottom:1rem;font-size:0.875rem;color:#166534">
+          <div id="aff-free-period-info" style="display:none;padding:0.75rem 1rem;background:rgba(31,216,154,0.08);border:1px solid rgba(31,216,154,0.4);border-radius:8px;margin-bottom:1rem;font-size:0.875rem;color:#1fd89a">
             🎉 Predplatné zadarmo aktívne do: <strong id="aff-free-until"></strong>
           </div>
 
           <!-- Redeem -->
-          <div style="padding:1rem;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0">
+          <div style="padding:1rem;background:#111120;border-radius:10px;border:1px solid rgba(255,255,255,0.08)">
             <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.75rem">Uplatniť kredity</div>
 
             <!-- Option cards -->
@@ -243,7 +377,7 @@
                 <div class="redeem-option-card" onclick="selectRedeemOption('subscription')">
                   <div style="font-size:1.3rem;margin-bottom:0.35rem">🗓️</div>
                   <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">Voľný mesiac</div>
-                  <div style="font-size:0.78rem;color:#64748b">37 € = 1 mesiac<br>predplatného zadarmo</div>
+                  <div style="font-size:0.78rem;color:#9898b8">37 € = 1 mesiac<br>predplatného zadarmo</div>
                 </div>
               </label>
 
@@ -253,12 +387,12 @@
                 <div class="redeem-option-card" onclick="selectRedeemOption('ai_credits')">
                   <div style="font-size:1.3rem;margin-bottom:0.35rem">💬</div>
                   <div style="font-weight:700;font-size:0.875rem;margin-bottom:0.25rem">AI správy</div>
-                  <div style="font-size:0.78rem;color:#64748b">1 € = 100 odpovedí<br>pridaných k účtu</div>
+                  <div style="font-size:0.78rem;color:#9898b8">1 € = 100 odpovedí<br>pridaných k účtu</div>
                 </div>
               </label>
             </div>
 
-            <div id="redeem-desc" style="font-size:0.82rem;color:#64748b;margin-bottom:0.75rem">
+            <div id="redeem-desc" style="font-size:0.82rem;color:#9898b8;margin-bottom:0.75rem">
               Za každých 37 € kreditov získate 1 mesiac predplatného zadarmo. Stripe predplatné bude pozastavené a automaticky obnoví fakturáciu po skončení.
             </div>
 
@@ -274,9 +408,9 @@
           </div>
 
           <!-- How it works -->
-          <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid #e2e8f0">
+          <div style="margin-top:1.5rem;padding-top:1.5rem;border-top:1px solid rgba(255,255,255,0.08)">
             <div style="font-weight:600;font-size:0.9rem;margin-bottom:0.75rem">Ako funguje affiliate?</div>
-            <div style="display:grid;gap:0.5rem;font-size:0.875rem;color:#374151">
+            <div style="display:grid;gap:0.5rem;font-size:0.875rem;color:#eeeef5">
               <div>🔗 <strong>Zdieľate váš odkaz</strong> – priateľ sa zaregistruje s vaším kódom</div>
               <div>💳 <strong>Priateľ zaplatí</strong> – automaticky dostane -15% zľavu</div>
               <div>💰 <strong>Vy dostanete 15 €</strong> kredit na účet za každého platiaceho zákazníka</div>
@@ -334,6 +468,27 @@
       <div id="view-editor" style="display:none">
 
         <!-- Settings Tab -->
+        <!-- Overview Tab -->
+        <div id="tab-overview" class="tab-panel">
+          <div class="panel" id="ov-checklist-panel" style="margin-bottom:1.25rem">
+            <div class="panel-title" style="margin-bottom:0.25rem">Dokončite nastavenie</div>
+            <div class="hint" style="margin-bottom:0.85rem">Štyri kroky a chatbot je pripravený na web.</div>
+            <div id="ov-checklist" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0.75rem"></div>
+          </div>
+          <div id="ov-stats" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:1rem;margin-bottom:1.25rem"></div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:1.25rem">
+            <div class="panel">
+              <div class="panel-title" style="margin-bottom:1rem">Nezodpovedané za posledných 30 dní</div>
+              <div id="ov-chart" style="display:flex;align-items:flex-end;gap:3px;height:140px"></div>
+              <div style="display:flex;justify-content:space-between;font-size:0.72rem;color:#7e7ea0;margin-top:0.4rem"><span id="ov-chart-from"></span><span id="ov-chart-to"></span></div>
+            </div>
+            <div class="panel">
+              <div class="panel-title" style="margin-bottom:1rem">Nové nezodpovedané otázky</div>
+              <div id="ov-recent"></div>
+            </div>
+          </div>
+        </div>
+
         <div id="tab-settings" class="tab-panel active">
           <div class="panel">
             <div class="panel-header">
@@ -358,7 +513,7 @@
             <div class="form-group">
               <label>Foto avatara chatbota</label>
               <div class="upload-row">
-                <div id="s-avatar-preview" style="width:52px;height:52px;border-radius:50%;background:#e2e8f0;display:flex;align-items:center;justify-content:center;font-size:1.5rem;overflow:hidden;flex-shrink:0">🤖</div>
+                <div id="s-avatar-preview" style="width:52px;height:52px;border-radius:50%;background:#24243a;display:flex;align-items:center;justify-content:center;font-size:1.5rem;overflow:hidden;flex-shrink:0">🤖</div>
                 <div>
                   <input type="file" id="s-avatar-file" accept="image/jpeg,image/png,image/webp" style="font-size:0.875rem">
                   <div class="hint">JPG, PNG, WebP · max 5 MB</div>
@@ -368,7 +523,7 @@
             </div>
 
             <div class="form-group">
-              <label>Uvítacia správa <span style="font-weight:400;color:#94a3b8">(predvolená)</span></label>
+              <label>Uvítacia správa <span style="font-weight:400;color:#7e7ea0">(predvolená)</span></label>
               <input type="text" class="form-control" id="s-welcome" placeholder="Ahoj! Ako vám môžem pomôcť?">
               <div id="welcome-langs-container"></div>
               <div style="display:flex;gap:0.5rem;margin-top:0.6rem;flex-wrap:wrap;align-items:center">
@@ -383,7 +538,7 @@
               <div class="color-picker-row">
                 <div class="color-preview" id="color-preview"></div>
                 <input type="color" id="s-color" value="#2563eb" oninput="updateColorPreview(this.value)">
-                <span id="color-hex" style="font-size:0.875rem;color:#64748b;">#2563eb</span>
+                <span id="color-hex" style="font-size:0.875rem;color:#9898b8;">#5b4fff</span>
               </div>
             </div>
 
@@ -403,7 +558,7 @@
             </div>
 
             <!-- Proactive Message -->
-            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid #e2e8f0">
+            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.08)">
               <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.25rem">Proaktívna správa</div>
               <div class="hint" style="margin-bottom:0.85rem">Chatbot sa sám ozve návštevníkovi po pár sekundách na stránke – ako keby mu napísal. Získa pozornosť a otvorí konverzáciu.</div>
 
@@ -428,6 +583,74 @@
                 </div>
               </div>
             </div>
+
+            <!-- Bot behaviour -->
+            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.08)">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.25rem">Správanie bota</div>
+              <div class="hint" style="margin-bottom:0.85rem">Nechajte prázdne pre predvolené správanie.</div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Odpoveď mimo tému</label>
+                  <textarea class="form-control" id="s-off-topic" rows="3" placeholder="napr. Viem poradiť hlavne s informáciami z tohto webu. Skúste sa opýtať na naše produkty alebo služby."></textarea>
+                  <div class="hint">Keď sa návštevník pýta na niečo, čo s vaším biznisom nesúvisí.</div>
+                </div>
+                <div class="form-group">
+                  <label>Odpoveď bez podkladov</label>
+                  <textarea class="form-control" id="s-no-context" rows="3" placeholder="napr. Túto informáciu zatiaľ nemám. Napíšte nám cez kontaktný formulár."></textarea>
+                  <div class="hint">Keď odpoveď nie je v znalostnej báze.</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                  <input type="checkbox" id="s-handoff-enabled" style="width:16px;height:16px">
+                  Predanie človeku – keď návštevník výslovne požiada o človeka, pošleme konverzáciu na e-mail
+                </label>
+              </div>
+              <div class="form-group" style="max-width:360px">
+                <label>E-mail pre predanie človeku</label>
+                <input type="email" class="form-control" id="s-handoff-email" placeholder="podpora@vasafirma.sk">
+              </div>
+            </div>
+
+            <!-- Advanced: domains, visibility, position -->
+            <div style="margin-top:1.25rem;padding-top:1.25rem;border-top:1px solid rgba(255,255,255,0.08)">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.85rem">Rozšírené nastavenia</div>
+              <div class="form-group">
+                <label>Povolené domény (jedna na riadok)</label>
+                <textarea class="form-control" id="s-allowed-domains" rows="3" placeholder="vasafirma.sk&#10;*.vasafirma.sk"></textarea>
+                <div class="hint">Widget bude fungovať len na týchto weboch – nikto ho nevloží na cudzí web a nemíňa vaše kredity. Prázdne = všade. <b>example.com</b> zahŕňa aj www, <b>*.example.com</b> všetky subdomény.</div>
+              </div>
+              <div class="form-group">
+                <label>Zobraziť iba na stránkach (jedna na riadok)</label>
+                <textarea class="form-control" id="s-show-paths" rows="2" placeholder="/kontakt&#10;/produkty/*"></textarea>
+                <div class="hint">Prázdne = na všetkých stránkach. <b>*</b> zastúpi čokoľvek.</div>
+              </div>
+              <div class="form-group">
+                <label style="display:flex;align-items:center;gap:0.5rem;cursor:pointer">
+                  <input type="checkbox" id="s-hide-mobile" style="width:16px;height:16px">
+                  Skryť na mobiloch
+                </label>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label>Strana</label>
+                  <select class="form-control" id="s-side">
+                    <option value="right">Vpravo</option>
+                    <option value="left">Vľavo</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label>z-index</label>
+                  <input type="number" class="form-control" id="s-z-index" min="1" placeholder="2147483000">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label>Desktop X (px)</label><input type="number" class="form-control" id="s-offset-x" min="0" max="500"></div>
+                <div class="form-group"><label>Desktop Y (px)</label><input type="number" class="form-control" id="s-offset-y" min="0" max="500"></div>
+                <div class="form-group"><label>Mobil X (px)</label><input type="number" class="form-control" id="s-offset-x-mobile" min="0" max="200"></div>
+                <div class="form-group"><label>Mobil Y (px)</label><input type="number" class="form-control" id="s-offset-y-mobile" min="0" max="200"></div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -441,8 +664,15 @@
               </div>
             </div>
 
+            <!-- Unanswered questions -->
+            <div id="unanswered-section" style="display:none;margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.08);">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.25rem;">❓ Nezodpovedané otázky</div>
+              <div class="hint" style="margin-bottom:0.75rem;">Otázky návštevníkov, na ktoré chatbot nenašiel odpoveď v znalostnej báze. Doplňte odpoveď a chatbot ju bude nabudúce poznať.</div>
+              <div id="unanswered-list"></div>
+            </div>
+
             <!-- Scan Website -->
-            <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid #e2e8f0;">
+            <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.08);">
               <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.25rem;">🌐 Skenovať web</div>
               <div class="hint" style="margin-bottom:0.75rem;">Zadajte adresu webu — automaticky naskenujeme stránky a importujeme obsah do znalostnej bázy.</div>
               <div class="input-add-row" style="margin-bottom:0.5rem;">
@@ -450,10 +680,39 @@
                 <button class="btn btn-primary" id="btn-scrape" onclick="scrapeWebsite()">Skenovať</button>
               </div>
               <div id="scrape-status" style="display:none;font-size:0.82rem;margin-top:0.5rem;"></div>
+              <details style="margin-top:0.75rem">
+                <summary style="cursor:pointer;font-size:0.82rem;color:#9898b8">Pokročilé zdroje (Sitemap, XML feed)</summary>
+                <div style="margin-top:0.75rem">
+                  <label style="font-size:0.82rem">Sitemap – načíta stránky zo sitemap.xml (max 30)</label>
+                  <div class="input-add-row" style="margin:0.35rem 0 0.75rem">
+                    <input type="url" class="form-control" id="xml-sitemap-url" placeholder="https://vasafirma.sk/sitemap.xml">
+                    <button class="btn btn-secondary" onclick="importXml('sitemap')">Načítať</button>
+                  </div>
+                  <label style="font-size:0.82rem">Produktový XML feed – Heureka, Google Shopping, RSS (max 500 položiek)</label>
+                  <div class="input-add-row" style="margin-top:0.35rem">
+                    <input type="url" class="form-control" id="xml-feed-url" placeholder="https://vasafirma.sk/feed.xml">
+                    <button class="btn btn-secondary" onclick="importXml('feed')">Načítať</button>
+                  </div>
+                </div>
+              </details>
+            </div>
+
+            <!-- Q&A -->
+            <div id="qa-section" style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.08);">
+              <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Otázky a odpovede</div>
+              <div class="form-group">
+                <label>Otázka</label>
+                <input type="text" class="form-control" id="qa-question" placeholder="napr. Robíte dopravu zdarma?">
+              </div>
+              <div class="form-group">
+                <label>Odpoveď</label>
+                <textarea class="form-control" id="qa-answer" rows="3" placeholder="napr. Áno, pri objednávke nad 50 €."></textarea>
+              </div>
+              <button class="btn btn-primary" onclick="addQaKnowledge()">Pridať otázku</button>
             </div>
 
             <!-- Add Text -->
-            <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid #e2e8f0;">
+            <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.08);">
               <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Pridať text</div>
               <div class="form-group">
                 <label>Nadpis</label>
@@ -468,11 +727,11 @@
             </div>
 
             <!-- Upload File -->
-            <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid #e2e8f0;">
+            <div style="margin-bottom:1.5rem;padding-bottom:1.5rem;border-bottom:1px solid rgba(255,255,255,0.08);">
               <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Nahrať súbor</div>
               <div class="form-group">
-                <label>Súbor (PDF, TXT, MD, CSV – max 20MB)</label>
-                <input type="file" class="form-control" id="k-file" accept=".pdf,.txt,.md,.csv">
+                <label>Súbor (PDF, Word, TXT, MD, CSV – max 20MB)</label>
+                <input type="file" class="form-control" id="k-file" accept=".pdf,.docx,.txt,.md,.csv">
               </div>
               <div class="form-group">
                 <label>Nadpis (voliteľné)</label>
@@ -512,7 +771,7 @@
               <button class="btn btn-secondary" id="btn-generate-questions" onclick="generateQuestions()" style="width:100%;">
                 ✨ Generovať otázky z dokumentov
               </button>
-              <div id="generate-questions-status" style="display:none;margin-top:0.5rem;font-size:0.82rem;color:#94a3b8;text-align:center;">Generujem otázky…</div>
+              <div id="generate-questions-status" style="display:none;margin-top:0.5rem;font-size:0.82rem;color:#7e7ea0;text-align:center;">Generujem otázky…</div>
               <button class="btn btn-secondary" id="btn-translate-questions" onclick="autoTranslateQuestions()" style="width:100%;margin-top:0.5rem;">
                 🌍 Preložiť otázky do všetkých jazykov
               </button>
@@ -570,7 +829,7 @@
                 <label>Text tlačidla <span style="color:var(--muted);font-weight:400">(voliteľné)</span></label>
                 <input type="text" class="form-control" id="cta-book-btn-label" placeholder="Rezervovať termín">
               </div>
-              <div style="font-size:0.78rem;color:#64748b;margin-top:-0.25rem">
+              <div style="font-size:0.78rem;color:#9898b8;margin-top:-0.25rem">
                 Po kliknutí sa zákazníkovi otvorí rezervačný kalendár priamo v chate.
               </div>
             </div>
@@ -628,12 +887,12 @@
               <input type="text" class="form-control" id="gdpr-company-name" placeholder="napr. ABC s.r.o., Ján Novák – živnostník">
             </div>
             <div class="form-group">
-              <label>Adresa <small style="color:#94a3b8">(voliteľné)</small></label>
+              <label>Adresa <small style="color:#7e7ea0">(voliteľné)</small></label>
               <input type="text" class="form-control" id="gdpr-company-address" placeholder="napr. Hlavná 1, 010 01 Žilina">
             </div>
             <div class="form-grid-2">
               <div class="form-group" style="margin:0">
-                <label>IČO <small style="color:#94a3b8">(voliteľné)</small></label>
+                <label>IČO <small style="color:#7e7ea0">(voliteľné)</small></label>
                 <input type="text" class="form-control" id="gdpr-company-id" placeholder="12345678">
               </div>
               <div class="form-group" style="margin:0">
@@ -646,7 +905,7 @@
               <input type="text" class="form-control" id="gdpr-purposes" placeholder="napr. spätný kontakt so zákazníkom, zasielanie cenovej ponuky, konzultácia...">
             </div>
             <div class="form-group">
-              <label>Doba uchovávania údajov <small style="color:#94a3b8">(voliteľné, predvolene 3 roky)</small></label>
+              <label>Doba uchovávania údajov <small style="color:#7e7ea0">(voliteľné, predvolene 3 roky)</small></label>
               <input type="text" class="form-control" id="gdpr-retention" placeholder="napr. 3 roky, 12 mesiacov...">
             </div>
             <button class="btn btn-primary" id="btn-generate-gdpr" onclick="generateGdpr()">
@@ -665,7 +924,7 @@
             </div>
             <textarea class="form-control" id="gdpr-text" rows="12"
               placeholder="Tu sa zobrazí vygenerovaný GDPR text. Môžete ho aj napísať manuálne alebo upraviť vygenerovaný.&#10;&#10;Ak necháte pole prázdne, vo widgete sa zobrazí len základný text: 'Súhlasím so spracovaním osobných údajov za účelom spätného kontaktu.'"></textarea>
-            <div style="margin-top:0.75rem;font-size:0.8rem;color:#94a3b8">
+            <div style="margin-top:0.75rem;font-size:0.8rem;color:#7e7ea0">
               💡 Tip: Vo widgete bude text zobrazený v rozbaľovacej sekcii „Podmienky spracovania osobných údajov" — zákazník si ho môže prečítať pred aj po odoslaní formuláru.
             </div>
           </div>
@@ -675,13 +934,13 @@
         <div id="tab-instagram" class="tab-panel">
 
           <!-- ── Error banner (shown after failed OAuth) ────────── -->
-          <div id="ig-error-banner" style="display:none;margin-bottom:1.25rem;padding:1.25rem 1.5rem;border-radius:12px;background:#fef2f2;border:1.5px solid #fecaca;">
+          <div id="ig-error-banner" style="display:none;margin-bottom:1.25rem;padding:1.25rem 1.5rem;border-radius:12px;background:rgba(255,64,96,0.08);border:1.5px solid rgba(255,64,96,0.3);">
             <div style="display:flex;align-items:flex-start;gap:0.75rem">
               <span style="font-size:1.25rem;flex-shrink:0">⚠️</span>
               <div style="flex:1">
-                <div id="ig-error-title" style="font-weight:700;color:#991b1b;margin-bottom:0.4rem;font-size:0.95rem"></div>
-                <div id="ig-error-detail" style="color:#7f1d1d;font-size:0.85rem;line-height:1.6"></div>
-                <button onclick="dismissIgError()" style="margin-top:0.75rem;font-size:0.8rem;color:#991b1b;background:none;border:1px solid #fca5a5;border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer">
+                <div id="ig-error-title" style="font-weight:700;color:#ff4060;margin-bottom:0.4rem;font-size:0.95rem"></div>
+                <div id="ig-error-detail" style="color:#ff4060;font-size:0.85rem;line-height:1.6"></div>
+                <button onclick="dismissIgError()" style="margin-top:0.75rem;font-size:0.8rem;color:#ff4060;background:none;border:1px solid rgba(255,64,96,0.4);border-radius:6px;padding:0.3rem 0.75rem;cursor:pointer">
                   Zavrieť a skúsiť znova
                 </button>
               </div>
@@ -715,12 +974,12 @@
               </ul>
               <div style="margin-top:0.75rem">
                 <details style="cursor:pointer">
-                  <summary style="font-size:0.82rem;color:#2563eb;font-weight:600;list-style:none;display:flex;align-items:center;gap:0.3rem">
+                  <summary style="font-size:0.82rem;color:#5b4fff;font-weight:600;list-style:none;display:flex;align-items:center;gap:0.3rem">
                     <span style="font-size:0.7rem">▶</span> Nemám Facebook Stránku / neviem ako prepojiť — zobraziť postup
                   </summary>
-                  <div style="margin-top:0.75rem;font-size:0.82rem;line-height:1.8;color:#475569;padding:0.875rem 1rem;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0">
+                  <div style="margin-top:0.75rem;font-size:0.82rem;line-height:1.8;color:#b8b8d0;padding:0.875rem 1rem;background:#111120;border-radius:8px;border:1px solid rgba(255,255,255,0.08)">
                     <strong>Krok 1 – Vytvorte Facebook Stránku</strong> (ak ju nemáte):<br>
-                    <a href="https://www.facebook.com/pages/create" target="_blank" rel="noopener" style="color:#2563eb">facebook.com/pages/create</a> → zadajte názov firmy → hotovo.
+                    <a href="https://www.facebook.com/pages/create" target="_blank" rel="noopener" style="color:#5b4fff">facebook.com/pages/create</a> → zadajte názov firmy → hotovo.
                     <br><br>
                     <strong>Krok 2 – Prepnite Instagram na Business účet:</strong><br>
                     Instagram → Profil → ☰ → Nastavenia → Typ účtu a nástroje → <em>Prepnúť na profesionálny účet</em> → Firma.
@@ -730,7 +989,7 @@
                     <br><br>
                     <strong>Krok 4 – Kliknite na tlačidlo nižšie</strong> a prihláste sa cez Facebook účet, ktorý je admin tej stránky.
                     <br><br>
-                    <span style="color:#16a34a;font-weight:600">✓ Celý postup trvá cca 5 minút.</span>
+                    <span style="color:#1fd89a;font-weight:600">✓ Celý postup trvá cca 5 minút.</span>
                   </div>
                 </details>
               </div>
@@ -740,7 +999,7 @@
               style="width:100%;justify-content:center;font-size:1rem;padding:0.75rem 1.5rem">
               <span>📱 Prepojiť Instagram cez Facebook</span>
             </button>
-            <div style="text-align:center;font-size:0.78rem;color:#94a3b8;margin-top:0.5rem">
+            <div style="text-align:center;font-size:0.78rem;color:#7e7ea0;margin-top:0.5rem">
               Bezpečné prepojenie cez Meta (Facebook) OAuth
             </div>
           </div>
@@ -796,7 +1055,7 @@
                 placeholder="Ahoj! 👋 Videl som tvoj komentár. Som tu, ak máš otázky – napíš mi čo ťa zaujíma!"></textarea>
             </div>
 
-            <div style="background:#f0fdf4;border:1px solid #bbf7d0;padding:0.75rem 1rem;border-radius:8px;margin-top:0.5rem;font-size:0.82rem;color:#166534">
+            <div style="background:rgba(31,216,154,0.08);border:1px solid rgba(31,216,154,0.3);padding:0.75rem 1rem;border-radius:8px;margin-top:0.5rem;font-size:0.82rem;color:#1fd89a">
               💡 <strong>Tip:</strong> Nastavte kľúčové slová, ktoré zákazníci zvyknú písať pod vaše príspevky (napr. pod ceníkový post napíšte trigger <em>CENA</em>).
             </div>
           </div>
@@ -822,13 +1081,13 @@
             </div>
 
             <div class="form-group">
-              <label>Page Access Token <span style="font-weight:400;color:#94a3b8">(z Facebook Developers → App → Messenger → Generate Token)</span></label>
+              <label>Page Access Token <span style="font-weight:400;color:#7e7ea0">(z Facebook Developers → App → Messenger → Generate Token)</span></label>
               <input type="password" class="form-control" id="fb-token" placeholder="EAABx...">
             </div>
             <button class="btn btn-primary" style="width:100%;justify-content:center;font-size:1rem;padding:0.75rem" onclick="connectFacebook()">
               💬 Pripojiť Facebook Messenger
             </button>
-            <div style="text-align:center;font-size:0.78rem;color:#94a3b8;margin-top:0.5rem">
+            <div style="text-align:center;font-size:0.78rem;color:#7e7ea0;margin-top:0.5rem">
               Token sa uloží bezpečne. Messenger webhook URL nájdete v nastaveniach nižšie po pripojení.
             </div>
           </div>
@@ -848,7 +1107,7 @@
                 <button class="btn btn-sm btn-danger" onclick="disconnectFacebook()">Odpojiť</button>
               </div>
             </div>
-            <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.75rem 1rem;font-size:0.82rem;color:#1e40af;margin-top:0.5rem">
+            <div style="background:rgba(91,79,255,0.12);border:1px solid rgba(91,79,255,0.35);border-radius:8px;padding:0.75rem 1rem;font-size:0.82rem;color:#9b8cff;margin-top:0.5rem">
               <strong>Webhook URL</strong> (nastav v Facebook Developers → Webhooks):<br>
               <code id="fb-webhook-url" style="font-size:0.8rem;word-break:break-all"></code>
             </div>
@@ -884,7 +1143,7 @@
               <button class="btn btn-secondary" onclick="loadFacebookSessions()">↺ Obnoviť</button>
             </div>
             <div id="fb-sessions-list">
-              <div style="font-size:0.875rem;color:#94a3b8;padding:1rem 0">Žiadne konverzácie.</div>
+              <div style="font-size:0.875rem;color:#7e7ea0;padding:1rem 0">Žiadne konverzácie.</div>
             </div>
           </div>
 
@@ -905,7 +1164,7 @@
             </div>
             <div style="margin-top:1.25rem;">
               <div class="panel-title" style="font-size:0.9rem;margin-bottom:0.75rem;">Ako to funguje?</div>
-              <ol style="padding-left:1.25rem;color:#64748b;font-size:0.875rem;line-height:2;">
+              <ol style="padding-left:1.25rem;color:#9898b8;font-size:0.875rem;line-height:2;">
                 <li>Skopírujte kód vyššie</li>
                 <li>Vložte ho do HTML kódu vašej webstránky, pred záverečný tag &lt;/head&gt;</li>
                 <li>Chatbot sa automaticky zobrazí v pravom dolnom rohu</li>
@@ -917,7 +1176,7 @@
           <div class="panel">
             <div class="panel-title">Náhľad widgetu</div>
             <div class="panel-subtitle" style="margin-top:0.25rem;margin-bottom:1rem;">Takto bude vyzerať chatbot na vašom webe</div>
-            <div id="widget-preview" style="position:relative;background:#e2e8f0;border-radius:10px;padding:2rem;min-height:200px;overflow:hidden;">
+            <div id="widget-preview" style="position:relative;background:#24243a;border-radius:10px;padding:2rem;min-height:200px;overflow:hidden;">
               <div style="position:absolute;bottom:1rem;right:1rem;" id="preview-bubble"></div>
             </div>
           </div>
@@ -969,6 +1228,47 @@
               <label>Potvrdzovacia správa (po úspešnej rezervácii)</label>
               <input type="text" class="form-control" id="bk-confirm-msg" placeholder="Rezervácia potvrdená! Tešíme sa na vás.">
             </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:0.5rem">
+              <div class="form-group">
+                <label>Začiatky termínov každých X min (0 = podľa dĺžky služby)</label>
+                <input type="number" class="form-control" id="bk-interval" min="0" max="240" step="5" value="0">
+              </div>
+              <div class="form-group">
+                <label>Výber zamestnanca zákazníkom</label>
+                <select class="form-control" id="bk-staff-selection">
+                  <option value="choose">Zákazník si vyberie (alebo „Ktokoľvek“)</option>
+                  <option value="any">Automaticky – najmenej vyťažený</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Zrušenie / presun najneskôr X hodín vopred</label>
+                <input type="number" class="form-control" id="bk-cancel-hours" min="0" max="720" value="24">
+              </div>
+              <div class="form-group" style="display:flex;flex-direction:column;gap:0.4rem;justify-content:center">
+                <label class="bk-check"><input type="checkbox" id="bk-allow-cancel"> Zákazník môže zrušiť online</label>
+                <label class="bk-check"><input type="checkbox" id="bk-allow-reschedule"> Zákazník môže presunúť online</label>
+                <label class="bk-check"><input type="checkbox" id="bk-require-phone"> Telefón je povinný</label>
+              </div>
+              <div class="form-group">
+                <label>Vrátenie platby pri zrušení zákazníkom (včas)</label>
+                <select class="form-control" id="bk-refund-policy">
+                  <option value="full">Vrátiť celú platbu automaticky</option>
+                  <option value="none">Nevracať (záloha prepadá)</option>
+                </select>
+                <div style="font-size:0.72rem;color:#7e7ea0;margin-top:0.3rem">Ak zrušíte vy, platba sa vráti vždy.</div>
+              </div>
+            </div>
+            <div class="form-row" style="display:grid;grid-template-columns:1fr 1fr;gap:1rem">
+              <div class="form-group">
+                <label>📧 Pripomienky zákazníkovi</label>
+                <div class="bk-rem-list" data-rem="customer"></div>
+              </div>
+              <div class="form-group">
+                <label>🔔 Pripomienky zamestnancovi</label>
+                <div class="bk-rem-list" data-rem="staff"></div>
+                <label class="bk-check" style="margin-top:0.4rem"><input type="checkbox" id="bk-notify-staff"> Posielať e-mail o nových, zrušených a presunutých rezerváciách</label>
+              </div>
+            </div>
           </div>
 
           <!-- Services panel -->
@@ -998,26 +1298,26 @@
 
             <!-- Colors -->
             <div style="margin-bottom:1.5rem">
-              <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Farby</div>
+              <div style="font-size:0.75rem;font-weight:700;color:#eeeef5;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Farby</div>
               <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem">
                 <div class="form-group" style="margin:0">
                   <label>Hlavná farba</label>
                   <div style="display:flex;gap:0.4rem;align-items:center">
-                    <input type="color" id="bk-d-primary" value="#5b4fff" oninput="syncHex('bk-d-primary')" style="width:38px;height:36px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
+                    <input type="color" id="bk-d-primary" value="#5b4fff" oninput="syncHex('bk-d-primary')" style="width:38px;height:36px;border:1.5px solid rgba(255,255,255,0.14);border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
                     <input type="text" id="bk-d-primary-hex" class="form-control" value="#5b4fff" maxlength="7" oninput="syncPicker('bk-d-primary')" style="font-family:monospace;font-size:0.85rem">
                   </div>
                 </div>
                 <div class="form-group" style="margin:0">
                   <label>Farba pozadia</label>
                   <div style="display:flex;gap:0.4rem;align-items:center">
-                    <input type="color" id="bk-d-bg" value="#f1f5f9" oninput="syncHex('bk-d-bg')" style="width:38px;height:36px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
+                    <input type="color" id="bk-d-bg" value="#f1f5f9" oninput="syncHex('bk-d-bg')" style="width:38px;height:36px;border:1.5px solid rgba(255,255,255,0.14);border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
                     <input type="text" id="bk-d-bg-hex" class="form-control" value="#f1f5f9" maxlength="7" oninput="syncPicker('bk-d-bg')" style="font-family:monospace;font-size:0.85rem">
                   </div>
                 </div>
                 <div class="form-group" style="margin:0">
                   <label>2. farba hlavičky</label>
                   <div style="display:flex;gap:0.4rem;align-items:center">
-                    <input type="color" id="bk-d-grad" value="#9b8cff" oninput="syncHex('bk-d-grad')" style="width:38px;height:36px;border:1.5px solid #e2e8f0;border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
+                    <input type="color" id="bk-d-grad" value="#9b8cff" oninput="syncHex('bk-d-grad')" style="width:38px;height:36px;border:1.5px solid rgba(255,255,255,0.14);border-radius:8px;cursor:pointer;padding:2px;flex-shrink:0">
                     <input type="text" id="bk-d-grad-hex" class="form-control" value="#9b8cff" maxlength="7" oninput="syncPicker('bk-d-grad')" style="font-family:monospace;font-size:0.85rem">
                   </div>
                 </div>
@@ -1026,7 +1326,7 @@
 
             <!-- Typography -->
             <div style="margin-bottom:1.5rem">
-              <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Písmo</div>
+              <div style="font-size:0.75rem;font-weight:700;color:#eeeef5;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Písmo</div>
               <div class="form-group" style="margin:0;max-width:280px">
                 <label>Rodina písma</label>
                 <select class="form-control" id="bk-d-font">
@@ -1043,31 +1343,31 @@
 
             <!-- Shapes -->
             <div style="margin-bottom:1.5rem">
-              <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Tvar prvkov</div>
+              <div style="font-size:0.75rem;font-weight:700;color:#eeeef5;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Tvar prvkov</div>
               <div style="display:flex;gap:0.75rem;flex-wrap:wrap">
-                <button class="bk-shape-opt" id="bk-shape-sharp" data-radius="4" onclick="selectBkShape(this)" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;padding:0.75rem 1.25rem;border:2px solid #e2e8f0;border-radius:10px;background:white;cursor:pointer">
-                  <div style="width:44px;height:44px;background:#e2e8f0;border-radius:4px"></div>
-                  <span style="font-size:0.75rem;font-weight:600;color:#64748b">Hranaté</span>
+                <button class="bk-shape-opt" id="bk-shape-sharp" data-radius="4" onclick="selectBkShape(this)" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;padding:0.75rem 1.25rem;border:2px solid rgba(255,255,255,0.08);border-radius:10px;background:#18182a;cursor:pointer">
+                  <div style="width:44px;height:44px;background:#24243a;border-radius:4px"></div>
+                  <span style="font-size:0.75rem;font-weight:600;color:#9898b8">Hranaté</span>
                 </button>
-                <button class="bk-shape-opt" id="bk-shape-rounded" data-radius="16" onclick="selectBkShape(this)" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;padding:0.75rem 1.25rem;border:2px solid #e2e8f0;border-radius:10px;background:white;cursor:pointer">
-                  <div style="width:44px;height:44px;background:#e2e8f0;border-radius:14px"></div>
-                  <span style="font-size:0.75rem;font-weight:600;color:#64748b">Zaoblené</span>
+                <button class="bk-shape-opt" id="bk-shape-rounded" data-radius="16" onclick="selectBkShape(this)" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;padding:0.75rem 1.25rem;border:2px solid rgba(255,255,255,0.08);border-radius:10px;background:#18182a;cursor:pointer">
+                  <div style="width:44px;height:44px;background:#24243a;border-radius:14px"></div>
+                  <span style="font-size:0.75rem;font-weight:600;color:#9898b8">Zaoblené</span>
                 </button>
-                <button class="bk-shape-opt" id="bk-shape-pill" data-radius="28" onclick="selectBkShape(this)" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;padding:0.75rem 1.25rem;border:2px solid #e2e8f0;border-radius:10px;background:white;cursor:pointer">
-                  <div style="width:44px;height:44px;background:#e2e8f0;border-radius:50%"></div>
-                  <span style="font-size:0.75rem;font-weight:600;color:#64748b">Okrúhle</span>
+                <button class="bk-shape-opt" id="bk-shape-pill" data-radius="28" onclick="selectBkShape(this)" style="display:flex;flex-direction:column;align-items:center;gap:0.4rem;padding:0.75rem 1.25rem;border:2px solid rgba(255,255,255,0.08);border-radius:10px;background:#18182a;cursor:pointer">
+                  <div style="width:44px;height:44px;background:#24243a;border-radius:50%"></div>
+                  <span style="font-size:0.75rem;font-weight:600;color:#9898b8">Okrúhle</span>
                 </button>
               </div>
             </div>
 
             <!-- Header -->
             <div style="margin-bottom:1.5rem">
-              <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Hlavička</div>
+              <div style="font-size:0.75rem;font-weight:700;color:#eeeef5;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Hlavička</div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;align-items:start">
                 <div class="form-group" style="margin:0">
                   <label>Názov kalendára</label>
                   <input type="text" class="form-control" id="bk-d-calname" placeholder="Predvolene: názov asistenta" maxlength="80">
-                  <small style="color:#94a3b8;font-size:0.72rem">Nezávislý od mena chatbota</small>
+                  <small style="color:#7e7ea0;font-size:0.72rem">Nezávislý od mena chatbota</small>
                 </div>
                 <div class="form-group" style="margin:0">
                   <label>Emoji ikona (keď nie je logo)</label>
@@ -1075,20 +1375,20 @@
                 </div>
               </div>
               <div style="margin-top:0.875rem">
-                <label style="font-size:0.8rem;font-weight:600;color:#374151;display:block;margin-bottom:0.4rem">Logo (nahrať obrázok)</label>
+                <label style="font-size:0.8rem;font-weight:600;color:#eeeef5;display:block;margin-bottom:0.4rem">Logo (nahrať obrázok)</label>
                 <div style="display:flex;align-items:center;gap:0.75rem;flex-wrap:wrap">
-                  <img id="bk-logo-preview" src="" alt="logo" style="display:none;width:52px;height:52px;border-radius:10px;object-fit:contain;border:1.5px solid #e2e8f0;background:#f8fafc;padding:3px">
+                  <img id="bk-logo-preview" src="" alt="logo" style="display:none;width:52px;height:52px;border-radius:10px;object-fit:contain;border:1.5px solid rgba(255,255,255,0.08);background:#111120;padding:3px">
                   <label for="bk-logo-file" class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0">📁 Nahrať logo</label>
                   <input type="file" id="bk-logo-file" accept="image/*" style="display:none" onchange="uploadBookingLogo(this)">
                   <button class="btn btn-secondary btn-sm" id="bk-logo-remove-btn" onclick="removeBookingLogo()" style="display:none">✕ Odstrániť</button>
-                  <span id="bk-logo-status" style="font-size:0.78rem;color:#64748b"></span>
+                  <span id="bk-logo-status" style="font-size:0.78rem;color:#9898b8"></span>
                 </div>
               </div>
             </div>
 
             <!-- Texts -->
             <div>
-              <div style="font-size:0.75rem;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Texty stránky <span style="font-weight:400;color:#94a3b8;text-transform:none;font-size:0.72rem">(predvolená SK verzia)</span></div>
+              <div style="font-size:0.75rem;font-weight:700;color:#eeeef5;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:0.75rem">Texty stránky <span style="font-weight:400;color:#7e7ea0;text-transform:none;font-size:0.72rem">(predvolená SK verzia)</span></div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.5rem">
                 <div class="form-group" style="margin:0"><label>Podnadpis hlavičky</label>
                   <input type="text" class="form-control" data-bk-txt="bookingSubtitle" placeholder="Vyberte si termín online"></div>
@@ -1120,45 +1420,30 @@
             </div>
           </div>
 
-          <!-- Schedule panel -->
+          <!-- Team panel -->
           <div class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Pracovné hodiny</div>
-                <div class="panel-subtitle">Nastavte dni a časy, kedy ste dostupní</div>
+                <div class="panel-title">👥 Tím a dostupnosť</div>
+                <div class="panel-subtitle">Pracovné hodiny, prestávky, limity work-life balance, voľno a kalendáre jednotlivých ľudí</div>
               </div>
-              <button class="btn btn-primary" onclick="saveBookingSchedule()">Uložiť</button>
+              <button class="btn btn-primary btn-sm" onclick="addStaff()">+ Pridať člena tímu</button>
             </div>
-            <div id="bk-schedule-grid" style="display:flex;flex-direction:column;gap:0.5rem;margin-top:0.5rem"></div>
+            <div id="bk-staff-list" style="margin-top:0.5rem"></div>
           </div>
 
-          <!-- Overrides panel -->
+          <!-- Custom CSS panel -->
           <div class="panel">
             <div class="panel-header">
               <div>
-                <div class="panel-title">Výnimky</div>
-                <div class="panel-subtitle">Zatvorené dni alebo špeciálne hodiny pre konkrétne dátumy</div>
+                <div class="panel-title">🧩 Vlastné CSS</div>
+                <div class="panel-subtitle">Pokročilé úpravy vzhľadu rezervačnej stránky a stránky správy rezervácie</div>
               </div>
+              <button class="btn btn-primary btn-sm" onclick="saveBookingCss()">Uložiť CSS</button>
             </div>
-            <div style="display:flex;gap:0.75rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:1rem">
-              <div class="form-group" style="margin:0;flex:0 0 auto">
-                <label>Dátum</label>
-                <input type="date" class="form-control" id="bk-exc-date">
-              </div>
-              <div class="form-group" style="margin:0;flex:0 0 auto">
-                <label>Typ</label>
-                <select class="form-control" id="bk-exc-type" onchange="toggleExcTime()">
-                  <option value="closed">Zatvorené celý deň</option>
-                  <option value="custom">Vlastné hodiny</option>
-                </select>
-              </div>
-              <div id="bk-exc-times" style="display:none;gap:0.5rem;align-items:flex-end">
-                <div class="form-group" style="margin:0"><label>Od</label><input type="time" class="form-control" id="bk-exc-start" value="09:00"></div>
-                <div class="form-group" style="margin:0"><label>Do</label><input type="time" class="form-control" id="bk-exc-end" value="17:00"></div>
-              </div>
-              <button class="btn btn-primary" onclick="addBookingOverride()" style="flex-shrink:0">+ Pridať výnimku</button>
-            </div>
-            <div id="bk-overrides-list"></div>
+            <textarea id="bk-custom-css" class="form-control" rows="7" spellcheck="false" style="font-family:ui-monospace,Menlo,monospace;font-size:0.8rem"
+              placeholder=".bk-header { border-radius: 0; }&#10;.slot-btn { font-weight: 800; }"></textarea>
+            <div style="font-size:0.75rem;color:#7e7ea0;margin-top:0.4rem">Užitočné triedy: .bk-header, .card, .svc-card, .cal-day, .slot-btn, .btn-next, .staff-chip, .success-screen</div>
           </div>
 
           <!-- Calendar / bookings panel -->
@@ -1180,25 +1465,12 @@
 
           <!-- Booking detail modal (hidden) -->
           <div id="bk-detail-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:2000;align-items:center;justify-content:center;padding:1rem" onclick="closeBkDetail(event)">
-            <div style="background:white;border-radius:16px;max-width:520px;width:100%;padding:1.5rem;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
+            <div style="background:#18182a;border-radius:16px;max-width:520px;width:100%;padding:1.5rem;max-height:90vh;overflow-y:auto" onclick="event.stopPropagation()">
               <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
                 <div style="font-weight:700;font-size:1rem">Detail rezervácie</div>
-                <button onclick="closeBkDetail()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;color:#94a3b8">✕</button>
+                <button onclick="closeBkDetail()" style="background:none;border:none;cursor:pointer;font-size:1.3rem;color:#7e7ea0">✕</button>
               </div>
               <div id="bk-detail-content"></div>
-            </div>
-          </div>
-
-          <!-- Google Calendar panel -->
-          <div class="panel">
-            <div class="panel-header">
-              <div>
-                <div class="panel-title">📆 Google Calendar</div>
-                <div class="panel-subtitle">Synchronizujte rezervácie do svojho Google Kalendára</div>
-              </div>
-            </div>
-            <div id="bk-gcal-status">
-              <div style="color:#94a3b8;font-size:0.875rem">Načítavam stav...</div>
             </div>
           </div>
 
@@ -1211,12 +1483,12 @@
               </div>
             </div>
             <div style="margin-bottom:0.75rem">
-              <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem">Možnosť A – iframe (odporúčané)</div>
+              <div style="font-size:0.8rem;font-weight:600;color:#eeeef5;margin-bottom:0.35rem">Možnosť A – iframe (odporúčané)</div>
               <div class="embed-code-box" id="bk-embed-iframe">Načítavam...</div>
               <button class="btn btn-secondary btn-sm" style="margin-top:0.4rem" onclick="copyBookingEmbed('iframe')">Kopírovať</button>
             </div>
             <div>
-              <div style="font-size:0.8rem;font-weight:600;color:#374151;margin-bottom:0.35rem">Možnosť B – priamy odkaz</div>
+              <div style="font-size:0.8rem;font-weight:600;color:#eeeef5;margin-bottom:0.35rem">Možnosť B – priamy odkaz</div>
               <div class="embed-code-box" id="bk-embed-link">Načítavam...</div>
               <button class="btn btn-secondary btn-sm" style="margin-top:0.4rem" onclick="copyBookingEmbed('link')">Kopírovať</button>
             </div>
@@ -1239,31 +1511,31 @@
             <div class="empty-state" id="lm-empty" style="display:none">
               <div style="font-size:2.5rem;margin-bottom:0.75rem">🧲</div>
               <div style="font-weight:700;margin-bottom:0.5rem">Zatiaľ žiadne lead magnety</div>
-              <div style="font-size:0.875rem;color:#64748b">Pridajte PDF, e-book alebo sprievodcu – chatbot ho zákazníkom ponúkne výmenou za email.</div>
+              <div style="font-size:0.875rem;color:#9898b8">Pridajte PDF, e-book alebo sprievodcu – chatbot ho zákazníkom ponúkne výmenou za email.</div>
             </div>
             <div id="lm-cards" style="display:grid;gap:1rem"></div>
           </div>
 
           <!-- Leads sub-section -->
-          <div style="border-top:1px solid #e2e8f0;padding-top:1.5rem">
+          <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:1.5rem">
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1rem">
-              <h3 style="font-size:1rem;font-weight:700;color:#1e293b;margin:0">📬 Zozbierané emaily (leads)</h3>
+              <h3 style="font-size:1rem;font-weight:700;color:#eeeef5;margin:0">📬 Zozbierané emaily (leads)</h3>
               <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
-                <select id="lm-leads-filter" style="font-size:0.82rem;padding:0.35rem 0.6rem;border:1px solid #e2e8f0;border-radius:8px;font-family:inherit;background:#fff;color:#374151" onchange="loadLmLeads()">
+                <select id="lm-leads-filter" style="font-size:0.82rem;padding:0.35rem 0.6rem;border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-family:inherit;background:#18182a;color:#eeeef5" onchange="loadLmLeads()">
                   <option value="">Všetky lead magnety</option>
                 </select>
                 <button class="btn btn-secondary btn-sm" onclick="exportLmLeads()">⬇ Export CSV</button>
               </div>
             </div>
             <div id="lm-leads-table-wrap">
-              <div id="lm-leads-empty" style="display:none;font-size:0.875rem;color:#94a3b8;padding:1rem 0">Žiadne zachytené emaily.</div>
+              <div id="lm-leads-empty" style="display:none;font-size:0.875rem;color:#7e7ea0;padding:1rem 0">Žiadne zachytené emaily.</div>
               <table id="lm-leads-table" style="display:none;width:100%;border-collapse:collapse;font-size:0.83rem">
                 <thead>
-                  <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0">
-                    <th style="text-align:left;padding:0.6rem 0.75rem;font-weight:700;color:#475569">Lead Magnet</th>
-                    <th style="text-align:left;padding:0.6rem 0.75rem;font-weight:700;color:#475569">Meno</th>
-                    <th style="text-align:left;padding:0.6rem 0.75rem;font-weight:700;color:#475569">Email</th>
-                    <th style="text-align:left;padding:0.6rem 0.75rem;font-weight:700;color:#475569">Dátum</th>
+                  <tr style="background:#111120;border-bottom:2px solid rgba(255,255,255,0.08)">
+                    <th style="text-align:left;padding:0.6rem 0.75rem;font-weight:700;color:#b8b8d0">Lead Magnet</th>
+                    <th style="text-align:left;padding:0.6rem 0.75rem;font-weight:700;color:#b8b8d0">Meno</th>
+                    <th style="text-align:left;padding:0.6rem 0.75rem;font-weight:700;color:#b8b8d0">Email</th>
+                    <th style="text-align:left;padding:0.6rem 0.75rem;font-weight:700;color:#b8b8d0">Dátum</th>
                   </tr>
                 </thead>
                 <tbody id="lm-leads-body"></tbody>
@@ -1287,7 +1559,7 @@
           </div>
 
           <!-- GDPR note -->
-          <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:0.8rem;color:#166534">
+          <div style="background:rgba(31,216,154,0.08);border:1px solid rgba(31,216,154,0.3);border-radius:10px;padding:0.75rem 1rem;margin-bottom:1.5rem;font-size:0.8rem;color:#1fd89a">
             🔒 <b>GDPR-safe:</b> Zbierajú sa iba anonymné behaviorálne kategórie — žiadne osobné údaje ani texty konverzácií. Analýza sa spustí po 3 výmenách správ v rámci jednej relácie.
           </div>
 
@@ -1295,38 +1567,38 @@
           <div id="ins-summary" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1rem;margin-bottom:2rem"></div>
 
           <!-- Empty state -->
-          <div id="ins-empty" style="display:none;text-align:center;padding:3rem 1rem;color:#94a3b8">
+          <div id="ins-empty" style="display:none;text-align:center;padding:3rem 1rem;color:#7e7ea0">
             <div style="font-size:2.5rem;margin-bottom:0.75rem">📊</div>
-            <div style="font-weight:700;color:#475569;margin-bottom:0.5rem">Zatiaľ žiadne dáta</div>
+            <div style="font-weight:700;color:#b8b8d0;margin-bottom:0.5rem">Zatiaľ žiadne dáta</div>
             <div style="font-size:0.875rem">Trendy sa začnú zobrazovať po prvých konverzáciách s 3+ výmenami správ.</div>
           </div>
 
           <!-- A/B Test stats -->
-          <div id="ins-ab" style="display:none;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem;margin-bottom:1.5rem">
-            <div style="font-size:0.8rem;font-weight:700;color:#475569;letter-spacing:0.06em;margin-bottom:1rem">🧪 A/B TEST UVÍTACEJ SPRÁVY</div>
+          <div id="ins-ab" style="display:none;background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1.1rem;margin-bottom:1.5rem">
+            <div style="font-size:0.8rem;font-weight:700;color:#b8b8d0;letter-spacing:0.06em;margin-bottom:1rem">🧪 A/B TEST UVÍTACEJ SPRÁVY</div>
             <div id="ins-ab-content"></div>
           </div>
 
           <!-- Charts -->
           <div id="ins-charts" style="display:none;grid-template-columns:1fr 1fr;gap:1.5rem">
             <!-- Topics -->
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem;grid-column:1/-1">
-              <div style="font-size:0.8rem;font-weight:700;color:#475569;letter-spacing:0.06em;margin-bottom:1rem">🏷️ TÉMY ZÁUJMU</div>
+            <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1.1rem;grid-column:1/-1">
+              <div style="font-size:0.8rem;font-weight:700;color:#b8b8d0;letter-spacing:0.06em;margin-bottom:1rem">🏷️ TÉMY ZÁUJMU</div>
               <div id="ins-topics"></div>
             </div>
             <!-- Intent -->
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem">
-              <div style="font-size:0.8rem;font-weight:700;color:#475569;letter-spacing:0.06em;margin-bottom:1rem">🎯 ZÁMER NÁVŠTEVNÍKA</div>
+            <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1.1rem">
+              <div style="font-size:0.8rem;font-weight:700;color:#b8b8d0;letter-spacing:0.06em;margin-bottom:1rem">🎯 ZÁMER NÁVŠTEVNÍKA</div>
               <div id="ins-intents"></div>
             </div>
             <!-- Objections -->
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem">
-              <div style="font-size:0.8rem;font-weight:700;color:#475569;letter-spacing:0.06em;margin-bottom:1rem">🚧 PREČO NEKONAL</div>
+            <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1.1rem">
+              <div style="font-size:0.8rem;font-weight:700;color:#b8b8d0;letter-spacing:0.06em;margin-bottom:1rem">🚧 PREČO NEKONAL</div>
               <div id="ins-objections"></div>
             </div>
             <!-- Urgency -->
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:1.1rem">
-              <div style="font-size:0.8rem;font-weight:700;color:#475569;letter-spacing:0.06em;margin-bottom:1rem">⏰ NALIEHAVOSŤ</div>
+            <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:1.1rem">
+              <div style="font-size:0.8rem;font-weight:700;color:#b8b8d0;letter-spacing:0.06em;margin-bottom:1rem">⏰ NALIEHAVOSŤ</div>
               <div id="ins-urgency"></div>
             </div>
           </div>
@@ -1343,35 +1615,35 @@
 
           <div style="display:grid;grid-template-columns:300px 1fr;gap:1.25rem;align-items:start" id="inbox-layout">
             <!-- Conversation list -->
-            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
-              <div style="padding:0.75rem 1rem;border-bottom:1px solid #e2e8f0;font-size:0.78rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:0.05em">Konverzácie</div>
+            <div style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden">
+              <div style="padding:0.75rem 1rem;border-bottom:1px solid rgba(255,255,255,0.08);font-size:0.78rem;font-weight:700;color:#b8b8d0;text-transform:uppercase;letter-spacing:0.05em">Konverzácie</div>
               <div id="inbox-list" style="max-height:65vh;overflow-y:auto">
-                <div id="inbox-empty" style="padding:2rem 1rem;text-align:center;color:#94a3b8;font-size:0.875rem">Žiadne konverzácie</div>
+                <div id="inbox-empty" style="padding:2rem 1rem;text-align:center;color:#7e7ea0;font-size:0.875rem">Žiadne konverzácie</div>
               </div>
             </div>
 
             <!-- Transcript panel -->
-            <div id="inbox-transcript-panel" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;display:none">
-              <div style="padding:0.75rem 1rem;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap">
+            <div id="inbox-transcript-panel" style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;overflow:hidden;display:none">
+              <div style="padding:0.75rem 1rem;border-bottom:1px solid rgba(255,255,255,0.08);display:flex;align-items:center;justify-content:space-between;gap:0.75rem;flex-wrap:wrap">
                 <div>
-                  <div id="inbox-conv-title" style="font-weight:700;color:#1e293b;font-size:0.92rem"></div>
-                  <div id="inbox-conv-meta" style="font-size:0.75rem;color:#64748b;margin-top:0.1rem"></div>
+                  <div id="inbox-conv-title" style="font-weight:700;color:#eeeef5;font-size:0.92rem"></div>
+                  <div id="inbox-conv-meta" style="font-size:0.75rem;color:#9898b8;margin-top:0.1rem"></div>
                 </div>
                 <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center">
-                  <span id="inbox-live-badge" style="display:none;background:#dcfce7;color:#16a34a;font-size:0.72rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:99px">● LIVE</span>
+                  <span id="inbox-live-badge" style="display:none;background:rgba(31,216,154,0.14);color:#1fd89a;font-size:0.72rem;font-weight:700;padding:0.2rem 0.55rem;border-radius:99px">● LIVE</span>
                   <button id="inbox-takeover-btn" class="btn btn-sm btn-secondary" onclick="toggleLiveTakeover()">Prevziať chat</button>
                 </div>
               </div>
               <div id="inbox-messages" style="padding:1rem;max-height:50vh;overflow-y:auto;display:flex;flex-direction:column;gap:0.6rem"></div>
               <!-- Agent reply input (visible only during live takeover) -->
-              <div id="inbox-agent-reply" style="display:none;padding:0.75rem 1rem;border-top:1px solid #e2e8f0;gap:0.5rem;flex-wrap:nowrap;align-items:center">
+              <div id="inbox-agent-reply" style="display:none;padding:0.75rem 1rem;border-top:1px solid rgba(255,255,255,0.08);gap:0.5rem;flex-wrap:nowrap;align-items:center">
                 <input type="text" id="inbox-agent-input" class="form-control" placeholder="Napíšte správu zákazníkovi..." style="flex:1;font-size:0.875rem" onkeydown="if(event.key==='Enter')sendAgentMessage()">
                 <button class="btn btn-primary btn-sm" onclick="sendAgentMessage()">Odoslať</button>
               </div>
             </div>
 
             <!-- Empty state when no conversation selected -->
-            <div id="inbox-select-hint" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:3rem 1rem;text-align:center;color:#94a3b8">
+            <div id="inbox-select-hint" style="background:#111120;border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:3rem 1rem;text-align:center;color:#7e7ea0">
               <div style="font-size:2rem;margin-bottom:0.75rem">💬</div>
               <div style="font-size:0.875rem">Vyberte konverzáciu zo zoznamu</div>
             </div>
@@ -1402,7 +1674,7 @@
                 </div>
                 <button class="btn btn-sm btn-danger" onclick="disconnectEcomail()">Odpojiť</button>
               </div>
-              <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:0.85rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:#166534">
+              <div style="background:rgba(31,216,154,0.08);border:1px solid rgba(31,216,154,0.3);border-radius:10px;padding:0.85rem 1rem;margin-bottom:1rem;font-size:0.85rem;color:#1fd89a">
                 🟢 Každý nový lead zo chatbota sa <strong>automaticky pridá do vášho Ecomail zoznamu</strong>. AI navyše pridá tagy podľa zámeru zákazníka (<em>intent-buying</em>, <em>urgency-immediate</em>…) — perfektná segmentácia bez práce.
               </div>
               <div class="form-group">
@@ -1429,33 +1701,33 @@
 
               <!-- Steps -->
               <div style="display:flex;flex-direction:column;gap:0.75rem;margin-bottom:1.25rem">
-                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#f8fafc;border-radius:10px">
+                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#111120;border-radius:10px">
                   <div style="width:28px;height:28px;border-radius:50%;background:#ff5c00;color:white;font-size:0.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
                   <div>
-                    <div style="font-size:0.875rem;font-weight:700;color:#1e293b">Vytvorte si účet v Ecomaile</div>
-                    <div style="font-size:0.8rem;color:#64748b;margin-top:0.15rem">Ak ešte nemáte — registrácia je zadarmo.</div>
+                    <div style="font-size:0.875rem;font-weight:700;color:#eeeef5">Vytvorte si účet v Ecomaile</div>
+                    <div style="font-size:0.8rem;color:#9898b8;margin-top:0.15rem">Ak ešte nemáte — registrácia je zadarmo.</div>
                     <a href="https://www.ecomail.app" target="_blank" rel="noopener" style="font-size:0.8rem;color:#ff5c00;font-weight:600;text-decoration:none">→ Otvoriť ecomail.app</a>
                   </div>
                 </div>
-                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#f8fafc;border-radius:10px">
+                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#111120;border-radius:10px">
                   <div style="width:28px;height:28px;border-radius:50%;background:#ff5c00;color:white;font-size:0.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
                   <div>
-                    <div style="font-size:0.875rem;font-weight:700;color:#1e293b">Vytvorte zoznam kontaktov</div>
-                    <div style="font-size:0.8rem;color:#64748b;margin-top:0.15rem">V Ecomaile: <strong>Zoznamy → Nový zoznam</strong>. Napr. „Leady z webu".</div>
+                    <div style="font-size:0.875rem;font-weight:700;color:#eeeef5">Vytvorte zoznam kontaktov</div>
+                    <div style="font-size:0.8rem;color:#9898b8;margin-top:0.15rem">V Ecomaile: <strong>Zoznamy → Nový zoznam</strong>. Napr. „Leady z webu".</div>
                   </div>
                 </div>
-                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#f8fafc;border-radius:10px">
+                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#111120;border-radius:10px">
                   <div style="width:28px;height:28px;border-radius:50%;background:#ff5c00;color:white;font-size:0.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
                   <div>
-                    <div style="font-size:0.875rem;font-weight:700;color:#1e293b">Skopírujte API kľúč</div>
-                    <div style="font-size:0.8rem;color:#64748b;margin-top:0.15rem">V Ecomaile: <strong>Nastavenia → Integrácie → API kľúč</strong>. Skopírujte ho.</div>
+                    <div style="font-size:0.875rem;font-weight:700;color:#eeeef5">Skopírujte API kľúč</div>
+                    <div style="font-size:0.8rem;color:#9898b8;margin-top:0.15rem">V Ecomaile: <strong>Nastavenia → Integrácie → API kľúč</strong>. Skopírujte ho.</div>
                   </div>
                 </div>
-                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px">
+                <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem;background:rgba(234,88,12,0.1);border:1px solid rgba(234,88,12,0.3);border-radius:10px">
                   <div style="width:28px;height:28px;border-radius:50%;background:#ff5c00;color:white;font-size:0.8rem;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>
                   <div style="flex:1">
-                    <div style="font-size:0.875rem;font-weight:700;color:#1e293b">Vložte API kľúč a vyberte zoznam</div>
-                    <div style="font-size:0.8rem;color:#64748b;margin:0.35rem 0 0.6rem">Vložte API kľúč — automaticky načítame vaše zoznamy.</div>
+                    <div style="font-size:0.875rem;font-weight:700;color:#eeeef5">Vložte API kľúč a vyberte zoznam</div>
+                    <div style="font-size:0.8rem;color:#9898b8;margin:0.35rem 0 0.6rem">Vložte API kľúč — automaticky načítame vaše zoznamy.</div>
                     <div class="form-group" style="margin-bottom:0.6rem">
                       <input type="password" id="ecomail-api-key-input" class="form-control"
                         placeholder="Váš Ecomail API kľúč..."
@@ -1475,7 +1747,7 @@
                         ✅ Zapojiť automatický email marketing
                       </button>
                     </div>
-                    <div id="ecomail-error" style="display:none;font-size:0.82rem;color:#dc2626;margin-top:0.4rem;font-weight:600"></div>
+                    <div id="ecomail-error" style="display:none;font-size:0.82rem;color:#ff4060;margin-top:0.4rem;font-weight:600"></div>
                   </div>
                 </div>
               </div>
@@ -1597,7 +1869,7 @@
                 <div class="panel-subtitle">Importujte produkty z WooCommerce do znalostnej bázy chatbota</div>
               </div>
             </div>
-            <div id="woo-connected-status" style="display:none;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:#166534;align-items:center;justify-content:space-between;gap:0.75rem">
+            <div id="woo-connected-status" style="display:none;background:rgba(31,216,154,0.08);border:1px solid rgba(31,216,154,0.3);border-radius:8px;padding:0.65rem 1rem;margin-bottom:1rem;font-size:0.875rem;color:#1fd89a;align-items:center;justify-content:space-between;gap:0.75rem">
               <span id="woo-status-text">✅ Pripojené</span>
               <button class="btn btn-sm btn-secondary" onclick="disconnectWooCommerce()">Odpojiť</button>
             </div>
@@ -1630,7 +1902,7 @@
               <button class="btn btn-secondary btn-sm" onclick="openInviteModal()">+ Pozvať</button>
             </div>
             <div id="team-list" style="display:flex;flex-direction:column;gap:0.5rem">
-              <div id="team-empty" style="font-size:0.875rem;color:#94a3b8;padding:0.5rem 0">Zatiaľ žiadni členovia tímu.</div>
+              <div id="team-empty" style="font-size:0.875rem;color:#7e7ea0;padding:0.5rem 0">Zatiaľ žiadni členovia tímu.</div>
             </div>
           </div>
         </div>
@@ -1673,7 +1945,7 @@
     <input type="hidden" id="lm-file-lmid">
     <div class="form-group">
       <label>Jazyk</label>
-      <select id="lm-file-lang" style="width:100%;padding:0.45rem 0.65rem;border:1px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:0.875rem;background:#fff;color:#374151">
+      <select id="lm-file-lang" style="width:100%;padding:0.45rem 0.65rem;border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-family:inherit;font-size:0.875rem;background:#18182a;color:#eeeef5">
         <option value="default">🌐 Predvolený (fallback)</option>
         <option value="sk">🇸🇰 Slovenčina (sk)</option>
         <option value="en">🇬🇧 English (en)</option>
@@ -1703,7 +1975,7 @@
 <div id="modal-followup" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1100;align-items:center;justify-content:center;padding:0.75rem" onclick="closeFollowupModal(event)">
   <div class="modal-box" style="max-width:480px;width:100%" onclick="event.stopPropagation()">
     <h2 style="font-size:1.1rem;font-weight:700;margin-bottom:0.25rem">📧 Follow-up email</h2>
-    <div id="followup-recipient" style="font-size:0.82rem;color:#64748b;margin-bottom:1rem"></div>
+    <div id="followup-recipient" style="font-size:0.82rem;color:#9898b8;margin-bottom:1rem"></div>
     <input type="hidden" id="followup-widget-id">
     <input type="hidden" id="followup-lead-id">
     <div class="form-group">
@@ -1727,7 +1999,7 @@
     </div>
     <div class="form-group">
       <label>Rola</label>
-      <select id="invite-role" style="width:100%;padding:0.45rem 0.65rem;border:1px solid #e2e8f0;border-radius:8px;font-family:inherit;font-size:0.875rem;background:#fff;color:#374151">
+      <select id="invite-role" style="width:100%;padding:0.45rem 0.65rem;border:1px solid rgba(255,255,255,0.08);border-radius:8px;font-family:inherit;font-size:0.875rem;background:#18182a;color:#eeeef5">
         <option value="readonly">Čítanie (readonly)</option>
         <option value="editor">Editor</option>
       </select>
@@ -1823,23 +2095,23 @@
     </div>
 
     <div class="form-group">
-      <label style="color:#16a34a;font-weight:600">✅ Odporúčaj keď zákazník...</label>
+      <label style="color:#1fd89a;font-weight:600">✅ Odporúčaj keď zákazník...</label>
       <textarea class="form-control" id="pm-recommend-when" rows="2" placeholder="napr. má konkrétny daňový problém, je živnostník, pýta sa na optimalizáciu..."></textarea>
     </div>
 
     <div class="form-group">
-      <label style="color:#dc2626;font-weight:600">❌ NEodporúčaj keď zákazník...</label>
+      <label style="color:#ff4060;font-weight:600">❌ NEodporúčaj keď zákazník...</label>
       <textarea class="form-control" id="pm-not-recommend-when" rows="2" placeholder="napr. je zamestnanec, hľadá len všeobecné info, má veľmi malý rozpočet..."></textarea>
     </div>
 
     <div class="form-group">
-      <label>FAQ k produktu <small style="color:#94a3b8">(voliteľné)</small></label>
+      <label>FAQ k produktu <small style="color:#7e7ea0">(voliteľné)</small></label>
       <textarea class="form-control" id="pm-faq" rows="2" placeholder="Najčastejšie otázky a odpovede k tomuto produktu..."></textarea>
     </div>
 
     <div class="form-grid-2">
       <div class="form-group" style="margin:0">
-        <label>Priorita odporúčania <small style="color:#94a3b8">(0–10)</small></label>
+        <label>Priorita odporúčania <small style="color:#7e7ea0">(0–10)</small></label>
         <input type="number" class="form-control" id="pm-priority" value="0" min="0" max="10">
       </div>
       <div class="form-group" style="margin:0">
@@ -1862,38 +2134,38 @@
 <div id="modal-credits" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:center;justify-content:center;padding:0.75rem;" onclick="if(event.target===this)this.style.display='none'">
   <div class="modal-box" onclick="event.stopPropagation()">
     <h2 style="font-size:1.2rem;font-weight:700;margin-bottom:0.25rem">Dobiť AI kredity</h2>
-    <p style="font-size:0.875rem;color:#64748b;margin-bottom:1.5rem">Kredity sa neobnovia mesačne – spotrebúvajú sa postupne</p>
+    <p style="font-size:0.875rem;color:#9898b8;margin-bottom:1.5rem">Kredity sa neobnovia mesačne – spotrebúvajú sa postupne</p>
 
     <!-- Packages -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.65rem;margin-bottom:1.25rem">
-      <button class="credits-pkg-btn" onclick="buyCredits('p5')" style="padding:0.85rem 0.75rem;border:2px solid #e2e8f0;border-radius:12px;background:white;cursor:pointer;text-align:left;transition:border-color 0.15s">
-        <div style="font-size:1.05rem;font-weight:700;color:#1e293b">€5</div>
-        <div style="font-size:0.75rem;color:#64748b;margin-top:2px">100 odpovedí</div>
-        <div style="font-size:0.68rem;color:#94a3b8;margin-top:1px">€0.05/odpoveď</div>
+      <button class="credits-pkg-btn" onclick="buyCredits('p5')" style="padding:0.85rem 0.75rem;border:2px solid rgba(255,255,255,0.08);border-radius:12px;background:#18182a;cursor:pointer;text-align:left;transition:border-color 0.15s">
+        <div style="font-size:1.05rem;font-weight:700;color:#eeeef5">€5</div>
+        <div style="font-size:0.75rem;color:#9898b8;margin-top:2px">100 odpovedí</div>
+        <div style="font-size:0.68rem;color:#7e7ea0;margin-top:1px">€0.05/odpoveď</div>
       </button>
-      <button class="credits-pkg-btn" onclick="buyCredits('p8r')" style="padding:0.85rem 0.75rem;border:2px solid #16a34a;border-radius:12px;background:#f0fdf4;cursor:pointer;text-align:left;position:relative">
-        <div style="position:absolute;top:0.35rem;right:0.45rem;font-size:0.62rem;font-weight:700;color:#16a34a;background:#dcfce7;padding:1px 5px;border-radius:99px">REFILL</div>
-        <div style="font-size:1.05rem;font-weight:700;color:#1e293b">€8</div>
-        <div style="font-size:0.75rem;color:#64748b;margin-top:2px">200 odpovedí</div>
-        <div style="font-size:0.68rem;color:#94a3b8;margin-top:1px">€0.04/odpoveď</div>
+      <button class="credits-pkg-btn" onclick="buyCredits('p8r')" style="padding:0.85rem 0.75rem;border:2px solid #1fd89a;border-radius:12px;background:rgba(31,216,154,0.08);cursor:pointer;text-align:left;position:relative">
+        <div style="position:absolute;top:0.35rem;right:0.45rem;font-size:0.62rem;font-weight:700;color:#1fd89a;background:rgba(31,216,154,0.14);padding:1px 5px;border-radius:99px">REFILL</div>
+        <div style="font-size:1.05rem;font-weight:700;color:#eeeef5">€8</div>
+        <div style="font-size:0.75rem;color:#9898b8;margin-top:2px">200 odpovedí</div>
+        <div style="font-size:0.68rem;color:#7e7ea0;margin-top:1px">€0.04/odpoveď</div>
       </button>
-      <button class="credits-pkg-btn" onclick="buyCredits('p15')" style="padding:0.85rem 0.75rem;border:2px solid #2563eb;border-radius:12px;background:#eff6ff;cursor:pointer;text-align:left;position:relative">
-        <div style="position:absolute;top:0.35rem;right:0.45rem;font-size:0.62rem;font-weight:700;color:#2563eb;background:#dbeafe;padding:1px 5px;border-radius:99px">VÝHODNÉ</div>
-        <div style="font-size:1.05rem;font-weight:700;color:#1e293b">€15</div>
-        <div style="font-size:0.75rem;color:#64748b;margin-top:2px">350 odpovedí</div>
-        <div style="font-size:0.68rem;color:#94a3b8;margin-top:1px">€0.043/odpoveď</div>
+      <button class="credits-pkg-btn" onclick="buyCredits('p15')" style="padding:0.85rem 0.75rem;border:2px solid #5b4fff;border-radius:12px;background:rgba(91,79,255,0.12);cursor:pointer;text-align:left;position:relative">
+        <div style="position:absolute;top:0.35rem;right:0.45rem;font-size:0.62rem;font-weight:700;color:#5b4fff;background:rgba(91,79,255,0.18);padding:1px 5px;border-radius:99px">VÝHODNÉ</div>
+        <div style="font-size:1.05rem;font-weight:700;color:#eeeef5">€15</div>
+        <div style="font-size:0.75rem;color:#9898b8;margin-top:2px">350 odpovedí</div>
+        <div style="font-size:0.68rem;color:#7e7ea0;margin-top:1px">€0.043/odpoveď</div>
       </button>
     </div>
 
     <!-- Custom amount -->
-    <div style="border-top:1px solid #e2e8f0;padding-top:1.25rem">
-      <label style="font-size:0.875rem;font-weight:600;color:#374151;display:block;margin-bottom:0.5rem">Vlastná suma <span style="font-weight:400;color:#94a3b8">(1 € = 20 odpovedí)</span></label>
+    <div style="border-top:1px solid rgba(255,255,255,0.08);padding-top:1.25rem">
+      <label style="font-size:0.875rem;font-weight:600;color:#eeeef5;display:block;margin-bottom:0.5rem">Vlastná suma <span style="font-weight:400;color:#7e7ea0">(1 € = 20 odpovedí)</span></label>
       <div style="display:flex;gap:0.5rem;align-items:center">
         <div style="position:relative;flex:1">
-          <span style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:#64748b;font-weight:600">€</span>
+          <span style="position:absolute;left:0.75rem;top:50%;transform:translateY(-50%);color:#9898b8;font-weight:600">€</span>
           <input type="number" id="credits-custom-eur" min="1" step="1" placeholder="napr. 5" class="form-control" style="padding-left:1.75rem">
         </div>
-        <span style="font-size:0.8rem;color:#94a3b8;white-space:nowrap" id="credits-custom-preview">= 0 odpovedí</span>
+        <span style="font-size:0.8rem;color:#7e7ea0;white-space:nowrap" id="credits-custom-preview">= 0 odpovedí</span>
         <button class="btn btn-primary" onclick="buyCustomCredits()">Kúpiť</button>
       </div>
     </div>
@@ -1904,9 +2176,9 @@
 
 <!-- Contact Form Modal (shown inside widget preview) -->
 <div id="modal-contact" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:1000;align-items:center;justify-content:center;" onclick="document.getElementById('modal-contact').style.display='none'">
-  <div style="background:white;border-radius:16px;padding:2rem;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,0.15);" onclick="event.stopPropagation()">
+  <div style="background:#18182a;border-radius:16px;padding:2rem;width:100%;max-width:420px;box-shadow:0 8px 40px rgba(0,0,0,0.15);" onclick="event.stopPropagation()">
     <h2 style="font-size:1.15rem;font-weight:700;margin-bottom:0.5rem;">Zanechajte kontakt</h2>
-    <p style="font-size:0.875rem;color:#64748b;margin-bottom:1.25rem;">Ozveme sa vám čo najskôr.</p>
+    <p style="font-size:0.875rem;color:#9898b8;margin-bottom:1.25rem;">Ozveme sa vám čo najskôr.</p>
     <div class="form-group"><label>Meno</label><input type="text" class="form-control" placeholder="Vaše meno"></div>
     <div class="form-group"><label>Email / Telefón</label><input type="text" class="form-control" placeholder="email@priklad.sk alebo +421..."></div>
     <button class="btn btn-primary" style="width:100%;">Odoslať</button>
@@ -1945,10 +2217,46 @@
         <option value="GBP">GBP £</option>
       </select>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.75rem">
+      <div class="form-group"><label>Rezerva pred (min)</label><input type="number" class="form-control" id="svc-buf-before" min="0" max="240" step="5" value="0"></div>
+      <div class="form-group"><label>Rezerva po (min)</label><input type="number" class="form-control" id="svc-buf-after" min="0" max="240" step="5" value="0"></div>
+      <div class="form-group"><label>Kapacita (osôb)</label><input type="number" class="form-control" id="svc-capacity" min="1" max="500" value="1"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 2fr;gap:0.75rem">
+      <div class="form-group"><label>Miesto</label>
+        <select class="form-control" id="svc-location-type">
+          <option value="in_person">Osobne</option><option value="online">Online</option><option value="phone">Telefonicky</option>
+        </select></div>
+      <div class="form-group"><label>Adresa / odkaz na stretnutie</label><input type="text" class="form-control" id="svc-location-detail" placeholder="Hlavná 1, Bratislava alebo https://meet.google.com/..."></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem">
+      <div class="form-group"><label>Platba online</label>
+        <select class="form-control" id="svc-payment-mode" onchange="document.getElementById('svc-deposit-wrap').style.display=this.value==='deposit'?'':'none'">
+          <option value="none">Bez platby online (platí na mieste)</option><option value="full">Celá suma vopred</option><option value="deposit">Záloha vopred</option>
+        </select></div>
+      <div class="form-group" id="svc-deposit-wrap" style="display:none"><label>Výška zálohy</label><input type="number" class="form-control" id="svc-deposit" min="0" step="0.5" placeholder="napr. 10"></div>
+    </div>
+    <div class="form-group"><label>Kto službu poskytuje (nič = všetci)</label><div id="svc-staff" style="display:flex;flex-wrap:wrap;gap:0.4rem 1rem"></div></div>
+    <div class="form-group">
+      <label style="display:flex;justify-content:space-between;align-items:center">Otázky pre zákazníka
+        <button type="button" class="btn btn-secondary btn-sm" onclick="addSvcQuestion()">+ Otázka</button></label>
+      <div id="svc-questions"></div>
+    </div>
     <div style="display:flex;gap:0.75rem;margin-top:1.25rem">
       <button class="btn btn-secondary" style="flex:1" onclick="closeServiceModal()">Zrušiť</button>
       <button class="btn btn-primary" style="flex:1" onclick="saveService()">Uložiť</button>
     </div>
+  </div>
+</div>
+
+<!-- Staff Modal -->
+<div id="modal-staff" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:1001;align-items:flex-start;justify-content:center;padding:0.75rem;overflow-y:auto" onclick="if(event.target===this)closeStaffModal()">
+  <div class="modal-box modal-box-lg" style="max-width:640px;margin:2rem auto" onclick="event.stopPropagation()">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2 style="font-size:1.15rem;font-weight:700;margin:0">Člen tímu</h2>
+      <button onclick="closeStaffModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#9898b8">✕</button>
+    </div>
+    <div id="staff-modal-body"></div>
   </div>
 </div>
 
@@ -1957,13 +2265,13 @@
   <div class="modal-box" style="max-width:460px;width:100%" onclick="event.stopPropagation()">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
       <h2 style="font-size:1.15rem;font-weight:700;margin:0">Nastavenia účtu</h2>
-      <button onclick="closeAccountModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#64748b;padding:0.25rem">✕</button>
+      <button onclick="closeAccountModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer;color:#9898b8;padding:0.25rem">✕</button>
     </div>
 
     <!-- Tabs -->
-    <div style="display:flex;gap:0.35rem;margin-bottom:1.5rem;background:#f1f5f9;border-radius:10px;padding:0.2rem">
-      <button id="acc-tab-pw" onclick="switchAccTab('pw')" style="flex:1;background:#2563eb;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">Zmena hesla</button>
-      <button id="acc-tab-email" onclick="switchAccTab('email')" style="flex:1;background:none;color:#64748b;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">Zmena emailu</button>
+    <div style="display:flex;gap:0.35rem;margin-bottom:1.5rem;background:#111120;border-radius:10px;padding:0.2rem">
+      <button id="acc-tab-pw" onclick="switchAccTab('pw')" style="flex:1;background:#5b4fff;color:white;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">Zmena hesla</button>
+      <button id="acc-tab-email" onclick="switchAccTab('email')" style="flex:1;background:none;color:#9898b8;border:none;border-radius:8px;padding:0.5rem;font-size:0.85rem;font-weight:600;cursor:pointer;font-family:inherit">Zmena emailu</button>
     </div>
 
     <!-- Change password -->
@@ -1973,15 +2281,15 @@
         <input type="password" id="acc-cur-pw" class="form-control" placeholder="••••••••" autocomplete="current-password">
       </div>
       <div class="form-group">
-        <label class="form-label">Nové heslo <small style="color:#94a3b8">(min. 8 znakov)</small></label>
+        <label class="form-label">Nové heslo <small style="color:#7e7ea0">(min. 8 znakov)</small></label>
         <input type="password" id="acc-new-pw" class="form-control" placeholder="••••••••" autocomplete="new-password">
       </div>
       <div class="form-group">
         <label class="form-label">Potvrdiť nové heslo</label>
         <input type="password" id="acc-new-pw2" class="form-control" placeholder="••••••••" autocomplete="new-password">
       </div>
-      <div id="acc-pw-err" style="color:#dc2626;font-size:0.82rem;margin-bottom:0.75rem;display:none"></div>
-      <div id="acc-pw-ok" style="color:#16a34a;font-size:0.82rem;margin-bottom:0.75rem;display:none">Heslo bolo úspešne zmenené.</div>
+      <div id="acc-pw-err" style="color:#ff4060;font-size:0.82rem;margin-bottom:0.75rem;display:none"></div>
+      <div id="acc-pw-ok" style="color:#1fd89a;font-size:0.82rem;margin-bottom:0.75rem;display:none">Heslo bolo úspešne zmenené.</div>
       <button class="btn btn-primary" style="width:100%" onclick="doChangePassword()">Zmeniť heslo</button>
     </div>
 
@@ -1995,14 +2303,29 @@
         <label class="form-label">Potvrdiť heslom</label>
         <input type="password" id="acc-email-pw" class="form-control" placeholder="••••••••" autocomplete="current-password">
       </div>
-      <div id="acc-email-err" style="color:#dc2626;font-size:0.82rem;margin-bottom:0.75rem;display:none"></div>
-      <div id="acc-email-ok" style="color:#16a34a;font-size:0.82rem;margin-bottom:0.75rem;display:none">Email bol úspešne zmenený.</div>
+      <div id="acc-email-err" style="color:#ff4060;font-size:0.82rem;margin-bottom:0.75rem;display:none"></div>
+      <div id="acc-email-ok" style="color:#1fd89a;font-size:0.82rem;margin-bottom:0.75rem;display:none">Email bol úspešne zmenený.</div>
       <button class="btn btn-primary" style="width:100%" onclick="doChangeEmail()">Zmeniť email</button>
     </div>
   </div>
 </div>
 
-<script src="/js/dashboard.js?v=9"></script>
+<script src="/js/dashboard.js?v=10"></script>
+<script src="/js/realtime-client.js?v=1"></script>
+<script src="/js/shop-dashboard.js?v=1"></script>
+<script src="/js/drive-dashboard.js?v=3"></script>
+<script src="/js/marketing-dashboard.js?v=1"></script>
+<script src="/js/suite-common.js?v=2"></script>
+<script src="/js/chat-dashboard.js?v=1"></script>
+<script src="/js/mail-dashboard.js?v=1"></script>
+<script src="/js/tasks-dashboard.js?v=2"></script>
+<script src="/js/notes-dashboard.js?v=1"></script>
+<script src="/js/docs-dashboard.js?v=2"></script>
+<script src="/js/calendar-dashboard.js?v=2"></script>
+<script src="/js/forms-dashboard.js?v=1"></script>
+<script src="/js/sheets-dashboard.js?v=1"></script>
+<script src="/js/boards-dashboard.js?v=1"></script>
+<script src="/js/graphics-dashboard.js?v=2"></script>
 <script src="/i18n.js?v=2"></script>
 </body>
 </html>

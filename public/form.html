@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Formulár</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --p: #5b4fff; --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      --text: #1e293b; --muted: #64748b; --border: #e2e8f0; --bg: #f1f5f9; --card: #ffffff; --field: #ffffff; --err: #dc2626;
+    }
+    body.dark { --text: #eeeef5; --muted: #9898b8; --border: rgba(255,255,255,0.12); --bg: #0d0d18; --card: #18182a; --field: #111120; --err: #ff6080; }
+    body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; line-height: 1.5; }
+    body.embed { background: transparent; }
+    .page { max-width: 680px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+    .card { background: var(--card); border-radius: 16px; box-shadow: 0 2px 20px rgba(0,0,0,.07); padding: 1.75rem; }
+    h1 { font-size: 1.5rem; font-weight: 800; margin-bottom: .4rem; word-break: break-word; }
+    .desc { color: var(--muted); margin-bottom: 1.25rem; white-space: pre-line; }
+    .q { margin-bottom: 1.35rem; }
+    .q label.t { display: block; font-weight: 700; margin-bottom: .35rem; }
+    .q .req { color: var(--p); }
+    .q .help { color: var(--muted); font-size: .86rem; margin: -.15rem 0 .45rem; }
+    .q .e { color: var(--err); font-size: .84rem; margin-top: .3rem; font-weight: 600; }
+    input[type=text], input[type=email], input[type=tel], input[type=number], input[type=url], input[type=date], textarea, select {
+      width: 100%; padding: .75rem .9rem; border: 1.5px solid var(--border); border-radius: 10px; font-size: 1rem; font-family: inherit;
+      background: var(--field); color: var(--text); transition: border-color .15s; }
+    input:focus, textarea:focus, select:focus { outline: none; border-color: var(--p); }
+    textarea { min-height: 110px; resize: vertical; }
+    .opt { display: flex; align-items: center; gap: .6rem; padding: .65rem .85rem; border: 1.5px solid var(--border); border-radius: 10px; margin-bottom: .45rem; cursor: pointer; background: var(--field); }
+    .opt:has(input:checked) { border-color: var(--p); box-shadow: inset 0 0 0 1px var(--p); }
+    .opt input { accent-color: var(--p); width: 18px; height: 18px; }
+    .stars { display: flex; gap: .35rem; flex-wrap: wrap; }
+    .stars button { width: 44px; height: 44px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--field); color: var(--text); font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .stars button.on { background: var(--p); border-color: var(--p); color: #fff; }
+    .yn { display: flex; gap: .5rem; }
+    .yn button { flex: 1; padding: .7rem; border-radius: 10px; border: 1.5px solid var(--border); background: var(--field); color: var(--text); font-weight: 700; font-size: .95rem; cursor: pointer; font-family: inherit; }
+    .yn button.on { background: var(--p); border-color: var(--p); color: #fff; }
+    .consent { display: flex; gap: .6rem; align-items: flex-start; cursor: pointer; }
+    .consent input { accent-color: var(--p); width: 18px; height: 18px; margin-top: 3px; flex-shrink: 0; }
+    .statement h2 { font-size: 1.15rem; margin-bottom: .25rem; }
+    .btn { display: inline-flex; align-items: center; gap: .4rem; padding: .8rem 1.4rem; border-radius: 10px; border: none; background: var(--p); color: #fff; font-size: 1rem; font-weight: 700; cursor: pointer; font-family: inherit; }
+    .btn.s { background: transparent; color: var(--muted); border: 1.5px solid var(--border); }
+    .btn:disabled { opacity: .55; cursor: wait; }
+    .bar { height: 4px; background: var(--border); border-radius: 4px; margin-bottom: 1.5rem; overflow: hidden; }
+    .bar div { height: 100%; background: var(--p); transition: width .25s; }
+    .nav { display: flex; gap: .5rem; align-items: center; margin-top: 1.25rem; }
+    .nav .hint { color: var(--muted); font-size: .8rem; margin-left: auto; }
+    .done { text-align: center; padding: 2rem 0; }
+    .done .ic { width: 64px; height: 64px; border-radius: 50%; background: var(--p); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem; }
+    .alert { padding: .8rem 1rem; border-radius: 10px; background: rgba(220,38,38,.1); color: var(--err); font-weight: 600; font-size: .9rem; margin-bottom: 1rem; }
+    .banner { background: #fef3c7; color: #92400e; padding: .6rem 1rem; text-align: center; font-size: .86rem; font-weight: 600; }
+    .foot { text-align: center; color: var(--muted); font-size: .78rem; margin-top: 1.25rem; }
+    .foot a { color: var(--muted); }
+    .hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+    .step { animation: in .25s ease; }
+    @keyframes in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  </style>
+</head>
+<body>
+  <div id="banner"></div>
+  <div class="page"><div class="card" id="app"><p class="desc">Načítavam…</p></div>
+    <div class="foot">Vytvorené v <a href="https://neoworkly.com" target="_blank" rel="noopener">Neoworkly</a></div></div>
+<script>
+(function () {
+  'use strict';
+  const token = location.pathname.split('/').filter(Boolean).pop();
+  const qs = new URLSearchParams(location.search);
+  const preview = qs.get('preview') === '1';
+  const app = document.getElementById('app');
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  if (window.self !== window.top || qs.get('embed') === '1') document.body.classList.add('embed');
+  let form, values = {}, files = {}, errors = {}, step = 0;
+
+  const shown = f => {
+    if (!f.showIf) return true;
+    const v = values[f.showIf.field];
+    return Array.isArray(v) ? v.includes(f.showIf.value) : String(v ?? '') === f.showIf.value;
+  };
+  const visible = () => form.fields.filter(shown);
+
+  function input(f) {
+    const v = values[f.id];
+    const ph = f.placeholder ? ` placeholder="${esc(f.placeholder)}"` : '';
+    switch (f.type) {
+      case 'text': return `<input type="text" data-f="${f.id}" value="${esc(v || '')}"${ph} maxlength="500">`;
+      case 'email': return `<input type="email" data-f="${f.id}" value="${esc(v || '')}"${ph || ' placeholder="meno@firma.sk"'} autocomplete="email">`;
+      case 'phone': return `<input type="tel" data-f="${f.id}" value="${esc(v || '')}"${ph || ' placeholder="+421 900 000 000"'} autocomplete="tel">`;
+      case 'number': return `<input type="number" data-f="${f.id}" value="${esc(v ?? '')}"${ph} step="any">`;
+      case 'url': return `<input type="url" data-f="${f.id}" value="${esc(v || '')}"${ph || ' placeholder="https://"'}>`;
+      case 'date': return `<input type="date" data-f="${f.id}" value="${esc(v || '')}">`;
+      case 'textarea': return `<textarea data-f="${f.id}"${ph} maxlength="10000">${esc(v || '')}</textarea>`;
+      case 'select': return `<select data-f="${f.id}"><option value="">Vyberte…</option>${f.options.map(o => `<option ${v === o ? 'selected' : ''}>${esc(o)}</option>`).join('')}</select>`;
+      case 'choice': return f.options.map(o => `<label class="opt"><input type="radio" name="${f.id}" data-f="${f.id}" value="${esc(o)}" ${v === o ? 'checked' : ''}> ${esc(o)}</label>`).join('');
+      case 'checkbox': return f.options.map(o => `<label class="opt"><input type="checkbox" data-multi="${f.id}" value="${esc(o)}" ${(v || []).includes(o) ? 'checked' : ''}> ${esc(o)}</label>`).join('');
+      case 'rating': return `<div class="stars">${Array.from({ length: f.max || 5 }, (_, i) => `<button type="button" data-rate="${f.id}" data-v="${i + 1}" class="${Number(v) >= i + 1 ? 'on' : ''}">${(f.max || 5) === 5 ? '★' : i + 1}</button>`).join('')}</div>`;
+      case 'yesno': return `<div class="yn"><button type="button" data-yn="${f.id}" data-v="yes" class="${v === 'yes' ? 'on' : ''}">Áno</button><button type="button" data-yn="${f.id}" data-v="no" class="${v === 'no' ? 'on' : ''}">Nie</button></div>`;
+      case 'consent': return `<label class="consent"><input type="checkbox" data-consent="${f.id}" ${v ? 'checked' : ''}> <span>${esc(f.label)}${f.required ? ' <span class="req">*</span>' : ''}</span></label>`;
+      case 'file': return `<input type="file" data-file="${f.id}" multiple style="font-size:.9rem">${(files[f.id] || []).length ? `<div class="help">${files[f.id].map(x => esc(x.name)).join(', ')}</div>` : ''}`;
+      default: return '';
+    }
+  }
+  function question(f) {
+    if (f.type === 'statement') return `<div class="q statement"><h2>${esc(f.label)}</h2>${f.help ? `<p class="desc">${esc(f.help)}</p>` : ''}</div>`;
+    const label = f.type === 'consent' ? '' : `<label class="t">${esc(f.label)}${f.required ? ' <span class="req">*</span>' : ''}</label>`;
+    return `<div class="q" data-q="${f.id}">${label}${f.help ? `<div class="help">${esc(f.help)}</div>` : ''}${input(f)}${errors[f.id] ? `<div class="e">${esc(errors[f.id])}</div>` : ''}</div>`;
+  }
+
+  function bind() {
+    app.querySelectorAll('[data-f]').forEach(el => { el.oninput = el.onchange = () => { values[el.dataset.f] = el.value; delete errors[el.dataset.f]; if (form.fields.some(x => x.showIf && x.showIf.field === el.dataset.f)) rerender(); }; });
+    app.querySelectorAll('[data-multi]').forEach(el => { el.onchange = () => { const id = el.dataset.multi; values[id] = [...app.querySelectorAll(`[data-multi="${id}"]:checked`)].map(x => x.value); if (form.fields.some(x => x.showIf && x.showIf.field === id)) rerender(); }; });
+    app.querySelectorAll('[data-rate]').forEach(el => { el.onclick = () => { values[el.dataset.rate] = Number(el.dataset.v); delete errors[el.dataset.rate]; rerender(); }; });
+    app.querySelectorAll('[data-yn]').forEach(el => { el.onclick = () => { values[el.dataset.yn] = el.dataset.v; delete errors[el.dataset.yn]; rerender(); if (form.settings.layout === 'steps') setTimeout(next, 180); }; });
+    app.querySelectorAll('[data-consent]').forEach(el => { el.onchange = () => { values[el.dataset.consent] = el.checked; }; });
+    app.querySelectorAll('[data-file]').forEach(el => { el.onchange = () => { files[el.dataset.file] = [...el.files].slice(0, 10); }; });
+  }
+
+  /** Overenie na strane prehliadača (rovnaké pravidlá overí aj server). */
+  function check(list) {
+    const errs = {};
+    for (const f of list) {
+      if (f.type === 'statement') continue;
+      const v = f.type === 'file' ? files[f.id] : values[f.id];
+      const empty = v === undefined || v === '' || v === false || (Array.isArray(v) && !v.length);
+      if (empty) { if (f.required) errs[f.id] = 'Povinné pole.'; continue; }
+      if (f.type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) errs[f.id] = 'Neplatný e-mail.';
+      if (f.type === 'url' && !/^https?:\/\/\S+\.\S+/i.test(v)) errs[f.id] = 'Zadajte adresu začínajúcu https://';
+    }
+    return errs;
+  }
+
+  let rerender = () => {};
+  function classic() {
+    rerender = () => { const y = window.scrollY; classic(); window.scrollTo(0, y); };
+    app.innerHTML = `${head()}<form novalidate id="fm">${visible().map(question).join('')}<div class="hp"><input name="_hp" tabindex="-1" autocomplete="off"></div>
+      <div class="nav"><button class="btn" type="submit" id="go">${esc(form.settings.submitLabel || 'Odoslať')}</button></div></form>`;
+    bind();
+    document.getElementById('fm').onsubmit = e => { e.preventDefault(); submit(); };
+  }
+
+  function steps() {
+    const list = visible();
+    step = Math.min(step, list.length - 1);
+    rerender = steps;
+    const f = list[step];
+    const last = step === list.length - 1;
+    app.innerHTML = `${step === 0 ? head() : ''}<div class="bar"><div style="width:${Math.round((step / list.length) * 100)}%"></div></div>
+      <div class="step">${f ? question(f) : ''}</div><div class="hp"><input name="_hp" tabindex="-1" autocomplete="off"></div>
+      <div class="nav">${step > 0 ? '<button class="btn s" type="button" id="back">← Späť</button>' : ''}
+        <button class="btn" type="button" id="go">${last ? esc(form.settings.submitLabel || 'Odoslať') : 'Ďalej →'}</button>
+        <span class="hint">${step + 1} / ${list.length}${f && f.type !== 'textarea' ? ' · Enter ↵' : ''}</span></div>`;
+    bind();
+    const focus = app.querySelector('.step input:not([type=radio]):not([type=checkbox]):not([type=file]), .step textarea, .step select');
+    if (focus) focus.focus();
+    if (document.getElementById('back')) document.getElementById('back').onclick = () => { step--; steps(); };
+    document.getElementById('go').onclick = next;
+    app.onkeydown = e => { if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') { e.preventDefault(); next(); } };
+  }
+  function next() {
+    const list = visible();
+    const f = list[step];
+    const errs = f ? check([f]) : {};
+    if (Object.keys(errs).length) { Object.assign(errors, errs); steps(); return; }
+    if (step < list.length - 1) { step++; steps(); } else submit();
+  }
+
+  const head = () => `<h1>${esc(form.title)}</h1>${form.description ? `<p class="desc">${esc(form.description)}</p>` : ''}${errors._ ? `<div class="alert">${esc(errors._)}</div>` : ''}`;
+
+  async function submit() {
+    const list = visible();
+    errors = check(list);
+    if (Object.keys(errors).length) {
+      errors._ = 'Skontrolujte vyznačené polia.';
+      if (form.settings.layout === 'steps') { step = list.findIndex(f => errors[f.id]); steps(); } else { classic(); const el = app.querySelector('.e'); if (el) el.scrollIntoView({ block: 'center' }); }
+      return;
+    }
+    if (preview) { alert('Toto je náhľad – odpoveď sa neuloží.'); return; }
+    const btn = document.getElementById('go');
+    btn.disabled = true;
+    const data = {};
+    list.forEach(f => { if (values[f.id] !== undefined) data[f.id] = values[f.id]; });
+    const hp = app.querySelector('[name=_hp]');
+    if (hp && hp.value) data._hp = hp.value;
+    const fd = new FormData();
+    fd.append('_json', JSON.stringify(data));
+    list.filter(f => f.type === 'file').forEach(f => (files[f.id] || []).forEach(x => fd.append(f.id, x)));
+    try {
+      const r = await fetch(`/api/forms/public/${encodeURIComponent(token)}`, { method: 'POST', body: fd });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        errors = Object.assign({}, d.fields || {}, { _: d.error || 'Odoslanie sa nepodarilo.' });
+        if (form.settings.layout === 'steps') { const i = list.findIndex(f => errors[f.id]); step = i < 0 ? step : i; steps(); } else classic();
+        return;
+      }
+      if (d.redirect) { (window.top !== window.self ? window.top : window).location.href = d.redirect; return; }
+      app.innerHTML = `<div class="done"><div class="ic">✓</div><h1>Hotovo</h1><p class="desc" style="margin:0">${esc(d.thankYou || 'Ďakujeme.')}</p></div>`;
+    } catch {
+      errors._ = 'Spojenie zlyhalo. Skúste to znova.';
+      rerender();
+    } finally { if (document.getElementById('go')) document.getElementById('go').disabled = false; }
+  }
+
+  fetch(`/api/forms/public/${encodeURIComponent(token)}`).then(r => (r.ok ? r.json() : null)).then(f => {
+    if (!f) { app.innerHTML = '<h1>Formulár neexistuje</h1><p class="desc">Odkaz je neplatný alebo bol formulár zmazaný.</p>'; return; }
+    form = f;
+    document.title = f.title;
+    document.documentElement.style.setProperty('--p', f.settings.color || '#5b4fff');
+    if (f.settings.theme === 'dark') document.body.classList.add('dark');
+    if (preview) document.getElementById('banner').innerHTML = '<div class="banner">Náhľad – odpovede sa neukladajú</div>';
+    if (f.closed) { app.innerHTML = `<h1>${esc(f.title)}</h1><p class="desc">Tento formulár už neprijíma odpovede.</p>`; return; }
+    if (!f.fields.length) { app.innerHTML = `<h1>${esc(f.title)}</h1><p class="desc">Formulár zatiaľ nemá žiadne otázky.</p>`; return; }
+    if (f.settings.layout === 'steps') steps(); else classic();
+  });
+})();
+</script>
+</body>
+</html>

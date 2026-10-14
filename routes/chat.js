@@ -4,8 +4,10 @@ const express = require('express');
 const { v4: uuidv4 } = require('uuid');
 const { getDb, searchKnowledge } = require('../db/database');
 const { streamChatResponse, summarizeConversation, analyzeConversationTrends } = require('../services/claude');
-const { sendLeadNotification, sendUsageNotification } = require('../services/email');
-const { BASE_RESPONSES, nextMonthReset, maybeResetUsage } = require('./credits');
+const { sendLeadNotification } = require('../services/email');
+const { ownerAccess } = require('../middleware/subscription');
+const { checkUsage, recordResponse } = require('../services/usage');
+const { takeHandoffToken, notifyHandoff } = require('../services/handoff');
 
 const router = express.Router();
 
@@ -25,13 +27,33 @@ function checkRateLimit(ip) {
   return entry.count <= RATE_MAX;
 }
 
+// Allowed domains: when the owner lists domains, every public widget endpoint
+// rejects browser requests coming from any other site (Origin header).
+// Requests from our own app (dashboard preview, demo) are always allowed.
+function hostMatches(host, pattern) {
+  if (pattern.startsWith('*.')) return host.endsWith(pattern.slice(1));
+  return host === pattern || host === 'www.' + pattern;
+}
+router.param('widgetId', (req, res, next, widgetId) => {
+  const row = getDb().prepare('SELECT allowed_domains FROM widgets WHERE id = ?').get(widgetId);
+  const patterns = (row?.allowed_domains || '').split('\n').filter(Boolean);
+  const origin = req.headers.origin;
+  if (!patterns.length || !origin) return next();
+  let host;
+  try { host = new URL(origin).hostname.toLowerCase(); } catch { return res.status(403).json({ error: 'Doména nie je povolená.' }); }
+  const appHost = (() => { try { return new URL(process.env.APP_URL || '').hostname; } catch { return ''; } })();
+  if (host === appHost || host === 'localhost' || patterns.some(p => hostMatches(host, p))) return next();
+  return res.status(403).json({ error: 'Doména nie je povolená.', code: 'DOMAIN_NOT_ALLOWED' });
+});
+
 // GET /api/widget/:widgetId/config — public endpoint for widget configuration
 router.get('/:widgetId/config', (req, res) => {
   const db = getDb();
   const widget = db.prepare(`
-    SELECT id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
+    SELECT id, user_id, bot_name, welcome_message, primary_color, cta_type, cta_config, suggested_questions,
            suggested_questions_i18n, active, avatar_url, proactive_enabled, proactive_delay, proactive_message, gdpr_text,
-           hide_branding, business_hours, offline_message, csat_enabled, welcome_message_b
+           hide_branding, business_hours, offline_message, csat_enabled, welcome_message_b,
+           widget_side, offset_x, offset_y, offset_x_mobile, offset_y_mobile, z_index, hide_on_mobile, show_on_paths
     FROM widgets WHERE id = ?
   `).get(req.params.widgetId);
 
@@ -41,6 +63,10 @@ router.get('/:widgetId/config', (req, res) => {
 
   // hide_branding is only active on the White Label plan
   const owner = db.prepare('SELECT subscription_plan FROM users WHERE id = ?').get(widget.user_id);
+  // Hide the widget once the owner has no subscription / trial left
+  if (!ownerAccess(widget.user_id).hasAccess) {
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  }
   const isWhiteLabel = owner?.subscription_plan === 'white_label';
 
   res.json({
@@ -68,12 +94,24 @@ router.get('/:widgetId/config', (req, res) => {
     proactive_delay: widget.proactive_delay || 4,
     proactive_message: widget.proactive_message || '',
     gdpr_text: widget.gdpr_text || '',
+    newsletter_optin: (() => {
+      const s = require('../services/marketing').settings(widget.user_id);
+      return s.enabled && s.widgetOptin && require('../services/resend').configured();
+    })(),
     hide_branding: Boolean(widget.hide_branding) && isWhiteLabel,
     business_hours: widget.business_hours ? JSON.parse(widget.business_hours || '{}') : {},
     offline_message: widget.offline_message || '',
     csat_enabled: Boolean(widget.csat_enabled),
     ab_variant: Math.random() < 0.5 ? 'a' : 'b',
     welcome_message_b: widget.welcome_message_b || '',
+    widget_side: widget.widget_side || 'right',
+    offset_x: widget.offset_x ?? 24,
+    offset_y: widget.offset_y ?? 24,
+    offset_x_mobile: widget.offset_x_mobile ?? 12,
+    offset_y_mobile: widget.offset_y_mobile ?? 12,
+    z_index: widget.z_index || 2147483000,
+    hide_on_mobile: Boolean(widget.hide_on_mobile),
+    show_on_paths: (widget.show_on_paths || '').split('\n').filter(Boolean),
   });
 });
 
@@ -117,21 +155,17 @@ router.post('/:widgetId/chat', async (req, res) => {
     return res.status(404).json({ error: 'Widget nenájdený.' });
   }
 
-  // Check monthly usage limit
-  const owner = db.prepare(
-    'SELECT id, email, name, ai_responses_this_month, ai_responses_reset_at, extra_response_credits, usage_notified_80, usage_notified_100 FROM users WHERE id = ?'
-  ).get(widget.user_id);
-
-  if (owner) {
-    const thisMonth = maybeResetUsage(db, owner.id, owner);
-    const extra = owner.extra_response_credits || 0;
-
-    if (thisMonth >= BASE_RESPONSES && extra <= 0) {
-      return res.status(402).json({
-        error: 'Mesačný limit AI odpovedí bol vyčerpaný. Vlastník chatbota si musí dobiť kredity.',
-        code: 'LIMIT_REACHED',
-      });
-    }
+  // Subscription / trial access + monthly usage limit
+  const usage = checkUsage(widget.user_id);
+  const { owner, access } = usage;
+  if (usage.code === 'NO_SUBSCRIPTION') {
+    return res.status(403).json({ error: 'Chatbot momentálne nie je aktívny.', code: 'NO_SUBSCRIPTION' });
+  }
+  if (usage.code === 'LIMIT_REACHED') {
+    return res.status(402).json({
+      error: 'Mesačný limit AI odpovedí bol vyčerpaný. Vlastník chatbota si musí dobiť kredity.',
+      code: 'LIMIT_REACHED',
+    });
   }
 
   const { message, sessionId, history = [], pageContext } = req.body;
@@ -181,7 +215,20 @@ router.post('/:widgetId/chat', async (req, res) => {
       ? { url: pageContext.url.slice(0, 512), title: String(pageContext.title || '').slice(0, 200) }
       : null;
 
-    const fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+    let fullText = await streamChatResponse(widget, knowledgeItems, cleanHistory, message.trim(), res, safePageCtx);
+
+    // __HANDOFF__ — visitor asked for a human; e-mail the conversation once per conversation
+    const handoff = takeHandoffToken(fullText);
+    fullText = handoff.text;
+    const handoffRequested = handoff.requested;
+
+    // __UNANSWERED__ — bot lacked the info; log the question for the owner and keep the token out of stored history
+    if (fullText && fullText.includes('__UNANSWERED__')) {
+      fullText = fullText.replace(/__UNANSWERED__/g, '').trim();
+      db.prepare('INSERT INTO unanswered_questions (id, widget_id, question) VALUES (?, ?, ?)').run(
+        uuidv4(), widget.id, message.trim().slice(0, 500)
+      );
+    }
 
     // Save assistant response + track usage
     if (fullText && owner) {
@@ -189,32 +236,7 @@ router.post('/:widgetId/chat', async (req, res) => {
         uuidv4(), conversation.id, 'assistant', fullText
       );
 
-      // Increment usage (base first, then extra)
-      const freshOwner = db.prepare(
-        'SELECT ai_responses_this_month, extra_response_credits, usage_notified_80, usage_notified_100 FROM users WHERE id = ?'
-      ).get(owner.id);
-      const currentMonth = freshOwner.ai_responses_this_month || 0;
-      const currentExtra = freshOwner.extra_response_credits || 0;
-
-      if (currentMonth < BASE_RESPONSES) {
-        db.prepare('UPDATE users SET ai_responses_this_month = ai_responses_this_month + 1 WHERE id = ?').run(owner.id);
-      } else if (currentExtra > 0) {
-        db.prepare('UPDATE users SET extra_response_credits = extra_response_credits - 1 WHERE id = ?').run(owner.id);
-      }
-
-      // Usage notifications (async)
-      const newCount = currentMonth + 1;
-      setImmediate(() => {
-        try {
-          if (newCount >= BASE_RESPONSES && !freshOwner.usage_notified_100) {
-            db.prepare('UPDATE users SET usage_notified_100 = 1 WHERE id = ?').run(owner.id);
-            sendUsageNotification({ toEmail: owner.email, ownerName: owner.name, pct: 100, extra: currentExtra }).catch(() => {});
-          } else if (newCount >= BASE_RESPONSES * 0.8 && !freshOwner.usage_notified_80) {
-            db.prepare('UPDATE users SET usage_notified_80 = 1 WHERE id = ?').run(owner.id);
-            sendUsageNotification({ toEmail: owner.email, ownerName: owner.name, pct: 80, extra: currentExtra }).catch(() => {});
-          }
-        } catch { /* ignore */ }
-      });
+      recordResponse(owner, access);
 
       // Anonymous trend insight — trigger once per conversation after 3 full exchanges (6 msgs)
       setImmediate(async () => {
@@ -239,6 +261,14 @@ router.post('/:widgetId/chat', async (req, res) => {
         uuidv4(), conversation.id, 'assistant', fullText
       );
     }
+
+    if (handoffRequested) {
+      const marked = db.prepare('UPDATE conversations SET handoff_at = unixepoch() WHERE id = ? AND handoff_at IS NULL').run(conversation.id);
+      if (marked.changes) {
+        const transcript = db.prepare('SELECT role, content FROM messages WHERE conversation_id = ? ORDER BY created_at ASC, rowid ASC').all(conversation.id);
+        notifyHandoff(widget, transcript, 'Web chat');
+      }
+    }
   } catch (err) {
     console.error('Chat error:', err);
     try {
@@ -261,7 +291,7 @@ router.post('/:widgetId/leads', async (req, res) => {
   `).get(req.params.widgetId);
   if (!widgetRow) return res.status(404).json({ error: 'Widget nenájdený.' });
 
-  const { name, email, phone, sessionId, gdprConsent } = req.body;
+  const { name, email, phone, sessionId, gdprConsent, marketingConsent } = req.body;
   if (!name?.trim() || !email?.trim()) {
     return res.status(400).json({ error: 'Meno a email sú povinné.' });
   }
@@ -275,6 +305,11 @@ router.post('/:widgetId/leads', async (req, res) => {
   ).run(leadId, widgetRow.id, name.trim(), email.trim(), phone?.trim() || null, sessionId || null, gdprConsent ? 1 : 0);
 
   res.json({ ok: true, leadId });
+  // Súhlas s novinkami (nepovinné políčko) => kontakt pre e-mail marketing
+  if (marketingConsent === true) {
+    const owner = db.prepare('SELECT user_id FROM widgets WHERE id = ?').get(widgetRow.id);
+    require('../services/marketing').upsertContact(owner.user_id, { email, name, source: 'chatbot', consent: true });
+  }
 
   // Async: generate AI summary, then send email notification
   setImmediate(async () => {

@@ -87,10 +87,15 @@ $('btn-login').addEventListener('click', async () => {
 
   setBtnLoading('btn-login-text', 'btn-login-spin', true);
 
-  const r = await apiFetch('/api/auth/login', {
+  let r = await apiFetch('/api/auth/login', {
     method: 'POST',
     body: JSON.stringify({ email, password }),
   });
+  // Účet z Neoworkly Funnel so zapnutým 2FA: kód z overovacej aplikácie
+  if (r.ok && r.data.twoFactor) {
+    const code = window.prompt('Kód z overovacej aplikácie (alebo záložný kód):') || '';
+    r = await apiFetch('/api/auth/login/2fa', { method: 'POST', body: JSON.stringify({ challenge: r.data.challenge, code }) });
+  }
 
   if (!r.ok) {
     showError('login-error', r.data?.error || 'Prihlásenie zlyhalo.');

@@ -8,6 +8,10 @@ const { v4: uuidv4 } = require('uuid');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
 const { sendPasswordReset } = require('../services/email');
+const { TRIAL_DAYS } = require('../middleware/subscription');
+const passwords = require('../services/passwords');
+const twoFactor = require('../services/twoFactor');
+const { rateLimit } = require('../funnel/src/ratelimit');
 
 const router = express.Router();
 const SALT_ROUNDS = 12;
@@ -61,9 +65,10 @@ router.post('/register', async (req, res) => {
     const id = uuidv4();
     const myReferralCode = uniqueReferralCode(db, name);
 
+    const trialUntil = Math.floor(Date.now() / 1000) + TRIAL_DAYS * 86400;
     db.prepare(
-      'INSERT INTO users (id, email, password_hash, name, referral_code, referred_by) VALUES (?, ?, ?, ?, ?, ?)'
-    ).run(id, email.toLowerCase(), passwordHash, name.trim(), myReferralCode, referredById);
+      'INSERT INTO users (id, email, password_hash, name, referral_code, referred_by, trial_until, ai_responses_reset_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(id, email.toLowerCase(), passwordHash, name.trim(), myReferralCode, referredById, trialUntil, trialUntil);
 
     const token = signToken(id);
     return res.status(201).json({
@@ -92,9 +97,18 @@ router.post('/login', async (req, res) => {
   }
 
   try {
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const valid = await passwords.verify(password, user.password_hash);
     if (!valid) {
       return res.status(401).json({ error: 'Nesprávny email alebo heslo.' });
+    }
+    // Heslo prenesené z Neoworkly Funnel (scrypt) => po úspešnom prihlásení bcrypt
+    if (passwords.isLegacy(user.password_hash)) {
+      user.password_hash = await passwords.hash(password);
+      db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(user.password_hash, user.id);
+    }
+    // Účet z Neoworkly Funnel so zapnutým 2FA: najprv kód z aplikácie
+    if (twoFactor.merchantWithTotp(user.id)) {
+      return res.json({ twoFactor: true, challenge: twoFactor.issueChallenge(user) });
     }
 
     const token = signToken(user.id);
@@ -104,6 +118,25 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({ error: 'Chyba servera.' });
   }
 });
+
+// POST /api/auth/login/2fa – druhý krok: kód z aplikácie alebo jednorazový záložný kód
+router.post('/login/2fa',
+  rateLimit({ name: 'auth-2fa-ip', max: 20, windowMs: 15 * 60 * 1000, key: req => req.ip }),
+  (req, res, next) => {
+    req.challengeUser = twoFactor.readChallenge(req.body.challenge);
+    if (!req.challengeUser) return res.status(401).json({ error: 'Prihlásenie vypršalo. Zadajte znova email a heslo.', expired: true });
+    next();
+  },
+  // 6-miestny kód => najviac 5 pokusov na účet za 15 minút
+  rateLimit({ name: 'auth-2fa-user', max: 5, windowMs: 15 * 60 * 1000, key: req => req.challengeUser.id }),
+  async (req, res) => {
+    const user = req.challengeUser;
+    const merchant = twoFactor.merchantWithTotp(user.id);
+    if (merchant && !(await twoFactor.verify(merchant, req.body.code))) {
+      return res.status(401).json({ error: 'Nesprávny kód.' });
+    }
+    return res.json({ token: signToken(user.id), user: { id: user.id, email: user.email, name: user.name } });
+  });
 
 function signToken(userId) {
   return jwt.sign({ userId }, process.env.JWT_SECRET || 'changeme', { expiresIn: '30d' });
@@ -124,7 +157,7 @@ router.post('/change-password', requireAuth, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
 
   try {
-    const valid = await bcrypt.compare(currentPassword, user.password_hash);
+    const valid = await passwords.verify(currentPassword, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Aktuálne heslo je nesprávne.' });
 
     const newHash = await bcrypt.hash(newPassword, SALT_ROUNDS);
@@ -151,7 +184,7 @@ router.post('/change-email', requireAuth, async (req, res) => {
   if (!user) return res.status(404).json({ error: 'Používateľ nenájdený.' });
 
   try {
-    const valid = await bcrypt.compare(password, user.password_hash);
+    const valid = await passwords.verify(password, user.password_hash);
     if (!valid) return res.status(401).json({ error: 'Heslo je nesprávne.' });
 
     const existing = db.prepare('SELECT id FROM users WHERE email = ? AND id != ?').get(newEmail.toLowerCase(), req.userId);

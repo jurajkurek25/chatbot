@@ -4,12 +4,19 @@ const express = require('express');
 const Stripe = require('stripe');
 const { getDb } = require('../db/database');
 const { requireAuth } = require('../middleware/auth');
+const { accessOf } = require('../middleware/subscription');
 
 const router = express.Router();
 
 function getStripe() {
   return Stripe(process.env.STRIPE_SECRET_KEY);
 }
+
+// Staré predplatné Neoworkly Funnel (4 €) môže byť na tom istom Stripe účte – nie je to predplatné
+// Neoworkly (spracúva ho webhook funnela) a nesmie aktivovať ani deaktivovať účet podľa e-mailu
+const isFunnelPrice = id => Boolean(process.env.FUNNEL_SUBSCRIPTION_PRICE_ID) && id === process.env.FUNNEL_SUBSCRIPTION_PRICE_ID;
+const isFunnelSubscription = sub => (sub.items?.data || []).some(i => isFunnelPrice(i.price?.id));
+const isFunnelInvoice = inv => (inv.lines?.data || []).some(l => isFunnelPrice(l.price?.id || l.pricing?.price_details?.price));
 
 // POST /api/stripe/checkout — create Stripe Checkout Session
 router.post('/checkout', requireAuth, async (req, res) => {
@@ -67,10 +74,28 @@ router.post('/checkout', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/stripe/webhook — opening the URL in a browser; Stripe itself only POSTs
+router.get('/webhook', (req, res) => {
+  res.json({ ok: true, info: 'Stripe webhook endpoint. Stripe sends POST requests here.', secret_configured: !!process.env.STRIPE_WEBHOOK_SECRET });
+});
+
 // POST /api/stripe/webhook — Stripe webhook (raw body parsed in server.js)
-router.post('/webhook', async (req, res) => {
+// An error thrown while handling must still answer (500) — otherwise the request
+// hangs and Stripe only sees a timeout. A 500 also makes Stripe retry later.
+router.post('/webhook', (req, res) => {
+  handleWebhook(req, res).catch(err => {
+    console.error('[stripe] Webhook handler error:', err);
+    if (!res.headersSent) res.status(500).json({ error: 'Webhook handler error' });
+  });
+});
+
+async function handleWebhook(req, res) {
   const sig = req.headers['stripe-signature'];
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('[stripe] STRIPE_WEBHOOK_SECRET is not set — cannot verify webhooks.');
+    return res.status(500).send('Webhook Error: STRIPE_WEBHOOK_SECRET is not configured on the server');
+  }
 
   let event;
   try {
@@ -147,6 +172,7 @@ router.post('/webhook', async (req, res) => {
     }
     case 'customer.subscription.updated': {
       const sub = event.data.object;
+      if (isFunnelSubscription(sub)) break;
       const isActive = sub.status === 'active' || sub.status === 'trialing';
       const status = isActive ? 'active' : 'inactive';
       const subPriceId = sub.items?.data?.[0]?.price?.id;
@@ -162,6 +188,7 @@ router.post('/webhook', async (req, res) => {
     }
     case 'customer.subscription.deleted': {
       const sub = event.data.object;
+      if (isFunnelSubscription(sub)) break;
       const user = await resolveUser(sub.customer);
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('inactive', user.id);
@@ -171,6 +198,7 @@ router.post('/webhook', async (req, res) => {
     }
     case 'invoice.payment_failed': {
       const inv = event.data.object;
+      if (isFunnelInvoice(inv)) break;
       const user = await resolveUser(inv.customer);
       if (user) {
         db.prepare('UPDATE users SET subscription_status = ? WHERE id = ?').run('past_due', user.id);
@@ -181,7 +209,7 @@ router.post('/webhook', async (req, res) => {
   }
 
   res.json({ received: true });
-});
+}
 
 // POST /api/stripe/portal — customer billing portal
 router.post('/portal', requireAuth, async (req, res) => {
@@ -206,19 +234,20 @@ router.post('/portal', requireAuth, async (req, res) => {
 // If user has no stripe_customer_id yet, searches Stripe by email to auto-link
 router.get('/status', requireAuth, async (req, res) => {
   const db = getDb();
-  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until FROM users WHERE id = ?').get(req.userId);
+  const user = db.prepare('SELECT email, subscription_status, subscription_plan, stripe_customer_id, onboarding_done, free_until, trial_until FROM users WHERE id = ?').get(req.userId);
   const now = Math.floor(Date.now() / 1000);
   const inFreePeriod = user?.free_until && user.free_until > now;
+  const { inTrial } = accessOf(user);
 
   // If not yet active and no customer_id, try to find & sync from Stripe by email
-  if (user && user.subscription_status !== 'active' && !inFreePeriod && !user.stripe_customer_id) {
+  if (user && user.subscription_status !== 'active' && !inFreePeriod && !inTrial && !user.stripe_customer_id) {
     try {
       const stripe = getStripe();
       const customers = await stripe.customers.list({ email: user.email.toLowerCase(), limit: 5 });
       for (const customer of customers.data) {
-        const subs = await stripe.subscriptions.list({ customer: customer.id, status: 'active', limit: 1 });
-        if (subs.data.length > 0) {
-          const sub = subs.data[0];
+        const subs = await stripe.subscriptions.list({ customer: customer.id, status: 'active', limit: 5 });
+        const sub = subs.data.find(s => !isFunnelSubscription(s));
+        if (sub) {
           db.prepare('UPDATE users SET stripe_customer_id = ?, subscription_status = ?, subscription_id = ? WHERE id = ?')
             .run(customer.id, 'active', sub.id, req.userId);
           db.prepare('UPDATE widgets SET active = 1 WHERE user_id = ?').run(req.userId);
@@ -233,12 +262,14 @@ router.get('/status', requireAuth, async (req, res) => {
   }
 
   res.json({
-    active: user?.subscription_status === 'active' || !!inFreePeriod,
+    active: user?.subscription_status === 'active' || !!inFreePeriod || inTrial,
     status: user?.subscription_status || 'inactive',
     plan: user?.subscription_plan || 'pro',
     onboarding_done: Boolean(user?.onboarding_done),
     free_until: user?.free_until || null,
     in_free_period: !!inFreePeriod,
+    in_trial: inTrial,
+    trial_until: user?.trial_until || null,
   });
 });
 

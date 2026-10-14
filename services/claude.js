@@ -1,6 +1,7 @@
 'use strict';
 
 const Anthropic = require('@anthropic-ai/sdk');
+const { takeHandoffToken, notifyHandoff } = require('./handoff');
 const { pickStartingModel, markModelGood, getNewestUntriedModel, tierOf, looksLikeModelIssue, withModelFallback } = require('./resolveModel');
 
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
@@ -52,6 +53,21 @@ function buildProductsSection(products) {
 }
 
 /* ── System prompt builder ─────────────────────────────────────── */
+// Owner-configured answers + human handoff (shared by web, Messenger, Instagram)
+function buildBehaviorSection(widget) {
+  let s = '';
+  if (widget.no_context_message) {
+    s += `\n- Ak odpoveď NIE JE v znalostnej báze, odpovedz týmto textom (prelož ho do jazyka zákazníka): "${widget.no_context_message}"`;
+  }
+  if (widget.off_topic_message) {
+    s += `\n- Ak otázka vôbec nesúvisí s firmou, jej ponukou ani webom, odpovedz týmto textom (prelož ho do jazyka zákazníka): "${widget.off_topic_message}"`;
+  }
+  if (widget.handoff_enabled) {
+    s += `\n- Ak zákazník VÝSLOVNE požiada o človeka, operátora alebo podporu, potvrď mu, že konverzáciu odovzdávaš kolegovi, ktorý sa ozve, a na KONIEC odpovede vlož token: __HANDOFF__`;
+  }
+  return s ? `\n\n## VLASTNÉ PRAVIDLÁ MAJITEĽA${s}` : '';
+}
+
 function buildSystemPrompt(widget, knowledgeItems, products = [], pageContext = null) {
   const cfg = safeParseJSON(widget.cta_config, {});
 
@@ -134,7 +150,7 @@ Keď zákazník prejaví záujem alebo súhlas:
 - Odpovedaj VŽDY v jazyku zákazníka (podľa toho ako píše – sk, en, de, fr, es, pl, cs, hu, ro, hr alebo iný).
 - Nikdy si nevymýšľaj fakty, ceny, mená, kontakty ani referencie.
 - Nebuď agresívny ani nátlakový – predávaj cez dôveru a pochopenie.
-- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${goalsSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
+- Každú odpoveď ukončuj otázkou ALEBO výzvou k akcii – nikdy nedaj "slepú uličku".${buildBehaviorSection(widget)}${goalsSection}${productsSection}${knowledgeSection}${ctaInstructions[widget.cta_type] || ''}${pageContextSection}`;
 }
 
 function loadProducts(widgetId) {
@@ -238,6 +254,11 @@ Booking URL (priamy odkaz): ${bookingUrl}
 KRITICKÉ: Použi JEDEN token (__DIRECTBOOK__ ALEBO __BOOKING__) IBA raz za konverzáciu. NIKDY nezobrazuj formulár automaticky.`;
 }
 
+// Bot appends __UNANSWERED__ when the knowledge base lacks the answer — caller logs the question
+const UNANSWERED_SECTION = `\n\n## NEZODPOVEDANÉ OTÁZKY
+Ak sa zákazník pýta na konkrétnu informáciu o firme, produktoch alebo službách a odpoveď NIE JE v znalostnej báze ani v produktoch, na KONIEC odpovede vlož token: __UNANSWERED__
+Nevkladaj ho pri pozdravoch, small talku ani keď odpoveď poznáš.`;
+
 /* ── Streaming chat response ───────────────────────────────────── */
 async function streamChatResponse(widget, knowledgeItems, history, userMessage, res, pageContext = null) {
   const products        = loadProducts(widget.id);
@@ -245,7 +266,7 @@ async function streamChatResponse(widget, knowledgeItems, history, userMessage, 
   const leadMagnets     = loadLeadMagnets(widget.id);
   const bookingSection  = buildBookingSection(widget.id, bookingCfg);
   const lmSection       = buildLeadMagnetSection(leadMagnets);
-  const systemPrompt    = buildSystemPrompt(widget, knowledgeItems, products, pageContext) + bookingSection + lmSection;
+  const systemPrompt    = buildSystemPrompt(widget, knowledgeItems, products, pageContext) + bookingSection + lmSection + UNANSWERED_SECTION;
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
@@ -349,10 +370,10 @@ Vráť VÝHRADNE JSON pole stringov, nič iné. Príklad:
   }
 }
 
-/* ── Non-streaming response (for Instagram DMs) ───────────────── */
+/* ── Non-streaming response (for Instagram + Messenger DMs) ────── */
 async function getChatResponseText(widget, knowledgeItems, history, userMessage) {
   const products = loadProducts(widget.id);
-  const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products);
+  const systemPrompt = buildSystemPrompt(widget, knowledgeItems, products) + UNANSWERED_SECTION;
   const messages = [
     ...history.map(m => ({ role: m.role, content: m.content })),
     { role: 'user', content: userMessage },
@@ -365,7 +386,22 @@ async function getChatResponseText(widget, knowledgeItems, history, userMessage)
     messages,
   }));
 
-  return response.content.find(b => b.type === 'text')?.text?.trim() || '';
+  let text = response.content.find(b => b.type === 'text')?.text?.trim() || '';
+  const handoff = takeHandoffToken(text);
+  text = handoff.text;
+  if (handoff.requested) {
+    notifyHandoff(widget, [...history, { role: 'user', content: userMessage }, { role: 'assistant', content: text }], 'Messenger / Instagram');
+  }
+  if (text.includes('__UNANSWERED__')) {
+    text = text.replace(/__UNANSWERED__/g, '').trim();
+    try {
+      const { getDb } = require('../db/database');
+      getDb().prepare('INSERT INTO unanswered_questions (id, widget_id, question) VALUES (?, ?, ?)').run(
+        require('uuid').v4(), widget.id, String(userMessage).trim().slice(0, 500)
+      );
+    } catch (err) { console.error('unanswered log error:', err.message); }
+  }
+  return text;
 }
 
 /* ── AI conversation summary for leads ────────────────────────── */

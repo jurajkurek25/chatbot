@@ -5,13 +5,22 @@ const path = require('path');
 
 /**
  * Parse uploaded file and return its text content.
- * Supports: PDF, TXT, MD, CSV
+ * Supports: PDF, DOCX, TXT, MD, CSV
  */
 async function parseFile(filePath, mimeType, originalName) {
   const ext = path.extname(originalName || filePath).toLowerCase();
 
   if (mimeType === 'application/pdf' || ext === '.pdf') {
     return parsePdf(filePath);
+  }
+
+  if (ext === '.docx' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    try {
+      const { value } = await require('mammoth').extractRawText({ path: filePath });
+      return value.slice(0, 100000);
+    } catch (err) {
+      throw new Error(`Chyba pri čítaní Word dokumentu: ${err.message}`);
+    }
   }
 
   const textMimeTypes = ['text/plain', 'text/markdown', 'text/csv', 'text/x-csv', 'application/csv', 'text/x-markdown'];

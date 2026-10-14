@@ -1,0 +1,323 @@
+<!-- ============ NEOWORKLY FUNNEL: Krok: {{STEP}} – vstupný produkt (zadanie a uloženie karty) ============ -->
+<div class="nw-box nw-loading" id="nw-entry" data-step="{{STEP}}">
+  <h3 class="nw-title">{{TITLE}}</h3>
+  <form>
+    <input type="email" name="email" placeholder="Tvoj e-mail" required>
+    <label>Počet kusov
+      <input type="number" name="quantity" min="1" max="{{MAX}}" value="1">
+    </label>
+    <div class="nw-address" hidden></div>
+    <p class="nw-address-summary" hidden></p>
+    <div class="nw-fields"></div>
+    <div class="nw-card" hidden></div>
+    <p class="nw-note" hidden>
+      Kartu uložíme u Stripe, aby si v ďalších krokoch mohol nakupovať jedným klikom.
+    </p>
+    <button type="submit">Pokračovať</button>
+    <p class="nw-msg" role="alert"></p>
+    <p class="nw-legal" hidden>Pokračovaním súhlasíš s <a class="nw-terms" target="_blank" rel="noopener">obchodnými
+      podmienkami</a> a <a class="nw-privacy" target="_blank" rel="noopener">zásadami ochrany osobných údajov</a>.</p>
+  </form>
+  <!-- Dôvera: platby spracúva Stripe (údaje karty nejdú cez web obchodníka) -->
+  <p class="nw-powered"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7zm2 0h4V5a2 2 0 0 0-4 0z"/></svg>
+    Powered by <a href="https://stripe.com" target="_blank" rel="noopener">Stripe</a> ·
+    <a href="{{NW_API}}/" target="_blank" rel="noopener">Neoworkly Funnel</a></p>
+</div>
+<style>
+  .nw-box .nw-paused{margin:0;text-align:center}
+  .nw-box{max-width:420px;margin:32px auto;padding:24px;border:1px solid #e3e3e3;border-radius:12px;font-family:system-ui,sans-serif}
+  .nw-box h3{margin:0 0 16px}
+  .nw-box label{display:block;font-size:14px;color:#555}
+  .nw-box input,.nw-box textarea{width:100%;box-sizing:border-box;padding:12px;margin:6px 0 12px;border:1px solid #ccc;border-radius:8px;font:inherit;font-size:16px}
+  .nw-box textarea{min-height:80px;resize:vertical}
+  .nw-box .nw-address{margin-bottom:12px}
+  .nw-box .nw-address-summary{font-size:14px;color:#555;white-space:pre-line}
+  .nw-box .nw-card{margin-bottom:12px}
+  .nw-box .nw-note{font-size:13px;color:#666}
+  .nw-box.nw-loading{visibility:hidden}
+  .nw-box.nw-loading *{transition:none!important} /* vlastné CSS sa uplatní bez preblikávania */
+  .nw-box button{width:100%;padding:14px;border:0;border-radius:8px;background:var(--nw-color,#635bff);color:var(--nw-text,#fff);font-size:16px;cursor:pointer}
+  .nw-box .nw-legal{font-size:12px;color:#666}
+  .nw-box .nw-legal a{color:inherit}
+  .nw-box .nw-powered{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;margin:12px 0 0;font-size:12px;opacity:.7}
+  .nw-box .nw-powered a{color:inherit;font-weight:600;text-decoration:none}
+  .nw-box button:disabled{opacity:.6;cursor:wait}
+  .nw-box .nw-msg{color:#c0392b;min-height:1em}
+</style>
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+(function () {
+  var NW_API = '{{NW_API}}';
+  var NW_MERCHANT = '{{NW_MERCHANT}}';
+  var stripe; // inicializuje sa podľa odpovede API (ostrý alebo testovací Stripe účet obchodníka)
+  // Testovací režim: ?neoworkly_test=<tajný kľúč z dashboardu> ho zapne pre celú reláciu prehliadača
+  // (platí aj po presmerovaní na ďalší krok), ?neoworkly_test=0 ho vypne
+  var TEST_STORE = 'nw_test_' + NW_MERCHANT;
+  var urlTest = new URLSearchParams(location.search).get('neoworkly_test');
+  if (urlTest === '0') sessionStorage.removeItem(TEST_STORE);
+  else if (urlTest) sessionStorage.setItem(TEST_STORE, urlTest);
+  var testKey = sessionStorage.getItem(TEST_STORE);
+  var TOKEN_STORE = 'nw_token_' + NW_MERCHANT + (testKey ? '_test' : '');
+
+  var root = document.getElementById('nw-entry');
+  var step = root.dataset.step;
+  // A/B test: variant pridelený pri prvom zobrazení platí po celú reláciu
+  var VARIANT_STORE = 'nw_variant_' + NW_MERCHANT + '_' + step;
+  var variant = sessionStorage.getItem(VARIANT_STORE);
+  var form = root.querySelector('form');
+  // E-mail z kroku „Zadarmo za kontakt“ (ak ním zákazník prešiel)
+  var savedEmail = sessionStorage.getItem('nw_email_' + NW_MERCHANT);
+  if (savedEmail && !form.email.value) form.email.value = savedEmail;
+  var btn = form.querySelector('button');
+  var msg = root.querySelector('.nw-msg');
+  var elements, token, addressElement;
+
+  // Texty, cena a farba z dashboardu obchodníka (zmeny sa prejavia bez nového vkladania snippetu)
+  function applyConfig(cfg) {
+    variant = cfg.variant;
+    sessionStorage.setItem(VARIANT_STORE, variant);
+    stripe = Stripe(cfg.publishableKey, { stripeAccount: cfg.stripeAccount });
+    root.style.setProperty('--nw-color', cfg.color);
+    root.style.setProperty('--nw-text', cfg.textColor);
+    root.querySelector('.nw-title').textContent = cfg.title;
+    btn.textContent = cfg.buttonText;
+    form.quantity.max = cfg.maxQuantity;
+    renderFields(root.querySelector('.nw-fields'), cfg.fields);
+    if (cfg.termsUrl && cfg.privacyUrl) {
+      root.querySelector('.nw-terms').href = cfg.termsUrl;
+      root.querySelector('.nw-privacy').href = cfg.privacyUrl;
+      root.querySelector('.nw-legal').hidden = false;
+    }
+    applyCustomCss(cfg.customCss);
+    matchTextareas(cfg.customCss);
+    // Adresa doručenia: formulár od Stripe (krajiny, formát adresy, našepkávanie) vo vzhľade formulára
+    if (cfg.shipping && !addressElement) {
+      addressElement = stripeElements({}).create('address', { mode: 'shipping' });
+      addressElement.mount(root.querySelector('.nw-address'));
+      root.querySelector('.nw-address').hidden = false;
+    }
+  }
+  // Jednotný vzhľad: polia od Stripe (adresa, karta) bežia v iframe, kam CSS stránky nedosiahne.
+  // Vzhľad im preto odovzdáme cez Stripe Appearance API podľa poľa pre e-mail (aj s vlastným CSS).
+  // Pozadie tak, ako ho vidno: polopriehľadné vrstvy (napr. rgba(0,0,0,.4)) zložené cez predkov až po
+  // nepriehľadné pozadie (inak biela stránka). Stripe aj textarea potrebujú plnú farbu.
+  function rgbaOf(color) {
+    var m = /^rgba?\(([^)]+)\)$/.exec(color || '');
+    if (!m) return null;
+    var v = m[1].split(/[\s,\/]+/).filter(Boolean).map(parseFloat);
+    return [v[0], v[1], v[2], v.length > 3 ? v[3] : 1];
+  }
+  // Gradient (background-image) => priemer jeho farieb ako jedna vrstva pod farbou pozadia
+  function gradientOf(image) {
+    var colors = (image.match(/rgba?\([^)]+\)/g) || []).map(rgbaOf).filter(Boolean);
+    if (!colors.length) return null;
+    return [0, 1, 2, 3].map(function (k) {
+      return colors.reduce(function (t, c) { return t + c[k]; }, 0) / colors.length;
+    });
+  }
+  function visibleBackground(el) {
+    var layers = [];
+    for (var n = el; n && n.nodeType === 1; n = n.parentElement) {
+      var style = getComputedStyle(n);
+      var c = rgbaOf(style.backgroundColor);
+      if (c && c[3] > 0) layers.push(c);
+      if (c && c[3] >= 1) break;
+      var g = gradientOf(style.backgroundImage);
+      if (g && g[3] > 0) layers.push(g);
+      if (g && g[3] >= 1) break;
+    }
+    var out = [255, 255, 255];
+    for (var i = layers.length - 1; i >= 0; i--) {
+      var a = layers[i][3];
+      out = out.map(function (v, k) { return Math.round(layers[i][k] * a + v * (1 - a)); });
+    }
+    // Poistka: svetlý text na svetlom pozadí by nebolo vidno (pozadie z obrázka a pod.) => tmavé pozadie
+    var text = rgbaOf(getComputedStyle(el).color) || [0, 0, 0, 1];
+    if (luminance(text) > 150 && luminance(out) > 150) out = [18, 18, 24];
+    if (luminance(text) < 100 && luminance(out) < 100) out = [255, 255, 255];
+    return out;
+  }
+  function luminance(c) { return 0.299 * c[0] + 0.587 * c[1] + 0.114 * c[2]; }
+  function stripeLook() {
+    var cs = getComputedStyle(form.email);
+    var label = getComputedStyle(form.querySelector('label'));
+    var placeholder = getComputedStyle(form.email, '::placeholder');
+    var accent = getComputedStyle(btn).backgroundColor;
+    var rgb = visibleBackground(form.email);
+    var background = 'rgb(' + rgb.join(', ') + ')';
+    var dark = luminance(rgb) < 128;
+    var input = {
+      color: cs.color,
+      backgroundColor: background,
+      border: cs.borderTopWidth + ' ' + cs.borderTopStyle + ' ' + cs.borderTopColor,
+      boxShadow: cs.boxShadow,
+      padding: cs.padding
+    };
+    var variables = {
+      colorPrimary: accent, colorText: cs.color, colorBackground: background, fontFamily: cs.fontFamily,
+      fontSizeBase: cs.fontSize, borderRadius: cs.borderTopLeftRadius
+    };
+    return {
+      appearance: {
+        theme: dark ? 'night' : 'stripe',
+        variables: variables,
+        rules: {
+          '.Input': input,
+          '.Input::placeholder': { color: placeholder.color },
+          '.Input:focus': { borderColor: accent, boxShadow: '0 0 0 1px ' + accent },
+          '.Label': {
+            color: label.color, fontFamily: label.fontFamily, fontSize: label.fontSize,
+            fontWeight: label.fontWeight, letterSpacing: label.letterSpacing, textTransform: label.textTransform
+          }
+        }
+      },
+      // Písmo z Google Fonts, ktoré stránka používa, sa načíta aj v iframe Stripe
+      fonts: Array.prototype.map.call(
+        document.querySelectorAll('link[rel="stylesheet"][href^="https://fonts.googleapis.com/"]'),
+        function (l) { return { cssSrc: l.href }; }
+      )
+    };
+  }
+  function stripeElements(options) {
+    try {
+      return stripe.elements(Object.assign(stripeLook(), options));
+    } catch (e) { // neplatná hodnota vzhľadu => radšej predvolený vzhľad než nefunkčný formulár
+      return stripe.elements(options);
+    }
+  }
+  // Dlhé texty (textarea) dostanú vzhľad poľa pre e-mail – priamo na prvku, aby ich neprebili štýly
+  // témy webu. Ak vlastné CSS obchodníka štýluje textarea samo, nechá sa jeho vzhľad.
+  function matchTextareas(customCss) {
+    if (/textarea/i.test(customCss || '')) return;
+    var cs = getComputedStyle(form.email);
+    var props = ['color', 'border-top', 'border-right', 'border-bottom', 'border-left', 'border-radius',
+      'font-family', 'font-size', 'font-style', 'letter-spacing', 'padding', 'box-shadow'];
+    var background = 'rgb(' + visibleBackground(form.email).join(', ') + ')';
+    root.querySelectorAll('textarea').forEach(function (t) {
+      props.forEach(function (p) { t.style.setProperty(p, cs.getPropertyValue(p)); });
+      t.style.backgroundColor = background;
+    });
+  }
+  // Voľné polia kroku (napr. venovanie) podľa nastavenia v dashboarde
+  function renderFields(container, fields) {
+    container.replaceChildren();
+    (fields || []).forEach(function (f) {
+      var label = document.createElement('label');
+      label.textContent = f.label + (f.required ? '' : ' (nepovinné)');
+      var input = document.createElement(f.type === 'textarea' ? 'textarea' : 'input');
+      input.dataset.field = f.id;
+      input.maxLength = f.maxLength;
+      input.required = f.required;
+      label.appendChild(input);
+      container.appendChild(label);
+    });
+  }
+  function fieldValues() {
+    var out = {};
+    root.querySelectorAll('[data-field]').forEach(function (i) { out[i.dataset.field] = i.value; });
+    return out;
+  }
+  // Vlastné CSS obchodníka – ako posledný štýl stránky prebije predvolený vzhľad. Cez CSSOM
+  // (adoptedStyleSheets), ktoré Content Security Policy webu obchodníka neblokuje.
+  function applyCustomCss(css) {
+    if (!css) return;
+    try {
+      var sheet = new CSSStyleSheet();
+      sheet.replaceSync(css);
+      document.adoptedStyleSheets = document.adoptedStyleSheets.concat(sheet);
+    } catch (e) { // starší prehliadač
+      var style = document.createElement('style');
+      style.textContent = css;
+      document.body.appendChild(style);
+    }
+  }
+  // Najprv nech prehliadač prepočíta štýly (vlastné CSS bez prechodov), až potom formulár ukáž
+  function show() { void root.offsetHeight; root.classList.remove('nw-loading'); }
+  setTimeout(show, 2500); // API nedostupné => zobraz s predvolenými textami
+  // Zobrazenie sa do štatistík počíta raz za reláciu prehliadača (obnovenie stránky sa nepočíta)
+  var seenKey = 'nw_seen_' + NW_MERCHANT + '_' + step;
+  var firstView = !sessionStorage.getItem(seenKey);
+  sessionStorage.setItem(seenKey, '1');
+  post('/view', { count: firstView }).then(applyConfig, function (err) {
+    if (err.paused) return paused(err);
+    msg.textContent = err.message;
+  }).then(show);
+  // Predaj je pozastavený (napr. skončené predplatné obchodníka): zákazník neuvidí chybu –
+  // bez textu obchodníka snippet zmizne, inak ukáže iba jeho text
+  function paused(err) {
+    if (err.hide) {
+      root.style.display = 'none';
+      return;
+    }
+    var p = document.createElement('p');
+    p.className = 'nw-paused';
+    p.textContent = err.message;
+    root.replaceChildren(p);
+  }
+
+  async function post(path, body) {
+    var headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+    if (testKey) headers['X-Neoworkly-Test'] = testKey;
+    var r = await fetch(NW_API + '/api/f/' + NW_MERCHANT + '/' + step + path, {
+      method: 'POST', headers: headers, body: JSON.stringify(Object.assign({ variant: variant }, body))
+    });
+    var data = await r.json();
+    if (!r.ok) throw Object.assign(new Error(data.error), { paused: data.paused, hide: data.hide });
+    return data;
+  }
+
+  form.addEventListener('submit', async function (e) {
+    e.preventDefault();
+    btn.disabled = true;
+    msg.textContent = '';
+    try {
+      if (!elements) {
+        // Fáza 1: zákazník + platba na Stripe účte obchodníka, zobraz formulár karty
+        if (!stripe) throw new Error('Platby sa nepodarilo načítať. Obnov prosím stránku.');
+        var shipping;
+        if (addressElement) {
+          var addr = await addressElement.getValue();
+          if (!addr.complete) throw new Error('Vyplň prosím celú adresu doručenia.');
+          shipping = { name: addr.value.name, phone: addr.value.phone, address: addr.value.address };
+        }
+        var data = await post('/start', {
+          email: form.email.value, quantity: form.quantity.value, fields: fieldValues(), shipping: shipping
+        });
+        token = data.token;
+        sessionStorage.setItem(TOKEN_STORE, token);
+        elements = stripeElements({ clientSecret: data.clientSecret });
+        elements.create('payment').mount(root.querySelector('.nw-card'));
+        root.querySelector('.nw-card').hidden = false;
+        root.querySelector('.nw-note').hidden = false;
+        form.email.readOnly = form.quantity.readOnly = true;
+        root.querySelectorAll('[data-field]').forEach(function (i) { i.readOnly = true; });
+        if (shipping) {
+          // Adresa je uložená – namiesto formulára ju už iba zobraz
+          var a = shipping.address;
+          root.querySelector('.nw-address').hidden = true;
+          var summary = root.querySelector('.nw-address-summary');
+          summary.textContent = 'Doručenie: ' + [shipping.name, a.line1, a.line2, [a.postal_code, a.city].join(' '), a.country]
+            .filter(Boolean).join(', ');
+          summary.hidden = false;
+        }
+        btn.textContent = 'Zaplatiť';
+      } else {
+        // Fáza 2: potvrď platbu (3D Secure rieši Stripe.js), server ju overí a uloží kartu
+        var res = await stripe.confirmPayment({
+          elements: elements,
+          confirmParams: { return_url: location.href },
+          redirect: 'if_required'
+        });
+        if (res.error) throw new Error(res.error.message);
+        location.href = new URL((await post('/complete')).next, location.href).href;
+        return;
+      }
+    } catch (err) {
+      msg.textContent = err.message || 'Nastala chyba.';
+    }
+    btn.disabled = false;
+  });
+})();
+</script>
+<!-- ============ /NEOWORKLY FUNNEL ============ -->

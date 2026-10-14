@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Dokument – Neoworkly</title>
+  <link rel="stylesheet" href="/apps/doc/doc-editor.css?v=2">
+  <style>
+    :root { color-scheme: dark; }
+    body { margin: 0; background: #0d0d18; color: #eeeef5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .bar { position: sticky; top: 0; z-index: 10; display: flex; gap: .6rem; align-items: center; padding: .6rem 1rem; background: #080810; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .bar a.back { color: #9b8cff; text-decoration: none; font-weight: 700; font-size: .9rem; white-space: nowrap; }
+    .bar input { flex: 1; min-width: 0; background: transparent; border: 1px solid transparent; border-radius: 8px; color: #eeeef5; font: inherit; font-size: 1.05rem; font-weight: 700; padding: .35rem .5rem; }
+    .bar input:hover:not(:disabled), .bar input:focus { border-color: rgba(255,255,255,.14); outline: none; }
+    .btn { background: #111120; color: #eeeef5; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: .4rem .75rem; font: inherit; font-size: .82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .btn:hover { border-color: rgba(155,140,255,.5); }
+    .people { display: flex; gap: 2px; }
+    .people span { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-size: .7rem; font-weight: 700; border: 2px solid #080810; }
+    .status { font-size: .75rem; color: #7e7ea0; white-space: nowrap; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 1.5rem 0 6rem; }
+    .msg { max-width: 520px; margin: 4rem auto; text-align: center; color: #9898b8; }
+    .menu { position: absolute; right: 1rem; top: 3.2rem; background: #18182a; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: .35rem; display: none; }
+    .menu button { display: block; width: 100%; text-align: left; background: none; border: 0; color: #eeeef5; padding: .45rem .7rem; border-radius: 6px; font: inherit; font-size: .85rem; cursor: pointer; }
+    .menu button:hover { background: rgba(91,79,255,.18); }
+    @media print { .bar, .menu { display: none !important; } body { background: #fff; color: #000; } .wrap { padding: 0; } }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a class="back" href="/dashboard?view=docs">← Dokumenty</a>
+    <input id="title" placeholder="Bez názvu" maxlength="200" disabled>
+    <span class="status" id="status">Pripájam…</span>
+    <span class="people" id="people"></span>
+    <button class="btn" id="exportBtn">Exportovať ▾</button>
+  </div>
+  <div class="menu" id="menu">
+    <button data-export="md">Markdown (.md)</button>
+    <button data-export="html">HTML (.html)</button>
+    <button data-export="pdf">PDF (tlač)</button>
+    <button data-export="docx">Word (.docx – aj WordCraft)</button>
+    <button data-export="docx-drive">💾 Uložiť .docx na Disk</button>
+    <button data-export="import-docx">📥 Importovať Word (.docx)</button>
+  </div>
+  <div class="wrap"><div id="editor"><p class="msg">Načítavam dokument…</p></div></div>
+  <script type="module" src="/apps/doc/doc-editor.js?v=2"></script>
+</body>
+</html>

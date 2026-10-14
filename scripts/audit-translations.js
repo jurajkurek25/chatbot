@@ -115,7 +115,7 @@ const col = (c, s) => `${c}${s}${C.reset}`;
 const pct = (n, total) => total === 0 ? '—' : `${Math.round(n / total * 100)}%`;
 const bar = (n, total, width = 20) => {
   if (total === 0) return ' '.repeat(width);
-  const filled = Math.round(n / total * width);
+  const filled = Math.min(width, Math.round(n / total * width)); // files can hold extra legacy keys
   const color = filled === width ? C.green : filled > width * 0.5 ? C.yellow : C.red;
   return col(color, '█'.repeat(filled)) + col(C.gray, '░'.repeat(width - filled));
 };

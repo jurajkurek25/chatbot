@@ -1,0 +1,209 @@
+<!-- ============ NEOWORKLY FUNNEL: Krok: {{STEP}} – upsell / downsell, iba dve tlačidlá ============ -->
+<div class="nw-offer nw-loading" data-step="{{STEP}}">
+  <h3 class="nw-title" hidden></h3>
+  <div class="nw-fields"></div>
+  <button class="nw-yes">Chcem pridať</button>
+  <button class="nw-no">Nechcem pridať</button>
+  <p class="nw-msg" role="alert"></p>
+  <p class="nw-powered"><svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path fill="currentColor" d="M4 7V5a4 4 0 0 1 8 0v2h1v8H3V7zm2 0h4V5a2 2 0 0 0-4 0z"/></svg>
+    Powered by <a href="https://stripe.com" target="_blank" rel="noopener">Stripe</a> ·
+    <a href="{{NW_API}}/" target="_blank" rel="noopener">Neoworkly Funnel</a></p>
+</div>
+<style>
+  .nw-offer .nw-paused{margin:0;text-align:center}
+  .nw-offer{max-width:420px;margin:32px auto;font-family:system-ui,sans-serif;text-align:center}
+  .nw-offer button{display:block;width:100%;padding:14px;margin-bottom:10px;border-radius:8px;font-size:16px;cursor:pointer}
+  .nw-offer.nw-loading{visibility:hidden}
+  .nw-offer.nw-loading *{transition:none!important} /* vlastné CSS sa uplatní bez preblikávania */
+  .nw-offer .nw-title{margin:0 0 16px}
+  .nw-offer label{display:block;margin-bottom:12px;text-align:left;font-size:14px;color:#555}
+  .nw-offer input,.nw-offer textarea{display:block;width:100%;box-sizing:border-box;margin-top:6px;padding:12px;border:1px solid #ccc;border-radius:8px;font:inherit;font-size:16px}
+  .nw-offer textarea{min-height:80px;resize:vertical}
+  .nw-offer .nw-yes{border:0;background:var(--nw-color,#1a9e55);color:var(--nw-text,#111);font-weight:600}
+  .nw-offer .nw-no{border:0;background:none;color:#666;text-decoration:underline}
+  .nw-offer button:disabled{opacity:.6;cursor:wait}
+  .nw-offer .nw-msg{color:#c0392b;min-height:1em}
+  .nw-offer .nw-powered{display:flex;align-items:center;justify-content:center;gap:4px;flex-wrap:wrap;margin:12px 0 0;font-size:12px;opacity:.7}
+  .nw-offer .nw-powered a{color:inherit;font-weight:600;text-decoration:none}
+</style>
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+(function () {
+  var NW_API = '{{NW_API}}';
+  var NW_MERCHANT = '{{NW_MERCHANT}}';
+  var config; // z API: texty, farba a Stripe účet (ostrý alebo testovací)
+  // Testovací režim: ?neoworkly_test=<tajný kľúč z dashboardu> ho zapne pre celú reláciu prehliadača
+  // (platí aj po presmerovaní na ďalší krok), ?neoworkly_test=0 ho vypne
+  var TEST_STORE = 'nw_test_' + NW_MERCHANT;
+  var urlTest = new URLSearchParams(location.search).get('neoworkly_test');
+  if (urlTest === '0') sessionStorage.removeItem(TEST_STORE);
+  else if (urlTest) sessionStorage.setItem(TEST_STORE, urlTest);
+  var testKey = sessionStorage.getItem(TEST_STORE);
+  var TOKEN_STORE = 'nw_token_' + NW_MERCHANT + (testKey ? '_test' : '');
+
+  var root = document.querySelector('.nw-offer');
+  var step = root.dataset.step;
+  // A/B test: variant pridelený pri prvom zobrazení platí po celú reláciu
+  var VARIANT_STORE = 'nw_variant_' + NW_MERCHANT + '_' + step;
+  var variant = sessionStorage.getItem(VARIANT_STORE);
+  var buttons = root.querySelectorAll('button');
+  var msg = root.querySelector('.nw-msg');
+  // Token z vstupného kroku (uložený na doméne obchodníka) identifikuje zákazníka a jeho kartu
+  var token = sessionStorage.getItem(TOKEN_STORE);
+  // Návrat z platobnej stránky Stripe: ?nw_session=… sa raz vymení za token a z adresy zmizne
+  var params = new URLSearchParams(location.search);
+  var nwSession = params.get('nw_session');
+  if (nwSession) {
+    params.delete('nw_session');
+    var query = params.toString();
+    history.replaceState(history.state, '', location.pathname + (query ? '?' + query : '') + location.hash);
+  }
+
+  async function post(path, body) {
+    var headers = { 'Content-Type': 'application/json' };
+    if (token) headers.Authorization = 'Bearer ' + token;
+    if (testKey) headers['X-Neoworkly-Test'] = testKey;
+    var r = await fetch(NW_API + '/api/f/' + NW_MERCHANT + '/' + step + path, {
+      method: 'POST', headers: headers, body: JSON.stringify(Object.assign({ variant: variant }, body))
+    });
+    var data = await r.json();
+    if (!r.ok) throw Object.assign(new Error(data.error), { paused: data.paused, hide: data.hide });
+    return data;
+  }
+
+  function go(url) { location.href = new URL(url, location.href).href; }
+
+  // Texty a farba z dashboardu obchodníka (zmeny sa prejavia bez nového vkladania snippetu)
+  function applyConfig(cfg) {
+    variant = cfg.variant;
+    sessionStorage.setItem(VARIANT_STORE, variant);
+    config = cfg;
+    root.style.setProperty('--nw-color', cfg.color);
+    root.style.setProperty('--nw-text', cfg.textColor);
+    root.querySelector('.nw-yes').textContent = cfg.yesText;
+    root.querySelector('.nw-no').textContent = cfg.noText;
+    if (cfg.direct) return directSale(cfg);
+    renderFields(root.querySelector('.nw-fields'), cfg.fields);
+    if (cfg.title) {
+      root.querySelector('.nw-title').textContent = cfg.title;
+      root.querySelector('.nw-title').hidden = false;
+    }
+    applyCustomCss(cfg.customCss);
+  }
+  // Priamy predaj: návštevník neprišiel cez funnel => namiesto „Chcem pridať“ kúpa produktu obchodníka
+  // (napr. za plnú cenu) na platobnej stránke Stripe; je to <button class="nw-yes"> => preberá vzhľad
+  // tlačidla „Chcem pridať“ aj z vlastného CSS
+  function directSale(cfg) {
+    var title = root.querySelector('.nw-title');
+    title.textContent = cfg.direct.title;
+    title.hidden = false;
+    root.querySelectorAll('button').forEach(function (b) { b.style.display = 'none'; });
+    var buy = document.createElement('button');
+    buy.type = 'button';
+    buy.className = 'nw-yes nw-buy';
+    buy.textContent = cfg.direct.buttonText;
+    buy.dataset.href = cfg.direct.checkoutUrl + (testKey ? '?neoworkly_test=' + encodeURIComponent(testKey) : '');
+    buy.onclick = function () { buy.disabled = true; go(buy.dataset.href); };
+    root.insertBefore(buy, msg);
+    applyCustomCss(cfg.customCss);
+  }
+  // Voľné polia kroku (napr. venovanie) podľa nastavenia v dashboarde
+  function renderFields(container, fields) {
+    container.replaceChildren();
+    (fields || []).forEach(function (f) {
+      var label = document.createElement('label');
+      label.textContent = f.label + (f.required ? '' : ' (nepovinné)');
+      var input = document.createElement(f.type === 'textarea' ? 'textarea' : 'input');
+      input.dataset.field = f.id;
+      input.maxLength = f.maxLength;
+      input.required = f.required;
+      label.appendChild(input);
+      container.appendChild(label);
+    });
+  }
+  function fieldValues() {
+    var out = {};
+    root.querySelectorAll('[data-field]').forEach(function (i) { out[i.dataset.field] = i.value; });
+    return out;
+  }
+  // Vlastné CSS obchodníka – ako posledný štýl stránky prebije predvolený vzhľad. Cez CSSOM
+  // (adoptedStyleSheets), ktoré Content Security Policy webu obchodníka neblokuje.
+  function applyCustomCss(css) {
+    if (!css) return;
+    try {
+      var sheet = new CSSStyleSheet();
+      sheet.replaceSync(css);
+      document.adoptedStyleSheets = document.adoptedStyleSheets.concat(sheet);
+    } catch (e) { // starší prehliadač
+      var style = document.createElement('style');
+      style.textContent = css;
+      document.body.appendChild(style);
+    }
+  }
+  // Najprv nech prehliadač prepočíta štýly (vlastné CSS bez prechodov), až potom formulár ukáž
+  function show() { void root.offsetHeight; root.classList.remove('nw-loading'); }
+  setTimeout(show, 2500); // API nedostupné => zobraz s predvolenými textami
+  // Návrat zo Stripe: najprv výmena platby za token (až potom /view – zákazník je už vo funneli)
+  var ready = !nwSession ? Promise.resolve() : post('/session', { sessionId: nwSession }).then(function (data) {
+    token = data.token;
+    sessionStorage.setItem(TOKEN_STORE, token);
+  }, function (err) {
+    if (!token) msg.textContent = err.message; // napr. obnovenie stránky po výmene – token už máme
+  });
+  // Zobrazenie sa do štatistík počíta raz za reláciu prehliadača (obnovenie stránky sa nepočíta)
+  var seenKey = 'nw_seen_' + NW_MERCHANT + '_' + step;
+  var firstView = !sessionStorage.getItem(seenKey);
+  sessionStorage.setItem(seenKey, '1');
+  ready.then(function () { return post('/view', { count: firstView }); }).then(applyConfig, function (err) {
+    if (err.paused) return paused(err);
+    msg.textContent = err.message;
+  }).then(show);
+  // Predaj je pozastavený (napr. skončené predplatné obchodníka): zákazník neuvidí chybu –
+  // bez textu obchodníka snippet zmizne, inak ukáže iba jeho text
+  function paused(err) {
+    if (err.hide) {
+      root.style.display = 'none';
+      return;
+    }
+    var p = document.createElement('p');
+    p.className = 'nw-paused';
+    p.textContent = err.message;
+    root.replaceChildren(p);
+  }
+  function busy(on) { buttons.forEach(function (b) { b.disabled = on; }); }
+
+  root.querySelector('.nw-yes').addEventListener('click', async function () {
+    // Povinné polia: prehliadač ukáže, čo chýba (bez platby)
+    var inputs = root.querySelectorAll('[data-field]');
+    for (var i = 0; i < inputs.length; i++) if (!inputs[i].reportValidity()) return;
+    busy(true);
+    msg.textContent = '';
+    try {
+      await ready;
+      var res = await post('/accept', { fields: fieldValues() });
+      if (res.requiresAction) {
+        var stripe = Stripe(config.publishableKey, { stripeAccount: config.stripeAccount });
+        var sca = await stripe.handleNextAction({ clientSecret: res.clientSecret });
+        if (sca.error) throw new Error(sca.error.message);
+        res = await post('/confirm', { paymentIntentId: sca.paymentIntent.id });
+      }
+      go(res.next);
+    } catch (err) {
+      msg.textContent = err.message || 'Platba zlyhala.';
+      busy(false);
+    }
+  });
+
+  root.querySelector('.nw-no').addEventListener('click', async function () {
+    busy(true);
+    try {
+      await ready;
+      go((await post('/decline')).next);
+    } catch (err) {
+      msg.textContent = err.message;
+      busy(false);
+    }
+  });
+})();
+</script>
+<!-- ============ /NEOWORKLY FUNNEL ============ -->

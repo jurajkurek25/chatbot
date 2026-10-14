@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="sk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funnely – Neoworkly</title>
+<style>
+  :root{--bg:#111120;--card:#18182a;--line:rgba(255,255,255,0.08);--text:#eeeef5;--muted:#9898b8;--accent:#5b4fff;--danger:#ff4060;--ok:#1fd89a;--input:#111120;--btn:#22223a;--warn-bg:rgba(245,158,11,0.1);--warn-text:#fbbf24}
+  html{background:var(--bg)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 'Inter',system-ui,-apple-system,sans-serif}
+  a{color:var(--accent)}
+  header{background:var(--card);border-bottom:1px solid var(--line);padding:10px 24px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  header strong{flex:1}
+  header span{color:var(--muted);font-size:14px}
+  header a{color:var(--accent);font-size:14px;text-decoration:none}
+  #blocked-card{border-color:var(--danger)}
+  #blocked-card p{margin:0}
+  .status{display:inline-block;padding:2px 10px;border-radius:99px;font-size:13px;font-weight:500;background:rgba(255,64,96,0.14);color:var(--danger)}
+  .status.ok{background:rgba(31,216,154,0.14);color:var(--ok)}
+  .status.wait{background:rgba(245,158,11,0.14);color:var(--warn-text)}
+  .card-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .card-row p{margin:0;flex:1;min-width:200px}
+  #sub-card-el{margin-top:16px;max-width:420px}
+  main{max-width:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:20px}
+  section{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px 22px}
+  h2{margin:0 0 4px;font-size:17px}
+  .hint{margin:0 0 16px;color:var(--muted);font-size:13px}
+  .table-wrap{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-weight:500}
+  td.actions{text-align:right}
+  code{font-size:13px;background:var(--bg);padding:1px 5px;border-radius:4px}
+  form{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:16px;padding-top:16px;border-top:1px dashed var(--line)}
+  label{display:grid;gap:4px;font-size:13px;color:var(--muted)}
+  input,select,textarea{font:inherit;color:var(--text);padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--input)}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)}
+  input:disabled,select:disabled{background:var(--bg);color:var(--muted)}
+  .form-actions{grid-column:1/-1;display:flex;gap:8px}
+  button{font:inherit;font-size:14px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--btn);color:var(--text);cursor:pointer}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button.link{border:0;background:none;color:var(--accent);padding:4px 6px}
+  button:disabled{opacity:.5;cursor:not-allowed}
+  button.link.danger{color:var(--danger)}
+  .row{display:flex;gap:8px;flex-wrap:wrap}
+  textarea{width:100%;min-height:260px;font:12px/1.4 ui-monospace,monospace;margin-top:12px}
+  #csp{min-height:130px}
+  #checkout-html{min-height:60px}
+  #checkout-box{margin-top:16px}
+  #checkout-box h3{margin:0 0 4px;font-size:15px}
+  details.csp{margin-top:16px}
+  details.csp summary,details.keys summary{cursor:pointer;font-weight:600}
+  details.keys{margin-top:16px}
+  .import-row{margin-top:12px}
+  .fields-editor{grid-column:1/-1;display:grid;gap:8px}
+  .fields-editor .hint{margin:0}
+  .field-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr) 90px auto auto;gap:8px;align-items:center}
+  .field-row label.check{grid-column:auto}
+  @media (max-width:640px){.field-row{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}}
+  .warn{margin:12px 0 0;padding:10px 14px;border-left:3px solid #d97706;border-radius:0 8px 8px 0;background:var(--warn-bg);color:var(--warn-text);font-size:13px}
+  [hidden]{display:none!important}
+  #toast{position:fixed;right:16px;bottom:16px;max-width:360px;padding:12px 16px;border-radius:8px;color:#fff;background:var(--ok);box-shadow:0 4px 16px #0002}
+  #toast.error{background:var(--danger)}
+  .empty{color:var(--muted);padding:12px 10px}
+  .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+  .settings-grid form{display:grid;gap:10px;margin:0;padding:0;border:0;align-content:start}
+  .settings-grid h3{margin:0;font-size:15px}
+  .settings-grid .hint,.settings-grid p{margin:0}
+  .settings-grid a{color:var(--accent)}
+  button.danger-btn{background:transparent;border-color:var(--danger);color:var(--danger)}
+  .form-note{grid-column:1/-1;margin:0}
+  .stats-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .stats-head h2{flex:1;margin:0}
+  .segmented{display:inline-flex;background:var(--bg);border-radius:8px;padding:3px}
+  .segmented button{border:0;background:none;padding:5px 12px;font-size:13px;color:var(--muted)}
+  .segmented button[aria-pressed=true]{background:var(--card);color:var(--text);box-shadow:0 1px 3px #0001}
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+  .tile{border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .tile .label{font-size:13px;color:var(--muted)}
+  .tile .value{font-size:24px;font-weight:600;font-variant-numeric:tabular-nums}
+  td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+  .stats-note{margin:12px 0 0}
+  #ab-results{margin-top:20px}
+  #ab-results h3{margin:0 0 4px;font-size:15px}
+  .ab-test{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px}
+  .ab-test .ab-head{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+  .ab-test .ab-head strong{flex:1}
+  #ab-form{margin-top:16px}
+  #stats-funnel{font:inherit;font-size:13px;padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:var(--input)}
+  #test-ready{margin-top:14px;display:grid;gap:10px}
+  #test-ready p{margin:0}
+  .test-link{max-width:640px}
+  .color-row{display:flex;gap:8px}
+  label.check{display:flex;gap:8px;align-items:center;color:var(--text);grid-column:1/-1}
+  .color-row input[type=color]{width:44px;padding:2px;height:38px}
+  .color-row input:not([type]){flex:1}
+  .msg-inline{color:var(--danger);margin:8px 0 0;min-height:1em;font-size:14px}
+  .button-link{text-decoration:none}
+  .other-view{display:none!important}
+  .stripe-hint{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<main>
+
+  <section id="blocked-card" hidden>
+    <h2>Účet je zablokovaný</h2>
+    <p>Tvoje funnely momentálne neprijímajú platby a úpravy nie sú dostupné. Kontaktuj podporu Neoworkly.</p>
+  </section>
+
+  <section id="access-card" hidden>
+    <h2>Funnely sú súčasťou predplatného Neoworkly</h2>
+    <div class="card-row">
+      <p>Aktivujte predplatné Neoworkly a môžete vytvárať funnely, predávať cez rezervácie aj digitálne produkty.</p>
+      <a class="button-link" href="/onboarding" target="_top"><button class="primary" type="button">Aktivovať predplatné</button></a>
+    </div>
+  </section>
+
+  <section id="legacy-card" hidden>
+    <h2>Predplatné Neoworkly Funnel (4 €)</h2>
+    <div class="card-row">
+      <p><span class="status" id="legacy-status"></span> Funnely sú teraz súčasťou Neoworkly. Pôvodné samostatné predplatné môžete ponechať, alebo ho zrušiť, ak máte predplatné Neoworkly.</p>
+      <button id="legacy-portal">Spravovať predplatné</button>
+    </div>
+  </section>
+
+  <section data-requires-active data-view="payments">
+    <h2>Stripe účet</h2>
+    <p class="hint">Platby zákazníkov z funnelov, rezervácií aj digitálnych produktov idú priamo na tvoj Stripe účet.
+      Stripe poplatky platíš Stripe. <span id="fee-text"></span></p>
+    <div class="card-row">
+      <p><span class="status" id="acct-status"></span> <span id="acct-text"></span></p>
+      <button class="primary" id="connect" hidden></button>
+    </div>
+    <div class="warn" id="keys-connected" hidden>
+      <p><strong>Prepojené vlastnými API kľúčmi (menej bezpečné).</strong> Odporúčame prepojenie cez Stripe Connect –
+        odpoj kľúče a klikni na „Prepojiť Stripe“.</p>
+      <button type="button" class="link danger" id="keys-disconnect">Odpojiť API kľúče</button>
+    </div>
+    <details class="keys" id="keys-box" hidden>
+      <summary>Alternatíva: prepojiť vlastnými API kľúčmi (menej bezpečné)</summary>
+      <p class="warn"><strong>Upozornenie: táto možnosť je menej bezpečná, odporúčame Stripe Connect.</strong>
+        Neoworkly si uloží tvoj tajný kľúč (šifrovane). Kto by ho získal, mal by prístup k tvojmu Stripe účtu.
+        Pri Connect sa žiadny tvoj kľúč nikam neukladá a prístup zrušíš jedným klikom v Stripe.
+        Ak kľúče predsa použiješ, vytvor v Stripe obmedzený kľúč (<code>rk_…</code>) iba s potrebnými oprávneniami
+        (zápis: Customers, PaymentIntents, Subscriptions, Products, Prices, Checkout Sessions, Payment Method Domains; čítanie: Invoices) a nikomu ho neposielaj.</p>
+      <form id="keys-form">
+        <label>Tajný kľúč (sk_… alebo rk_…)<input name="secretKey" required autocomplete="off" spellcheck="false"></label>
+        <label>Verejný kľúč (pk_…)<input name="publishableKey" required autocomplete="off" spellcheck="false"></label>
+        <label>Tvoje heslo do Neoworkly<input type="password" name="password" required autocomplete="current-password"></label>
+        <div class="form-actions"><button class="primary" type="submit">Prepojiť kľúčmi</button></div>
+        <p class="hint">Kľúče nájdeš v Stripe → Developers → API keys. Tajný aj verejný kľúč musia byť z rovnakého
+          režimu (oba live alebo oba test).</p>
+      </form>
+    </details>
+  </section>
+
+  <section data-requires-active data-view="payments" id="wallets-card" hidden>
+    <h2>Apple Pay a Google Pay</h2>
+    <p class="hint">Vo formulári na tvojom webe sa Apple Pay a Google Pay zobrazia, až keď je doména webu zaregistrovaná
+      v tvojom Stripe účte. Zadaj doménu, kde máš snippety (napr. <code>mojweb.sk</code>; pre <code>www.mojweb.sk</code>
+      zaregistruj aj ju). Zákazník ich uvidí iba v podporovanom prehliadači s kartou v peňaženke.
+      Na platobnej stránke Stripe fungujú aj bez registrácie.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Doména</th><th>Apple Pay</th><th>Google Pay</th></tr></thead>
+      <tbody id="wallet-domains"></tbody>
+    </table></div>
+    <form id="wallet-form">
+      <label>Doména webu<input name="domain" required placeholder="mojweb.sk" autocomplete="off" spellcheck="false"></label>
+      <div class="form-actions"><button class="primary" type="submit">Zaregistrovať doménu</button></div>
+    </form>
+  </section>
+
+  <section data-requires-active data-view="funnels" id="test-card" hidden>
+    <h2>Testovací režim</h2>
+    <p class="hint">Vyskúšaj celý funnel testovacími kartami Stripe (napr. 4242 4242 4242 4242) bez skutočných
+      platieb. Beží v samostatnom testovacom Stripe účte; testovacie nákupy sa nezapočítajú do štatistík.</p>
+    <div class="card-row">
+      <p><span class="status" id="test-status"></span> <span id="test-text"></span></p>
+      <button class="primary" id="test-connect" hidden></button>
+    </div>
+    <div id="test-ready" hidden>
+      <label class="test-link">Na svojej stránke so vstupným krokom pridaj do adresy:
+        <span class="color-row"><input id="test-param" readonly><button type="button" id="test-copy">Kopírovať</button></span>
+      </label>
+      <p class="hint">Testovací režim potom platí v celej relácii prehliadača (aj v ďalších krokoch).
+        Vypneš ho parametrom <code>?neoworkly_test=0</code>. Kľúč nikomu nedávaj – testovacie objednávky
+        majú v oznámení <code>[TEST]</code> a vo webhooku <code>"mode": "test"</code>; také nikdy nedoručuj.</p>
+      <p><button type="button" id="test-demo">Vyskúšať na demo stránke</button></p>
+    </div>
+  </section>
+
+  <section data-requires-active data-view="funnels" id="stats">
+    <div class="stats-head">
+      <h2>Štatistiky</h2>
+      <select id="stats-funnel" aria-label="Funnel"><option value="">Všetky funnely</option></select>
+      <div class="segmented" role="group" aria-label="Obdobie">
+        <button type="button" data-days="7">7 dní</button>
+        <button type="button" data-days="30" aria-pressed="true">30 dní</button>
+        <button type="button" data-days="90">90 dní</button>
+      </div>
+    </div>
+    <div class="tiles" id="stats-tiles"></div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Krok</th><th>Produkt</th><th class="num">Zobrazenia</th><th class="num">Nákupy / kontakty</th>
+        <th class="num">Odmietnutia</th><th class="num">Konverzia</th><th class="num">Tržby</th></tr></thead>
+      <tbody id="stats-rows"></tbody>
+    </table></div>
+    <p class="hint stats-note">Zobrazenie = prvé načítanie snippetu v relácii prehliadača. Konverzia = nákupy / zobrazenia.
+      Tržby = prvé platby (pri predplatnom bez ďalších mesiacov), pred poplatkami Stripe.</p>
+    <div id="ab-results" hidden>
+      <h3>A/B testy</h3>
+      <p class="hint">Výsledky od spustenia testu (nezávisle od zvoleného obdobia). Víťaza vyhlásime až pri
+        dostatku dát a 95 % štatistickej istote (dvojvýberový z-test konverzie).</p>
+      <div id="ab-list"></div>
+    </div>
+  </section>
+
+  <section data-requires-active data-view="funnels">
+    <h2>Funnely</h2>
+    <p class="hint">Pomenované skupiny krokov – napr. jeden funnel pre kurz a iný pre e-knihu. Slúžia na prehľad
+      a štatistiky; poradie krokov určujú URL „po prijatí/odmietnutí“.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>Názov</th><th class="num">Kroky</th><th></th></tr></thead>
+      <tbody id="funnels"></tbody>
+    </table></div>
+    <form id="funnel-form">
+      <label>ID (napr. kurz-jar)<input name="slug" required pattern="[a-z0-9-]{1,40}"></label>
+      <label>Názov<input name="funnelName" required maxlength="80"></label>
+      <div class="form-actions"><button class="primary" type="submit">Uložiť funnel</button></div>
+    </form>
+  </section>
+
+  <section data-requires-active data-view="funnels">
+    <h2>Produkty</h2>
+    <p class="hint">Jednorazový produkt je obyčajná platba. Opakovaný vytvorí Product + Price v tvojom Stripe účte
+      a pri nákupe samostatné predplatné zákazníka. Zmena ceny opakovaného produktu platí iba pre nových zákazníkov.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>Názov</th><th>Typ</th><th>Cena</th><th></th></tr></thead>
+      <tbody id="products"></tbody>
+    </table></div>
+    <div class="row import-row">
+      <button type="button" id="import-load">Načítať produkty zo Stripe</button>
+    </div>
+    <div id="import-box" hidden>
+      <p class="hint import-row">Aktívne ceny z tvojho Stripe účtu. Importovaný produkt zostane v Stripe
+        nezmenený – Neoworkly ho nepremenuje ani nearchivuje. <span id="import-skipped"></span></p>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Názov v Stripe</th><th>Typ</th><th>Cena</th><th></th></tr></thead>
+        <tbody id="import-list"></tbody>
+      </table></div>
+    </div>
+    <form id="product-form">
+      <label>ID (napr. pro-balik)<input name="slug" required pattern="[a-z0-9-]{1,40}"></label>
+      <label>Názov<input name="productName" required></label>
+      <label>Typ
+        <select name="type">
+          <option value="one_time">Jednorazový</option>
+          <option value="recurring">Opakovaný</option>
+        </select>
+      </label>
+      <label data-for="recurring">Interval
+        <select name="interval">
+          <option value="month">Mesačne</option>
+          <option value="year">Ročne</option>
+        </select>
+      </label>
+      <label>Mena<select name="currency"></select></label>
+      <label>Cena<input name="amount" required inputmode="decimal" placeholder="19,90"></label>
+      <div class="form-actions">
+        <button class="primary" type="submit">Pridať produkt</button>
+        <button type="button" data-cancel hidden>Zrušiť úpravu</button>
+      </div>
+    </form>
+  </section>
+
+  <section data-requires-active data-view="funnels">
+    <h2>Kroky funnela (snippety)</h2>
+    <p class="hint">Každý krok = jeden snippet na stránke tvojho webu. Funnel začína krokom „Vstupný produkt“ –
+      zákazník v ňom zadá e-mail a kartu, ktorá sa uloží. „Chcem / Nechcem pridať“ (upsell, downsell) potom platí
+      uloženou kartou jedným klikom. URL sú stránky tvojho webu, kam sa ide ďalej.
+      Ponúk (upsell/downsell) môže byť <strong>ľubovoľne veľa</strong>: pre každú pridaj krok typu Ponuka, vlož jeho
+      snippet na vlastnú stránku a tú nastav ako „URL po prijatí“ alebo „URL po odmietnutí“ predchádzajúceho kroku.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>ID</th><th>Funnel</th><th>Typ</th><th>Produkt</th><th>Po prijatí</th><th>Po odmietnutí</th><th></th></tr></thead>
+      <tbody id="steps"></tbody>
+    </table></div>
+    <form id="step-form">
+      <label>ID kroku (napr. upsell-2)<input name="slug" required pattern="[a-z0-9-]{1,40}"></label>
+      <label>Typ
+        <select name="kind">
+          <option value="entry">Vstupný produkt (e-mail + karta)</option>
+          <option value="offer">Chcem / Nechcem pridať</option>
+          <option value="lead">Zadarmo za kontakt (e-mail za produkt alebo lead magnet)</option>
+        </select>
+      </label>
+      <label data-for="entry offer">Produkt<select name="productId"></select></label>
+      <label>Funnel<select name="funnelId"><option value="">— bez funnela —</option></select></label>
+      <label data-for="entry">Max. počet kusov<input name="maxQuantity" type="number" min="1" max="100" value="1"></label>
+      <label>URL po prijatí<input name="onAccept" required placeholder="https://tvoj-web.sk/upsell"></label>
+      <label data-for="offer">URL po odmietnutí<input name="onDecline" placeholder="https://tvoj-web.sk/downsell"></label>
+      <label>Nadpis (nepovinné)<input name="stepTitle" maxlength="120" placeholder="predvolene názov a cena produktu"></label>
+      <label data-for="entry lead">Text tlačidla<input name="buttonText" maxlength="120" placeholder="Pokračovať"></label>
+      <label data-for="lead">Poslať digitálny produkt zadarmo
+        <select name="leadProductId"><option value="">— nič —</option></select></label>
+      <label data-for="lead">Poslať lead magnet
+        <select name="leadMagnetId"><option value="">— nič —</option></select></label>
+      <label data-for="lead">Uložiť kontakt do (widget)
+        <select name="leadWidgetId"><option value="">— podľa lead magnetu / prvý widget —</option></select></label>
+      <label data-for="lead" class="check"><input type="checkbox" name="askName"> Pýtať aj meno</label>
+      <label data-for="lead" class="check"><input type="checkbox" name="marketing"> Ponúknuť súhlas s posielaním noviniek</label>
+      <label data-for="lead">Text súhlasu s novinkami (nepovinné)<input name="marketingText" maxlength="200"
+        placeholder="Chcem dostávať novinky a tipy e-mailom (odhlásiť sa dá kedykoľvek)."></label>
+      <p class="hint form-note" data-for="lead">Zákazník zadá e-mail (a súhlas so spracovaním údajov), dostane vybraný
+        produkt alebo lead magnet e-mailom a kontakt sa uloží do Kontaktov. Stripe na tento krok netreba. Digitálne
+        produkty a lead magnety spravuješ v hlavnom dashboarde Neoworkly.</p>
+      <label data-for="offer">Text „áno“<input name="yesText" maxlength="120" placeholder="Chcem pridať"></label>
+      <label data-for="offer">Text „nie“<input name="noText" maxlength="120" placeholder="Nechcem pridať"></label>
+      <label data-for="offer">Ak príde priamo (nie cez funnel), predať
+        <select name="directProductId"><option value="">— nič, iba ponuka vo funneli —</option></select></label>
+      <label data-for="offer" class="check"><input type="checkbox" name="directShipping"> Pri priamom predaji pýtať
+        adresu doručenia</label>
+      <p class="hint form-note" data-for="offer">Priamy predaj: kto otvorí stránku ponuky bez nákupu vo funneli (zdieľaný
+        odkaz, Google…), uvidí namiesto „Chcem pridať“ tlačidlo „Kúpiť za …“ s týmto produktom (napr. za plnú cenu)
+        a zaplatí na stránke Stripe. Zákazníci z funnela majú ďalej cenu ponuky jedným klikom.</p>
+      <label data-for="entry" class="check"><input type="checkbox" name="shipping"> Pýtať adresu doručenia
+        (platí pre celý nákup vrátane upsellov)</label>
+      <div class="fields-editor" data-for="entry offer">
+        <strong>Voľné polia (napr. venovanie)</strong>
+        <p class="hint">Zákazník ich vyplní pred platbou. Hodnoty uvidíš pri platbe v Stripe, v e-maile o objednávke
+          aj vo webhooku. Najviac 5 na krok. Po pridaní polí alebo adresy vlož snippet kroku na web znova.</p>
+        <div id="field-rows"></div>
+        <div><button type="button" id="field-add">+ Pridať pole</button></div>
+      </div>
+      <div class="form-actions">
+        <button class="primary" type="submit">Uložiť krok</button>
+        <button type="button" data-cancel hidden>Zrušiť úpravu</button>
+      </div>
+    </form>
+    <form id="ab-form" hidden>
+      <h3 class="form-note">A/B test kroku <code id="ab-step"></code></h3>
+      <p class="hint form-note">Variant A je krok tak, ako je nastavený. Vo variante B vyplň iba to, čo sa má líšiť.
+        Uloženie spustí test odznova (výsledky sa počítajú od uloženia).</p>
+      <label>Podiel návštevníkov pre B (%)<input name="split" type="number" min="1" max="99" value="50" required></label>
+      <label>Produkt vo variante B<select name="abProduct"><option value="">rovnaký ako A</option></select></label>
+      <label>Nadpis B<input name="abTitle" maxlength="120"></label>
+      <label data-ab-for="entry">Text tlačidla B<input name="abButtonText" maxlength="120"></label>
+      <label data-ab-for="offer">Text „áno“ B<input name="abYesText" maxlength="120"></label>
+      <label data-ab-for="offer">Text „nie“ B<input name="abNoText" maxlength="120"></label>
+      <div class="form-actions">
+        <button class="primary" type="submit">Spustiť / uložiť test</button>
+        <button type="button" id="ab-stop" class="danger-btn">Ukončiť test (ponechať A)</button>
+        <button type="button" id="ab-close">Zavrieť</button>
+      </div>
+    </form>
+  </section>
+
+  <section data-requires-active data-view="funnels">
+    <h2>Oznámenia o objednávkach</h2>
+    <p class="hint">Pri každom nákupe ti pošleme e-mail. Webhook pošle objednávku do tvojho systému
+      (Zapier, Make, e-shop…), aby si mohol automaticky doručiť produkt.</p>
+    <form id="notify-form">
+      <label class="check"><input type="checkbox" name="email"> Posielať e-mail pri každej objednávke</label>
+      <label>URL webhooku (nepovinné)<input name="webhookUrl" type="url" placeholder="https://hooks.zapier.com/..."></label>
+      <label data-webhook>Tajomstvo na overenie podpisu
+        <span class="color-row"><input name="webhookSecret" readonly><button type="button" id="secret-rotate">Vymeniť</button></span>
+      </label>
+      <div class="form-actions">
+        <button class="primary" type="submit">Uložiť oznámenia</button>
+        <button type="button" id="webhook-test" data-webhook>Poslať skúšobnú objednávku</button>
+      </div>
+      <p class="hint form-note" data-webhook>Každá požiadavka má hlavičku <code>Neoworkly-Signature: t=…,v1=…</code>
+        (HMAC-SHA256 z <code>t.telo</code> s tajomstvom) – over ju, aby si prijímal iba objednávky od Neoworkly.</p>
+    </form>
+  </section>
+
+  <section data-requires-active data-view="funnels">
+    <h2>Vzhľad snippetov</h2>
+    <p class="hint">Platí pre všetky kroky a prejaví sa hneď – snippety netreba vkladať znova.
+      Farbu textu na tlačidle (čierna/biela) zvolíme automaticky kvôli čitateľnosti.</p>
+    <form id="appearance-form">
+      <label>Farba tlačidiel
+        <span class="color-row"><input type="color" name="colorPicker" aria-label="Výber farby"><input name="color" pattern="#[0-9a-fA-F]{6}" required></span>
+      </label>
+      <label>Tvoje obchodné podmienky (URL)<input name="termsUrl" placeholder="https://tvoj-web.sk/podmienky"></label>
+      <label>Tvoja ochrana osobných údajov (URL)<input name="privacyUrl" placeholder="https://tvoj-web.sk/gdpr"></label>
+      <label>Vlastné CSS (nepovinné)
+        <textarea name="customCss" spellcheck="false" placeholder=".nw-box { border-radius: 20px; }&#10;.nw-offer .nw-yes { font-size: 18px; }"></textarea>
+      </label>
+      <p class="hint">Upraví vstupný formulár (<code>.nw-box</code>) aj ponuky (<code>.nw-offer</code>) na všetkých
+        krokoch. Pole na kartu je od Stripe a CSS ho zvnútra nezmení.</p>
+      <label>Text, keď predaj nebeží (nepovinné)<input name="pausedText" maxlength="200"
+        placeholder="nevyplnené = formulár a ponuky sa na webe skryjú"></label>
+      <label>Náhradná stránka pre odkaz na platbu (nepovinné)<input name="pausedUrl"
+        placeholder="https://tvoj-web.sk/coskoro"></label>
+      <p class="hint form-note">Keď predaj nebeží (skončené predplatné, nedokončený Stripe účet), zákazník neuvidí chybu:
+        snippety sa skryjú alebo ukážu tvoj text a odkaz na platobnú stránku Stripe ho pošle na náhradnú stránku.
+        Nastav to vopred – bez aktívneho predplatného je dashboard zamknutý.</p>
+      <div class="form-actions"><button class="primary" type="submit">Uložiť vzhľad</button></div>
+      <p class="hint form-note">Odkazy sa zobrazia pod vstupným formulárom – zbieraš tam e-mail zákazníka, takže ich
+        podľa GDPR potrebuješ.</p>
+    </form>
+    <h3>CSS ti vygeneruje AI</h3>
+    <p class="hint">Skopíruj prompt do ChatGPT, Claude, Gemini alebo iného AI, na začiatku doplň opis svojho webu
+      a vrátené CSS vlož do poľa „Vlastné CSS“ vyššie.</p>
+    <textarea id="css-prompt" readonly></textarea>
+    <div class="row"><button type="button" id="css-prompt-copy">Kopírovať prompt pre AI</button></div>
+  </section>
+
+  <section data-requires-active data-view="funnels">
+    <h2>Snippet na vloženie</h2>
+    <p class="hint">Snippet vygeneruješ tlačidlom „Snippet“ v tabuľke krokov. Skopíruj ho a vlož na príslušnú
+      stránku (napr. pred <code>&lt;/body&gt;</code>). Vyžaduje prepojený Stripe účet.</p>
+    <div id="snippet-box" hidden>
+      <textarea id="snippet" readonly></textarea>
+      <div class="row"><button class="primary" id="copy">Kopírovať</button></div>
+      <div id="checkout-box" hidden>
+        <h3>Alebo platba na stránke Stripe</h3>
+        <p class="hint">Namiesto formulára môžeš na webe dať iba tlačidlo s týmto odkazom. Zákazník zaplatí na stránke
+          Stripe (karta, Apple Pay, Google Pay) a Stripe ho vráti na „URL po prijatí“, kde už ďalšie ponuky platí jedným
+          klikom. Na tej stránke musí byť snippet ponuky. Testovací režim: na koniec odkazu pridaj
+          <code>?neoworkly_test=</code> a testovací kľúč. Stránka Stripe podporuje najviac 3 voľné polia
+          (každé najviac 255 znakov).</p>
+        <label class="test-link">Odkaz na platbu<span class="color-row"><input id="checkout-url" readonly>
+          <button type="button" id="copy-checkout">Kopírovať</button></span></label>
+        <label>Tlačidlo (HTML)<textarea id="checkout-html" readonly></textarea></label>
+      </div>
+      <details class="csp">
+        <summary>Máš na webe Content Security Policy (CSP)?</summary>
+        <p class="hint">Pridaj do nej tieto zdroje (k existujúcim direktívam), inak prehliadač snippet zablokuje.
+          Hashe platia pre presne tento snippet – keď vložíš nový snippet, CSP aktualizuj.</p>
+        <textarea id="csp" readonly></textarea>
+        <div class="row"><button type="button" id="copy-csp">Kopírovať CSP</button></div>
+      </details>
+    </div>
+  </section>
+
+</main>
+<div id="toast" hidden></div>
+
+<script src="/funnels/assets/dashboard.js"></script>
+</body>
+</html>

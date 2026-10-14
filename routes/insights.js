@@ -16,6 +16,64 @@ function periodStart(days) {
   return Math.floor(Date.now() / 1000) - days * 86400;
 }
 
+/* GET /api/insights/:widgetId/overview — dashboard home: traffic, success rate, gaps, setup checklist */
+router.get('/:widgetId/overview', (req, res) => {
+  if (!ownsWidget(req.params.widgetId, req.userId)) {
+    return res.status(404).json({ error: 'Widget nenájdený.' });
+  }
+  const db = getDb();
+  const wid = req.params.widgetId;
+  const now = Math.floor(Date.now() / 1000);
+  const dayStart = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return Math.floor(d / 1000); })();
+  const since30 = now - 30 * 86400;
+
+  const userMsgs = since => db.prepare(
+    `SELECT COUNT(*) AS cnt FROM messages m JOIN conversations c ON c.id = m.conversation_id
+     WHERE c.widget_id = ? AND m.role = 'user' AND m.created_at >= ?`
+  ).get(wid, since).cnt;
+  const unanswered = since => db.prepare(
+    'SELECT COUNT(*) AS cnt FROM unanswered_questions WHERE widget_id = ? AND created_at >= ?'
+  ).get(wid, since).cnt;
+
+  const messagesToday = userMsgs(dayStart);
+  const messages30 = userMsgs(since30);
+  const unanswered30 = unanswered(since30);
+
+  // Unanswered per day, last 30 days (oldest first, zero-filled)
+  const perDay = {};
+  for (const r of db.prepare('SELECT created_at FROM unanswered_questions WHERE widget_id = ? AND created_at >= ?').all(wid, since30)) {
+    const key = new Date(r.created_at * 1000).toISOString().slice(0, 10);
+    perDay[key] = (perDay[key] || 0) + 1;
+  }
+  const chart = [];
+  for (let i = 29; i >= 0; i--) {
+    const key = new Date((now - i * 86400) * 1000).toISOString().slice(0, 10);
+    chart.push({ date: key, count: perDay[key] || 0 });
+  }
+
+  const widget = db.prepare('SELECT allowed_domains FROM widgets WHERE id = ?').get(wid);
+  const sources = db.prepare('SELECT COUNT(*) AS cnt FROM knowledge_items WHERE widget_id = ?').get(wid).cnt;
+  const anyConversation = !!db.prepare('SELECT 1 FROM conversations WHERE widget_id = ? LIMIT 1').get(wid);
+
+  res.json({
+    messages_today: messagesToday,
+    messages_30d: messages30,
+    unanswered_30d: unanswered30,
+    success_rate: messages30 ? Math.max(0, Math.round((1 - unanswered30 / messages30) * 100)) : null,
+    sources,
+    chart,
+    recent_unanswered: db.prepare(
+      'SELECT id, question, created_at FROM unanswered_questions WHERE widget_id = ? ORDER BY created_at DESC LIMIT 5'
+    ).all(wid),
+    checklist: {
+      created: true,
+      source_added: sources > 0,
+      domains_set: !!(widget?.allowed_domains || '').trim(),
+      live: anyConversation,
+    },
+  });
+});
+
 /* GET /api/insights/:widgetId?days=30 */
 router.get('/:widgetId', (req, res) => {
   if (!ownsWidget(req.params.widgetId, req.userId)) {

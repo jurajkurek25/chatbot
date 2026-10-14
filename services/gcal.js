@@ -11,6 +11,8 @@ try { google = require('googleapis').google; } catch { google = null; }
 const { getDb } = require('../db/database');
 const crypto = require('crypto');
 
+const { zonedToUtc } = require('./bookingCore');
+
 const CLIENT_ID     = process.env.GOOGLE_CLIENT_ID;
 const CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const REDIRECT_URI  = process.env.GOOGLE_REDIRECT_URI ||
@@ -30,25 +32,32 @@ function createClient(tokens) {
   return oauth2;
 }
 
-/* ── State token (signed, carries widgetId) ────────────────────── */
-function getAuthUrl(widgetId) {
+/* ── State token (HMAC-signed, carries widgetId + staffId) ───────
+   Each staff member connects their own Google Calendar. The state is signed so a
+   forged callback can't attach someone else's calendar to a staff member. */
+const stateSecret = () => process.env.JWT_SECRET || 'changeme';
+const sign = s => crypto.createHmac('sha256', stateSecret()).update(s).digest('base64url');
+
+function getAuthUrl(widgetId, staffId) {
   const oauth2 = createClient();
-  const state = Buffer.from(JSON.stringify({ widgetId, ts: Date.now() })).toString('base64url');
-  return oauth2.generateAuthUrl({ access_type: 'offline', scope: SCOPES, prompt: 'consent', state });
+  const payload = Buffer.from(JSON.stringify({ widgetId, staffId, ts: Date.now() })).toString('base64url');
+  return oauth2.generateAuthUrl({ access_type: 'offline', scope: SCOPES, prompt: 'consent', state: `${payload}.${sign(payload)}` });
 }
 
 function verifyState(state) {
   try {
-    const { widgetId, ts } = JSON.parse(Buffer.from(state, 'base64url').toString());
+    const [payload, sig] = String(state).split('.');
+    if (!sig || sig !== sign(payload)) throw new Error('bad signature');
+    const { widgetId, staffId, ts } = JSON.parse(Buffer.from(payload, 'base64url').toString());
     if (Date.now() - ts > 10 * 60 * 1000) throw new Error('State expired');
-    return widgetId;
+    return { widgetId, staffId };
   } catch {
     throw new Error('Invalid OAuth state');
   }
 }
 
 /* ── Token exchange & storage ──────────────────────────────────── */
-async function exchangeCode(cfg, code) {
+async function exchangeCode(staff, code) {
   const oauth2 = createClient();
   const { tokens } = await oauth2.getToken(code);
 
@@ -62,7 +71,7 @@ async function exchangeCode(cfg, code) {
   } catch { /* email optional */ }
 
   getDb().prepare(`
-    UPDATE booking_configs SET
+    UPDATE booking_staff SET
       gcal_access_token  = ?,
       gcal_refresh_token = ?,
       gcal_token_expiry  = ?,
@@ -73,13 +82,13 @@ async function exchangeCode(cfg, code) {
     tokens.refresh_token || null,
     tokens.expiry_date || null,
     email,
-    cfg.id
+    staff.id
   );
 }
 
 /* ── Get a live, refreshed OAuth2 client ──────────────────────── */
 async function getAuthedClient(cfg) {
-  if (!cfg.gcal_access_token) throw new Error('No GCal tokens for this widget');
+  if (!cfg.gcal_access_token) throw new Error('No GCal tokens for this staff member');
   let tokens;
   try { tokens = JSON.parse(cfg.gcal_access_token); } catch { throw new Error('Invalid token JSON'); }
 
@@ -89,7 +98,7 @@ async function getAuthedClient(cfg) {
   if (tokens.expiry_date && Date.now() > tokens.expiry_date - 60_000) {
     const { credentials } = await oauth2.refreshAccessToken();
     getDb().prepare(`
-      UPDATE booking_configs SET
+      UPDATE booking_staff SET
         gcal_access_token = ?, gcal_token_expiry = ?
       WHERE id = ?
     `).run(JSON.stringify(credentials), credentials.expiry_date || null, cfg.id);
@@ -102,7 +111,7 @@ async function getAuthedClient(cfg) {
 
 /**
  * Create a Google Calendar event for a booking.
- * @param {object} cfg     - booking_configs row
+ * @param {object} cfg     - booking_staff row + { timezone } of its booking config
  * @param {object} booking - bookings row
  */
 async function createEvent(cfg, booking) {
@@ -116,8 +125,9 @@ async function createEvent(cfg, booking) {
     const endIso   = `${booking.date}T${booking.end_time}:00`;
 
     const event = {
-      summary:     `Rezervácia: ${booking.customer_name}`,
-      description: booking.notes || '',
+      summary:     `${booking.service_name ? booking.service_name + ' – ' : 'Rezervácia: '}${booking.customer_name}`,
+      description: [booking.customer_phone && `Tel: ${booking.customer_phone}`, booking.notes].filter(Boolean).join('\n'),
+      location:    booking.location_detail || undefined,
       start:       { dateTime: startIso, timeZone: cfg.timezone },
       end:         { dateTime: endIso,   timeZone: cfg.timezone },
       attendees:   [{ email: booking.customer_email, displayName: booking.customer_name }],
@@ -174,8 +184,8 @@ async function getBusyTimes(cfg, dateStr) {
     // Fetch all events that touch the given date
     const resp = await calendar.events.list({
       calendarId:   cfg.gcal_calendar_id || 'primary',
-      timeMin:      new Date(`${dateStr}T00:00:00`).toISOString(),
-      timeMax:      new Date(`${dateStr}T23:59:59`).toISOString(),
+      timeMin:      new Date(zonedToUtc(dateStr, '00:00', cfg.timezone) * 1000).toISOString(),
+      timeMax:      new Date(zonedToUtc(dateStr, '23:59', cfg.timezone) * 1000 + 59000).toISOString(),
       singleEvents: true,
       orderBy:      'startTime',
     });
