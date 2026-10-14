@@ -19,7 +19,7 @@ const cssFromPackages = {
 };
 
 // Aplikácie s množstvom súborov majú vlastný priečinok; Excalidraw ide ako ES modul s rozdelením (jazyky sa načítajú až pri potrebe)
-const OWN = { 'board-editor.jsx': { dir: 'board', esm: true }, 'sheet-editor.js': { dir: 'sheet', esm: true }, 'graphic-editor.js': { dir: 'graphic', esm: true } };
+const OWN = { 'board-editor.jsx': { dir: 'board', esm: true }, 'sheet-editor.js': { dir: 'sheet', esm: true }, 'graphic-editor.js': { dir: 'graphic', esm: true }, 'pdf-tool.js': { dir: 'pdf', esm: true } };
 const common = {
   bundle: true, minify: true, target: ['es2020'],
   loader: { '.js': 'jsx', '.woff': 'file', '.woff2': 'file', '.ttf': 'file', '.png': 'file', '.svg': 'file' },
@@ -48,6 +48,8 @@ async function build() {
     outputs.push((await esbuild.build({ ...common, ...opts, entryPoints: [path.join(SRC, f)], outdir: path.join(OUT, dir) })).metafile.outputs);
   }
   if (files.includes('board-editor.jsx')) copyExcalidrawFonts();
+  // pdf.js vykresľuje strany v samostatnom vlákne
+  if (files.includes('pdf-tool.js')) fs.copyFileSync(path.join(path.dirname(require.resolve('pdfjs-dist/package.json')), 'build', 'pdf.worker.min.mjs'), path.join(OUT, 'pdf', 'pdf.worker.min.mjs'));
   for (const [file, info] of outputs.flatMap(o => Object.entries(o))) {
     if (/\.(js|css)$/.test(file) && !/chunks\//.test(file)) console.log(`${path.relative(process.cwd(), file)}  ${(info.bytes / 1024).toFixed(0)} KiB`);
   }

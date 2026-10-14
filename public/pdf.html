@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>PDF nástroje – Neoworkly</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; background: #0d0d18; color: #eeeef5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    button, input, select { font: inherit; }
+    .bar { position: sticky; top: 0; z-index: 10; display: flex; gap: .5rem; align-items: center; flex-wrap: wrap; padding: .55rem 1rem; background: #080810; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .bar a.back { color: #9b8cff; text-decoration: none; font-weight: 700; font-size: .9rem; }
+    .bar h1 { font-size: 1.05rem; margin: 0 .6rem 0 .3rem; }
+    .sp { flex: 1; }
+    button { background: #18182a; color: #eeeef5; border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: .42rem .75rem; font-size: .82rem; font-weight: 600; cursor: pointer; }
+    button:hover:not(:disabled) { border-color: rgba(155,140,255,.5); }
+    button:disabled { opacity: .4; cursor: default; }
+    button.primary { background: #5b4fff; border-color: #5b4fff; color: #fff; }
+    .tb { display: flex; gap: .4rem; align-items: center; flex-wrap: wrap; padding: .55rem 1rem; background: #111120; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .tb .sep { width: 1px; height: 22px; background: rgba(255,255,255,.1); margin: 0 .2rem; }
+    .tb label { display: inline-flex; gap: .35rem; align-items: center; font-size: .82rem; color: #c4c4dc; }
+    .tb input[type=text], .tb select { background: #0d0d18; color: #eeeef5; border: 1px solid rgba(255,255,255,.1); border-radius: 7px; padding: .35rem .5rem; font-size: .82rem; }
+    #count { font-size: .8rem; color: #9898b8; }
+    #empty { max-width: 560px; margin: 4rem auto; text-align: center; color: #9898b8; border: 2px dashed rgba(255,255,255,.12); border-radius: 16px; padding: 2.5rem 1.5rem; }
+    #empty h2 { color: #eeeef5; margin: .2rem 0 .5rem; }
+    #grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 1rem; padding: 1.2rem; }
+    .pg { background: #111120; border: 2px solid transparent; border-radius: 12px; padding: .5rem; cursor: pointer; user-select: none; }
+    .pg.sel { border-color: #9b8cff; background: rgba(91,79,255,.12); }
+    .pg.over { box-shadow: -4px 0 0 #9b8cff; } .pg.drag { opacity: .4; }
+    .pg .img { height: 220px; display: flex; align-items: center; justify-content: center; }
+    .pg img { max-width: 100%; max-height: 210px; box-shadow: 0 2px 10px rgba(0,0,0,.5); background: #fff; transition: transform .2s; }
+    .pg .cap { display: flex; align-items: center; gap: .3rem; margin-top: .4rem; font-size: .78rem; color: #9898b8; }
+    .pg .cap span { font-weight: 700; color: #eeeef5; }
+    .pg .cap em { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-style: normal; }
+    .pg .cap button { padding: .1rem .4rem; margin-left: auto; } .pg .cap button + button { margin-left: 0; }
+    #modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 50; align-items: center; justify-content: center; padding: 1rem; }
+    .mbox { background: #18182a; border: 1px solid rgba(255,255,255,.1); border-radius: 14px; padding: 1rem; width: min(620px, 100%); max-height: 90vh; overflow: auto; }
+    .mbox.wide { width: auto; max-width: 96vw; text-align: center; } .mbox canvas { max-width: 100%; background: #fff; }
+    .mhead { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: .7rem; }
+    .crumbs { font-size: .82rem; margin-bottom: .6rem; } .crumbs a { color: #9b8cff; text-decoration: none; }
+    .list { display: flex; flex-direction: column; gap: .3rem; } .list button { text-align: left; }
+    #pad { width: 100%; background: #fff; border-radius: 10px; touch-action: none; cursor: crosshair; }
+    .row { display: flex; gap: .5rem; justify-content: flex-end; margin-top: .6rem; }
+    .hint { font-size: .82rem; color: #9898b8; }
+    #busy { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 60; align-items: center; justify-content: center; }
+    #busy span { background: #18182a; border: 1px solid rgba(155,140,255,.4); padding: .8rem 1.2rem; border-radius: 12px; }
+    #toast { display: none; position: fixed; bottom: 1.2rem; left: 50%; transform: translateX(-50%); background: #18182a; border: 1px solid rgba(155,140,255,.4); color: #eeeef5; padding: .6rem 1rem; border-radius: 10px; font-size: .86rem; z-index: 70; }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a class="back" href="/dashboard?view=drive">← Disk</a><h1>📑 PDF nástroje</h1>
+    <button id="openDrive" class="primary">💾 Pridať PDF z Disku</button><button id="openFile">⬆ Z počítača</button><input type="file" id="file" accept="application/pdf,.pdf" multiple hidden>
+    <span class="sp"></span><span id="count"></span>
+    <button id="dl" class="need">⬇ Stiahnuť PDF</button><button id="save" class="need primary write">💾 Uložiť na Disk</button>
+  </div>
+  <div class="tb">
+    <button id="selAll" class="need" title="Klik = vybrať, Shift = rozsah, Ctrl = pridať">☑ Vybrať všetko</button>
+    <button id="rotSel" class="needsel">↻ Otočiť vybrané</button><button id="delSel" class="needsel">✕ Odstrániť vybrané</button><button id="reverse" class="need">⇅ Opačné poradie</button>
+    <span class="sep"></span>
+    <button id="extract" class="needsel">📤 Vybrané strany ako nové PDF</button><button id="split" class="need">✂ Rozdeliť</button>
+    <span class="sep"></span>
+    <label><input type="checkbox" id="optNumbers"> Čísla strán</label>
+    <label>Vodoznak <input type="text" id="optWm" placeholder="napr. KONCEPT" size="12"></label>
+    <span class="sep"></span>
+    <button id="sign" class="need">✍ Podpis</button><span id="sigState" class="hint">bez podpisu</span>
+    <select id="sigWhere" title="Kam vložiť podpis"><option value="last">na poslednú stranu</option><option value="sel">na vybrané strany</option><option value="all">na všetky strany</option></select>
+    <span class="sp"></span><button id="clear" class="need">Zavrieť</button>
+  </div>
+  <div id="empty"><div style="font-size:2.4rem">📑</div><h2>Spájajte, delte a upravujte PDF</h2>
+    <p>Pridajte jedno alebo viac PDF z Disku či z počítača (môžete ich sem aj pretiahnuť). Strany presúvajte myšou, otáčajte, mažte, pridajte čísla strán, vodoznak alebo podpis.</p>
+    <p class="hint">Všetko sa spracuje vo vašom prehliadači. Výsledok si stiahnete alebo uložíte na Disk.</p></div>
+  <div id="grid"></div>
+  <div id="modal"></div><div id="busy"><span>Pracujem…</span></div><div id="toast"></div>
+  <script type="module" src="/apps/pdf/pdf-tool.js?v=1"></script>
+</body>
+</html>
