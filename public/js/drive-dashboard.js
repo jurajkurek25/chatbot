@@ -286,7 +286,12 @@
         <button class="btn btn-sm btn-secondary" id="u-kb-go" ${t.widgets.length ? '' : 'disabled'}>Do znalostí chatbota</button></div>
       <div style="${muted};margin-top:0.3rem">Súbor sa skopíruje – zmeny na Disku sa do modulu neprenesú.</div>
       ${/pdf$/i.test(it.mime || '') || /\.pdf$/i.test(it.name) ? `<a class="btn btn-sm btn-secondary" style="margin-top:0.5rem;display:inline-block" href="/pdf${q({ file: it.id, name: it.name, parent: parent || '' })}">📑 Upraviť v PDF nástrojoch (spojiť, rozdeliť, podpísať)</a>` : ''}
-      ${/^video\//i.test(it.mime || '') ? `<a class="btn btn-sm btn-secondary" style="margin-top:0.5rem;display:inline-block" href="/video${q({ file: it.id, name: it.name, parent: parent || '' })}">🎬 Upraviť vo Video štúdiu (strih, titulok, formát)</a>` : ''}`;
+      ${/^video\//i.test(it.mime || '') ? `<a class="btn btn-sm btn-secondary" style="margin-top:0.5rem;display:inline-block" href="/video${q({ file: it.id, name: it.name, parent: parent || '' })}">🎬 Upraviť vo Video štúdiu (strih, titulok, formát)</a>` : ''}
+      ${/\.docx$/i.test(it.name) ? '<button class="btn btn-sm btn-secondary" id="u-docx" style="margin-top:0.5rem">📄 Otvoriť ako upraviteľný dokument (tímová spolupráca)</button>' : ''}`;
+    if (el.querySelector('#u-docx')) el.querySelector('#u-docx').onclick = async () => {
+      const d = await call(`/api/docs${q()}`, json('POST', { title: it.name.replace(/\.docx$/i, ''), folderId: parent }));
+      if (d) location.href = `${d.url}&importDrive=${encodeURIComponent(it.id)}`;
+    };
     el.querySelector('#u-prod-go').onclick = () => {
       const [productId, lessonId] = el.querySelector('#u-prod').value.split('|');
       call(`${D}/items/${it.id}/to-product${q()}`, json('POST', { productId, lessonId }), 'Pridané do produktu.');

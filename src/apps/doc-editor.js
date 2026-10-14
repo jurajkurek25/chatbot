@@ -35,7 +35,8 @@ const theme = {
 
 async function api(method, path, body) {
   const r = await fetch(`${path}${path.includes('?') ? '&' : '?'}ws=${encodeURIComponent(ws)}`, {
-    method, headers: { Authorization: `Bearer ${token}`, ...(body ? { 'Content-Type': 'application/json' } : {}) }, body: body ? JSON.stringify(body) : undefined,
+    method, headers: { Authorization: `Bearer ${token}`, ...(body && !(body instanceof FormData) ? { 'Content-Type': 'application/json' } : {}) },
+    body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
   });
   if (r.status === 401) { location.href = '/'; throw new Error('401'); }
   const d = await r.json().catch(() => ({}));
@@ -52,6 +53,17 @@ function download(name, type, content) {
   a.download = name;
   a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/** Word → bloky BlockNote (nahradí obsah alebo pridá na koniec). */
+async function importDocx(editor, bufferPromise, silent) {
+  try {
+    const { fromDocx } = await import('./lib/docx-io.js');
+    const blocks = await editor.tryParseHTMLToBlocks(await fromDocx(await bufferPromise));
+    const empty = editor.document.length <= 1 && !(editor.document[0]?.content || []).length;
+    if (empty || (!silent && confirm('Nahradiť obsah dokumentu? (Zrušiť = pridať na koniec)'))) editor.replaceBlocks(editor.document, blocks);
+    else editor.insertBlocks(blocks, editor.document[editor.document.length - 1], 'after');
+  } catch (e) { alert(`Import zlyhal: ${e.message}`); }
 }
 
 function Editor({ meta, ydoc, provider }) {
@@ -75,8 +87,31 @@ function Editor({ meta, ydoc, provider }) {
         if (b.dataset.export === 'md') download(`${safe}.md`, 'text/markdown', await editor.blocksToMarkdownLossy());
         if (b.dataset.export === 'html') download(`${safe}.html`, 'text/html', `<!DOCTYPE html><html lang="sk"><head><meta charset="UTF-8"><title>${safe}</title></head><body>${await editor.blocksToFullHTML()}</body></html>`);
         if (b.dataset.export === 'pdf') window.print();
+        if (b.dataset.export === 'docx' || b.dataset.export === 'docx-drive') {
+          const { toDocx } = await import('./lib/docx-io.js');
+          const blob = await toDocx(meta.title, editor.document);
+          if (b.dataset.export === 'docx') download(`${safe}.docx`, blob.type, blob);
+          else {
+            const fd = new FormData();
+            fd.append('files', new File([blob], `${safe}.docx`, { type: blob.type }));
+            await api('POST', `/api/drive/files${meta.folderId ? `?parentId=${encodeURIComponent(meta.folderId)}` : ''}`, fd).then(() => alert('Súbor .docx uložený na Disk.')).catch(e => alert(e.message));
+          }
+        }
+        if (b.dataset.export === 'import-docx') {
+          const inp = document.createElement('input');
+          inp.type = 'file';
+          inp.accept = '.docx';
+          inp.onchange = () => inp.files[0] && importDocx(editor, inp.files[0].arrayBuffer());
+          inp.click();
+        }
       };
     });
+    // Otvorené z Disku ako nový dokument: /docs/:id?importDrive=<súbor .docx>
+    const fromDrive = new URLSearchParams(location.search).get('importDrive');
+    if (fromDrive && meta.role !== 'readonly') {
+      history.replaceState(null, '', location.pathname + `?ws=${encodeURIComponent(ws)}`);
+      api('GET', `/api/drive/items/${encodeURIComponent(fromDrive)}/url`).then(u => fetch(u.url)).then(r => importDocx(editor, r.arrayBuffer(), true)).catch(e => alert(e.message));
+    }
   }, [editor]);
 
   return <BlockNoteView editor={editor} editable={meta.role !== 'readonly'} theme={theme} />;

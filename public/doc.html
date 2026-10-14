@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="robots" content="noindex">
   <title>Dokument – Neoworkly</title>
-  <link rel="stylesheet" href="/apps/doc-editor.css?v=1">
+  <link rel="stylesheet" href="/apps/doc/doc-editor.css?v=2">
   <style>
     :root { color-scheme: dark; }
     body { margin: 0; background: #0d0d18; color: #eeeef5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
@@ -38,8 +38,11 @@
     <button data-export="md">Markdown (.md)</button>
     <button data-export="html">HTML (.html)</button>
     <button data-export="pdf">PDF (tlač)</button>
+    <button data-export="docx">Word (.docx – aj WordCraft)</button>
+    <button data-export="docx-drive">💾 Uložiť .docx na Disk</button>
+    <button data-export="import-docx">📥 Importovať Word (.docx)</button>
   </div>
   <div class="wrap"><div id="editor"><p class="msg">Načítavam dokument…</p></div></div>
-  <script src="/apps/doc-editor.js?v=1"></script>
+  <script type="module" src="/apps/doc/doc-editor.js?v=2"></script>
 </body>
 </html>

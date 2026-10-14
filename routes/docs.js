@@ -33,7 +33,8 @@ function own(req, res, next) {
 
 router.get('/:id', own, (req, res) => {
   const me = getDb().prepare('SELECT name FROM users WHERE id = ?').get(req.userId);
-  res.json({ ...docs.docView(req.doc), role: req.role, ownerId: req.ownerId, room: docs.docName(req.ownerId, req.doc.id), me: { id: req.userId, name: me?.name || '' },
+  const item = drive.getItem(req.ownerId, req.doc.drive_item_id);
+  res.json({ ...docs.docView(req.doc), folderId: item?.parent_id || null, role: req.role, ownerId: req.ownerId, room: docs.docName(req.ownerId, req.doc.id), me: { id: req.userId, name: me?.name || '' },
     related: links.related(req.ownerId, 'doc', req.doc.id) });
 });
 
