@@ -58,6 +58,9 @@
       <button class="nav-item" onclick="showView('chat')" id="nav-chat">
         <span class="nav-icon">💬</span> Chat <span id="nav-chat-badge" style="display:none;margin-left:auto;background:#5b4fff;color:#fff;border-radius:10px;font-size:0.7rem;padding:0 6px;font-weight:700"></span>
       </button>
+      <button class="nav-item" onclick="showView('mail')" id="nav-mail">
+        <span class="nav-icon">✉️</span> Pošta
+      </button>
       <button class="nav-item" onclick="showView('tasks')" id="nav-tasks">
         <span class="nav-icon">✅</span> Úlohy
       </button>
@@ -273,6 +276,7 @@
       </div>
 
       <!-- ── Tímová sada ─────────────────────────────── -->
+      <div id="view-mail" style="display:none"><div id="mail-body"></div></div>
       <div id="view-chat" style="display:none"><div id="chat-body"></div></div>
       <div id="view-tasks" style="display:none"><div id="tasks-body"></div></div>
       <div id="view-calendar" style="display:none"><div id="calendar-body"></div></div>
@@ -2313,6 +2317,7 @@
 <script src="/js/marketing-dashboard.js?v=1"></script>
 <script src="/js/suite-common.js?v=2"></script>
 <script src="/js/chat-dashboard.js?v=1"></script>
+<script src="/js/mail-dashboard.js?v=1"></script>
 <script src="/js/tasks-dashboard.js?v=2"></script>
 <script src="/js/notes-dashboard.js?v=1"></script>
 <script src="/js/docs-dashboard.js?v=2"></script>

@@ -91,6 +91,7 @@ app.use('/api/meet', require('./routes/meet'));
 app.use('/api/forms', require('./routes/forms'));
 app.use('/api/boards', require('./routes/boards'));
 app.use('/api/sheets', require('./routes/sheets'));
+app.use('/api/mail', require('./routes/mail'));
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);

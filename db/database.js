@@ -762,6 +762,30 @@ function initDatabase() {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    -- E-mailové schránky na vlastnom mail serveri (Stalwart) na doménach klientov; webmail v Neoworkly
+    CREATE TABLE IF NOT EXISTS mail_domains (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      domain TEXT NOT NULL UNIQUE,
+      status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','active')),
+      records TEXT NOT NULL DEFAULT '[]',
+      checks TEXT NOT NULL DEFAULT '{}',
+      verified_at INTEGER,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+    CREATE TABLE IF NOT EXISTS mailboxes (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      domain_id TEXT NOT NULL REFERENCES mail_domains(id) ON DELETE CASCADE,
+      address TEXT NOT NULL UNIQUE,
+      name TEXT NOT NULL DEFAULT '',
+      user_id TEXT,
+      secret TEXT NOT NULL,
+      quota_mb INTEGER NOT NULL DEFAULT 5120,
+      signature TEXT NOT NULL DEFAULT '',
+      created_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
     -- Formuláre (podľa HeyForm): polia a nastavenia v JSON, verejný odkaz /form/:token
     CREATE TABLE IF NOT EXISTS forms (
       id TEXT PRIMARY KEY,
