@@ -43,6 +43,7 @@ router.get('/search', workspace.middleware, (req, res) => {
   if (has('note')) add('note', db.prepare("SELECT id FROM notes WHERE owner_id = ? AND visibility = 'workspace' AND lower(content) LIKE ? ORDER BY updated_at DESC LIMIT 8").all(req.ownerId, like));
   if (has('doc')) add('doc', db.prepare('SELECT id FROM docs WHERE owner_id = ? AND (lower(title) LIKE ? OR lower(text) LIKE ?) ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like, like));
   if (has('board')) add('board', db.prepare('SELECT id FROM boards WHERE owner_id = ? AND (lower(title) LIKE ? OR lower(text) LIKE ?) ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like, like));
+  if (has('sheet')) add('sheet', db.prepare('SELECT id FROM sheets WHERE owner_id = ? AND (lower(title) LIKE ? OR lower(text) LIKE ?) ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like, like));
   if (has('design')) add('design', db.prepare('SELECT d.id FROM designs d JOIN drive_items i ON i.id = d.drive_item_id WHERE d.owner_id = ? AND i.trashed_at IS NULL AND lower(d.title) LIKE ? ORDER BY d.updated_at DESC LIMIT 8').all(req.ownerId, like));
   if (has('form')) add('form', db.prepare('SELECT id FROM forms WHERE owner_id = ? AND lower(title) LIKE ? ORDER BY updated_at DESC LIMIT 8').all(req.ownerId, like));
   if (has('event')) add('event', db.prepare('SELECT id FROM calendar_events WHERE owner_id = ? AND lower(title) LIKE ? ORDER BY start_at DESC LIMIT 8').all(req.ownerId, like));

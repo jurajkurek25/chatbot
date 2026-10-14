@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Tabuľka – Neoworkly</title>
+  <style>
+    :root { color-scheme: dark; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; background: #0d0d18; color: #eeeef5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    body { display: flex; flex-direction: column; }
+    button, select, input { font: inherit; }
+    .bar { display: flex; gap: .6rem; align-items: center; padding: .5rem 1rem; background: #080810; border-bottom: 1px solid rgba(255,255,255,.08); }
+    .bar a.back { color: #9b8cff; text-decoration: none; font-weight: 700; font-size: .9rem; white-space: nowrap; }
+    .bar #title { flex: 1; min-width: 0; max-width: 420px; background: transparent; border: 1px solid transparent; border-radius: 8px; color: #eeeef5; font-size: 1.05rem; font-weight: 700; padding: .35rem .5rem; }
+    .bar #title:hover:not(:disabled), .bar #title:focus { border-color: rgba(255,255,255,.14); outline: none; }
+    .sp { flex: 1; }
+    .status { font-size: .75rem; color: #7e7ea0; white-space: nowrap; }
+    .people { display: flex; gap: 2px; }
+    .people span { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border-radius: 50%; color: #fff; font-size: .7rem; font-weight: 700; border: 2px solid #080810; }
+    .btn { background: #5b4fff; color: #fff; border: 0; border-radius: 8px; padding: .42rem .8rem; font-size: .82rem; font-weight: 700; cursor: pointer; }
+    .tb { display: flex; gap: .25rem; align-items: center; flex-wrap: wrap; padding: .4rem .8rem; background: #111120; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .tb button, .tb select { background: #18182a; color: #eeeef5; border: 1px solid rgba(255,255,255,.08); border-radius: 7px; padding: .3rem .55rem; font-size: .82rem; cursor: pointer; min-width: 30px; }
+    .tb button.on { background: #5b4fff; border-color: #5b4fff; }
+    .tb button:disabled, .tb select:disabled { opacity: .45; cursor: default; }
+    .tb .sep { width: 1px; height: 22px; background: rgba(255,255,255,.1); margin: 0 .2rem; }
+    .tb label { display: inline-flex; align-items: center; gap: .2rem; font-size: .78rem; color: #9898b8; }
+    .tb input[type=color] { width: 26px; height: 24px; border: 0; padding: 0; background: none; cursor: pointer; }
+    .fx { display: flex; gap: .4rem; align-items: center; padding: .35rem .8rem; background: #0d0d18; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .fx #addr { width: 90px; background: #111120; color: #eeeef5; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; padding: .3rem .45rem; font-size: .82rem; text-align: center; }
+    .fx span { color: #9b8cff; font-style: italic; font-weight: 700; }
+    .fx #fx { flex: 1; background: #111120; color: #eeeef5; border: 1px solid rgba(255,255,255,.1); border-radius: 6px; padding: .3rem .55rem; font-family: ui-monospace, Menlo, monospace; font-size: .85rem; }
+    #gridWrap { flex: 1; min-height: 0; overflow: auto; background: #0d0d18; position: relative; }
+    #grid { border-collapse: collapse; table-layout: fixed; font-size: .85rem; user-select: none; }
+    #grid th { position: sticky; background: #18182a; color: #9898b8; font-weight: 600; font-size: .75rem; border: 1px solid rgba(255,255,255,.07); padding: 2px 4px; z-index: 2; }
+    #grid thead th { top: 0; z-index: 3; }
+    #grid tbody th { left: 0; text-align: center; }
+    #grid th.corner { left: 0; z-index: 4; }
+    #grid th.hl { background: #26264a; color: #eeeef5; }
+    #grid thead th { position: sticky; }
+    #grid th .rs { position: absolute; right: -3px; top: 0; bottom: 0; width: 6px; cursor: col-resize; z-index: 5; }
+    #grid td { border: 1px solid rgba(255,255,255,.07); height: 24px; padding: 0 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; background: #0f0f1c; color: #eeeef5; position: relative; }
+    #grid td.sel { background: rgba(91,79,255,.18) !important; }
+    #grid td.cur { outline: 2px solid #9b8cff; outline-offset: -2px; }
+    #grid td.peer::after { content: attr(data-peer); position: absolute; top: -1px; right: 0; font-size: .6rem; background: var(--peer); color: #fff; padding: 0 3px; border-radius: 0 0 0 4px; }
+    #grid tr.frozen td { position: sticky; top: 25px; z-index: 1; border-bottom: 2px solid #5b4fff; }
+    #grid td .editor { position: absolute; inset: 0; width: 100%; border: 2px solid #9b8cff; background: #0d0d18; color: #eeeef5; padding: 0 4px; font-size: .85rem; outline: none; }
+    .more { padding: .6rem; } .more button { background: #18182a; color: #c4c4dc; border: 1px solid rgba(255,255,255,.08); border-radius: 7px; padding: .3rem .6rem; cursor: pointer; font-size: .8rem; }
+    .foot { display: flex; align-items: center; gap: .5rem; background: #080810; border-top: 1px solid rgba(255,255,255,.08); padding: .25rem .6rem; }
+    #tabs { display: flex; gap: .2rem; overflow-x: auto; }
+    .tab { background: transparent; color: #9898b8; border: 1px solid transparent; border-radius: 6px; padding: .25rem .7rem; cursor: pointer; font-size: .82rem; white-space: nowrap; }
+    .tab.on { background: #18182a; color: #eeeef5; border-color: rgba(255,255,255,.1); }
+    .tab.add { font-weight: 700; }
+    #stats { margin-left: auto; font-size: .78rem; color: #9898b8; white-space: nowrap; }
+    .menu { position: absolute; right: 1rem; top: 3.1rem; background: #18182a; border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: .35rem; display: none; z-index: 30; min-width: 230px; }
+    .menu button { display: block; width: 100%; text-align: left; background: none; border: 0; color: #eeeef5; padding: .5rem .7rem; border-radius: 6px; font-size: .85rem; cursor: pointer; }
+    .menu button:hover { background: rgba(91,79,255,.18); }
+    .menu hr { border: 0; border-top: 1px solid rgba(255,255,255,.08); margin: .3rem 0; }
+    .msg { max-width: 520px; margin: 4rem auto; text-align: center; color: #9898b8; }
+    #toast { display: none; position: fixed; bottom: 2.6rem; left: 50%; transform: translateX(-50%); background: #18182a; border: 1px solid rgba(155,140,255,.4); color: #eeeef5; padding: .6rem 1rem; border-radius: 10px; font-size: .86rem; z-index: 60; }
+    @media print { .bar, .tb, .fx, .foot, .more { display: none !important; } body { background: #fff; } #gridWrap { overflow: visible; } #grid td { background: #fff !important; color: #000; border-color: #ccc; } #grid th { background: #eee; color: #333; } }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <a class="back" href="/dashboard?view=sheets">← Tabuľky</a>
+    <input id="title" placeholder="Tabuľka" maxlength="200" disabled>
+    <span class="sp"></span>
+    <span class="status" id="status">Pripájam…</span>
+    <span class="people" id="people"></span>
+    <button class="btn" id="fileBtn">Súbor ▾</button>
+  </div>
+  <div class="menu" id="menu">
+    <button data-act="xlsx">⬇ Stiahnuť .xlsx (Excel, GridCraft)</button>
+    <button data-act="csv">⬇ Stiahnuť .csv (aktuálny hárok)</button>
+    <button data-act="print">🖨 Tlačiť / PDF</button>
+    <hr>
+    <button data-act="drive">💾 Uložiť .xlsx na Disk</button>
+    <button data-act="import">📥 Importovať .xlsx / .csv (ako nový hárok)</button>
+  </div>
+  <div class="tb">
+    <button id="tbUndo" title="Späť (Ctrl+Z)">↶</button><button id="tbRedo" title="Znova (Ctrl+Y)">↷</button><span class="sep"></span>
+    <button id="tbB" title="Tučné (Ctrl+B)"><b>B</b></button><button id="tbI" title="Kurzíva (Ctrl+I)"><i>I</i></button><button id="tbU" title="Podčiarknuté (Ctrl+U)"><u>U</u></button><span class="sep"></span>
+    <button data-al="left" title="Vľavo">⇤</button><button data-al="center" title="Na stred">↔</button><button data-al="right" title="Vpravo">⇥</button><span class="sep"></span>
+    <label title="Farba textu">A<input type="color" id="tbFg" value="#eeeef5"></label><label title="Výplň">▇<input type="color" id="tbBg" value="#5b4fff"></label><button id="tbNoBg" title="Zrušiť farby">⌫</button><span class="sep"></span>
+    <select id="tbFmt" title="Formát čísla"><option value="general">Všeobecný</option><option value="number">Číslo</option><option value="currency">Mena €</option><option value="percent">Percentá</option><option value="date">Dátum</option></select>
+    <button id="tbDecDown" title="Menej desatinných miest">.0←</button><button id="tbDecUp" title="Viac desatinných miest">.00→</button><span class="sep"></span>
+    <button id="tbSum" title="Automatický súčet">Σ</button><button id="tbSortAsc" title="Zoradiť podľa stĺpca A→Z">A→Z</button><button id="tbSortDesc" title="Zoradiť Z→A">Z→A</button><button id="tbFreeze" title="Ukotviť prvý riadok (hlavičku)">📌</button><span class="sep"></span>
+    <button id="tbRowAdd" title="Vložiť riadok nad">+ riadok</button><button id="tbRowDel" title="Zmazať riadky výberu">− riadok</button><button id="tbColAdd" title="Vložiť stĺpec vľavo">+ stĺpec</button><button id="tbColDel" title="Zmazať stĺpce výberu">− stĺpec</button>
+  </div>
+  <div class="fx"><input id="addr" value="A1" title="Prejsť na bunku (napr. C12)"><span>fx</span><input id="fx" placeholder="Hodnota alebo vzorec, napr. =SUM(A1:A10)"></div>
+  <div id="gridWrap"><p class="msg">Načítavam tabuľku…</p></div>
+  <div class="foot"><div id="tabs"></div><span id="stats"></span></div>
+  <div id="toast"></div>
+  <script type="module" src="/apps/sheet/sheet-editor.js?v=1"></script>
+</body>
+</html>

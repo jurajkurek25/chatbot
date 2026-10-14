@@ -750,6 +750,18 @@ function initDatabase() {
       updated_at INTEGER NOT NULL DEFAULT (unixepoch())
     );
 
+    -- Tabuľky (vlastný ľahký editor): bunky sú Yjs dokument „sheet:<priestor>:<id>“, na Disku položka s odkazom
+    CREATE TABLE IF NOT EXISTS sheets (
+      id TEXT PRIMARY KEY,
+      owner_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      title TEXT NOT NULL DEFAULT 'Tabuľka',
+      drive_item_id TEXT,
+      text TEXT NOT NULL DEFAULT '',
+      created_by TEXT,
+      created_at INTEGER NOT NULL DEFAULT (unixepoch()),
+      updated_at INTEGER NOT NULL DEFAULT (unixepoch())
+    );
+
     -- Formuláre (podľa HeyForm): polia a nastavenia v JSON, verejný odkaz /form/:token
     CREATE TABLE IF NOT EXISTS forms (
       id TEXT PRIMARY KEY,

@@ -54,6 +54,7 @@
     "@mantine/core": "^9.7.2",
     "@mantine/hooks": "^9.7.2",
     "esbuild": "^0.25.12",
+    "exceljs": "^4.4.0",
     "fabric": "^7.4.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",

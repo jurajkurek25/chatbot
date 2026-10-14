@@ -90,6 +90,7 @@ app.use('/api/teamchat', require('./routes/teamchat'));
 app.use('/api/meet', require('./routes/meet'));
 app.use('/api/forms', require('./routes/forms'));
 app.use('/api/boards', require('./routes/boards'));
+app.use('/api/sheets', require('./routes/sheets'));
 app.use('/api/lead-magnets', leadMagnetsRoutes);
 app.use('/api/insights',    insightsRoutes);
 app.use('/api/facebook',    facebookRoutes);
@@ -145,6 +146,7 @@ app.get('/form/:token', (req, res) => {
 });
 app.get('/docs/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'doc.html')));
 app.get('/boards/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'board.html')));
+app.get('/sheets/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'sheet.html')));
 app.get('/graphics/:id', (req, res) => res.sendFile(path.join(__dirname, 'public', 'graphic.html')));
 app.get('/s/:token', (req, res) => {
   res.setHeader('Referrer-Policy', 'no-referrer');
